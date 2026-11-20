@@ -172,6 +172,25 @@ static struct { uint32_t stage; } felucca_dbg;
 #endif
 #include "../firmware/src/gfx.c"
 #include "../firmware/src/panel.c"
+/* (v1.5.20, issue #105) THE SCREEN READER IN THE UI TESTS TOO: announce.c where felucca.c includes it (before ui.c),
+ * with a capture of the SAY texts in place of usb.c's USB-MIDI wire, so ui_render --announce can read what the
+ * instrument would have said. Nothing else of the reader changes: the protocol itself is tests/announce_test.c. */
+#define FELUCCA_ANNOUNCE 1
+#define ANN_WIRE_LOG 16
+static char ann_wire_log[ANN_WIRE_LOG][64];
+static uint32_t ann_wire_log_n;
+static int ann_wire_send(const uint8_t *p, uint32_t n)
+{
+    uint32_t i;
+    if (ann_wire_log_n < ANN_WIRE_LOG && n > 6u && p[4] == 16u) {      /* SAY: keep its text */
+        for (i = 6u; i + 1u < n && i - 6u < 63u; i++)
+            ann_wire_log[ann_wire_log_n][i - 6u] = (char)p[i];
+        ann_wire_log[ann_wire_log_n][i - 6u] = 0;
+        ann_wire_log_n++;
+    }
+    return 0;
+}
+#include "../firmware/src/announce.c"
 #include "../firmware/src/ui.c"
 #include "../firmware/src/menu_items.c"
 #include "../firmware/src/icons.c"

@@ -310,6 +310,18 @@ if [ -f build/gen/felucca_tables.h ]; then
     # animates something (a fix that freezes the embers would pass the first two and fail this one).
     run "UI bands: a step of HOME's ambience / the MIXER's meters writes only the rows that changed AND leaves the frame a whole redraw leaves" \
         "$OUT/ui_render" --bands
+    # (v1.5.20) issue #106's first symptom, measured where it was: the HEADERS of HOME 2..5, drawn twice with one step
+    # of the clock between, in FLAT and LINE, with ANIM and with it off. A pixel that changes in the header band with
+    # no value changing is the flicker; the mode also moves the tempo on purpose, so a header that simply stopped
+    # repainting cannot pass (`--regions` B proves the same ink shares no pixel with T3/T4, `--bands` that the body
+    # writes only what changed).
+    run "UI headers: HOME 2..5 stand still in FLAT and LINE, with ANIM and without it, and the tempo still lands in the header" \
+        "$OUT/ui_render" --headers
+    # (v1.5.20, issue #105) what the instrument would SAY, through the real path (ui.c ann_ui -> announce.c): nothing
+    # with no reader, the page on HELLO, the row of MENU with its tab, name and value as the selection moves, its
+    # value once a turn settles, and WHERE answering with both. The voice is the reader's; this is the bytes.
+    run "Screen reader: silence without a reader, the page, the MENU row said and its value announced once it settles" \
+        "$OUT/ui_render" --announce
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
     # (FASE 5) and the pixels themselves against the tracked baseline: the lint above cannot see a glyph table, a
     # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.

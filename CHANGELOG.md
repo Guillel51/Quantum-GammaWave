@@ -1,3 +1,40 @@
+## v1.5.20 — la interfaz, medida: los encabezados de HOME, la fila de MENU dicha, y pruebas de UI para lo nuevo
+
+Fase 4: revisar la interfaz entera contra los defectos que el informe de la fase 2 dejó abiertos (#106), cerrar el
+pendiente de accesibilidad que la fase 3 documentó (#105) y dejar las dos cosas medidas por tests que corren con el
+firmware de verdad, no por funciones aisladas. Nada de esto es una medición de la FM-1 física: es host x86-64 (los
+bancos de `tests/`) y build AC791N para el tamaño.
+
+- **#106, el primer síntoma, medido donde estaba.** Nuevo `tests/ui_render --headers`: dibuja HOME 2/5 VISUALS,
+  3/5 OVERVIEW, 4/5 MIXER y 5/5 PERFORM dos veces con un paso del reloj entre medio, en **FLAT y LINE**, **con ANIM y
+  con ANIM OFF** — 16 combinaciones — y cuenta los píxeles que cambian dentro de la banda de la cabecera (filas
+  0..`H_HEAD`). Resultado: **0 px en las 16**. El encabezado ya no parpadea. El mismo modo mueve el tempo a propósito:
+  escribe **74 px, todos dentro de la cabecera y 0 fuera**, así que la cabecera responde y el tempo no invade nada.
+- **#106, los otros tres síntomas, re-verificados en el código actual** (no en la documentación): `--regions` A
+  (el pop-up del preset sobre el MIXER no deja un píxel fuera de su caja y el panel vuelve exacto al cerrarse), B (la
+  tinta del tempo no comparte un solo píxel con las almohadillas de T3/T4, en seis columnas y en LARGE) y C (un cambio
+  de pista con ALGORITHM escribe **872 px, todos en las dos columnas cuya selección cambia, 0 en el resto**, y el
+  frame que deja es idéntico a un redibujo entero). `--bands`: un paso del ambiente escribe **6 480 / 7 680 / 7 440 px**
+  según la página y deja el frame exacto; `--idle`: una escena quieta cuesta **109 056 px** (tope 120 000).
+- **#105, el pendiente cerrado: la fila de MENU se dice.** El accessor que faltaba existe (`menu_items.c`,
+  `menu_ann_row`): tab, nombre y valor de la fila (`DISPLAY COLOR QUANTUM`, `CONTROL ANIM OFF`, `AUDIO TRACKS 6 FULL`).
+  Al moverse la selección se anuncia **en el acto**; al girar su perilla, **una sola línea cuando el valor lleva
+  250 ms quieto** (no un mensaje por paso, que es lo que el protocolo pide); WHERE repite pantalla y fila.
+- **Y se prueba por el camino real.** `tests/ui_test.c` compila ahora `announce.c` donde `felucca.c` lo incluye (antes
+  de `ui.c`), con una captura en lugar del cable USB-MIDI; `tests/ui_render --announce` conduce `ann_ui` sobre el
+  firmware de verdad: silencio sin lector, HELLO → `HOME MAIN`, MENU → `MENU` + la fila, otra fila → dicha, perilla →
+  nada en el acto y la línea al asentarse, WHERE → las dos, cerrar MENU → `HOME MAIN`. **Pasa.**
+- **Costo**: la imagen AC791N pasa de 581 296 a **581 720 B** (1 892 B libres) y `.data+.bss` no crece. La
+  funcionalidad nueva es una línea de texto por evento: no hay píxeles nuevos, ni animación nueva, ni RAM de audio.
+- **Medido, no supuesto**: `ui_render` completo con el arnés nuevo — **191 pantallas × 22 paletas + el barrido de
+  páginas/valores: 0 hallazgos de lint, 74 lugares y **3 783 981 medidas de alineación, 0 fuera por 1 px**,
+  GREY y MONO limpios; y un paso del ambiente / de los medidores deja el frame exacto (`--bands`).
+
+Lo que **no** se hizo: no se añadió ninguna pantalla ni control nuevo (la petición era corregir y medir, y cada
+control nuevo cuesta píxeles y RAM que hoy no hay), y **no se probó con el lector físico de Charles Vestal ni con un
+lector de pantalla del sistema**: el banco comprueba los bytes y la secuencia, no la locución. La voz y la página son
+del lector.
+
 ## v1.5.19 — la biblioteca, medida y nivelada; tres sonidos nuevos
 
 Fase de presets. No se añadió motor ni parámetro: la tabla de ids sigue en 125 de 127 y un motor nuevo pide RAM de

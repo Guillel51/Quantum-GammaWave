@@ -1642,27 +1642,47 @@ static int32_t accel(uint32_t role, int32_t s, int32_t range)
 }
 
 #if FELUCCA_ANNOUNCE
-/* (FASE 3, issue #105) WHAT THE SCREEN SAYS, SAID. Three things, the ones the protocol's reader asks for and
- * this instrument can name without inventing anything: the screen when it changes (HOME's five, MENU, a
- * confirm, or the page's own title), the value of the card a knob is turning (once it has settled, ~120 ms,
+/* (FASE 3, issue #105) WHAT THE SCREEN SAYS, SAID. Four things: the screen when it changes (HOME's five, MENU, a
+ * confirm, or the page's own title), the row of MENU as the selection moves and its value when it settles
+ * (v1.5.20: menu_items.c's menu_ann_row), the value of the card a knob is turning (once it has settled, ~120 ms,
  * as the protocol wants for a knob), and every message the top bar shows (ui_say). Nothing is built while no
- * reader is listening: ann_on() is the first test in each path. What is not announced yet (a MENU row, the
- * knobs of a page other than HOME, a list selection) is written down in docs/ACCESSIBILITY.md. */
+ * reader is listening: ann_on() is the first test in each path. What is not announced yet (the knobs of a page
+ * other than HOME, a list selection, the editor's rows) is written down in docs/ACCESSIBILITY.md. */
+static void menu_ann_row(char *out, uint32_t n, uint32_t row);   /* menu_items.c, included after this file */
 static char ann_page_was[16];
+static char ann_row_was[48];
+static uint8_t ann_row_i = 0xFFu;              /* the row last said; 0xFF: none (the menu is not open) */
 static void ann_ui(void)
 {
     char b[48];
     const char *nm;
+    int where;
     if (!ann_on())
         return;
     ann_tick(fm1_ms);
+    where = ann_where();                        /* the reader's WHERE is answered once, by both lines below */
     nm = ui.menu ? "MENU" : ui.confirm ? "CONFIRM" : !ui.home ? cur_page()->title :
          ui.home_viz ? "VISUALS" :
          ui.home_view == HV_OVERVIEW ? "OVERVIEW" : ui.home_view == HV_MIX ? "MIXER" :
          ui.home_view == HV_PERF ? "PERFORMANCE" : "HOME MAIN";
-    if (ann_where() || !str_eq(ann_page_was, nm)) {
+    if (where || !str_eq(ann_page_was, nm)) {
         str_cpy(ann_page_was, nm, sizeof ann_page_was);
         ann_say(nm, 0, ANN_NOW);
+    }
+    if (ui.menu && !ui.confirm) {               /* (v1.5.20) the row: said at once when the selection moves, its
+                                                 * value once a turn has settled (the protocol's rule for a knob) */
+        menu_ann_row(b, sizeof b, ui.menu_sel);
+        if (where || ui.menu_sel != ann_row_i) {
+            ann_row_i = (uint8_t)ui.menu_sel;
+            str_cpy(ann_row_was, b, sizeof ann_row_was);
+            ann_say(b, 0, ANN_NOW);
+        } else if (!str_eq(ann_row_was, b)) {   /* the value moved under the same row */
+            str_cpy(ann_row_was, b, sizeof ann_row_was);
+            ann_later(b, ANN_NOW, 250u, fm1_ms);
+        }
+    } else {
+        ann_row_i = 0xFFu;
+        ann_row_was[0] = 0;
     }
     if (ui.hot_t && ui.home && !ui.menu && !ui.confirm && !ui.home_viz) {   /* the card's value, as its knob turns */
         int16_t *vp = 0;

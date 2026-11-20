@@ -199,6 +199,29 @@ static const char *menu_vname(uint32_t row, uint32_t v)
     }
     return "";
 }
+/* (v1.5.20, issue #105) THE ROW OF MENU, IN WORDS, for the screen reader: the tab, the row's name and the value it
+ * holds now -- "DISPLAY COLOR QUANTUM", "CONTROL ANIM OFF", "AUDIO TRACKS 6 FULL". A row whose value has no name
+ * (an action, ABOUT) is just its tab and name. This is the accessor docs/ACCESSIBILITY.md said was missing: both
+ * tables (MTAB_NAME, MI_NAME) and the current value (menu_get + menu_vname) in one place, so the announcer does not
+ * reach into the menu's internals. Text only; nothing here draws or changes anything. */
+static void menu_ann_row(char *out, uint32_t n, uint32_t row)
+{
+    const char *v;
+    if (!out || !n)
+        return;
+    out[0] = 0;
+    if (row >= MI_COUNT)
+        return;
+    str_cpy(out, MTAB_NAME[MI_TAB[row]], n);
+    str_cpy(out + str_len(out), " ", n - str_len(out));
+    str_cpy(out + str_len(out), MI_NAME[row], n - str_len(out));
+    v = menu_vname(row, menu_get(row));
+    if (v && *v) {
+        str_cpy(out + str_len(out), " ", n - str_len(out));
+        str_cpy(out + str_len(out), v, n - str_len(out));
+    }
+}
+
 /* set a row (v below menu_n(row)) and do what the menu does on a change: the palette, the EQ and USB LEVEL at once;
  * STYLE (ui_draw.c style_apply), LARGE, ANIM, LEDS, HOLD, the flags are read where they are used, every frame;
  * USB SERIAL when the menu has closed (usb_serial_apply). Saved by the caller (menu_close, the editor) */

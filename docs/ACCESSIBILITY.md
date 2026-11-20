@@ -32,12 +32,18 @@ siguiente; el protocolo lo permite y la lectura funciona sin él.
 - **El sonido cargado**: `ANALOG BRASS`, `FM6 TINE EP`, … al elegir preset (incluye el motor).
 - **Los mensajes de la barra superior** (guardados, avisos, errores); los que llevan el icono de "sin archivo"
   se mandan como aviso (KEEP) para que no los corte el mensaje siguiente.
-- **WHERE**: al abrirse el lector se reanuncia la pantalla actual.
+- **La fila de MENU, con su tab, su nombre y su valor** (v1.5.20): al moverse la selección, y su valor cuando el
+  giro se asienta (250 ms), una vez por giro y no por paso.
+- **WHERE**: al abrirse el lector se reanuncia la pantalla actual — y, con MENU abierto, también su fila.
 
 ## Lo que **no** se anuncia todavía (limitaciones reales)
 
-1. **Filas de MENU**: el nombre y el valor de la fila seleccionada no se dicen aún. El menú es una tabla con
-   sub-tabs (`menu_items.c`); falta un accessor estable por fila. Se anuncia `MENU`, no la fila.
+1. ~~**Filas de MENU**: el nombre y el valor de la fila seleccionada no se dicen aún.~~ **Hecho en v1.5.20**: el
+   accessor que faltaba existe (`menu_items.c`, `menu_ann_row`), y la fila se dice con su tab, su nombre y su valor
+   (`DISPLAY COLOR QUANTUM`, `CONTROL ANIM OFF`, `AUDIO TRACKS 6 FULL`). Al moverse la selección se dice en el acto;
+   al girar la perilla de la fila, una sola línea cuando el valor lleva 250 ms quieto (nunca un mensaje por paso).
+   WHERE la repite. `ui_render --announce` lo comprueba por el camino real (ann_ui → announce.c), no por la función
+   aislada.
 2. **Perillas de páginas que no son HOME**: solo HOME tiene el concepto de "tarjeta que se acaba de girar"
    (`ui.hot_t`/`ui.hot_col`). En EDIT/SEQ/FX el valor no se lee todavía.
 3. **Listas y selección de pasos**: sin anuncio por ítem.

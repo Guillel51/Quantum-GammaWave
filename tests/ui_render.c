@@ -2101,6 +2101,174 @@ static int regions_main(void)
  * frame the incremental draw leaves is the one a whole redraw makes, pixel for pixel. Animating is not disabled --
  * the step still changes pixels, they are just carried by the rows that hold them. */
 #define BANDS_LIMIT 9000u                              /* px a step may write (48 480 before: the whole body) */
+/* (v1.5.20, issue #106) THE HEADERS OF HOME 2..5, FRAME BY FRAME. The report's first symptom was a header cell that
+ * flickered with nothing changing, whatever the STYLE (FLAT / LINE) and with ANIM OFF. This is the measurement that
+ * says so or not: the same state drawn twice with one step of the clock between, in every combination, counting what
+ * the panel is asked to write and what actually changes inside the header band (0..H_HEAD). A pixel that changes
+ * there with no value changing IS the flicker, and the frame must also be the one a whole redraw leaves (no stale
+ * rows). A last case moves the tempo on purpose, so a header that simply never repaints cannot pass: its ink has to
+ * be inside the band, and the rest of the frame has to stay where it was. */
+static int headers_main(void)
+{
+    static const struct { const char *nm; int s; } SC[] = {{"HOME 2/5 VISUALS", S_HOME_VIZ},
+                                                          {"HOME 3/5 OVERVIEW", S_HOME_OVERVIEW},
+                                                          {"HOME 4/5 MIXER", S_HOME_MIX},
+                                                          {"HOME 5/5 PERFORM", S_HOME_PERF}};
+    reg_t hdr = rrect("la cabecera (0..H_HEAD)", 0, 0, 240, H_HEAD);
+    uint32_t k, st, an, bad = 0;
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    if (!rep)
+        return 1;
+    printf("headers: HOME 2..5 x STYLE x ANIM, un paso del reloj: px escritos y cambiados en la cabecera\n");
+    for (st = 0; st < 2u; st++)
+        for (an = 0; an < 2u; an++)
+            for (k = 0; k < 4u; k++) {
+                uint32_t written, changed;
+                state();
+                setup(SC[k].s);
+                pal(UI_QUANTUM_INDEX);
+                ui_style = (uint8_t)st;
+                style_apply();
+                if (an)
+                    ui_prefs &= ~(uint32_t)PREF_ANIM_OFF;
+                else
+                    ui_prefs |= PREF_ANIM_OFF;
+                rframe();                             /* the whole frame: the panel has it */
+                (void)rnext();                        /* .. and the row table built */
+                rsnap();
+                ui.frame += 8u;                       /* one step of the ambience, the clock too */
+                fm1_ms += 16u;
+                written = rnext();
+                changed = rdiff(&hdr);
+                printf("  %-17s %s %-4s  escritos %5u px (todo el frame), cabecera %3u px%s\n", SC[k].nm,
+                       st ? "LINE" : "FLAT", an ? "ANIM" : "OFF", written, changed,
+                       SC[k].s == S_HOME_VIZ ? "  (el campo del visualizador anima a proposito)" : "");
+                /* VISUALS is the screen whose field IS the animation: its body has no quiet frame on purpose, so
+                 * the write budget (FOR HOME 3..5) does not apply to it; its HEADER still has to stand still. */
+                if (changed || (SC[k].s != S_HOME_VIZ && written > BANDS_LIMIT)) {
+                    printf("  FALLA: %s\n", changed ? "la cabecera parpadea con nada cambiando"
+                                                  : "el frame reenvia el cuerpo entero de una pagina quieta");
+                    bad++;
+                }
+            }
+    {   /* the control: the tempo moves, so the header has to answer, and only inside its band */
+        uint32_t in, out = 0, x, y;
+        state();
+        setup(S_HOME_OVERVIEW);
+        pal(UI_QUANTUM_INDEX);
+        ui_style = 0;
+        style_apply();
+        ui_prefs &= ~(uint32_t)PREF_ANIM_OFF;
+        rframe();
+        (void)rnext();
+        rsnap();
+        song.g[G_BPM] = (int16_t)(song.g[G_BPM] > 60 ? song.g[G_BPM] - 1 : song.g[G_BPM] + 1);
+        (void)rnext();
+        in = rdiff(&hdr);
+        for (y = 0; y < 240u; y++)
+            for (x = 0; x < 240u; x++)
+                if (y >= H_HEAD && host_screen[y * 240u + x] != rref[y * 240u + x])
+                    out++;
+        printf("  control: el tempo cambia  cabecera %u px, fuera de la cabecera %u px\n", in, out);
+        if (!in || out) {
+            printf("  FALLA: %s\n", !in ? "la cabecera no responde al tempo (no se repinta)"
+                                          : "el tempo escribe fuera de la cabecera");
+            bad++;
+        }
+    }
+    printf("headers: %s\n", bad ? "FAILED" : "ningun encabezado cambia un pixel con la pantalla quieta, en FLAT y LINE, con ANIM y sin el");
+    return bad ? 1 : 0;
+}
+
+/* (v1.5.20, issue #105) WHAT THE INSTRUMENT WOULD SAY (ui.c ann_ui, through announce.c's real framing). The capture
+ * is tests/ui_test.c's ann_wire_send: the SAY texts, in the order they would go out. The checks are the whole path a
+ * reader depends on: silence with nobody listening; HELLO answered and the screen said; the row of MENU said as the
+ * selection moves, with the tab, the name and the value; a turn of its knob said once it settles (never per step);
+ * and WHERE answering with the page and the row again. The reader itself (the voice, the page) is not here: this is
+ * the bytes, host x86-64. */
+static int ann_said(const char *t, uint32_t from)
+{
+    uint32_t i;
+    for (i = from; i < ann_wire_log_n; i++)
+        if (!strcmp(ann_wire_log[i], t))
+            return 1;
+    return 0;
+}
+static void ann_flush(void)
+{
+    ui.force = 1;
+    gfx_forget();
+    ui_draw();
+    ui.force = 0;
+}
+static int announce_main(void)
+{
+    uint8_t f[5] = {0x7D, 0x53, 0x52, 1, 1};
+    uint32_t n0, bad = 0;
+    char want[48];
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    if (!rep)
+        return 1;
+    printf("announce: lo que el instrumento diria, por el camino real (ann_ui -> announce.c)\n");
+    state();
+    setup(S_HOME);
+    pal(UI_QUANTUM_INDEX);
+    ann_wire_log_n = 0;
+    ann_flush();
+    printf("  sin lector: %u lineas\n", ann_wire_log_n);
+    if (ann_wire_log_n) {
+        printf("  FALLA: habla sin que nadie escuche\n");
+        bad++;
+    }
+    (void)ann_frame(f, sizeof f, fm1_ms);          /* HELLO: a reader arrives */
+    n0 = ann_wire_log_n;
+    ann_flush();
+    printf("  HELLO y primer cuadro: %s\n", ann_said("HOME MAIN", n0) ? "la pantalla, dicha" : "NADA");
+    if (!ann_said("HOME MAIN", n0)) bad++;
+    ui.menu = 1;                                    /* MENU, the first row: DISPLAY COLOR <name> */
+    ui.menu_sel = MI_COLOR;
+    n0 = ann_wire_log_n;
+    ann_flush();
+    {
+        menu_ann_row(want, sizeof want, MI_COLOR);
+        printf("  MENU: dice \"%s\" (%s)\n", want,
+               ann_said(want, n0) && ann_said("MENU", n0) ? "pagina y fila" : "NO");
+        if (!ann_said(want, n0) || !ann_said("MENU", n0) || !strstr(want, "DISPLAY COLOR ")) bad++;
+    }
+    ui.menu_sel = MI_ANIM;                          /* the selection moves: said at once */
+    n0 = ann_wire_log_n;
+    ann_flush();
+    menu_ann_row(want, sizeof want, MI_ANIM);
+    printf("  otra fila: \"%s\" (%s)\n", want, ann_said(want, n0) ? "dicha" : "NO");
+    if (!ann_said(want, n0)) bad++;
+    {   /* the knob: nothing per step, one line once it settles */
+        uint32_t before = ann_wire_log_n, was = menu_get(MI_ANIM);
+        menu_put(MI_ANIM, was ^ 1u);
+        ann_flush();
+        printf("  anim cambiada: %u lineas en el acto (0 = espera a que pare)\n", ann_wire_log_n - before);
+        if (ann_wire_log_n != before) bad++;
+        ann_tick(fm1_ms + 400u);
+        menu_ann_row(want, sizeof want, MI_ANIM);
+        printf("  .. y al asentarse: \"%s\" (%s)\n", want, ann_said(want, before) ? "dicha" : "NO");
+        if (!ann_said(want, before)) bad++;
+        menu_put(MI_ANIM, was);
+    }
+    f[3] = 3;                                       /* WHERE: page and row again, with the value back as it was */
+    (void)ann_frame(f, sizeof f, fm1_ms);
+    n0 = ann_wire_log_n;
+    menu_ann_row(want, sizeof want, MI_ANIM);
+    ann_flush();
+    printf("  WHERE: %s\n", ann_said("MENU", n0) && ann_said(want, n0) ? "pagina y fila otra vez" : "NADA");
+    if (!ann_said("MENU", n0) || !ann_said(want, n0)) bad++;
+    ui.menu = 0;
+    n0 = ann_wire_log_n;
+    ann_flush();
+    printf("  al cerrar MENU: %s\n", ann_said("HOME MAIN", n0) ? "vuelve a HOME MAIN" : "NADA");
+    if (!ann_said("HOME MAIN", n0)) bad++;
+    printf("announce: %s\n", bad ? "FAILED" : "lo que se dice es lo que la pantalla tiene, y nada sin lector");
+    return bad ? 1 : 0;
+}
+
 static int bands_main(void)
 {
     static const struct { const char *nm; int s; } SC[] = {{"HOME 2/5 OVERVIEW", S_HOME_OVERVIEW},
@@ -2162,6 +2330,10 @@ int main(int argc, char **argv)
         return idle_main();
     if (argc > 1 && !strcmp(argv[1], "--bands"))
         return bands_main();
+    if (argc > 1 && !strcmp(argv[1], "--headers"))
+        return headers_main();
+    if (argc > 1 && !strcmp(argv[1], "--announce"))
+        return announce_main();
     static const char *const SHOW[] = {"GREY", "MONO", "GREEN", "PAPER", "NIGHT", "THERMAL", "GAMMA", "WRAITH", "QUANTUM"};   /* (NIGHT: #50, to review) */
     /* QG_DUMP=<screen>[,<palette>]: render one screen into /tmp/qg_dump.ppm for a visual review.
      * It is the same draw() the suite measures, so what it shows is what the panel gets; the
