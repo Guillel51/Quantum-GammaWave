@@ -232,6 +232,13 @@ static void lg_hook(const char *s, int why);
 #define LARGE_HOOK(s, why) lg_hook(s, why)
 #define UI_TEST_NO_MAIN 1
 #define PF_MS 900u                                       /* (0.6.61) the page name drawn (ui_test.c: off) */
+/* (v1.5.11) THE GOLDEN PIXELS DO NOT DEPEND ON THE DAY THE SUITE RAN. ABOUT prints the firmware's build
+ * date (__DATE__, ui_menu.c), so a suite that crosses midnight found 32 changed frames -- the about page in
+ * every palette -- and failed on a clock, not on a drawing. Pinned here, in the harness only: the device
+ * still shows the date it was built. */
+#undef __DATE__
+#define __DATE__ "Nov 19 2026"
+
 #include "ui_test.c"
 
 static uint8_t large_on;                         /* the LARGE pass: every scene with MENU > LARGE ON */

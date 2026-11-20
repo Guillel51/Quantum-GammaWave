@@ -19,6 +19,10 @@
   y drones: su RMS bajo es su carácter (un geiger contando chispas, una aurora que se abre en 30 ms de ataque) y
   subirlos más habría sido cambiar el sonido, no nivelarlo. Está documentado en
   `docs/PRESET_BALANCE.md` con la tabla completa antes/después.
+- **Un golden que dependía del calendario.** ABOUT imprime la fecha de compilación (`__DATE__`), así que una
+  corrida de la suite que cruzaba la medianoche encontraba 32 frames cambiados — la página about en cada
+  paleta — y fallaba por un reloj, no por un dibujo. `tests/ui_render.c` fija esa fecha **sólo en el harness**:
+  los píxeles de referencia dependen del dibujo, no del día; el dispositivo sigue mostrando su fecha real.
 - **Sin tocar:** motores, algoritmos, polifonía, FX, routing, UI y gates. Sólo datos de preset y la tabla de
   niveles. Goldens de audio regenerados por el cambio audible (63 renders) y verificados por la suite: 0 fallos
   de salud, 0 de voces, 0 presupuestos de CPU excedidos.
