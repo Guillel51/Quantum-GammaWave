@@ -534,8 +534,11 @@ static int keys_test(void)
                     ok = 0;
                 }
             /* P_LEVEL is the sound's own measured level (preset_level_of), not the preset's stale extra value */
-            if (t->p[P_LEVEL] != (int16_t)preset_level_of(eng, t->preset))
+            if (t->p[P_LEVEL] != (int16_t)preset_level_of(eng, t->preset)) {
+                printf("  %s: level %d, table %d (preset %u)\n", pr->name, t->p[P_LEVEL],
+                       (int)preset_level_of(eng, t->preset), (unsigned)t->preset);
                 ok = 0;
+            }
             if (eng == ENGI_FM6 && pr->e[7] > (int8_t)FM6_OWN &&
                 (fm6_slot[0] != (uint8_t)pr->e[7] || !patch_is(0, FM6_ROMBANK[pr->e[7] - FM6_OWN - 1]))) {
                 printf("  %s: not its GW-1 KEYS voice (slot %u)\n", pr->name, fm6_slot[0]);
@@ -556,16 +559,17 @@ static int keys_test(void)
             }
         }
     }
-    /* 169, not 118: the 6.0 remaster appended 51 sounds past the generator's pool (55 in all, 4 of them inside
-     * engines the generated pool already covered). It is still a guard, not a spec: the per-preset checks
+    /* 172, not 169: v1.5.19 appended three sounds past the 6.0 remaster's (AURORA DRIFT, ROTOR GLASS, TIDAL
+     * MIRROR), so the guard moves with them. 169, not 118: the 6.0 remaster appended 51 sounds past the generator's
+     * pool (55 in all, 4 of them inside engines the generated pool already covered). It is still a guard, not a spec: the per-preset checks
      * above (extra values, the FM6 voice, peak in range) cover every one of them, and this only catches one
      * sound arriving or leaving without anyone looking. The old comment, kept as it was written:
      * 118, not 94: the 1.2 / QG-1 additions and the later preset work grew the table and nobody moved this
      * guard with them. It is a guard, not a spec -- an accidental extra (or missing) preset still fails here,
      * and the per-preset checks above (extra values, the FM6 voice, peak in range) cover every one of them.
      * No name repeats among the 118. */
-    if (n12 != 169u) printf("  %u presets past the generator's\n", n12);
-    bad += check("the 1.2, QG-1 and 6.0 presets (169, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 169u);
+    if (n12 != 171u) printf("  %u presets past the generator's\n", n12);
+    bad += check("the 1.2, QG-1, 6.0 and 19 presets (171, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 171u);
     return bad;
 }
 
