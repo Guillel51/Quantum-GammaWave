@@ -208,7 +208,7 @@ pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC79
 
 | símbolo | bytes | qué es | ¿se puede recuperar? |
 |---|---:|---|---|
-| `WT_GEN` | 12 288 | banco de wavetables: 3 niveles de banda × 8 frames × 256 puntos × `int16` | sí, pero cambia el timbre (menos puntos o menos niveles). Necesita A/B de escucha |
+| `WT_GEN` | 6 192 | banco de wavetables: 3 niveles de banda × 8 frames × **media** onda (129 puntos, `int16`); la otra mitad es su negación al revés (`wt_pts`), porque cada frame es una suma de senos y es impar (v1.5.22) | ya recortado a la mitad en v1.5.22 (12 288 → 6 192 B, `docs/FASE1_OPTIMIZACION_v1.5.22.md`): lo que queda es la tabla, no grasa |
 | `trk` | 10 560 | las seis pistas (6 × 1 760: 64 pasos de 17 B + 672 de lo demás) | **no, medido y descartado (1.3.1.1)**: empaquetar `step_t` a 15 B devuelve 1 024 B de `.bss` pero cuesta ~4,4 KB de XIP (cada escritura a un bit-field es leer, enmascarar, o, escribir) y el enlace revienta `region XIP overflowed by 3776 bytes` |
 | `fm6_note` | 7 104 | 6 pistas × voces FM6 | auditar la estructura; mover constantes a XIP |
 | `drum_kit` | 5 376 | estado vivo de las 8 líneas por pista | no: es estado de voz |

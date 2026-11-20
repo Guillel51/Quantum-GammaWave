@@ -1,3 +1,29 @@
+## v1.5.22 — el wavetable guarda media tabla, y las palancas de flash que no pagan
+
+Fase 1 de recursos. Se buscó capacidad nueva **midiendo**, no repitiendo las búsquedas ya cerradas (compresión de
+assets, `-Os`, constantes fusionadas): la única palanca que paga es la simetría del banco del wavetable, y las de
+flash que aparecieron se descartaron con el número delante.
+
+- **`WT_GEN` guarda media onda por frame.** Cada frame es una suma de senos en fase 0, así que `w[256 − i] = −w[i]`:
+  el `.bss` pasa de **12 288 a 6 192 B** y `wt_pts()` lee la otra mitad al revés y negada, con un índice para los dos
+  frames de un MORPH. RAM `.data+.bss` **92 880 → 86 784 B**: libre **5 424 → 11 520 B (+112 %)**. Imagen
+  **581 720 → 581 816 B** (libre 1 892 → 1 796): el cambio cuesta **96 B** de flash y devuelve **6 096 B** de RAM.
+  `[AC791N]`, `nm` sobre el ELF.
+- **El coste, medido y aceptado con el número delante**: la tabla reconstruida difiere de la guardada en **≤ 2 LSB de
+  ±32 000** (3 246 de 6 144 valores, por el redondeo mitad-arriba del guardado); el render de WAVETABLE en dos presets,
+  tres notas y dos segundos difiere **|Δ| ≤ 22 sobre un pico de 98 448 (−73 dBFS)**; `tests/golden.txt` rebaseó **23
+  goldens** (los 23 de WAVETABLE) y los otros **283 no se movieron**; `tests/wavetable_test` mide **12 → 14 ns por
+  muestra y voz** (+17 % de ese motor, `[HOST]`). El presupuesto estático de destino no tiene línea para `wt_render` y
+  las demás no se movieron (`DRUM path 1 153/1 153`, `perf_block 253/254`); `tests/regress` CPU **PASS**.
+- **Descartado con medida, no por intuición**: `ld --icf=all` no existe en el toolchain (`unrecognized option`);
+  `-fno-inline-functions` da **−6 876 B** de imagen (8 768 libres) pero lleva el camino DRUM de **1 153 a 1 980** de
+  coste estático (**+72 %**, límite +10 %), así que no entra: los 10 KB recuperados son las copias inlineadas que
+  hacen rápido el audio; los **132** ids de icono se auditaron y los **10** que ninguna pantalla dibuja ya estaban sin
+  rasterizar (**0 B** que recuperar).
+- **Informe completo**: `docs/FASE1_OPTIMIZACION_v1.5.22.md`, con las dos tablas de medidas, el error de
+  implementación que el test cazó (espejar la fase en vez de la tabla) y qué queda bloqueado: **FM6_POLY 6 entra en
+  RAM pero no en flash** (3 268 B pedidos, 1 796 libres).
+
 ## v1.5.21 — el instalador desde V16, el mensaje que el informe citó, y el Web Studio que vuelve a ser el firmware
 
 Fase 5: cerrar lo que quedaba abierto del camino V16 y del ecosistema. Dos defectos **reproducidos y corregidos**

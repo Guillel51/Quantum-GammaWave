@@ -1937,7 +1937,7 @@ host: `tools/ram_flash_map.py` (nuevo, en la suite con `--dups --check`).
 | Qué | Resultado | Clase |
 |---|---|---|
 | Tablas de rodata duplicadas (mismo flash pagado dos veces) | **0 grupos** de 380 objetos `.rodata` + 300 `.data.rel.ro.local`; el chequeo queda como gate de la suite | `[HOST]` |
-| Mayores consumidores de RAM estática | `WT_GEN` 12 288 B (el wavetable generado en el arranque, que ahorra 12 KB de flash), `trk` 10 560 B, `fm6_note` 7 104 B (6 pistas × `FM6_POLY` 4 × 244 B), `drum_kit` 5 376 B, `rev_comb` 9 874 B | `[HOST]`, tamaños exactos para arrays de ancho fijo |
+| Mayores consumidores de RAM estática | `WT_GEN` **6 192 B** desde v1.5.22 (el wavetable generado en el arranque, media onda por frame: la otra mitad es su negación al revés; 12 288 B antes, `docs/FASE1_OPTIMIZACION_v1.5.22.md`), `trk` 10 560 B, `fm6_note` 7 104 B (6 pistas × `FM6_POLY` 4 × 244 B), `drum_kit` 5 376 B, `rev_comb` 9 874 B | `[HOST]` para el listado y `[AC791N]` (`nm`) para `WT_GEN`, que baja de 12 288 a 6 192 B en el build de v1.5.22: `.data+.bss` 92 880 → 86 784 B, libre 5 424 → 11 520 B |
 | Buffers de la piscina | `dly_buf` 131 072 B (1,49 s de delay), `cloud_buf` 32 768, `sl_buf` 32 768, `comb_buf` 6 144, `cho_buf`/`rpre_buf`/`shim_buf` 4 096 cada uno | `[HOST]` (`.pool`, región aparte de app.ld) |
 | Buffers sólo del emulador | `web_fb`, `nor`, `cv_buf`, `ring` aparecen en el listado porque la unidad de traducción es la del emulador: **no son RAM del aparato** | `[HOST]` |
 

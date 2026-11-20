@@ -35,7 +35,12 @@ static const char *const N_WT_UNI[] = {"1 VOICE", "2 VOICES"};
  * (FASE 6) the third limit (5 harmonics, every note above ~1.4 kHz) is built the same way: another
  * 4 096 B of .bss for the last 4 096 B of stored wave, so the whole wavetable is now 2 048 B of flash.
  * The stored table it replaces came out bit for bit identical (verified against the old WT_L5 before the
- * switch), so no render changed. */
+ * switch), so no render changed.
+ * (FASE 1 de v1.5.22) each frame is a sum of sines of the cycle's harmonic, phase 0, so w[WT_POINTS - i] =
+ * -w[i] holds: the .bss keeps one half cycle per frame (WT_PTS_H = 129 points) and wt_pts() reads the
+ * second half backwards and negated. 6 096 B of .bss given back to the RAM budget (12 288 -> 6 192).
+ * The round-half-up of the stored table left the two halves a LSB apart at some points; the wave now has
+ * the exact odd symmetry its construction implies (measured: 1 LSB of +-32 000, 0.003 % of full scale). */
 static uint8_t wt_ready;
 
 /* a frame's point before its peak: the sum of that frame's sines (tools/gen_tables.py), Q15 */
@@ -56,18 +61,19 @@ static void wt_gen_init(void)
     uint32_t l, f, i;
     if (wt_ready)
         return;
-    for (l = 0; l < 3u; l++) {
+    for (l = 0; l < WT_LEVELS; l++) {
         uint32_t lim = l == 0u ? 64u : l == 1u ? 16u : 5u;
         for (f = 0; f < WT_FRAMES; f++) {
             int32_t pk = 0;
-            int16_t *dst = WT_GEN + (l * WT_FRAMES + f) * WT_POINTS;
-            for (i = 0; i < WT_POINTS; i++) {
+            int16_t *dst = WT_HALF(l) + f * WT_PTS_H;
+            for (i = 0; i < WT_PTS_H; i++) {           /* |w[WT_POINTS - i]| = |w[i]|: the half cycle holds
+                                                        * the peak of the whole one */
                 int32_t v = wt_raw(f, lim, i);
                 if (v > pk) pk = v;
                 else if (-v > pk) pk = -v;
             }
             if (!pk) pk = 1;
-            for (i = 0; i < WT_POINTS; i++)                /* every frame normalised to the same peak: a morph
+            for (i = 0; i < WT_PTS_H; i++)                 /* every frame normalised to the same peak: a morph
                                                             * keeps its level, as the stored ones did */
                 dst[i] = (int16_t)(((int64_t)wt_raw(f, lim, i) * 32000 + pk / 2) / pk);
         }
@@ -75,12 +81,24 @@ static void wt_gen_init(void)
     wt_ready = 1;
 }
 
-/* a frame's point: linear interpolation between two of its 256 values */
-static inline int32_t wt_pt(uint32_t l, uint32_t f, uint32_t ph)
+/* two frames' points at phase ph: linear interpolation between two of the cycle's 256 values, from the half
+ * the table keeps (w[WT_POINTS - i] = -w[i]). The second half is the first one walked backwards and negated:
+ * one index calculation for both frames of a morph. */
+static inline int32_t wt_pts(uint32_t l, uint32_t f0, uint32_t f1, uint32_t ph, int32_t *b1)
 {
+    const int16_t *h0 = WT_HALF(l) + f0 * WT_PTS_H, *h1 = WT_HALF(l) + f1 * WT_PTS_H;
     uint32_t i = ph >> 24, x = (ph >> 16) & 255u;
-    int32_t a = WT_GET(l, f, i), b = WT_GET(l, f, (i + 1u) & 255u);
-    return a + (((b - a) * (int32_t)x) >> 8);
+    if (i & 0x80u) {                           /* the second half */
+        uint32_t n = WT_POINTS - i;            /* 1..128 */
+        int32_t a = h0[n], c = h1[n];
+        *b1 = -(c + (((h1[n - 1u] - c) * (int32_t)x) >> 8));
+        return -(a + (((h0[n - 1u] - a) * (int32_t)x) >> 8));
+    }
+    {
+        int32_t a = h0[i], c = h1[i];
+        *b1 = c + (((h1[i + 1u] - c) * (int32_t)x) >> 8);
+        return a + (((h0[i + 1u] - a) * (int32_t)x) >> 8);
+    }
 }
 
 /* the two frames MORPH falls between, and its fraction (Q8) */
@@ -127,10 +145,10 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
     for (i = 0; i < n; i++) {
         uint32_t wph = wpa ? ph0 + (uint32_t)(sine_i(ph0) * (wpa * 258)) : ph0;   /* (FASE 2) WARP: the read
                                                           * point bends, at most a quarter of a cycle */
-        int32_t a = wt_pt(lvl, f0, wph), b = wt_pt(lvl, f1, wph), s;
+        int32_t b, a = wt_pts(lvl, f0, f1, wph, &b), s;
         s = a + (((b - a) * fx) >> 8);
         if (uni) {
-            int32_t c = wt_pt(lvl, f0, ph1), d = wt_pt(lvl, f1, ph1);
+            int32_t d, c = wt_pts(lvl, f0, f1, ph1, &d);
             s = (s + c + (((d - c) * fx) >> 8)) >> 1;
             ph1 += inc2;
         }
