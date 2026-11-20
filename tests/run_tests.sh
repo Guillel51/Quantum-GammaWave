@@ -537,6 +537,14 @@ else
     run "ASan/UBSan fuzz: project stores -> import -> restore -> render (5000, seed 13)" "$A/fuzz_proj" 5000 13
     # (FASE 6) the seed that found it: a project whose track window is 0 reached a % 0 in voice_alloc.
     run "ASan/UBSan fuzz: projects, the seed that found the vn=0 divide (20000, seed 7)" "$A/fuzz_proj" 20000 7
+    # (v1.5.16) THE ARITHMETIC ITSELF, STRICT. The SAN above excludes signed-integer-overflow and shift on purpose:
+    # this code is full of shifts on Q15 values and the suite would drown. ui_test drives every engine, the FX, the
+    # sequencer and every screen, so the ones that really are undefined -- a left shift of a negative, an overflow a
+    # product hits at full scale -- are named here instead of shipping. v1.5.16 fixed 14 of them, all silent on the
+    # host and all reachable from the unit's own controls.
+    UBSCC="${CC%% *} -O1 -g -fsanitize=undefined,bounds -fno-sanitize-recover=all -w -Ibuild/gen -Ifirmware/src"
+    $UBSCC -o "$A/ub_ui" tests/ui_test.c -lm
+    UBSAN_OPTIONS=halt_on_error=1 run "UBSan strict: ui_test, every engine and screen (no signed overflow, no shift of a negative, no OOB)" "$A/ub_ui"
 fi
 
 # (v1.5.12) the RAM windows, when there is a target build to read: the map is what the linker wrote, and a

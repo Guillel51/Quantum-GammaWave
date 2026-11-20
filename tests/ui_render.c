@@ -1814,15 +1814,22 @@ static void align_sweeps(void)
  * pill (KC_H rows, its width) */
 static void al_keycaps(void)
 {
+    static uint16_t nib[16];                        /* (v1.5.16) the ramp that turns the decoder's nibble into the
+                                                     * pixel: KC_DATA is Huffman-coded (tools/gen_aa_keycaps.py,
+                                                     * cv_alpha_hc), so reading it as nibbles ran off the array and
+                                                     * this check measured noise. Decode it with the real decoder. */
     uint32_t id;
     cur_name = "keycap data";
+    for (id = 0; id < 16u; id++)
+        nib[id] = (uint16_t)id;
     for (id = 0; id < KC_COUNT; id++) {
         const kc_t *k = &KC[id];
         int32_t x, y, x0 = 999, y0 = 999, x1 = -1, y1 = -1, w = k->w;
-        uint32_t i = 0;
+        cv_begin((uint32_t)w, KC_H, 0x0000u);
+        cv_alpha_hc(0, 0, (uint32_t)w, KC_H, KC_DATA + k->off, KC_HC, nib);
         for (y = 0; y < KC_H; y++)
-            for (x = 0; x < w; x++, i++)
-                if (((KC_DATA[k->off + (i >> 1)] >> ((i & 1u) ? 0 : 4)) & 15u) >= 6u) {
+            for (x = 0; x < w; x++)
+                if (cv_px[(uint32_t)y * (uint32_t)w + (uint32_t)x] >= 6u) {   /* (nibble 6..: the label) */
                     if (x < x0) x0 = x;
                     if (y < y0) y0 = y;
                     if (x + 1 > x1) x1 = x + 1;

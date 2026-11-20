@@ -106,7 +106,7 @@ static __attribute__((noinline)) void analog_morph(track_t *t, voice_t *v, int32
     int32_t ic1 = v->s[0], ic2 = v->s[1], nst = v->s[2];
     tsvf_t flt;
     tsvf_coef(&flt, cut, p[P_E5]);
-    int32_t dq = ((mpos1 - mpos0) << 8) / (int32_t)(n ? n : 1u);
+    int32_t dq = (mpos1 - mpos0) * 256 / (int32_t)(n ? n : 1u);   /* (v1.5.16) the step is signed: * 256 */
     for (i = 0; i < n; i++) {
         int32_t mpos = mpos0 + ((dq * (int32_t)i) >> 8);
         int32_t s = mulq15(an_morph(mpos, ph0, inc1), m1) + mulq15(an_morph(mpos, ph1, inc2), m2);

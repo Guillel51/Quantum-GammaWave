@@ -52,16 +52,18 @@ static int32_t tk_dist_y(uint32_t type, int32_t x, int32_t g, int32_t d)
     switch (type) {
     case DT_HEARTH: {
         int32_t h = softclip(v + 4800) - softclip(4800);
-        int32_t sp = sine_i((uint32_t)(v * 28000)) >> 3;
+        int32_t sp = sine_i((uint32_t)v * 28000u) >> 3;             /* (v1.5.16) as above: the phase wraps */
         return clamp(h + sp, -32767, 32767);
     }
     case DT_FLUX: {
-        int32_t jit = (sine_i((uint32_t)(x * 9000)) * d) >> 9;
+        int32_t jit = (sine_i((uint32_t)x * 9000u) * d) >> 9;      /* (v1.5.16) unsigned: a phase warp, defined */
         int32_t q = (v + jit) & ~(int32_t)((1u << (3u + (uint32_t)d / 20u)) - 1u);
         return softclip(q + (jit >> 1));
     }
     case DT_TAPE: {
-        int32_t x3 = (v * ((v * v) >> 15)) >> 15;
+        /* (v1.5.16) the TAPE cubic in 64 bits, as fx.c's dist_shape does: v passes 46 000 at full scale
+         * and v * v * v overflows int32 there, so the curve drew a fold the audio never had. */
+        int32_t x3 = (int32_t)(((int64_t)v * (((int64_t)v * v) >> 15)) >> 15);
         return softclip(v - (x3 / 3));
     }
     case DT_SOFT:

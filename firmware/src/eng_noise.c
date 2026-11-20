@@ -120,7 +120,7 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
             cnt = 1024 + (int32_t)(r & 3071u);
         }
         v->s[3] = (int32_t)((uint32_t)tg << 16 | (uint32_t)cnt);
-        drift += ((tg << 4) - drift) >> 10;           /* Q19 */
+        drift += (tg * 16 - drift) >> 10;              /* Q19 (v1.5.16: * 16, a shift of a negative is undefined) */
         d16 = ((drift >> 11) * drft * drft) >> 14;    /* up to about +-16 semitones */
         gain = 32767 - ((((32767 - (drift >> 4)) >> 1) * drft) >> 8);   /* down to -6 dB as it falls */
     }
@@ -241,7 +241,10 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         if (crsh) {                                   /* hold 1..16 samples, 16 .. 4 bits */
             if ((int32_t)--ph <= 0 || ph > 16u) {
                 ph = 1u + (uint32_t)crsh / 8u;
-                reg = (uint32_t)(y >> (crsh / 11) << (crsh / 11));
+                reg = (uint32_t)(y >> (crsh / 11)) << (crsh / 11);   /* (v1.5.16) the floor, still a pair of shifts, but
+                                                         * the left one on an unsigned value: y is negative
+                                                         * half the time and a left shift of a negative is
+                                                         * undefined. Same bits, same cost (target_budget) */
             }
             y = (int32_t)reg;
         }

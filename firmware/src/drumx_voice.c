@@ -95,7 +95,8 @@ static __attribute__((noinline)) void dx_layer(dx_voice_t *v, int32_t *y, uint32
         for (i = 0; i < n; i++, inc += dinc, ga += dga, ix += dix) {
             int32_t o2;
             o = sine_i(ph + (uint32_t)(sine_i(ph2) * ix) * 512u + (uint32_t)(o * fbk));
-            o2 = dx_tri(ph4 + (uint32_t)(o * lx));
+            o2 = dx_tri(ph4 + (uint32_t)o * (uint32_t)lx);   /* (v1.5.16) the wrap is unsigned on purpose: the
+                                                                   * product overflows int32, and that is undefined */
             y[i] = mulq15(o + (((o2 - o) * lm) >> 6), ga >> 8);
             ph += (uint32_t)inc << 4;
             ph2 += ((uint32_t)inc >> 8) * ratio;
@@ -105,7 +106,8 @@ static __attribute__((noinline)) void dx_layer(dx_voice_t *v, int32_t *y, uint32
         for (i = 0; i < n; i++, inc += dinc, ga += dga) {
             int32_t o2;
             o = sine_i(ph + (uint32_t)(o * fbk));
-            o2 = dx_tri(ph4 + (uint32_t)(o * lx));
+            o2 = dx_tri(ph4 + (uint32_t)o * (uint32_t)lx);   /* (v1.5.16) the wrap is unsigned on purpose: the
+                                                                   * product overflows int32, and that is undefined */
             y[i] = mulq15(o + (((o2 - o) * lm) >> 6), ga >> 8);
             ph += (uint32_t)inc << 4;
             ph4 += ((uint32_t)inc >> 6) * 1448u;
@@ -266,7 +268,7 @@ static __attribute__((noinline)) void dx_run_sn(const dx_lane_t *L, dx_voice_t *
         v2 = t2 + ((c3.a2 * t1 + c3.a3 * v3) >> 13);
         t1 = clamp(2 * v1 - t1, -150000, 150000);
         t2 = clamp(2 * v2 - t2, -150000, 150000);
-        dc += ((v2 << 8) - dc) >> 9;                     /* the DC cut (~14 Hz) */
+        dc += (v2 * 256 - dc) >> 9;                      /* the DC cut (~14 Hz) (v1.5.16: v2 is signed) */
         y[i] = clamp(((v2 - (dc >> 8)) * 23000) >> 15, -32767, 32767);
     }
     v->ph = ph; v->ph2 = ph2; v->ck = ck; v->chp = chp; v->xo = xo; v->dc = dc; v->t1 = t1; v->t2 = t2;

@@ -1,3 +1,52 @@
+## v1.5.16 — la aritmética que el compilador podía leer de otra forma, y un instrumento que medía ruido
+
+Fase de auditoría y corrección con una regla: **nada de lo que ya estaba medido se toca sin volver a medirlo**. El
+firmware suena exactamente igual que v1.5.15 (303 renders dorados, **0 cambiados**, bit a bit) y se dibuja igual
+(3 056 fotogramas, **0 distintos**). Lo que cambia es lo que había debajo.
+
+- **CATORCE operaciones con comportamiento indefinido (UB), en el camino de audio y en el de dibujo.** Todas
+  alcanzables desde los propios controles del aparato y todas invisibles en el host porque la suite desactiva a
+  propósito `signed-integer-overflow` y `shift` (el código está lleno de desplazamientos Q15 y si no, la suite se
+  ahoga). Compilando `ui_test` con **UBSan estricto + bounds** salieron a la luz:
+
+  | sitio | qué era | corrección |
+  |---|---|---|
+  | `fx.c` clip del master (×2) | `negativo << 2` | `* 4`, mismo valor y definido |
+  | `fx.c` clave de la cola de eco | `tn << 1`, `tn` puede ser negativo | `tn * 2` |
+  | `eng_noise.c` CRUSH | `(y >> k) << k` sobre negativo | `(uint32_t)(y >> k) << k`: mismo piso, mismos bits, mismo coste |
+  | `eng_noise.c` DRIFT | `tg << 4` | `tg * 16` |
+  | `fm6_core.c` escala de velocidad | `(neg >> 3) << 4` | `* 16` |
+  | `fm6_core.c` seno del operador | `fm6_sin(...) << 8` | `* 256` |
+  | `eng_wheel.c` salida | `voice_amp(...) << 1` | `* 2` |
+  | `eng_fm6.c` nivel del patch | `lvl << 16` | `* 65536` |
+  | `eng_analog.c` paso del MORPH | `(mpos1 - mpos0) << 8` | `* 256` |
+  | `drumx_voice.c` fase de la capa (×2) | `o * lx` desborda `int` al envolver la fase | producto **sin signo**: el envolvente es unsigned a propósito |
+  | `drumx_voice.c` corte de DC | `v2 << 8` | `v2 * 256` |
+  | `ui_tech.c` curva del DIST (×3) | dos fases `sine_i((uint32_t)(v * 28000))` y el cúbico TAPE en 32 bits | fases en 32 bits sin signo; el cúbico en 64 bits **como en el audio** (la curva dibujaba un pliegue que el audio no hace) |
+
+  Después de las correcciones, la misma compilación estricta da **0 avisos** en toda la suite de UI. El audio queda
+  bit a bit idéntico porque cada cambio es el mismo valor en aritmética definida, no un cambio de fórmula.
+- **Un instrumento de medida medía ruido.** El chequeo de alineación de los keycaps (`tests/ui_render.c`,
+  `al_keycaps`) leía `KC_DATA` **como nibbles sueltos**, pero ese flujo está **codificado en Huffman**
+  (`tools/gen_aa_keycaps.py`, decodificado por `cv_alpha_hc`): recorría el array más allá de su final (lo cazó ASan
+  al pasar el barrido completo por el sanitizador) y las cifras de "0 desalineados" de esa fila no significaban
+  nada. Ahora decodifica con el decodificador real, mapeando el nibble al píxel. Resultado con el instrumento
+  arreglado: **0 desalineados de verdad**, en 3 781 017 medidas de 74 sitios.
+- **La suite gana el guardián que faltaba:** `ui_test` compilado con `-fsanitize=undefined,bounds` y
+  `halt_on_error=1` (sección de sanitizadores de `tests/run_tests.sh`). Cualquier UB de esta clase vuelve a fallar
+  en el acto, con archivo y línea, en vez de viajar al binario de destino.
+- **Recursos, medidos y no movidos.** Imagen **580 328 → 580 344 B** (3 268 B libres del slot: +16 B por el cúbico
+  en 64 bits y los productos sin signo; el resto del árbol no crece). `.data+.bss` **92 832 B**, igual (5 472
+  libres, piso de 4 KiB). Presupuesto estático de CPU: **todo dentro**, `noise_render` vuelve a 218 (se probó con
+  máscara y costaba +2 %: se dejó la pareja de desplazamientos, con el izquierdo sin signo). Se midieron y **se
+  rechazaron**, con la imagen byte a byte idéntica: `-fmerge-all-constants`, `-fno-unroll-loops`, el *machine
+  outliner* de LLVM (no compila) y `noinline` en `draw_column`/`draw_column_tall`/`param_format` — ninguna de esas
+  funciones se estaba inlineando, así que no había nada que recuperar por ahí. El flash está en su óptimo para
+  este compilador: lo que queda no es grasa, es el producto.
+- **Lo que sigue sin verificarse:** todo esto es clase *host* (UBSan/ASan x86-64, `ui_render`, `regress`) y *build
+  AC791N*. No hay FM-1 en este entorno, no escribí en ninguna unidad y no afirmo nada medido en el panel ni en el
+  DAC físico.
+
 ## v1.5.15 — HOME deja de reenviar el cuerpo entero, y el pop-up deja de pintar sobre el MIXER
 
 Los dos defectos que v1.5.13 dejó abiertos, corregidos en su causa. Ninguno baja la tasa de refresco, apaga una

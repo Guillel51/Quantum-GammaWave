@@ -589,8 +589,10 @@ static __attribute__((noinline)) void clip_block(uint32_t n)
                                                          * out -1, x4 drive, a -96 offset with a hiss on the side
                                                          * that held it, while +1 .. +15 were 0) */
         int32_t l = (mix_l[i] + wet[i] + 8) >> 4, r = (mix_r[i] + wet[i] + 8) >> 4;
-        mix_l[i] = ((softclip(l * clip_g >> 10) * clip_mk + 16384) >> 15) << 2;
-        mix_r[i] = ((softclip(r * clip_g >> 10) * clip_mk + 16384) >> 15) << 2;
+        /* (v1.5.16) * 4, not << 2: the master's tail can be negative, and a left shift of a negative is
+         * undefined. Same value, defined. */
+        mix_l[i] = ((softclip(l * clip_g >> 10) * clip_mk + 16384) >> 15) * 4;
+        mix_r[i] = ((softclip(r * clip_g >> 10) * clip_mk + 16384) >> 15) * 4;
         wet[i] = 0;
     }
 }
@@ -1787,7 +1789,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
     int32_t fb = dly_fb(song.g[G_DFDBK]), tn = song.g[G_DCOLOR] - 64;   /* (JIANT 0.4) TONE: one knob, low-pass .. open .. low cut */
     int32_t wm, dwm, dig = song.g[G_DTYPE] == 1;        /* (0.6.89: TONE in the middle: each repeat the very copy) */
     tone_t *dtn = &tc_dly.t, *rtn = &tc_rev.t;
-    int32_t dkey = (tn << 1) | (int32_t)dig;
+    int32_t dkey = tn * 2 | (int32_t)dig;              /* (v1.5.16) tn can be negative: * 2, not << 1 */
     if (!tc_dly.ok || dkey != tc_dly.key) {             /* (FASE 5) a knob turn, not a block */
         tc_dly.key = dkey;
         tc_dly.ok = 1;
