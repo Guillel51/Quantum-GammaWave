@@ -14,8 +14,8 @@ import sys
 
 ROOT = "firmware/src/"
 ENGINES = [
-    ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 68),
-    ("PHASE", "eng_phase.c", "PHASE_PRESETS", 32),
+    ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 69),
+    ("PHASE", "eng_phase.c", "PHASE_PRESETS", 33),
     ("LOFI", "eng_lofi.c", "LOFI_PRESETS", 29),
     ("FORMANT", "eng_formant.c", "FORMANT_PRESETS", 25),
     ("WHEEL", "eng_wheel.c", "WHEEL_PRESETS", 22),
@@ -25,7 +25,7 @@ ENGINES = [
     # (FASE 5) WTABLE was missing here: 22 factory sounds (PRISM KEYS, ELECTRIC TINE, GLASS CHIME, MORPH SUB,
     # ARCO SOLAR ...) were outside this audit while the preset audit (preset_audit_test.c, reading the real
     # engine_t) counted them. The total is the firmware's own: 273 browsable + 2 legacy kits = 275.
-    ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 22),
+    ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 23),
     # (1.2.6) ADDTV was missing here for the same reason WTABLE was in FASE 5: the eight additive presets
     # (GLASS BELL, HOLLOW REED, ...) live in eng_additive.c's AD_PRESETS and count in the firmware's total.
     # (1.3.4) ten: REED HORN and AIR CHOIR joined, the two sounds the engine did not have.
