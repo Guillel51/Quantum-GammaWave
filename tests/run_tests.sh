@@ -367,6 +367,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     # cap the allocator applies, LOAD ECO's 6 voices (4 a part) are what the monitor now prints, FM6's own 4, four
     # tracks at once, the release queue, and a preset change under a held chord that neither cuts the audio nor leaves
     # a voice behind. The class of every figure is this host's, not the unit's.
+    # (v1.5.18) SEQ > TOOLS' OPERATORS, driven directly (firmware/src/seq.c seq_tool_apply): the four the page gained
+    # (EUCLID, MIRROR, THIN, CRESC) and the ones it had, each checked on the pattern it produces, and on what it must
+    # not touch (a step's timing, its gate, its chance).
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/seq_tools_test" tests/seq_tools_test.c -lm
+    run "SEQ TOOLS: DUP HALF ROT REV CLEAR still as they were, EUCLID spreads the same notes over even onsets, MIRROR inverts the line around the tonic inside the scale, THIN takes every n-th onset out, CRESC gives the phrase a direction, and none of them writes past the length or moves a gate or a chance" "$OUT/seq_tools_test"
     # (v1.5.17) THE WHOLE INSTRUMENT: six live tracks and twelve voices together, concentrated, distributed and
     # saturated, with releases, the load governor, the FX, a preset change under the chord, TRACKS 4's sleep, and the
     # cost of waking T5/T6 measured on the same machine in the same run.

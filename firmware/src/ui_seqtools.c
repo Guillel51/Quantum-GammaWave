@@ -15,9 +15,32 @@ static void graph_seq_tools(const track_t *t, uint16_t c)
     uint32_t i, len = (uint32_t)t->p[P_SLEN];
     (void)c;
     cv_text_on(12, 3, &AF_M, N_SQOP[(uint32_t)clamp(sq_op, 0, SQOP_COUNT - 1)], T_ACCENT, T_SURF);
-    str_cpy(b, "x", sizeof b);
-    fmt_int(b + 1, (int32_t)clamp(sq_amt, 1, 8));
-    cv_text_r(228, 3, &AF_M, b, T_MID, T_SURF);
+    {   /* (v1.5.18) the amount in the operator's own unit, and a line saying what it will do to the pattern */
+        uint32_t op = (uint32_t)clamp(sq_op, 0, SQOP_COUNT - 1), a = (uint32_t)clamp(sq_amt, 1, 8);
+        const char *hint;
+        if (op == SQOP_EUCLID) {
+            str_cpy(b, "HITS ", sizeof b);
+            fmt_int(b + 5, (int32_t)(a * 2u > NSTEP ? NSTEP : a * 2u));
+            hint = "EVEN ONSETS, ITS NOTES IN ORDER";
+        } else if (op == SQOP_MIRROR) {
+            str_cpy(b, "IN KEY", sizeof b);
+            hint = "ITS LINE INVERTED AROUND THE TONIC";
+        } else if (op == SQOP_THIN) {
+            str_cpy(b, "1 OF ", sizeof b);
+            fmt_int(b + 5, (int32_t)a);
+            hint = "FEWER ONSETS, THE SAME SHAPE";
+        } else if (op == SQOP_CRESC) {
+            str_cpy(b, "RISE ", sizeof b);
+            fmt_int(b + 5, (int32_t)(a * 12));
+            hint = "A CRESCENDO ACROSS THE LENGTH";
+        } else {
+            str_cpy(b, "x", sizeof b);
+            fmt_int(b + 1, (int32_t)a);
+            hint = "NOTES KEPT: TIMING GATE CHANCE";
+        }
+        cv_text_r(228, 3, &AF_M, b, T_MID, T_SURF);
+        cv_text_on(12, 58, &AF_S, hint, T_DIM, T_SURF);
+    }
     /* the sixteen steps: on, tie, accent, chance */
     for (i = 0; i < 16u; i++) {
         uint32_t si = ui.bank * 16u + i;
@@ -35,7 +58,6 @@ static void graph_seq_tools(const track_t *t, uint16_t c)
             cv_frame(x, y, 12, 26, T_TEXT);
     }
     /* the two operations the page applies, and what they will touch */
-    cv_text_on(12, 58, &AF_S, "NOTES KEPT: TIMING GATE CHANCE", T_DIM, T_SURF);
     cv_text_on(12, 70, &AF_S, "UNDO MARKED BEFORE EACH TURN", T_DIM, T_SURF);
     str_cpy(b, "LEN ", sizeof b);
     fmt_int(b + 4, (int32_t)len);
@@ -47,52 +69,5 @@ static void graph_seq_tools(const track_t *t, uint16_t c)
  * never rewritten; DUP/HALF change where the notes sit, ROT/REV move them, CLEAR takes them out) */
 static void sq_do(uint32_t op, uint32_t amt)
 {
-    track_t *t = TSEL;
-    uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), i, n;
-    step_t *st = t->step;                            /* (the editor writes them: TSEL itself, not the const accessor) */
-    amt = clamp(amt, 1, 8);
-    switch (op) {
-    case SQOP_DUP:                                   /* the pattern again, after itself: LEN doubles (up to 32) */
-        n = len * amt > NSTEP ? NSTEP : len * amt;
-        for (i = len; i < n; i++)
-            st[i] = st[i % len];
-        t->p[P_SLEN] = (int16_t)n;
-        break;
-    case SQOP_HALF:                                  /* every other step dropped: LEN halves (one at least) */
-        n = len;
-        for (i = 0; i < amt && n > 1u; i++) {
-            uint32_t k;
-            for (k = 0; k < (n + 1u) / 2u; k++)
-                st[k] = st[k * 2u];
-            n = (n + 1u) / 2u;
-        }
-        for (i = n; i < len; i++)
-            memset(&st[i], 0, sizeof st[i]);
-        t->p[P_SLEN] = (int16_t)n;
-        break;
-    case SQOP_ROTL:
-    case SQOP_ROTR: {
-        step_t tmp[NSTEP];
-        uint32_t r = amt % (len ? len : 1u);
-        if (!r)
-            break;
-        for (i = 0; i < len; i++)
-            tmp[i] = st[(op == SQOP_ROTL ? i + r : i + len - r) % len];
-        memcpy(st, tmp, len * sizeof st[0]);
-        break;
-    }
-    case SQOP_REV:
-        for (i = 0; i < len / 2u; i++) {
-            step_t s = st[i];
-            st[i] = st[len - 1u - i];
-            st[len - 1u - i] = s;
-        }
-        break;
-    case SQOP_CLR:
-        for (i = 0; i < len; i++)
-            memset(&st[i], 0, sizeof st[i]);
-        break;
-    default:
-        break;
-    }
+    seq_tool_apply(TSEL, op, amt);             /* (the operators live in seq.c: the test drives them there) */
 }

@@ -1,3 +1,45 @@
+## v1.5.18 — cuatro operadores musicales en SEQ > TOOLS, y la biblioteca medida antes de tocarla
+
+Fase de evolución musical. La incorporación nueva son **cuatro operadores** en la página que ya existía (SEQ > TOOLS),
+elegidos porque el instrumento ya tiene arp, acordes, escalas, progresiones, fuga, automatización por paso, matriz de
+modulación y punch-ins: lo que faltaba no era otro parámetro, sino **herramientas para trabajar sobre el patrón**.
+
+- **EUCLID, MIRROR, THIN, CRESC** en SEQ > TOOLS, con el mismo KNOB 1 (operador), KNOB 2 (cantidad), GO y UNDO que
+  DUP / HALF / ROT / REV / CLEAR, y la misma regla que la página ya imprimía: **el tiempo, la compuerta y la
+  probabilidad de cada paso no se tocan, sólo cambia lo que suena**.
+
+  | operador | qué hace | cantidad |
+  |---|---|---|
+  | **EUCLID** | reparte *las mismas notas* del patrón sobre onsets regulares (`(i·k) % len < k`, k = cantidad × 2) y las asigna en su orden; el acento y el golpe de línea viajan con su nota | HITS 2..16 |
+  | **MIRROR** | invierte la línea alrededor de la tónica de la pista (`2·(60+ROOT) − n`) y la lleva a su escala, nota por nota; los acordes conservan su tamaño | IN KEY |
+  | **THIN** | saca uno de cada N onsets: menos densidad, la misma forma | 1 OF 2..8 |
+  | **CRESC** | un crescendo desde el primer onset hasta el último, que llega a velocidad plena (una frase que arriba) | RISE 12..96 |
+
+  La página dice ahora la cantidad en la unidad de cada operador y una línea con lo que va a hacer, en vez de un
+  "xN" genérico: nada se aplica a ciegas sobre el patrón que la propia página dibuja.
+- **Los operadores viven en `seq.c` (`seq_tool_apply`) y no en la página**, así que lo que giran los knobs es exactamente
+  lo que verifica el test: `tests/seq_tools_test.c` recorre los diez operadores sobre una frase conocida (arpeggio,
+  acorde y golpe de línea) y comprueba el patrón resultante y lo que **no** debe moverse. Clase **host x86-64**; sin
+  audio ni panel. Medido, no afirmado: EUCLID ×3 sobre 16 pasos da onsets en 0 3 6 8 11 14 con las seis notas intactas
+  y en orden; MIRROR convierte 60 64 68 72 en 60 56 52 48 (y el acorde 67/71 en 53/49), todo dentro de la escala;
+  THIN 1 de 2 deja 0 6 10; CRESC ×4 sube 79 → 95 → 103 → 111 → **127**.
+- **Coste:** ningún parámetro nuevo (la tabla de ids está en 125 de 127), ningún byte de `.bss`, ningún cambio en los
+  formatos de proyecto ni de preset: los operadores son acciones transitorias sobre `t->step`, con el UNDO que ya
+  existía. Build AC791N: imagen **580 280 → 581 160 B** (+880 B de código, **2 452 B libres**), `.data+.bss`
+  **92 832 B** sin cambios (5 472 libres).
+- **La biblioteca, medida antes de tocarla.** `tests/preset_levels` renderiza los **285** presets de fábrica y
+  `preset_level.c` ya nivela cada uno al cargarse. Medición de esta fase: mediana **−18,5 dB RMS**, y las medianas por
+  motor planas (−18,5 / −18,6 en los diez motores). Quedan **tres** excepciones de 10–11 dB por debajo, todas con el
+  fader ya en su tope (127): `AURORA FM` (FM6, −29,5 RMS y **−19,2 de pico**, el único realmente flojo de señal),
+  `STATIC HAZE` y `GEIGER CNT` (NOISE, picos −4,5 y −3,5: texturas dispersas, no faders agotados). El generador ya
+  documenta que un sonido más flojo que el tope del fader **no se arregla con el número, sino con el sonido**, y eso
+  pide oído en la unidad; por eso **no** se reescribieron presets a ciegas en esta fase. Queda dicho, con nombre y
+  cifra, en vez de maquillado.
+- **Lo que no se hizo, y por qué:** no se añadieron presets DRUM-X (pedido explícito) ni se rediseñó la biblioteca
+  (no hay FM-1 aquí y el propio proyecto prohíbe afirmar cómo suena algo que no se ha oído). No se añadieron
+  parámetros nuevos: la tabla de ids de 7 bits que comparten los proyectos, los presets y la automatización está en
+  125 de 127, y ningún operador necesita uno.
+
 ## v1.5.17 — las seis pistas y las doce voces, juntas y medidas; el gobernador de carga deja de cortar colas
 
 Fase de audio: hacer que el pool sostenga **seis pistas a la vez y doce voces reales**, y comprobarlo contando lo que

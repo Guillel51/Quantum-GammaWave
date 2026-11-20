@@ -370,6 +370,132 @@ static uint32_t chord_build(const track_t *t, uint32_t root, uint8_t *out)
 static uint32_t chord_gap(const track_t *t) { return (uint32_t)clamp(t->p[P_CSTR], 0, 127) * (FS / 2000u); }   /* (~0.5 ms a step) */
 
 /* ------------------------------------------------------------- arp --- */
+/* (v1.5.18) SEQ > TOOLS' OPERATORS, here and not in the page: they rewrite t->step and nothing else (its notes,
+ * its hits, their velocities and accents), so the same code the knobs call is what tests/seq_tools_test.c checks.
+ * The rule the page prints holds for all ten: a step's timing, its gate and its chance keep their place; only what
+ * sounds changes. DUP and HALF change where the notes sit, ROT and REV move them, CLEAR takes them out; EUCLID
+ * spreads the same notes over even onsets, MIRROR inverts the line around the track's tonic inside its scale, THIN
+ * takes every n-th onset out and CRESC gives the phrase a direction. ui_seqtools.c is the page (undo_do marks the
+ * point before it calls this). */
+static void seq_tool_apply(track_t *t, uint32_t op, uint32_t amt)
+{
+    uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), i, n;
+    step_t *st = t->step;                            /* (the editor writes them: TSEL itself, not the const accessor) */
+    amt = clamp(amt, 1, 8);
+    switch (op) {
+    case SQOP_DUP:                                   /* the pattern again, after itself: LEN doubles (up to 32) */
+        n = len * amt > NSTEP ? NSTEP : len * amt;
+        for (i = len; i < n; i++)
+            st[i] = st[i % len];
+        t->p[P_SLEN] = (int16_t)n;
+        break;
+    case SQOP_HALF:                                  /* every other step dropped: LEN halves (one at least) */
+        n = len;
+        for (i = 0; i < amt && n > 1u; i++) {
+            uint32_t k;
+            for (k = 0; k < (n + 1u) / 2u; k++)
+                st[k] = st[k * 2u];
+            n = (n + 1u) / 2u;
+        }
+        for (i = n; i < len; i++)
+            memset(&st[i], 0, sizeof st[i]);
+        t->p[P_SLEN] = (int16_t)n;
+        break;
+    case SQOP_ROTL:
+    case SQOP_ROTR: {
+        step_t tmp[NSTEP];
+        uint32_t r = amt % (len ? len : 1u);
+        if (!r)
+            break;
+        for (i = 0; i < len; i++)
+            tmp[i] = st[(op == SQOP_ROTL ? i + r : i + len - r) % len];
+        memcpy(st, tmp, len * sizeof st[0]);
+        break;
+    }
+    case SQOP_REV:
+        for (i = 0; i < len / 2u; i++) {
+            step_t s = st[i];
+            st[i] = st[len - 1u - i];
+            st[len - 1u - i] = s;
+        }
+        break;
+    case SQOP_CLR:
+        for (i = 0; i < len; i++)
+            memset(&st[i], 0, sizeof st[i]);
+        break;
+    /* (v1.5.18) FOUR MUSICAL OPERATORS, on the same page, with the same UNDO point and the same rule (the timing,
+     * the gates and the chance of a step keep their place; only what sounds changes). They are the tools a loop asks
+     * for once it exists: redistribute its rhythm, invert its line, thin it out, give it a direction. */
+    case SQOP_EUCLID: {                              /* its notes, evenly spread: TIMES x 2 onsets over the length */
+        step_t pool[NSTEP], out[NSTEP];
+        uint32_t k = amt * 2u, head = 0, m = 0;
+        if (k > len)
+            k = len;
+        for (i = 0; i < len; i++)                    /* the material: the steps that sound, in order */
+            if (st[i].n || st[i].hit)
+                pool[head++] = st[i];
+        if (!head)
+            break;
+        memcpy(out, st, len * sizeof st[0]);
+        for (i = 0; i < len; i++) {
+            step_t *d = &out[i];
+            const step_t *s = &pool[(m) % head];
+            if (((i * k) % len) < k) {               /* (i * k) % len < k: the onsets, as evenly as the length allows */
+                m++;
+                d->n = s->n;
+                d->vel = s->vel;
+                d->hit = s->hit;
+                memcpy(d->note, s->note, sizeof d->note);
+                d->flags = (uint8_t)((d->flags & ~SF_ACCENT) | (s->flags & SF_ACCENT));
+                if (d->time != ST_TIE)
+                    d->time = ST_NOTE;
+            } else {
+                d->n = 0;
+                d->hit = 0;
+                memset(d->note, 0, sizeof d->note);
+                d->time = ST_REST;
+            }
+        }
+        memcpy(st, out, len * sizeof st[0]);
+        break;
+    }
+    case SQOP_MIRROR:                                /* the line inverted around the track's tonic, in its scale */
+        for (i = 0; i < len; i++)
+            for (n = 0; n < st[i].n; n++) {
+                int32_t axis = 60 + t->p[P_ROOT], r = axis * 2 - (int32_t)st[i].note[n];
+                st[i].note[n] = (uint8_t)clamp(scale_snap(t, clamp(r, 0, 127)), 0, 127);
+            }
+        break;
+    case SQOP_THIN:                                  /* every TIMES-th sounding step out: less density, same shape */
+        for (i = 0, n = 0; i < len; i++)
+            if ((st[i].n || st[i].hit) && ++n % amt == 0u) {
+                st[i].n = 0;
+                st[i].hit = 0;
+                memset(st[i].note, 0, sizeof st[i].note);
+                st[i].time = ST_REST;
+            }
+        break;
+    case SQOP_CRESC: {                               /* a crescendo from the first onset to the last; TIMES how far */
+        int32_t base = 127 - (int32_t)amt * 12, span = 127 - base, first = -1, last = -1;
+        for (i = 0; i < len; i++)
+            if (st[i].n || st[i].hit) {
+                if (first < 0)
+                    first = (int32_t)i;
+                last = (int32_t)i;
+            }
+        for (i = 0; i < len; i++) {
+            if (!st[i].n && !st[i].hit)
+                continue;
+            st[i].vel = (uint8_t)clamp(base + (last > first ? (int32_t)(((int32_t)i - first) * span / (last - first)) : 0),
+                                       1, 127);   /* (the last onset reaches full: a phrase that arrives) */
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 static void arp_add(track_t *t, uint32_t note)
 {
     uint32_t i;

@@ -731,8 +731,11 @@ static const param_desc_t AP_BEAT = PE("RATE", N_APDIV, 2);          /* (0.6.9) 
 static uint8_t sl_ui_step;       /* (JIANT 0.6.3) the SL PITCH page: the step KNOB 2 edits */
 
 /* (6.2) SEQ > TOOLS: the operation, its TIMES and the two actions the page's knobs turn (ui_seqtools.c). */
-enum { SQOP_DUP, SQOP_HALF, SQOP_ROTL, SQOP_ROTR, SQOP_REV, SQOP_CLR, SQOP_COUNT };
-static const char *const N_SQOP[] = {"DUP", "HALF", "ROT <", "ROT >", "REV", "CLEAR"};
+enum { SQOP_DUP, SQOP_HALF, SQOP_ROTL, SQOP_ROTR, SQOP_REV, SQOP_CLR, SQOP_EUCLID, SQOP_MIRROR, SQOP_THIN,
+       SQOP_CRESC, SQOP_COUNT };
+static const char *const N_SQOP[] = {"DUP", "HALF", "ROT <", "ROT >", "REV", "CLEAR",
+                                     "EUCLID", "MIRROR", "THIN", "CRESC"};   /* (v1.5.18, appended: the stored
+                                     * numbers of a project's tools keep their meaning; these are not stored) */
 static int16_t sq_op, sq_amt = 1;
 static const param_desc_t SQOP_DESC = PE("OP", N_SQOP, 0);
 static const param_desc_t SQAMT_DESC = PD("TIMES", F_INT, 1, 8, 0);
