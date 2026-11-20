@@ -667,21 +667,6 @@ static void dice_arp(track_t *t, const dstyle_t *st, uint32_t len)
 }
 
 /* ---- the texture: a long low note a bar or two (the root, the fifth, the second), or a drone over everything */
-static void dice_texture(track_t *t, const dstyle_t *st, uint32_t len)
-{
-    int32_t base = dtonic(t, 43), n[1];
-    uint32_t i;
-    (void)st;
-    for (i = 0; i < len; i += 16u) {
-        uint32_t at = i + (uint32_t)rr(0, 2) * 4u;
-        if (i && chance(45)) continue;
-        n[0] = scale_steps(t, base, chance(30) ? 4 : chance(30) ? 1 : 0);
-        dstep_note(&t->step[at < len ? at : i], n, 1, 72, 0);
-    }
-    for (i = 0; i < len; i++)
-        if (t->step[i].time == ST_NOTE) dhold(t, i, dh.twist == TW_DRONE ? 63 : 11, len);
-}
-
 /* ---- the sound: a factory preset of engine e whose name says the role and is not a bright one, moved a little;
  * its envelope shaped for the role and the energy; filtered for the role */
 static int dname_has(const char *s, const char *w)
@@ -703,113 +688,6 @@ static int dbright(const char *s)                       /* (0.6.32) the cheerful
     return 0;
 }
 static uint32_t dice_fm6;                               /* FM6 tracks this dice: two at most (its CPU) */
-static void dice_sound(track_t *t, uint32_t role, const uint8_t *el)
-{
-    static const char *const W[6][6] = {{0}, {"BASS", "ACID", "GROWL", 0},
-                                        {"PAD", "PWM", "STR", "CHOIR", 0},
-                                        {"SAW LEAD", "SYNC", "WIRE", "VOX", "WAVE LEAD", "TINE"},
-                                        {"PLUCK", "FLOAT ARP", "SINE KEY", "TINE", "RESO", "BYTE TONE"},
-                                        {"WIND", "RAIN", "WHISPER", "METAL", "BYTE BENT", "FLOAT FM"}};
-    uint32_t e = el[rng() % 3u], tries, k, n, i, nm = 0, na = 0, en_ = dh.energy;
-    uint8_t m[32], any[32];
-    const engine_t *en;
-    for (tries = 0; tries < 6u && (e == t->eng_req || (e == ENGI_FM6 && dice_fm6 >= 2u)); tries++)
-        e = el[rng() % 3u];                             /* (another engine than it had, when it can; FM6 twice at most) */
-    if (e == ENGI_FM6 && dice_fm6 >= 2u)
-        e = EG_A;
-    dice_fm6 += e == ENGI_FM6;
-    set_engine_of(t, e);
-    en = ENGINES[t->eng_req % NENGINES];
-    n = engine_library(en);   /* (1.6 audit) never a legacy sound; (FASE 2) the list's indices are the table's
-                               * without the aliases, wherever they sit (eng_preset_nth) */
-    if (!n) return;
-    for (i = 0; i < n; i++) {
-        const uint32_t ti = eng_preset_nth(en, i);                           /* the presets whose names fit the role; the not bright ones,
-                                                         * and never a bass's sound off the bass (0.6.34) */
-        const char *pn = en->presets[ti].name;
-        if (dbright(pn) || (role != RL_BASS && (dname_has(pn, "BASS") || dname_has(pn, "GROWL") || dname_has(pn, "ACID"))))
-            continue;
-        if (na < sizeof any) any[na++] = (uint8_t)ti;
-        for (k = 0; k < 6u && W[role][k]; k++)
-            if (dname_has(pn, W[role][k]) && nm < sizeof m) { m[nm++] = (uint8_t)ti; break; }
-    }
-    apply_preset_to(t, nm ? m[rng() % nm] : na ? any[rng() % na] : rng() % n);   /* (the role's, always: surprises
-                                                         * come from the twist, not from a wrong sound) */
-    for (i = 0; i < 8u; i++) {                          /* (a sixth of each range: still that sound, a bit its own) */
-        const param_desc_t *d = track_desc(t, P_E0 + i);
-        int32_t span = (d->max - d->min) / 6;
-        if (!d->label || d->label[0] == '-' || d->max <= d->min || d->fmt == F_ENUM) continue;
-        t->p[P_E0 + i] = (int16_t)dice_by(t->p[P_E0 + i], d->min, d->max, span ? span : 1);
-    }
-    /* (0.6.34) the envelope for the role and the energy: pads that swell in space, plucked arps and basses, a lead
-     * that speaks; the engines' own colour a little warmer (FM6 its modulation down, PHASE its DCW down, ANALOG a
-     * little detune on the chords, a sub an octave down now and then) */
-    switch (role) {
-    case RL_PAD:  t->p[P_ATK] = (int16_t)(en_ == 0u ? rr(60, 100) : rr(20, 70)); t->p[P_REL] = (int16_t)rr(75, 110);
-                  t->p[P_SUS] = (int16_t)rr(100, 120); break;
-    case RL_TEX:  t->p[P_ATK] = (int16_t)rr(70, 110); t->p[P_REL] = (int16_t)rr(90, 120); break;
-    case RL_LEAD: t->p[P_ATK] = (int16_t)rr(2, en_ == 0u ? 40 : 20); t->p[P_REL] = (int16_t)rr(40, 80); break;
-    case RL_ARP:  t->p[P_ATK] = (int16_t)rr(0, 8); t->p[P_DEC] = (int16_t)rr(30, 62); t->p[P_SUS] = (int16_t)rr(20, 70);
-                  t->p[P_REL] = (int16_t)rr(40, 75); break;
-    case RL_BASS: t->p[P_ATK] = 0; t->p[P_DEC] = (int16_t)rr(40, 70); t->p[P_SUS] = (int16_t)rr(50, 105);
-                  t->p[P_REL] = (int16_t)rr(18, 40); break;
-    }
-    if (e == EG_FM) t->p[P_E2] = (int16_t)clamp(t->p[P_E2] - rr(4, 24), -64, 63);
-    if (e == EG_PH) t->p[P_E2] = (int16_t)clamp(t->p[P_E2] - rr(0, 20), 20, 127);
-    if (e == EG_A && role == RL_PAD) t->p[P_E1] = (int16_t)rr(12, 32);
-    if (e == EG_A && role == RL_BASS && chance(30)) t->p[P_E7] = -12;
-    {   /* filtered: the cutoff down by role (ANALOG its own filter, the others the part's), some resonance; never flat:
-         * the TYPE changes (LP mostly; band-pass, the comb tuned to the note for the arps and the textures), the
-         * envelope opens the filter on every sound, a slow LFO of its own shape on some cutoffs (S&H: the IDM's),
-         * a little grit on some basses and leads */
-        static const uint8_t CUT[6][2] = {{0, 0}, {36, 66}, {48, 70}, {58, 82}, {48, 72}, {44, 76}};
-        static const uint8_t ENV[6][2] = {{0, 0}, {18, 48}, {8, 28}, {12, 36}, {22, 50}, {0, 24}};
-        static const uint8_t FT[6][4] = {{100, 0, 0, 0}, {100, 0, 0, 0}, {65, 0, 30, 5}, {75, 0, 20, 5}, {55, 0, 30, 15},
-                                         {30, 10, 35, 25}};   /* LP HP BP COMB, percent */
-        int32_t cut = rr(CUT[role][0], CUT[role][1]), res = rr(role == RL_BASS ? 12 : 20, role == RL_ARP ? 62 : 48);
-        uint32_t ft = 0, w = rng() % 100u, acc = 0;
-        if (role == RL_DRUM) return;
-        for (ft = 0; ft < 3u; ft++) { acc += FT[role][ft]; if (w < acc) break; }
-        if (dh.twist == TW_COMB && (role == RL_PAD || role == RL_ARP)) ft = 3;
-        t->p[P_FTYPE] = (int16_t)ft;
-        if (ft == 2u) cut += 10;                        /* (a band-pass: higher, or it is only a rumble) */
-        if (dh.plain && role != RL_BASS) cut += rr(12, 22);   /* (0.6.81, measured: a band's chords, guitars and leads
-                                                         * open, air above 5 kHz; ours were twice as dark) */
-        if (e == EG_A) {
-            t->p[P_E4] = (int16_t)(t->p[P_E4] < cut ? t->p[P_E4] : cut);
-            t->p[P_E5] = (int16_t)clamp(t->p[P_E5], res, 90);
-        } else {
-            t->p[P_FCUT] = (int16_t)(role == RL_BASS ? cut + 24 : cut);       /* (a bass: only its fizz taken) */
-            t->p[P_FRES] = (int16_t)res;
-        }
-        t->p[P_ED_FLT] = (int16_t)rr(ENV[role][0], ENV[role][1]);
-        if (role == RL_PAD || role == RL_TEX || chance(35)) {
-            static const uint8_t LW[4] = {0, 1, 4, 0};  /* SIN TRI S&H */
-            t->p[P_LWAVE] = (int16_t)(role == RL_ARP && chance(50) ? 4 : LW[rng() % 4u]);
-            t->p[P_LRATE] = (int16_t)(t->p[P_LWAVE] == 4 ? rr(30, 70) : rr(4, 26));
-            t->p[P_LD_FLT] = (int16_t)rr(8, role == RL_TEX ? 34 : 24);
-        }
-        if ((role == RL_BASS || role == RL_LEAD) && chance(35)) {
-            t->p[P_DIST] = (int16_t)rr(10, 38);
-            t->p[P_DTYPE] = (int16_t)(chance(60) ? 0 : 2);   /* SOFT, or FOLD */
-        }
-        if (role == RL_PAD) {                           /* (0.6.81) the chords: a slow, soft LFO on the filter always */
-            t->p[P_LWAVE] = (int16_t)(chance(70) ? 0 : 1);   /* (SIN, TRI) */
-            t->p[P_LRATE] = (int16_t)rr(4, 16);
-            t->p[P_LD_FLT] = (int16_t)rr(8, 20);
-        }
-        if (role == RL_LEAD) {                          /* (0.6.81) a lead never stands still: its filter's envelope
-                                                         * always opening it, and an LFO on the filter one in two */
-            if (t->p[P_ED_FLT] < 12) t->p[P_ED_FLT] = (int16_t)rr(12, 36);
-            if (chance(50)) {
-                t->p[P_LWAVE] = (int16_t)(chance(60) ? 0 : 1);
-                t->p[P_LRATE] = (int16_t)rr(6, 30);
-                t->p[P_LD_FLT] = (int16_t)rr(8, 22);
-            }
-        }
-    }
-}
-
 /* a part that sits high plays quieter: its level down with its average note above E4 (and its highest) */
 static void dlevel(track_t *t, uint32_t len)
 {

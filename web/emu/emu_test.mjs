@@ -169,6 +169,32 @@ check("FX: a short hold peeks, four seconds pin the map, FX again unlocks; none 
         Math.abs(got[3] - lo) <= 0.06);
 }
 
+{ // (F5) the screen's 565 -> RGBA goes through 96 precomputed bytes, not a division per pixel: the tables are
+  // built from the same expressions the per-pixel code used, and Uint8ClampedArray rounds as the canvas does, so
+  // every byte on screen is the value it always was (all 65 536 panel words were compared once, 0 differ).
+  const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  const R5 = new Uint8ClampedArray(32), G6 = new Uint8ClampedArray(64);
+  const lines = html.split("\n").map((x) => x.trim());
+  const decl = lines.find((x) => x === "const R5 = new Uint8ClampedArray(32), G6 = new Uint8ClampedArray(64);");
+  check("the screen expands 565 through precomputed bytes, not a divide a pixel", !!decl);
+  const fill = (name, tab, n, d) => {
+    const line = lines.find((x) => x.startsWith(`for (let i = 0; i < ${n}; i++) ${name}[i] = `));
+    if (!line) return false;
+    new Function("R5", "G6", line)(R5, G6);
+    return true;
+  };
+  const okR = fill("R5", R5, 32, 31), okG = fill("G6", G6, 64, 63);
+  check("both tables are built from the expression the per-pixel code used", okR && okG);
+  const ref = new Uint8ClampedArray(4), got = new Uint8ClampedArray(4);   // the canvas' own conversion
+  let off = 0;
+  for (let p = 0; p < 65536; p++) {
+    ref[0] = ((p >> 11) & 31) * 255 / 31; ref[1] = ((p >> 5) & 63) * 255 / 63; ref[2] = (p & 31) * 255 / 31; ref[3] = 255;
+    got[0] = R5[(p >> 11) & 31]; got[1] = G6[(p >> 5) & 63]; got[2] = R5[p & 31]; got[3] = 255;
+    if (ref[0] !== got[0] || ref[1] !== got[1] || ref[2] !== got[2] || ref[3] !== got[3]) off++;
+  }
+  check(`all 65 536 panel words give the same bytes through the tables (${off} off)`, off === 0 && okR && okG);
+}
+
 // ---- a user preset saved from the panel, kept across a fresh instance
 const w0 = a.ex.web_flash_writes_count();
 a.tap(B.SAVE);

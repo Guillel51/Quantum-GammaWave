@@ -390,14 +390,22 @@ addEventListener("blur", () => {
 // ------------------------------------------------------------------ screen and lights
 const ctx = document.getElementById("screen").getContext("2d");
 const img = ctx.createImageData(240, 240);
+/* (F5) the panel's 565 to RGBA, without a division per pixel. A frame is 57 600 pixels and each one expanded
+ * three channels with `* 255 / 31` or `* 255 / 63`: 57 600 divides and 57 600 float multiplies a frame, for 96
+ * possible values. The three tables are built once from the same expressions, into the same kind of array the
+ * canvas takes (Uint8ClampedArray rounds half to even, exactly as the per-pixel assignment did), so every byte on
+ * screen is the value it always was -- tests/emu checks all 65 536 panel words. */
+const R5 = new Uint8ClampedArray(32), G6 = new Uint8ClampedArray(64);
+for (let i = 0; i < 32; i++) R5[i] = i * 255 / 31;
+for (let i = 0; i < 64; i++) G6[i] = i * 255 / 63;
 function drawScreen(fb) {
   const d = img.data;
-  for (let i = 0; i < 240 * 240; i++) {
+  for (let i = 0, j = 0; i < 240 * 240; i++, j += 4) {
     const v = fb[i], p = ((v >> 8) | (v << 8)) & 0xFFFF;          // the panel's byte order -> RGB565
-    d[i * 4] = ((p >> 11) & 31) * 255 / 31;
-    d[i * 4 + 1] = ((p >> 5) & 63) * 255 / 63;
-    d[i * 4 + 2] = (p & 31) * 255 / 31;
-    d[i * 4 + 3] = 255;
+    d[j] = R5[(p >> 11) & 31];
+    d[j + 1] = G6[(p >> 5) & 63];
+    d[j + 2] = R5[p & 31];
+    d[j + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
 }

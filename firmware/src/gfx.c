@@ -576,47 +576,6 @@ static void cv_frame(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
  * built out of chords and rectangles: the first read as a stepped polygon (the "square knob"), the second cost
  * a scan per row. A one-pixel circle by the midpoint octant rule and a filled disc by spans give every dial,
  * dot, meter head and orbit marker the same clean edge, and neither needs trigonometry. */
-static void cv_circle(int32_t cx, int32_t cy, int32_t r, uint16_t c)
-{
-    int32_t x = r, y = 0, e = 1 - r;
-    if (r <= 0) {
-        cv_pset(cx, cy, c);
-        return;
-    }
-    while (x >= y) {
-        cv_pset(cx + x, cy + y, c);
-        cv_pset(cx + y, cy + x, c);
-        cv_pset(cx - y, cy + x, c);
-        cv_pset(cx - x, cy + y, c);
-        cv_pset(cx - x, cy - y, c);
-        cv_pset(cx - y, cy - x, c);
-        cv_pset(cx + y, cy - x, c);
-        cv_pset(cx + x, cy - y, c);
-        y++;
-        if (e < 0) {
-            e += 2 * y + 1;
-        } else {
-            x--;
-            e += 2 * (y - x) + 1;
-        }
-    }
-}
-static void cv_disc(int32_t cx, int32_t cy, int32_t r, uint16_t c)
-{
-    int32_t dy, r2;
-    if (r <= 0) {
-        cv_pset(cx, cy, c);
-        return;
-    }
-    r2 = r * r;
-    for (dy = -r; dy <= r; dy++) {
-        int32_t span = 0;
-        while (span < r && (span + 1) * (span + 1) + dy * dy <= r2)
-            span++;
-        cv_rect(cx - span, cy + dy, 2 * span + 1, 1, c);
-    }
-}
-
 static void cv_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
 {
     int32_t dx = x1 > x0 ? x1 - x0 : x0 - x1, sx = x0 < x1 ? 1 : -1;

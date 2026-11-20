@@ -285,21 +285,6 @@ static uint32_t scl_chord_offsets(const track_t *t, uint8_t *off)
     return 7u;
 }
 /* the tones of a chord with their octave, for the chord page: "G3 A#3 D4 F4" (C4 = 60) */
-static void scl_notes_oct(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
-{
-    uint32_t i;
-    b[0] = 0;
-    for (i = 0; i < n; i++) {
-        char o[4];
-        if (i)
-            str_cpy(b + str_len(b), " ", 2);
-        if (str_len(b) + 5u > sz)
-            break;
-        str_cpy(b + str_len(b), N_NOTE[nt[i] % 12u], sz - str_len(b));
-        fmt_int(o, (int32_t)nt[i] / 12 - 1);
-        str_cpy(b + str_len(b), o, sz - str_len(b));
-    }
-}
 /* (6.2) the chord spelled as what its tones are: "P1 C  M3 E  P5 G  m7 Bb" -- each tone with the interval
  * it makes over the chord's root, read from N_ITVN and from the notes chord_from returned, so the page says
  * the third is a third and not only a letter. It is the same note array the key plays: nothing here is

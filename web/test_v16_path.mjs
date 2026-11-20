@@ -173,4 +173,57 @@ for (const lang of ["v16Unbound", "v16WrongUnit", "v16UnboundShort"]) {
   ok(hits >= 3, `${lang} is written in every language the page carries (${hits})`);
 }
 
+// ---- 6. M-Flasher's RECORD: read, kept, and used to check the copy ------------------------------
+/* A read taken with M-Flasher leaves two files: the 1 MiB copy and a small JSON that says which unit it
+ * came from and what the copy's SHA-256 is. Loading the JSON used to answer "that file is not a 1 MiB full
+ * copy" -- true and useless. The record is read now, and the copy is checked against the digest it names.
+ * Fixture: written here, values invented. The owner's own record is private and is not in this file. */
+const recSrc = /function readMflasherRecord\(text\) \{[\s\S]*?\n\}/.exec(page);
+ok(!!recSrc, "readMflasherRecord is defined in the page");
+const readMflasherRecord = new Function(recSrc[0].replace(/^function /, "return function ") + "\nreturn readMflasherRecord;")();
+const SHA = "0123456789abcdef".repeat(4);                 /* a digest of the right shape, invented */
+const REC = { model: "FM-1", bootloader: "a bootloader tag", firmware: "FM-1 016 (stock)", app: "OK",
+  "chip key": "0x1234", flash: "0x123456", "unit id": "0000000000000000",
+  loader: "a loader tag", sha256: SHA, saved: "20260101-000000", tool: "a tool 0.0.0" };
+const rec = readMflasherRecord(JSON.stringify(REC));
+ok(rec && rec.sha256 === SHA, "the record's digest is read");
+ok(rec.flash === "0x123456" && rec.chipKey === "0x1234", "the part and the chip key it names are read as hex");
+ok(rec.bootloader === "a bootloader tag" && rec.firmware === "FM-1 016 (stock)", "the bootloader and the firmware are kept");
+ok(readMflasherRecord("not json at all") === null, "a file that is not JSON is not a record");
+ok(readMflasherRecord(JSON.stringify({ ...REC, model: "FM-2" })) === null, "another model is not this unit's record");
+ok(readMflasherRecord(JSON.stringify({ ...REC, sha256: "beef" })) === null,
+  "a record with no usable digest is refused: the digest is the record's whole use");
+ok(readMflasherRecord(JSON.stringify({ ...REC, flash: "856014" })).flash === null,
+  "a part id that is not 0xRRGGBB-form hex is dropped (the record is still a record)");
+ok(readMflasherRecord("null") === null && readMflasherRecord("[]") === null, "null and an array are not records");
+/* the page's own wiring: the file that is not 1 MiB is looked at as a record, and the copy must match it */
+ok(/const rec = readMflasherRecord\(new TextDecoder\(\)\.decode\(b\)\)/.test(page),
+  "a file that is not 1 MiB is read as M-Flasher's record before being refused");
+ok(/if \(v16Record && v16Record\.sha256 !== dumpSha\)/.test(page),
+  "the 1 MiB copy is checked against the digest the record names");
+ok(/localStorage\.setItem\(V16_REC_KEY/.test(page) && /v16Record = loadV16Record\(\)/.test(page),
+  "the record survives a reload, like the copy's own record");
+ok(!/if \(b\.length !== V16_DUMP_SIZE\) \{ sayK\("v16DumpBad"/.test(page),
+  "the record is no longer refused as a bad copy (it is not a copy)");
+for (const lang of ["v16RecordOk", "v16DumpMismatch", "v16RecordBad"]) {
+  const hits = page.split(lang + ":").length - 1;
+  ok(hits >= 3, `${lang} is written in every language the page carries (${hits})`);
+}
+
+// own fuzz of the record reader: nothing it is given may throw, and whatever it accepts carries a digest
+let bad = 0, accepted = 0, seed = 20261120;
+const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+const junk = () => JSON.stringify({ model: ["FM-1", "fm-1 ", "FM-2", null][(rnd() * 4) | 0],
+  sha256: [SHA, SHA.slice(0, 63), SHA + "0", "0x" + SHA, null, 7][(rnd() * 6) | 0],
+  flash: ["0x123456", "0x12345", "123456", "0X123456", null][(rnd() * 5) | 0],
+  "chip key": ["0x1234", "0x123", null][(rnd() * 3) | 0] });
+for (let i = 0; i < 20000; i++) {
+  const text = i % 7 === 0 ? String.fromCharCode(...Array.from({ length: (rnd() * 64) | 0 }, () => 32 + ((rnd() * 95) | 0)))
+    : i % 7 === 1 ? "" : i % 7 === 2 ? "{" .repeat(200) : junk();
+  let r;
+  try { r = readMflasherRecord(text); } catch (e) { bad++; break; }
+  if (r) { accepted++; if (!/^[0-9a-f]{64}$/.test(r.sha256)) { bad++; break; } }
+}
+ok(bad === 0 && accepted > 0, `20000 junk inputs: the reader never throws and accepts only what carries a digest (${accepted} accepted)`);
+
 console.log("v16 path: " + n + " checks, 0 FAILED");

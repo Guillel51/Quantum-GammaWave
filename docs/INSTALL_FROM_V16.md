@@ -100,3 +100,24 @@ No se presenta como demostrado lo que no se ha corrido.
 | **El updater del V16 acepta el paquete y arranca el loader** | **no medido**: requiere la unidad |
 | **El SPL del V16 arranca la app de QG** | **no medido**: requiere la unidad |
 | **La restauración de la copia sobre un V16** | **no medido**: requiere la unidad |
+
+## 7. El registro JSON de M-Flasher (Fase 5)
+
+M-Flasher deja **dos** archivos de una lectura: la copia de 1 MiB (`.bin`) y un registro pequeño (`.json`) con
+la parte, la *chip key*, el bootloader, la app y el SHA-256 de la copia. Desde v1.5.26 el instalador **lee el
+registro** en el mismo campo de la copia:
+
+1. Cargá primero el `.json`: la página muestra parte, *chip key* y el prefijo del digest, y guarda el registro.
+2. Cargá después el `.bin` de 1 048 576 bytes: la página calcula su SHA-256 y **lo compara con el del registro**.
+   Si no coincide, dice `v16DumpMismatch` y no envía nada.
+3. Seguí con los pasos 3–6 de la sección 5.
+
+El registro es metadato: **no autoriza** nada (cualquiera puede escribir ese JSON, y no requiere unidad). El gate
+sigue exigiendo la copia completa, la confirmación y el paquete oficial V16, y el loader sigue leyendo la parte
+en la unidad antes de borrar. El análisis del archivo entregado está en `docs/FASE5_BACKUP_V16.md`.
+
+| Afirmación | Clase |
+|---|---|
+| El registro se lee y se conserva entre recargas | host (node), `web/test_v16_path.mjs` |
+| La copia tiene que ser la que el registro nombra | host (node), mismo archivo |
+| Un archivo que no es copia ni registro se rechaza con su tamaño | host (node), mismo archivo |

@@ -66,13 +66,6 @@ static struct {
 } ann;
 
 static int ann_on(void) { return ann.on; }
-static uint32_t ann_len(const char *s)
-{
-    uint32_t n = 0;
-    while (s && s[n])
-        n++;
-    return n;
-}
 /* one frame out of its parts: a, then (HELLO only) a 0 byte, then b. Too long = cut at the last space */
 static void ann_send(uint32_t cmd, uint32_t flags, const char *a, const char *b)
 {

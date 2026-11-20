@@ -1,3 +1,31 @@
+## v1.5.26 — el registro de M-Flasher se lee, la copia se comprueba contra él, y el emulador no divide por píxel
+
+Fase 5. Unidad del dueño con **V16 oficial**: el archivo que entrega M-Flasher no es la copia de 1 MiB, es el
+**registro JSON** de la lectura. Cargado en el instalador respondía «that file is not a 1 MiB full copy» — cierto e
+inútil. Análisis en `docs/FASE5_BACKUP_V16.md`. **No hay FM-1 en este entorno**: nada de aquí afirma escritura,
+sonido ni restauración sobre la unidad.
+
+- **El registro se lee, no se rechaza.** `readMflasherRecord()` acepta el JSON de M-Flasher (modelo `FM-1`, un
+  SHA-256 de 64 hex), guarda parte, *chip key*, bootloader, firmware y digest, lo muestra en el estado del bloque
+  V16 y lo conserva entre recargas (`qg1.v16rec`). Es metadato: **no autoriza nada** — es un JSON que cualquiera
+  escribe y no necesita unidad.
+- **La copia se comprueba contra el registro.** Al cargar el `.bin` de 1 MiB su SHA-256 tiene que ser el que el
+  registro nombra; si no, `v16DumpMismatch` y no se envía nada. El gate no cambia: copia completa, confirmación de
+  restauración, paquete oficial V16, y la parte se sigue leyendo en la unidad antes de borrar.
+- **El selector acepta `.json`** (antes sólo `.bin`, así que el registro ni se podía elegir) y el mensaje del gate
+  nombra los dos archivos que M-Flasher deja: el `.bin` que queda junto al `.json`.
+- **Por qué los dos mensajes del reporte eran correctos:** `Truncated identification reply` es el transporte ante
+  una consulta `0x12` que una unidad stock no implementa; «take the complete 1 MiB copy» es el gate de la página.
+  Causas distintas, ningún chip inventado. Ver `docs/INSTALL_FROM_V16.md` §7.
+- **Emulador: la pantalla no divide por píxel.** `drawScreen` expandía los 57 600 píxeles de un frame con
+  `* 255 / 31` y `* 255 / 63`: 57 600 divisiones para 96 valores posibles. Tres tablas construidas una vez con las
+  **mismas expresiones** (en `Uint8ClampedArray`, que redondea igual que el canvas) dejan los mismos bytes: los
+  **65 536** words del panel dan byte a byte lo mismo, comprobado en `web/emu/emu_test.mjs`. Medido `[HOST]`
+  (node): **0,564 → 0,180 ms** por frame, **3,13×**.
+- **Tests:** `web/test_v16_path.mjs` **45 → 62** comprobaciones (registro, campos inválidos, digest obligatorio,
+  copia contra registro, persistencia, tres idiomas, y 20 000 entradas basura contra el lector: no lanza y sólo
+  acepta lo que trae digest).
+
 ## v1.5.25 — el panel deja de recibir lo que ya tenía: dos cachés de filas y la barra de fader de FX
 
 Fase 4: segunda optimización, la del **dibujo**. La Fase 1 fue de recursos (RAM, XIP); esta es de trabajo: qué se

@@ -363,7 +363,6 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
  * BALANCED (1): half the sparks, a third fewer flares, the curves every 2nd column, the motion every other frame.
  * LOW (2): no sparks, eight flares, the curves every 3rd column, the motion every third frame. */
 static uint32_t vz_step(void) { return ui_viz_q >= 2u ? 3u : ui_viz_q == 1u ? 2u : 1u; }
-static uint32_t vz_flares(void) { return ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 12u : 20u; }
 /* the motion's frame snapped to vz_step(): it advances in the same size steps, once per step's frames, so a lower
  * quality updates the animation less often at the same speed (the screen still repaints every frame, so nothing
  * is left blank) */

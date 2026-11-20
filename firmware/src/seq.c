@@ -252,16 +252,6 @@ static uint32_t scale_offsets(const track_t *t, uint8_t *off)
     return n;
 }
 /* the degree (0-based) of a note in that scale, or -1 (the note is not in it) */
-static int32_t scale_degree_of(const track_t *t, int32_t note)
-{
-    uint8_t off[12];
-    uint32_t i, n = scale_offsets(t, off);
-    int32_t pc = ((note - t->p[P_ROOT]) % 12 + 12) % 12;
-    for (i = 0; i < n; i++)
-        if (off[i] == (uint32_t)pc)
-            return (int32_t)i;
-    return -1;
-}
 /* the chord's tones before any voicing: the root, then the third (the sus the mode asks for where the scale
  * has it), the fifth and the seventh or ninth. mode is CD_TRI..CD_ADD9 for the diatonic ones and CD_MAJ.. for
  * the shapes, which ignore the key. nt needs KB_CH + 1 */

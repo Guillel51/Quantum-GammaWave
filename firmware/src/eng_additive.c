@@ -194,7 +194,7 @@ static __attribute__((noinline)) void add_render(track_t *t, voice_t *v, int32_t
             s = softclip(((s >> 2) * (drive >> 2)) >> 11);
         s = soft_knee(tsvf_lp(&flt, s >> 1, &ic1, &ic2), 16000) * 2;
         {                                             /* the DC blocker (~5 Hz), rounded as WAVETABLE's */
-            int32_t y = s - dcx + (((dcy * 32744) + 16384) >> 15);
+            int32_t y = s - dcx + dc_pole(dcy);
             dcx = s;
             dcy = y;
             s = y;

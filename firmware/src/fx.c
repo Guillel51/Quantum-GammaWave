@@ -501,15 +501,11 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
  * tightest budget in this build and the states are clamped far below the overflow it would need. */
 #define BQ_TINY (512 * BQ_SMUL)
 static inline int qg_tiny(int64_t v) { return (uint64_t)(v + BQ_TINY) < (uint64_t)(2 * BQ_TINY); }
-static inline int32_t bq_mul(int32_t c, int32_t x) { return (int32_t)(((int64_t)c * x) >> BQ_Q); }
-
 /* (v1.8.9) Round to nearest instead of flooring when a product comes back to the states' scale.
  * Flooring moves a negative product toward -inf every sample; with a pole 2e-6 from the unit circle
  * that constant error is multiplied by 1/(1 + a1 + a2) ~ 493 000, which is the whole -1.46 dB of the
  * measured DC gain. (v + half) >> shift is the nearest value for either sign. */
 static inline int64_t bq_rnd(int64_t v, int sh) { return (v + ((int64_t)1 << (sh - 1))) >> sh; }
-static inline int32_t bq_lim(int32_t v) { return v > BQ_LIM ? BQ_LIM : v < -BQ_LIM ? -BQ_LIM : v; }
-
 /* (v1.8.8) Half the state clamp, in the states' own scaled Q: no stable filter reaches past it.
  * s2_r was compared against BQ_LIM / 2 without the shift -- 1024x below the other three -- so an
  * ordinary right-channel state looked impossible and master_eq_update(), which runs every block,

@@ -6,6 +6,19 @@
 #define VOICE_FS 24000           /* per-voice level: one voice peaks near -6 dBFS before the master */
 
 static inline int32_t mulq15(int32_t a, int32_t b) { return (a * b) >> 15; }
+/* (F5) THE DC BLOCKER'S POLE, WRITTEN SO IT CANNOT OVERFLOW. Both additive engines filter with
+ * ((v * 32744) + 16384) >> 15. The constant is 0.9994 in Q15 and the expression is fine for a normal sample,
+ * but the intermediate is not bounded by the sample: 96 000 (a post-filter voice peak) times 32 744 already
+ * passes 2^31, and the ASan/UBSan fuzz run reached it (signed integer overflow, eng_additive.c:197, seed 17).
+ * v * 32768 is an exact multiple of 32768, so the sum splits without loss: v + ((16384 - 24v) >> 15). Every
+ * in-range result is bit-identical to the old expression (checked over every 7th value of the whole range) and
+ * the product is 4096x smaller. The clamp only catches a state no sample path produces (a fuzzed scene, a bad
+ * restore). */
+static inline int32_t dc_pole(int32_t v)
+{
+    if (v > 1048575) v = 1048575; else if (v < -1048575) v = -1048575;
+    return v + ((16384 - v * 24) >> 15);
+}
 /* a * k / 65536 without 64-bit: a up to 2^31, k Q16 */
 static inline __attribute__((always_inline)) int32_t mulq16(int32_t a, uint32_t k)
 {
