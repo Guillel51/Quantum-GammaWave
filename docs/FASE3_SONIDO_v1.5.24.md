@@ -144,7 +144,8 @@ que el SVF ya calculaba, y `RES` escribe un parámetro que ya existía.
 | `tests/regress.c` (306 renders golden) | **0 changed, 0 gone**, 0 fallos de voz/routing | `[HOST]` |
 | `tests/audio_test.c`, `poly_phase2_test`, `eq_*`, `six_track*` | **all passed** (suite completa) | `[HOST]` |
 | `[AC791N]` build `--release 1.5.24` | imagen 582 340 B, 1 272 B libres, `.data+.bss` 86 912 B | `[ESTÁTICO]` |
-| Emulador WASM v1.5.24 | reconstruido con la misma fuente | `[HOST]` (wasm) |
+| Emulador WASM v1.5.24 | reconstruido con la misma fuente: 1 285 187 B, build `ac18d6e`, sha256 `06aa6b17…` | `[HOST]` (wasm) |
+| Paquete `release/felucca-v1.5.24.fwsc` | **610 933 B**, sha256 `6f1f66941b68f390c98495d0c71250f9c8d00920e6750cc2adeb8cbefe63d136`, build `ac18d6e` | `[ESTÁTICO]` |
 
 ## 8. Lo que quedó pendiente, y por qué
 
