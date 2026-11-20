@@ -8690,6 +8690,15 @@ static int test_gen_reproducible(void)
     return bad;
 }
 
+/* (v1.5.17) the voices of one part that are sounding and held (the pool's own test counts the same way) */
+static uint32_t gated_here(const track_t *t)
+{
+    uint32_t i, n = 0;
+    for (i = 0; i < NVOICE; i++)
+        n += V(t, i).active && V(t, i).gate && V(t, i).stage != 4u;
+    return n;
+}
+
 /* (0.6.16) the load budget: tight (audio.c), a new note takes a voice instead of adding one; calm, it adds */
 static int test_load_budget(void)
 {
@@ -8713,12 +8722,30 @@ static int test_load_budget(void)
                  voices_busy() == n0 + 2u && V(t, 0).stage == 3u);
     V(t, 0).env_out = 50;                               /* the same tail nearly gone (under -50 dB) */
     trk_note_on(t, 76, 100);
-    bad += check("  tight: a dying tail makes the room (the count stays)", voices_busy() == n0 + 2u);
+    /* (v1.5.17) THE OLD CONTRACT WAS THE DEFECT: a dying tail was taken to keep the count flat, and a tail in
+     * release renders the same samples as the note that replaces it, so it bought no CPU and cut a decay 6 ms
+     * short. With room in the budget the note now adds a voice and the tail is left to die on its own envelope. */
+    bad += check("  tight: a dying tail is left to die (with room in the budget the note adds a voice)",
+                 voices_busy() == n0 + 3u && V(t, 0).stage == 3u);
     load_tight = 0;
     { uint32_t i; for (i = 0; i < NVOICE; i++) if (V(t, i).note == 76) V(t, i).gate = 0, V(t, i).active = 0; }
     n0 = voices_busy();
     trk_note_on(t, 77, 100);
     bad += check("  calm: a new note adds a voice", voices_busy() == n0 + 1u);
+    /* (v1.5.17) and the cap is still the cap: filled to voice_cap() with a released voice among them, the next note
+     * recycles the released one and no held note is touched. (This is the half of the old contract that was right.) */
+    load_tight = 1;
+    {   /* one released tail, then notes until the budget is full */
+        uint32_t i, cap = voice_cap(), held;
+        for (i = 20u; i < 20u + NVOICE && voices_busy() + 1u < cap; i++)   /* distinct notes: a repeat would retrigger */
+            trk_note_on(t, i, 100u);
+        trk_note_on(t, 19u, 100u);                      /* the one that fills the budget */
+        V(t, 0).gate = 0; V(t, 0).stage = 3; V(t, 0).env_out = 50;   /* a dying tail inside a full budget */
+        held = gated_here(t);
+        trk_note_on(t, 95u, 100u);
+        bad += check("  tight at the cap: the new note recycles the released voice, the held ones stay",
+                     voices_busy() == cap && gated_here(t) == held + 1u);
+    }
     load_tight = 1;
     trk_all_off(t); { uint32_t i; for (i = 0; i < NVOICE; i++) V(t, i).active = 0; }
     trk_note_on(t, 60, 100);
