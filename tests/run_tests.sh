@@ -304,6 +304,12 @@ if [ -f build/gen/felucca_tables.h ]; then
     # with gfx's identical-band skip; a page that starts re-sending what the panel has fails this step.
     run "UI idle: an untouched frame sends the panel nothing it already has (201 scenes)" \
         "$OUT/ui_render" --idle
+    # (v1.5.15) and what ONE STEP of HOME's ambient layer (and the MIXER's meters) costs the panel: gfx.c keeps a
+    # hash a row now, so a step writes the rows that changed instead of the whole body (48 480 px). The mode also
+    # proves the rows it did not send were the ones the panel already had, pixel for pixel, and that the step still
+    # animates something (a fix that freezes the embers would pass the first two and fail this one).
+    run "UI bands: a step of HOME's ambience / the MIXER's meters writes only the rows that changed AND leaves the frame a whole redraw leaves" \
+        "$OUT/ui_render" --bands
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
     # (FASE 5) and the pixels themselves against the tracked baseline: the lint above cannot see a glyph table, a
     # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.

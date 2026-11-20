@@ -37,6 +37,12 @@ typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
 #define GFX_HOOKS 0                     /* (the firmware: what only the hooks read is not even computed) */
 #define GFX_HOOK_TEXT(x0, y0, x1, y1, s, flags) ((void)0)   /* an ink box; flags 1 ellipsised, 2 cut, 4 icon, 8 free text, 32 in a scrolled view */
 #define GFX_HOOK_BLIT(x, y, r0) ((void)0)
+#ifndef GFX_HOOK_BLIT_ROWS                             /* (v1.5.15) a run of rows [r0, r1): what the panel really got */
+#define GFX_HOOK_BLIT_ROWS(x, y, r0, r1) ((void)0)
+#endif
+#ifndef GFX_HOOK_BLIT_BAND                             /* .. and the band itself, once, for the layout lint: the */
+#define GFX_HOOK_BLIT_BAND(x, y) ((void)0)             /* canvas landed on the panel whatever rows it sent */
+#endif
 #define GFX_HOOK_BEGIN() ((void)0)
 #define GFX_HOOK_PIXELS(n) ((void)0)
 #endif
@@ -289,6 +295,39 @@ static void cv_rec_add(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
     cv_rec[cv_rec_n].y1 = (uint8_t)(y + h > 240u ? 240u : y + h);
     cv_rec_n++;
 }
+/* (v1.5.15) rows [r0, r1) of the canvas at (x, y), split around the hole if one is armed */
+static void cv_blit_run(uint32_t x, uint32_t y, uint32_t r0, uint32_t r1)
+{
+    uint32_t a, b;
+    if (r1 > cv_h)
+        r1 = cv_h;
+    if (r0 >= r1)
+        return;
+    if (cv_hole1 <= y + r0 || cv_hole0 >= y + r1) {
+        lcd_blit(x, y + r0, cv_w, r1 - r0, cv_px + r0 * cv_w);
+        return;
+    }
+    a = cv_hole0 > y ? cv_hole0 - y : 0u;           /* the rows above the hole, then those below it */
+    b = cv_hole1 > y ? cv_hole1 - y : 0u;
+    if (a > r1)
+        a = r1;
+    if (b > r1)
+        b = r1;
+    if (a > r0)
+        lcd_blit(x, y + r0, cv_w, a - r0, cv_px + r0 * cv_w);
+    if (b > r0 && b < r1)
+        lcd_blit(x, y + b, cv_w, r1 - b, cv_px + b * cv_w);
+}
+/* one row's hash: two pixels a load, as the band's own (the words of the row, then the odd pixel if cv_w is odd) */
+static uint32_t cv_row_hash(uint32_t r)
+{
+    uint32_t i, n = cv_w >> 1, base = (r * cv_w) >> 1, s = 0x811C9DC5u;
+    for (i = 0; i < n; i++)
+        s = (s ^ cv_buf.w32[base + i]) * 0x01000193u;
+    if (cv_w & 1u)
+        s = (s ^ cv_px[r * cv_w + cv_w - 1u]) * 0x01000193u;
+    return s;
+}
 static void cv_blit_rows(uint32_t x, uint32_t y, uint32_t r0)
 {
     uint32_t a, b;
@@ -317,33 +356,91 @@ static void cv_blit_rows(uint32_t x, uint32_t y, uint32_t r0)
  * signature of their own (header, cards, footer) are a few hundred pixels and skip this; the page band is the one
  * that costs. Anything else that writes the panel outside this path -- a fill (draw_frame, the GEN screen, a
  * full-screen clear) -- calls gfx_forget(), and so does the host harness when it empties its own framebuffer. */
-#define CV_SENT_MIN_H 64u                            /* rows: a canvas worth hashing */
+#define CV_SENT_MIN_H 16u                            /* (v1.5.15: 16, was 64) rows: a canvas worth hashing. HOME's
+                                                      * body is three windows -- a 26-row cap and two 88-row passes --
+                                                      * and 26 was below the old floor, so the cap was re-sent whole
+                                                      * (6 240 px) every eighth frame for nothing. A band this small
+                                                      * costs one hash a row to know that. */
 extern uint32_t lcd_gen;                             /* (lcd.c: a fill changes what the panel shows) */
 static struct { uint16_t x, y, w, h; uint32_t hh, gen; uint8_t on; } cv_last;
-void gfx_forget(void) { cv_last.on = 0; }
+/* (v1.5.15) THE ROWS THE PANEL ALREADY HAS ARE NOT SENT EITHER. The whole-band hash above only skips a band that
+ * is identical from top to bottom. HOME's three screens and the MIXER are not: their ambient layer (hv_air: sixteen
+ * embers that step every eighth frame) and their meters change a handful of rows, so the band differed, the hash
+ * never matched, and the panel was made to write all 240 x 88 px of each of the two passes (plus the 26-row cap)
+ * for forty-odd pixels that moved -- ~48 000 px at ~7.5 Hz on OVERVIEW, 240 x 122 px every frame on MIXER while a
+ * sequence runs, which is the whole body re-sent for nothing and was reported as the flicker. This keeps a hash per
+ * ROW of the last window sent to the panel and writes only the runs of rows whose pixels differ: same pixels, same
+ * order, 1/10 of the bus. Nothing about the drawing changes, so an animation animates exactly as before.
+ * Cost: one 32-bit hash a row (the band's own hash, split) and CV_ROW_MAX x 4 B of .bss for the table. */
+#define CV_ROW_MAX 240u
+/* indexed by the PANEL's row, not by the canvas': HOME draws its body in three windows whose cap and first pass
+ * share rows 26..46, and a per-window table would throw the shared rows away every time the window changed --
+ * which is exactly what sent the whole 240 x 176 body again. One table of the panel's own rows needs no key: a row
+ * whose pixels are the ones the panel already shows is not sent, whichever canvas drew it. */
+static uint32_t cv_rowh[CV_ROW_MAX];                 /* panel row -> hash of what the panel shows there */
+static uint8_t cv_rowv[CV_ROW_MAX];                  /* .. and whether that hash still describes the panel: a */
+                                                     /* canvas that does not go through the table (the columns, */
+                                                     /* the header, anything narrower than 240 or shorter than */
+                                                     /* CV_SENT_MIN_H) writes rows it cannot vouch for */
+static uint32_t cv_rowh_gen;                         /* the lcd_gen that table describes (a fill invalidates it) */
+static uint8_t cv_rowh_on;
+void gfx_forget(void)
+{
+    uint32_t r;
+    cv_last.on = 0;
+    cv_rowh_on = 0;
+    for (r = 0; r < CV_ROW_MAX; r++)
+        cv_rowv[r] = 0;
+}
 static void cv_blit(uint32_t x, uint32_t y)
 {
     uint32_t n = cv_w * cv_h, i;
     cv_rec_add(x, y, cv_w, cv_h);                    /* (the cover, out or not: cv_gaps clears what none covers) */
-    if (cv_h >= CV_SENT_MIN_H) {
-        uint32_t s = 0x811C9DC5u;
-        for (i = 0; i < (n >> 1); i++)
-            s = (s ^ cv_buf.w32[i]) * 0x01000193u;
-        if (n & 1u)
-            s = (s ^ cv_px[n - 1u]) * 0x01000193u;
-        if (cv_last.on && cv_last.gen == lcd_gen && cv_last.x == x && cv_last.y == y && cv_last.w == cv_w &&
-            cv_last.h == cv_h && cv_last.hh == s)
-            return;                                  /* the panel already shows exactly this window */
-        cv_last.on = 1;
-        cv_last.x = (uint16_t)x;
-        cv_last.y = (uint16_t)y;
-        cv_last.w = (uint16_t)cv_w;
-        cv_last.h = (uint16_t)cv_h;
-        cv_last.hh = s;
-        cv_last.gen = lcd_gen;
+    if (cv_h >= CV_SENT_MIN_H && x == 0u && cv_w == 240u) {
+        uint32_t r, run0 = 0, in_run = 0;
+        int same = cv_rowh_on && cv_rowh_gen == lcd_gen;   /* the table describes what the panel shows now */
+        if (!same) {                                      /* first band after power-on or a fill: all of it */
+            for (r = 0; r < CV_ROW_MAX; r++)
+                cv_rowv[r] = 0;
+            cv_rowh_gen = lcd_gen;
+            cv_rowh_on = 1;
+        }
+        GFX_HOOK_BLIT_BAND(x, y);
+        /* the rows whose pixels differ from what the panel shows there, sent as runs (nothing changed: nothing) */
+        for (r = 0; r < cv_h; r++) {
+            uint32_t yy = y + r, hh;
+            int ch;
+            if (yy >= CV_ROW_MAX)
+                break;
+            hh = cv_row_hash(r);
+            ch = !same || !cv_rowv[yy] || cv_rowh[yy] != hh;
+            cv_rowh[yy] = hh;
+            cv_rowv[yy] = 1;
+            if (ch && !in_run) {
+                run0 = r;
+                in_run = 1;
+            } else if (!ch && in_run) {
+                GFX_HOOK_BLIT_ROWS(x, y, run0, r);
+                cv_blit_run(x, y, run0, r);
+                in_run = 0;
+            }
+        }
+        if (in_run) {
+            GFX_HOOK_BLIT_ROWS(x, y, run0, cv_h);
+            cv_blit_run(x, y, run0, cv_h);
+        }
+        cv_last.on = 0;                               /* the row table is the record now */
+        return;
     } else if (cv_last.on && x < (uint32_t)cv_last.x + cv_last.w && cv_last.x < x + cv_w &&
                y < (uint32_t)cv_last.y + cv_last.h && cv_last.y < y + cv_h)
         cv_last.on = 0;                              /* (drawn over it: what it held is gone) */
+    {   /* (v1.5.15) this canvas writes the panel without the table's knowing what it put there: those rows are
+         * unknown until a 240-wide band draws them again and says what they hold */
+        uint32_t r;
+        for (r = 0; r < cv_h; r++)
+            if (y + r < CV_ROW_MAX)
+                cv_rowv[y + r] = 0;
+    }
     GFX_HOOK_BLIT(x, y, 0u);
     cv_blit_rows(x, y, 0u);
 }

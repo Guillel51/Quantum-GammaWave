@@ -2623,9 +2623,18 @@ static void graph_browse(void)
 static void graph_preset_pop(void)
 {
     uint32_t total, cur = preset_pos(&total), e, k;
-    int32_t r, x0 = 16, y0 = 18, w = 208, h = 86;
+    int32_t r, x0 = 0, y0 = 18, w = 208, h = 86;      /* (v1.5.15) the box's own origin: the blit places it at x = 16 */
 
     if (!total) return;
+    /* (v1.5.15) ITS OWN CANVAS, THE SIZE OF ITS BOX, AND ONLY ITS BOX IS SENT. This used to paint into whatever
+     * canvas the page had left and blit it as the whole 240 x graph_h band: on the MIXER, whose columns are drawn
+     * one canvas each and never fill the shared buffer, the band it sent was a STALE canvas -- the preset names of
+     * a previous draw -- with this plate composited on top, which is the "preset names drawn over the mixer" of the
+     * report. Now the pop-up is a canvas of exactly its plate (208 x 86) drawn at (16, Y_GRAPH + 18): nothing under
+     * it is reused and nothing outside it is touched. */
+    cv_begin((uint32_t)w, (uint32_t)h, T_SURF);
+    cv_oy = -y0;
+    cv_bg = T_SURF;
 
     /* (1.4.1) opaque plate: the dithered rows this used to paint were covered by the panel a line later */
     /* Centered chamfered HUD enclosure */
@@ -2675,7 +2684,7 @@ static void graph_preset_pop(void)
             cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
         }
     }
-    cv_blit(0, Y_GRAPH);
+    cv_blit(16, Y_GRAPH + 18);                        /* exactly where the plate was drawn */
 }
 /* the EDIT layer (ui_layer.c): the sound loaded, as the browser's selected row: "03" (its place in KNOB 2's list,
  * the engine's sounds) or "U07", the name, the star of a favourite */

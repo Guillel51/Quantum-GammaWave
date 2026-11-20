@@ -1,3 +1,45 @@
+## v1.5.15 — HOME deja de reenviar el cuerpo entero, y el pop-up deja de pintar sobre el MIXER
+
+Los dos defectos que v1.5.13 dejó abiertos, corregidos en su causa. Ninguno baja la tasa de refresco, apaga una
+animación ni recorta la calidad: lo que cambia es cuánto se le manda al panel y desde qué ventana se dibuja.
+
+- **PARPADEO DE HOME 2–5: el panel recibía 48 480 px por cada paso de ambiente para 32 px que cambiaban.** Medido en
+  el host (`ui_render --bands`): un paso de las brasas (`hv_air`, `ui.frame / 8`) o del pulso del strip movía 32–40
+  px, y el cuerpo se reenviaba entero porque `gfx.c` sólo sabía saltarse una banda **idéntica de arriba a abajo**.
+  Ahora `cv_blit` guarda un hash **por fila del panel** (960 B de `.bss` + 240 B de validez) y manda sólo los tramos
+  de filas cuyos píxeles difieren. Medición del mismo paso, antes → después:
+
+  | pantalla | antes | después | px que cambian |
+  |---|---|---|---|
+  | HOME 2/5 OVERVIEW | 48 480 | **6 480** | 32 |
+  | HOME 3/5 MIXER | 48 480 | **7 680** | 40 |
+  | HOME 4/5 PERFORM | 48 480 | **7 440** | 38 |
+  | GLO MIXER (un medidor) | 29 280 | **4 636** | 324 |
+
+  El test comprueba además lo que una optimización así puede romper: el frame que deja el dibujo incremental es
+  **pixel por pixel** el de un redibujo entero (0 px distintos en las cuatro pantallas), y el paso **sigue animando**
+  (un arreglo que congelara las brasas fallaría esa aserción). El `--idle` sigue en 109 056 px, el piso de v1.5.6.
+- **Dos causas de tráfico que aparecieron al medir, también corregidas:** el **cap** del cuerpo de HOME era de 26
+  filas (20..46) cuando la primera pasada repinta 26..114 en el mismo frame: 20 filas pintadas y tapadas, y como
+  los dos ventanas no coincidían píxel a píxel, esas filas se mandaban **dos veces** (ahora 6 filas, 20..26); y
+  `CV_SENT_MIN_H` era 64, así que una banda de 26 filas no se comparaba nunca (ahora 16: 6 240 px por paso menos).
+- **NOMBRES DE PRESET SOBRE GLO MIXER: el pop-up componía sobre un canvas ajeno.** `graph_preset_pop()` dibujaba su
+  placa (208 × 86 en 16, Y_GRAPH+18) sobre **el canvas que la página hubiera dejado** y lo enviaba como banda entera
+  de 240 × graph_h. En el MIXER las columnas se dibujan una a una y no llenan ese buffer, así que lo que se enviaba
+  era un canvas **viejo** —los nombres de preset de un dibujo anterior— con la placa encima. Eso es exactamente lo
+  que se veía. Ahora el pop-up abre **su propio canvas del tamaño de su caja** y lo envía ahí y sólo ahí.
+  Prueba nueva en `ui_render --regions`: con el pop-up arriba, **0 px del panel tocados fuera de su caja**; al
+  cerrarse, el MIXER vuelve a su frame exacto (panel, caja, zona dB y cabecera: 0 px distintos), y el caso C
+  (cambio de pista) sigue dejando el frame de un redibujo entero.
+- **Coste:** imagen 580 056 → **580 328 B** (3 284 B libres del slot), `.data+.bss` 91 648 → **92 832 B** (5 472
+  libres, piso de 4 KiB respetado). El hash por fila es el mismo trabajo que el hash de banda que sustituye (una
+  palabra por vez) más un bucle de filas: no toca el DSP, cuyas líneas base de CPU siguen pasando sin regenerarse.
+- **Los 3 056 goldens de UI quedan idénticos** salvo las 48 líneas con la cadena de versión: la corrección no mueve
+  un píxel. El lint de layout: 0 hallazgos.
+- **Lo que sigue sin verificarse:** esto es clase *host* (`ui_render --bands`, el modelo del panel del harness) y
+  *build AC791N*. No hay FM-1 en este entorno y no escribí en ninguna unidad: el parpadeo y la legibilidad en el
+  panel físico siguen sin medirse en hardware, y no lo afirmo.
+
 ## v1.5.14 — El slot de flash: 2 480 B recuperados del mapa de símbolos, sin tocar el DSP
 
 - **Punto de partida medido** (build AC791N, `build/felucca.map` de v1.5.13): imagen **582 536 B** de 583 612,

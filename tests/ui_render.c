@@ -209,8 +209,12 @@ static void rules_cover(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
             memcpy(rules[k++], rules[i], sizeof rules[i]);
     nrules = k;
 }
+static void hk_run(uint32_t x, uint32_t y, uint32_t r0, uint32_t r1);   /* (v1.5.15) below, after the canvas: */
+static void hk_blit_band(uint32_t x, uint32_t y);                       /* gfx.c calls them through the hooks */
 #define GFX_HOOK_TEXT(x0, y0, x1, y1, s, flags) hk_text(x0, y0, x1, y1, s, flags)
 #define GFX_HOOK_BLIT(x, y, r0) hk_blit(x, y, r0, cv_w, cv_h)
+#define GFX_HOOK_BLIT_ROWS(x, y, r0, r1) hk_run((x), (y), (r0), (r1))   /* (v1.5.15) a run of rows */
+#define GFX_HOOK_BLIT_BAND(x, y) hk_blit_band((x), (y))
 #define GFX_HOOK_BEGIN() (npend = ncells = 0, al_flush())
 #define GFX_HOOK_CELL(x0, y0, x1, y1) hk_cell(x0, y0, x1, y1)
 #define GFX_HOOK_RULE(x, y, w, h) hk_rule(x, y, w, h)
@@ -497,11 +501,13 @@ static void contain(int32_t x, int32_t y)
 }
 static uint8_t bb_on;                            /* (v1.5.6) --idle: track where the blits land */
 static int32_t bb[4];
-static void hk_blit(uint32_t x, uint32_t y, uint32_t r0, uint32_t w, uint32_t h)
+static void hk_blit_at(uint32_t x, uint32_t y, uint32_t r0, uint32_t w, uint32_t h, int count)
 {
     uint32_t i, k = 0;
     if (bb_on && getenv("UI_IDLE_BLITS"))
         printf("      blit x=%u y=%u w=%u h=%u\n", x, y, w, h);
+    if (getenv("UI_BANDS_DEBUG"))
+        printf("      run x=%u y=%u..%u w=%u\n", x, y + r0, y + h, w);
     if (bb_on && w && h > r0) {
         if (bb[2] < 0 || (int32_t)x < bb[0]) bb[0] = (int32_t)x;
         if (bb[2] < 0 || (int32_t)(x + w) > bb[2]) bb[2] = (int32_t)(x + w);
@@ -511,7 +517,8 @@ static void hk_blit(uint32_t x, uint32_t y, uint32_t r0, uint32_t w, uint32_t h)
     al_flush();
     contain((int32_t)x, (int32_t)y);
     ncells = 0;
-    blit_px += (uint64_t)w * (h > r0 ? h - r0 : 0u);
+    if (count)
+        blit_px += (uint64_t)w * (h > r0 ? h - r0 : 0u);
     for (i = 0; i < npend; i++) {
         rbox_t b = pend[i];
         if (b.y1 <= (int32_t)r0) continue;           /* rows not blitted */
@@ -524,6 +531,27 @@ static void hk_blit(uint32_t x, uint32_t y, uint32_t r0, uint32_t w, uint32_t h)
     for (i = 0; i < k && nscr < 1200u; i++)
         scr[nscr++] = pend[i];
     npend = 0;
+}
+static void hk_blit(uint32_t x, uint32_t y, uint32_t r0, uint32_t w, uint32_t h)
+{
+    hk_blit_at(x, y, r0, w, h, 1);                   /* (v1.5.15) a whole canvas: counted */
+}
+static void hk_blit_band(uint32_t x, uint32_t y)     /* .. the band, once: the lint's books, not the pixels */
+{
+    hk_blit_at(x, y, 0u, cv_w, cv_h, 0);
+}
+static void hk_run(uint32_t x, uint32_t y, uint32_t r0, uint32_t r1)
+{   /* (v1.5.15) a run of rows: it counts what the panel wrote, and nothing else. The lint's books (the text boxes,
+     * what covers what) are the BAND's, once, in hk_blit_band -- a box spanning two runs must not be entered twice. */
+    if (getenv("UI_BANDS_DEBUG"))
+        printf("      run x=%u y=%u..%u w=%u\n", x, y + r0, y + r1, cv_w);
+    blit_px += (uint64_t)cv_w * (r1 - r0);
+    if (bb_on && r1 > r0) {
+        if (bb[2] < 0 || (int32_t)x < bb[0]) bb[0] = (int32_t)x;
+        if (bb[2] < 0 || (int32_t)(x + cv_w) > bb[2]) bb[2] = (int32_t)(x + cv_w);
+        if (bb[2] < 0 || (int32_t)(y + r0) < bb[1]) bb[1] = (int32_t)(y + r0);
+        if ((int32_t)(y + r1) > bb[3]) bb[3] = (int32_t)(y + r1);
+    }
 }
 
 static void lint(void)
@@ -1942,6 +1970,24 @@ static int regions_main(void)
     fm1_ms = 10000u;                                /* the HUD's 1.5 s window is measured against the clock */
     ui.preset_pop_ms = fm1_ms;
     printf("  el pop-up: %u px escritos\n", rnext());
+    {   /* (v1.5.15) AND IT PAINTS ITS OWN BOX, NOTHING ELSE. The pop-up used to composite itself into whatever canvas
+         * the page had left and blit it as the whole band: on the MIXER that band was a stale canvas -- preset names
+         * of a previous draw -- sent over the desk, which is the report's "preset names drawn over the mixer". The
+         * panel outside the plate must be exactly what it was. */
+        uint32_t x, y, out = 0;
+        for (y = 0; y < 240u; y++)
+            for (x = 0; x < 240u; x++) {
+                int inpop = x >= 16u && x < 224u && y >= (uint32_t)(Y_GRAPH + 18) &&
+                            y < (uint32_t)(Y_GRAPH + 18 + 86);
+                if (!inpop && host_screen[y * 240u + x] != rref[y * 240u + x])
+                    out++;
+            }
+        printf("  px del panel tocados FUERA de la caja del pop-up: %u\n", out);
+        if (out) {
+            printf("  FALLA: el pop-up escribe fuera de su caja (el MIXER queda con tinta encima)\n");
+            rbad++;
+        }
+    }
     ui.preset_pop_ms = fm1_ms - 1600u;              /* 1.5 s: it has closed */
     written = rnext();
     printf("  al cerrarse: %u px escritos\n", written);
@@ -2038,6 +2084,66 @@ static int regions_main(void)
     return rbad ? 1 : 0;
 }
 
+/* ------------------------------------------------------------------ the bands --- */
+/* (v1.5.15) WHAT ONE STEP OF HOME'S AMBIENCE COSTS THE PANEL, AND THE MIXER'S METERS. The three HOME screens and
+ * the MIXER repaint their whole body (a 26-row cap and two 88-row passes: 48 480 px) whenever anything in their
+ * signature moved, and their ambient layer -- hv_air's sixteen embers, the strip's breathing bar -- steps every
+ * eighth frame. That is the body re-sent at ~7.5 Hz for forty-odd pixels, which is what the report called flicker.
+ * gfx.c now keeps a hash a row and sends only the rows that differ. The numbers: px written per step (the panel's
+ * bus) and px that really changed (the picture), plus a check that the rows left unsent were already right: the
+ * frame the incremental draw leaves is the one a whole redraw makes, pixel for pixel. Animating is not disabled --
+ * the step still changes pixels, they are just carried by the rows that hold them. */
+#define BANDS_LIMIT 9000u                              /* px a step may write (48 480 before: the whole body) */
+static int bands_main(void)
+{
+    static const struct { const char *nm; int s; } SC[] = {{"HOME 2/5 OVERVIEW", S_HOME_OVERVIEW},
+                                                          {"HOME 3/5 MIXER", S_HOME_MIX},
+                                                          {"HOME 4/5 PERFORM", S_HOME_PERF},
+                                                          {"GLO MIXER (meters)", S_MIXER}};
+    static uint16_t got[240 * 240];
+    reg_t all = rrect("frame", 0, 0, 240, 240);
+    uint32_t k, bad = 0;
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    if (!rep)
+        return 1;
+    printf("bands: one step of the ambient layer / a meter, px the panel writes vs px that change (tope %u)\n",
+           (uint32_t)BANDS_LIMIT);
+    for (k = 0; k < sizeof SC / sizeof SC[0]; k++) {
+        uint32_t written, changed, x, y, stale = 0;
+        state();
+        setup(SC[k].s);
+        pal(UI_QUANTUM_INDEX);
+        rframe();                                      /* the body, forced: the panel has all of it */
+        (void)rnext();                                 /* rframe forgets the row table: this frame rebuilds it */
+        rsnap();
+        if (k == 3u)                                   /* the MIXER: a meter of T1 moves, nothing else */
+            trk[0].vu = (int32_t)((uint32_t)trk[0].vu + 9000u) > 30000 ? 9000 : trk[0].vu + 9000;
+        ui.frame += 8u;                                /* one step of hv_air's field and the strip's pulse */
+        fm1_ms += 16u;
+        bb_on = 1;
+        written = rnext();
+        bb_on = 0;
+        changed = rdiff(&all);
+        memcpy(got, host_screen, sizeof got);          /* what the incremental draw left on the panel */
+        ui.force = 1;                                  /* .. and what a whole redraw of the same state leaves */
+        gfx_forget();
+        ui_draw();
+        for (y = 0; y < 240u; y++)
+            for (x = 0; x < 240u; x++)
+                stale += got[y * 240u + x] != host_screen[y * 240u + x];
+        printf("  %-20s escritos %5u px, cambiados %5u px, filas no enviadas que estaban mal %u\n", SC[k].nm, written,
+               changed, stale);
+        if (written > BANDS_LIMIT || stale || !changed) {
+            printf("  FALLA: %s\n", written > BANDS_LIMIT ? "el paso del ambiente reenvia el cuerpo entero"
+                                      : stale ? "una fila que no se envio no era la que el panel tenia"
+                                              : "el paso no animo nada (se apago la animacion)");
+            bad++;
+        }
+    }
+    printf("bands: %s\n", bad ? "FAILED" : "cada paso cuesta las filas que cambian, y el frame queda exacto");
+    return bad ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *out = argc > 1 ? argv[1] : "build/ui_new";
@@ -2047,6 +2153,8 @@ int main(int argc, char **argv)
         return regions_main();
     if (argc > 1 && !strcmp(argv[1], "--idle"))
         return idle_main();
+    if (argc > 1 && !strcmp(argv[1], "--bands"))
+        return bands_main();
     static const char *const SHOW[] = {"GREY", "MONO", "GREEN", "PAPER", "NIGHT", "THERMAL", "GAMMA", "WRAITH", "QUANTUM"};   /* (NIGHT: #50, to review) */
     /* QG_DUMP=<screen>[,<palette>]: render one screen into /tmp/qg_dump.ppm for a visual review.
      * It is the same draw() the suite measures, so what it shows is what the panel gets; the

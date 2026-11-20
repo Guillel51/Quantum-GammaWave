@@ -770,7 +770,11 @@ static void graph_home_view(uint16_t c)
      * lint measures -- and each pass draws the panel with its rounded ends outside its own window, so no corner
      * lands in the middle of the body. The screens' names moved to y = 34 so their ink (30..39) starts below the
      * first pass's own top instead of on it. */
-    cv_begin(240, 26, T_BG);
+    cv_begin(240, 6, T_BG);                            /* (v1.5.15) rows 20..26, was 20..46: the first pass below
+                                                        * draws 26..114 in this same frame, so the cap's 26..46 were
+                                                        * painted and then painted over -- 20 rows of panel traffic a
+                                                        * step, and the two windows' pixels differed, so the shared
+                                                        * rows were sent twice. 6 rows: the plate's top edge only */
     cv_oy = -Y_LABEL;
     cv_bg = T_SURF;
     cv_rrect(4, Y_LABEL, 232, 202 - Y_LABEL, 6, T_SURF, T_BG);
