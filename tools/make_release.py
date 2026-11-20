@@ -130,9 +130,22 @@ def sync(root):
     v = version_of(root)
     vn = v.lstrip("v")
     build = os.path.join(root, "build")
-    pkg = os.path.join(build, "felucca.fwsc")
+    # (1.5.23) WHICH FILE IS "THE PACKAGE". A plain ./build.sh writes build/felucca.fwsc; a
+    # ./build.sh --release X.Y writes build/felucca-X.Y.fwsc and leaves the generic name alone -- so a
+    # release build on top of an older one shipped the OLD bytes under the new version's name twice before
+    # anyone looked. The build record now says which file it wrote (`package`); an older record that does
+    # not is still read by its own hash, and a candidate only counts when the record claims exactly it.
     bm_path = os.path.join(build, "manifest.json")
     em_path = os.path.join(build, "emu", "manifest.json")
+    arts = (load(bm_path).get("artifacts") or {}) if os.path.isfile(bm_path) else {}
+    wrote = (load(bm_path).get("package") if os.path.isfile(bm_path) else None) or "felucca.fwsc"
+    names = [wrote] + [n for n in ("felucca-%s.fwsc" % vn, "felucca.fwsc") if n != wrote]
+    pkg = next((os.path.join(build, n) for n in names
+                if os.path.isfile(os.path.join(build, n))
+                and sha256_bytes(open(os.path.join(build, n), "rb").read())
+                == (((arts.get(n) or arts.get("felucca.fwsc")) or {}).get("sha256"))), None)
+    if pkg is None:                       # none matches the record: name what is missing, never pick one
+        pkg = os.path.join(build, wrote)
     for p in (pkg, bm_path, em_path):
         if not os.path.isfile(p):
             raise SystemExit("make_release: %s is missing; build first (./build.sh and sh web/emu/build.sh)"
@@ -146,9 +159,11 @@ def sync(root):
         raise SystemExit("make_release: build/emu/manifest.json is %r, not a clean %s"
                          % (em.get("version"), v))
     raw = open(pkg, "rb").read()
-    claim = (bm.get("artifacts") or {}).get("felucca.fwsc") or {}
+    claim = ((bm.get("artifacts") or {}).get(os.path.basename(pkg))
+             or (bm.get("artifacts") or {}).get("felucca.fwsc") or {})
     if claim.get("sha256") != sha256_bytes(raw):
-        raise SystemExit("make_release: build/felucca.fwsc does not match the build record's hash")
+        raise SystemExit("make_release: %s does not match the build record's hash"
+                         % os.path.relpath(pkg, root))
 
     rel = os.path.join(root, "release")
     site = os.path.join(root, "site")

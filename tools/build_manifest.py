@@ -214,6 +214,7 @@ def collect(checks=None, package="felucca.fwsc"):
         "schema": SCHEMA,
         "version": version(),
         "commit": commit(),
+        "package": package,     # (1.5.23) which file the build wrote: --release names it felucca-X.Y.fwsc
         "dirty": dirty(),
         "identity": identity(),
         "config": config(),

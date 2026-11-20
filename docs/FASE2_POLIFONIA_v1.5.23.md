@@ -174,10 +174,20 @@ Nada de esta fase se probó en la unidad: **no hay FM-1 en este entorno**. Queda
 
 ## 8. Cierre
 
-- `[HOST]` suite completa: 6 3xx `ok`, 306 golden renders sin cambios, CPU PASS en un host descargado (el primer pase
-  dio "22 % más lento" con la máquina cargada por otros chats: un segundo pase, con carga 0.09, da PASS con mediana
-  1,14 y 18 filas sobre +40 % anotadas, no falladas).
+- `[HOST]` suite completa: 6 350 `ok`, 306 golden renders sin cambios, 0 fallos de voz y de routing. La fila de
+  CPU ns de `regress` **falla en este host** con "22 % más lento que su baseline en todos los trabajos": es la carga
+  de la máquina compartida, no el cambio (el trabajo de audio baja, y el resto de la fila no distingue un flag de
+  compilación de una máquina lenta). No se rebaseó el baseline.
 - `[AC791N]` imagen y `.bss` en la tabla de §5. Paquete `release/felucca-v1.5.23.fwsc`: **610 933 B**, sha256
   `a980a5f05697217e35a964b4182eed91f1f3aad50716fcd6bf2e219601b63635` (build `b46d06d`); emulador `v1.5.23-b46d06d`
   (1 284 953 B de wasm, sha256 `d5412afa39165b8c53dcf1695db02174d4b236ee5063a6a4dec92ce4a68395b5`).
 - Documentación: este informe, `CHANGELOG.md`, `docs/VOICE_POOL.md` (§9, la regla del layout), `docs/BUILD_AC791N.md`.
+- `tools/make_release.py` + `tools/build_manifest.py`: el registro del build dice ahora **qué fichero escribió**
+  (`package`). Antes, un `./build.sh --release 1.5.23` dejaba el paquete en `build/felucca-1.5.23.fwsc` y el
+  `build/felucca.fwsc` genérico de la release anterior seguía ahí; `make_release` tomaba el genérico, así que
+  v1.5.23 llegó a empaquetar **los bytes de v1.5.22**. Ahora el candidato es el que el registro nombra, y solo
+  cuenta si su hash es el que el registro declara; probado con el caso peor (los dos ficheros en disco y el
+  genérico obsoleto declarado en el registro): gana el versionado.
+- Release publicada: tag y release `v1.5.23` con `felucca-v1.5.23.fwsc` (sha256 `a980a5f0…`, descargado del
+  release y verificado), su manifiesto, `build-manifest-v1.5.23.json`, `qg1-emulator-v1.5.23.zip` y el zip de
+  fuentes; Pages sirve `v1.5.23-b46d06d` con el mismo sha256 en `firmware/versions.json`.
