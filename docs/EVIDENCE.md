@@ -19,7 +19,7 @@ Classes of evidence named across the matrix (a row can name more than one):
 
 | class | rows |
 |---|---:|
-| AC791N | 23 |
+| AC791N | 24 |
 | host | 138 |
 | emul | 32 |
 | WASM | 31 |
