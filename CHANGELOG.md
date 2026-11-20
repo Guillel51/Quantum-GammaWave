@@ -1,3 +1,39 @@
+## v1.5.21 — el instalador desde V16, el mensaje que el informe citó, y el Web Studio que vuelve a ser el firmware
+
+Fase 5: cerrar lo que quedaba abierto del camino V16 y del ecosistema. Dos defectos **reproducidos y corregidos**
+en el instalador, uno de fidelidad en el Web Studio, y los tres nuevos guardas que impiden que vuelvan. Ninguna
+escritura en una unidad física: todo es host (node, x86-64), build AC791N para el tamaño y el emulador para la web.
+
+- **El mensaje exacto del informe ya no se puede componer.** `Chip: this unit did not answer its JEDEC Truncated
+  identification reply: nothing was sent.` era una etiqueta única (`sayK(r.ok ? "chipOk" : "chipNo", …)`) con el
+  motivo pegado sin separador, y **afirmaba silencio en una unidad que había respondido** (un eco, un cuerpo de 3
+  bytes). Ahora hay tres frases: no respondió (`chipNo`), respondió pero no con una identificación (`chipOther`, con
+  el motivo), e identificado (`chipOk`); todas terminan en `: ` para que dos frases no se toquen, en los tres
+  idiomas. `web/test_v16_path.mjs` comprueba que la composición vieja no existe y que las etiquetas están completas.
+- **La copia de 1 MiB del V16 está atada a su unidad.** El registro guardaba tamaño y SHA-256: la copia de una
+  unidad satisfacía el gate en **otra** — «la copia de otro no es la copia del dueño». Ahora lleva la identidad que
+  estaba verificada al cargarla; el gate rechaza una copia **sin unidad** (`v16Unbound`, pide VERIFY con la unidad
+  conectada y volver a cargar) y una **de otra unidad** (`v16WrongUnit`). Sigue siendo un registro, no una prueba
+  criptográfica — un firmware oficial no tiene comando de lectura — y así está escrito en `docs/INSTALL_FROM_V16.md`.
+  El gate del V16 no se aflojó: copia + confirmación + identidad, y el chip lo sigue leyendo el loader en la unidad.
+- **El Web Studio volvía a no ser el firmware.** `web/editor.html` conservaba las listas de presets de antes de
+  v1.5.19: el dispositivo simulado respondía **22** sonidos WTABLE donde el firmware tiene **23** (faltaban
+  `AURORA DRIFT`, `ROTOR GLASS`, `TIDAL MIRROR`), y el editor ofrecía un catálogo que el instrumento no tiene.
+  `tools/sync_editor_mock.py` lo corrigió (5 listas de motor + PATTERNS) y el test de espejo contra
+  `build/host/desc.json` da **0 diferencias**. El script tiene ahora `--check`, que no escribe nada y falla; la suite
+  lo corre **antes** de los tests web, así que la próxima deriva rompe un build y no una release.
+- **Verificado, con la clase de cada medida**: la sintaxis del instalador (`node --check` sobre su
+  `<script type="module">` extraído, con los marcadores `/*META*/` sustituidos), `web/test_v16_path.mjs` **45 checks, 0 FAILED**, `node web/test_web.mjs` verde (0
+  diferencias contra el firmware), `install_test.py`, `test_pkg_bounds`, `test_backup`, y los bancos de seguridad
+  `negative_write`, `backup_audit`, `restore`, `gate`, `release_gate`, `manifest`, `sign`, `sign_request`,
+  `key_custody`, `chip`, `preflight`, `transport_gate`, `stock_profile`, `mflasher`, `mflasher_accept`,
+  `flash_evidence`, `boot_order`: **todos pasan**. `memory_map_test` **se salta** aquí (no hay `objdump` de JieLi
+  en este entorno): se informa como no ejecutado, no como verde.
+- **Sin optimización nueva, y con el número que lo justifica**: imagen **581 720 B** (1 892 B libres) y `.data+.bss`
+  con 5 424 B libres; el único coste que las medidas señalan como optimizable es el frame quieto (**109 056 px**
+  escritos en 201 escenas, 0 cambiados, ~542 px por escena). Recortarlo pide análisis del panel, no un cambio a
+  ojo, y no se hace en una fase de cierre.
+
 ## v1.5.20 — la interfaz, medida: los encabezados de HOME, la fila de MENU dicha, y pruebas de UI para lo nuevo
 
 Fase 4: revisar la interfaz entera contra los defectos que el informe de la fase 2 dejó abiertos (#106), cerrar el

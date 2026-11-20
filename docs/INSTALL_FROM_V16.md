@@ -13,6 +13,25 @@ Dos defectos independientes, los dos en la página, ninguno en el transporte ni 
 | `the device is FM-1_016, the package is for FM-1_965` | la página pasaba `"15"` como firmware para **cualquier** unidad stock | `web/index_pkg.html`, `ctxFor(fw.kind === "stock" ? "15" : …)` |
 | `Chip: … did not answer its JEDEC Truncated identification reply` | el firmware oficial no tiene `0x12`; el eco del frame, un cuerpo corto y el silencio se informaban igual | `web/fm1ota.js`, `qryIdentify()` |
 
+### v1.5.21: el mensaje que el informe citó, y de quién es la copia
+
+Dos cosas más seguían mal en la página aunque el diagnóstico de `qryIdentify()` ya distinguiera los casos:
+
+1. **La etiqueta era una sola para todos los desenlaces.** El botón CHIP escribía
+   `sayK(r.ok ? "chipOk" : "chipNo", …)` y pegaba el motivo sin separador, así que el texto exacto del informe —
+   `Chip: this unit did not answer its JEDEC Truncated identification reply: nothing was sent.` — se podía
+   componer tal cual, y encima **afirmaba silencio en una unidad que sí había respondido** (un eco, un cuerpo de
+   3 bytes). Ahora hay tres frases: no respondió (`chipNo`), respondió pero no con una identificación
+   (`chipOther`, con el motivo), e identificado (`chipOk`). Los textos terminan en `: ` para que nunca se peguen
+   dos frases. `web/test_v16_path.mjs` comprueba que la composición vieja ya no existe y que las dos etiquetas
+   están en los tres idiomas con su separador.
+2. **El registro de la copia no decía de qué unidad era.** Bastaba con un tamaño y un hash: la copia de una
+   unidad satisfacía el gate en **otra**. Ahora el registro guarda la identidad que estaba verificada al cargar la
+   copia; el gate rechaza una copia **sin unidad** (`v16Unbound`: pide VERIFY con la unidad conectada y volver a
+   cargar) y una copia **de otra unidad** (`v16WrongUnit`). Sigue siendo un registro, no una prueba
+   criptográfica — un firmware oficial no tiene comando de lectura, así que la página no puede demostrar que esos
+   bytes vinieron de ese chip — y así está escrito.
+
 `donorIdentity()` (en `web/fm1ota.js`) acepta V15 y V16 como origen, y lo exige: la identidad y la cadena de
 firmware tienen que nombrar la misma release. La página le daba a una unidad de 16 un firmware de 15, así que
 la regla la rechazaba — con razón. El error no era «falta V16 en una lista blanca»: era que se le mentía al
@@ -75,6 +94,8 @@ No se presenta como demostrado lo que no se ha corrido.
 | Eco / cuerpo corto / silencio / JEDEC desconocido / geometría se distinguen | host (node), mismo archivo |
 | V16 es donante con su propia versión y se rechaza con otra | host (node), `web/test_donor.mjs` |
 | El gate pide la copia y la recuperación queda `conditional` | host (node), `web/test_verify_only.mjs` |
+| El mensaje del informe no se puede componer: tres desenlaces, tres frases, con separador | host (node), `web/test_v16_path.mjs` |
+| Una copia sin unidad, o de otra unidad, no pasa el gate | host (node), mismo archivo |
 | El paquete QG cabe en la ventana del loader | host (`tools/fm1pkg_make.py` falla si no) |
 | **El updater del V16 acepta el paquete y arranca el loader** | **no medido**: requiere la unidad |
 | **El SPL del V16 arranca la app de QG** | **no medido**: requiere la unidad |

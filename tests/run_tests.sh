@@ -605,6 +605,11 @@ run "README navigation contract (WEB SITE first and double width, names, links, 
     python3 tests/readme_nav_test.py
 
 if command -v node >/dev/null 2>&1; then
+    # (v1.5.21) AND THE WEB STUDIO'S DEVICE IS THE FIRMWARE'S. v1.5.19 added three presets and left web/editor.html's
+    # mock lists behind: the simulator answered with 22 WTABLE sounds where the device has 23, and only the full web
+    # test (the mirror of build/host/desc.json) noticed, after the release. This step fails the build instead.
+    run "Web Studio: the mock device's preset lists and PATTERNS are the firmware's (no drift)" \
+        python3 tools/sync_editor_mock.py --check
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives

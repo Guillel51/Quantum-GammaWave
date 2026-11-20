@@ -147,4 +147,30 @@ ok(/chipStock/.test(page), "a stock unit's chip check explains itself instead of
 ok(!/if \(lastVerify\.kind === "stock"\)[\s\S]{0,400}chipCheck\(/.test(page.split("if (lastVerify.kind === \"stock\")")[1]?.slice(0, 400) || ""),
   ".. and does not send the 0x12 frames a stock firmware does not answer");
 
+// ---- 4. the message the report quoted, assembled: it can no longer be built ---------------------
+/* "Chip: this unit did not answer its JEDEC Truncated identification reply: nothing was sent." is one
+ * label with a reason glued on, no separator, on a unit that HAD answered. Three sentences now. */
+ok(!/sayK\(r\.ok \? "chipOk" : "chipNo"/.test(page),
+  "the chip line is not one label for every outcome (the run-on the report quoted)");
+ok(/else if \(r\.code === "notfound"\) sayK\("chipNo"/.test(page) && /else sayK\("chipOther"/.test(page),
+  "silence and an answer that is not an identification are labelled apart");
+for (const lang of ["chipNo", "chipOther"]) {
+  const hits = page.split(lang + ":").length - 1;
+  ok(hits >= 3, `${lang} is written in every language the page carries (${hits})`);
+  ok(new RegExp(lang + ': "[^"]*: ",?$', "m").test(page), `${lang} ends in a separator, so no two sentences touch`);
+}
+ok(!/chipNo: "[^"]*JEDEC"/.test(page), "no label claims the unit did not answer when it may have answered something else");
+
+// ---- 5. whose copy it is: the V16 record is bound to the unit it was taken for -------------------
+/* A record of size + hash satisfied the gate on ANY unit: someone else's backup is not this unit's way
+ * back. The record now carries the identity that was verified when the copy was loaded, and the gate
+ * refuses a record with no unit and a record from another one. */
+ok(/unit: \(lastVerify && lastVerify\.text\)/.test(page), "the V16 record carries the identity it was loaded with");
+ok(/if \(!v16Dump\.unit\) \{ sayK\("v16Unbound"\)/.test(page), "a copy loaded with no unit verified is refused, and says how to bind it");
+ok(/v16Dump\.unit !== String\(fw\.text\)/.test(page), "a copy recorded for another unit is refused at the gate");
+for (const lang of ["v16Unbound", "v16WrongUnit", "v16UnboundShort"]) {
+  const hits = page.split(lang + ":").length - 1;
+  ok(hits >= 3, `${lang} is written in every language the page carries (${hits})`);
+}
+
 console.log("v16 path: " + n + " checks, 0 FAILED");

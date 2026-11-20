@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 """Rewrite the Web Studio mock device's preset tables (web/editor.html, const ENG ... presets: [...]) from the
 firmware's own description (build/host/desc.json, tests/descdump.c), so the simulator lists exactly the device's
-presets. Run after adding or changing presets: python3 tools/sync_editor_mock.py [build/host/desc.json]"""
+presets. Run after adding or changing presets: python3 tools/sync_editor_mock.py [build/host/desc.json]
+
+    python3 tools/sync_editor_mock.py --check [desc.json]
+
+`--check` writes nothing and exits 1 if the page is behind the firmware. It exists because v1.5.19 shipped
+three new presets and the page kept the old lists: the Web Studio answered with a device that had 22 WTABLE
+sounds instead of 23, and only the full web test caught it. tests/run_tests.sh runs this mode, so the next
+drift fails a build instead of a release."""
 import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-desc = json.loads(Path(sys.argv[1] if len(sys.argv) > 1 else ROOT / "build/host/desc.json").read_text())
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+desc = json.loads(Path(ARGS[0] if ARGS else ROOT / "build/host/desc.json").read_text())
 page = ROOT / "web/editor.html"
 html = page.read_text()
 start = html.index("  const ENG = [")
@@ -69,6 +77,19 @@ html = page.read_text()
 at = html.index("  const PATTERNS = [") + len("  const PATTERNS = ")
 a, b = block(html, at)
 new = "[\n" + ",\n".join("    " + json.dumps(p, separators=(",", ":")) for p in desc["PATTERNS"]) + "\n  ]"
-if html[a:b] != new:
-    page.write_text(html[:a] + new + html[b:])
+pat_changed = html[a:b] != new
+if pat_changed:
+    html = html[:a] + new + html[b:]
+
+CHECK = "--check" in sys.argv[1:]
+if CHECK:
+    if changed or pat_changed:
+        print(f"sync_editor_mock: FAILED -- {page.relative_to(ROOT)} is behind the firmware "
+              f"({changed} engine preset list(s), PATTERNS {'stale' if pat_changed else 'current'}); "
+              f"run: python3 tools/sync_editor_mock.py")
+        sys.exit(1)
+    print(f"sync_editor_mock: ok -- every engine preset list and PATTERNS in {page.relative_to(ROOT)} are the firmware's")
+    sys.exit(0)
+if pat_changed:
+    page.write_text(html)
     print("sync_editor_mock: PATTERNS rewritten")

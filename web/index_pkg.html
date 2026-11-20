@@ -503,12 +503,15 @@ const TEXT = {
     nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
     vNone: "Verify: no FM-1 answered. MIDI ports this browser enumerated:",
     chipOk: "Chip: identified by its own 0x12 answer",
-    chipNo: "Chip: this unit did not answer its JEDEC",
+    chipNo: "Chip: no FM-1 answered the identification query: ",
+    chipOther: "Chip: the FM-1 answered, but not with an identification: ",
     chipStock: "Chip: stock firmware carries no 0x12. The update loader identifies the part on the unit before it erases; nothing is needed here:",
     v16NeedDump: "V16: take the complete 1 MiB copy of this unit with M-Flasher first and load it here; nothing was sent.",
     v16NeedAck: "V16: tick that the copy is kept and that you know how to restore it with M-Flasher; nothing was sent.",
-    v16DumpOk: "V16: copy recorded, SHA-256 ",
+    v16DumpOk: "V16: copy recorded, SHA-256 ", v16UnboundShort: "no unit yet",
     v16DumpBad: "V16: that file is not a 1 MiB full copy of this unit: nothing was sent.",
+    v16Unbound: "V16: this copy is not tied to a unit yet. Press VERIFY with the unit connected, then load the copy again: a record from another unit is not this unit's way back. Nothing was sent.",
+    v16WrongUnit: "V16: this copy was recorded for another unit, not the one connected now: nothing was sent. Load this unit's own 1 MiB copy.",
     vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vVendorLoader: "Verify: the unit is in its own update mode (the vendor's loader). This page cannot finish that install; nothing was sent.",
@@ -667,12 +670,15 @@ TEXT.es = {
   nohash: "Este paquete no tiene SHA-256 publicado: no se escribirá nada. Recargá la página.",
   vNone: "Verificar: no respondió ningún FM-1. Puertos MIDI que enumeró este navegador:",
   chipOk: "Chip: identificado por su propia respuesta 0x12",
-  chipNo: "Chip: esta unidad no dio su JEDEC",
+  chipNo: "Chip: ningun FM-1 respondio a la consulta de identificacion: ",
+  chipOther: "Chip: la unidad respondio, pero no con una identificacion: ",
   chipStock: "Chip: el firmware oficial no tiene 0x12. El loader de actualización identifica el chip en la unidad antes de borrar; aquí no hace falta nada:",
   v16NeedDump: "V16: toma primero la copia completa de 1 MiB de esta unidad con M-Flasher y cargala aca; no se envio nada.",
   v16NeedAck: "V16: marca que guardaste la copia y que sabes restaurarla con M-Flasher; no se envio nada.",
-  v16DumpOk: "V16: copia registrada, SHA-256 ",
+  v16DumpOk: "V16: copia registrada, SHA-256 ", v16UnboundShort: "sin unidad todavia",
   v16DumpBad: "V16: ese archivo no es una copia completa de 1 MiB de esta unidad: no se envio nada.",
+  v16Unbound: "V16: esta copia todavia no esta atada a una unidad. Pulsa VERIFICAR con la unidad conectada y volve a cargar la copia: el registro de otra unidad no es el camino de vuelta de esta. No se envio nada.",
+  v16WrongUnit: "V16: esta copia se registro para otra unidad, no para la conectada ahora: no se envio nada. Carga la copia de 1 MiB de esta unidad.",
   vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vVendorLoader: "Verificar: la unidad está en su propio modo actualización (el loader del fabricante). Esta página no puede terminar esa instalación; no se envió nada.",
@@ -774,12 +780,15 @@ TEXT.zh = {
   nohash: "此固件包没有公布 SHA-256：不会写入任何内容。请重新加载页面。",
   vNone: "校验：没有 FM-1 回应。此浏览器枚举到的 MIDI 端口：",
   chipOk: "闪存芯片：已由其自身的 0x12 应答识别",
-  chipNo: "闪存芯片：该设备没有返回 JEDEC",
+  chipNo: "闪存芯片：没有 FM-1 回应标识查询：",
+  chipOther: "闪存芯片：设备有回应，但不是标识应答：",
   chipStock: "闪存芯片：官方固件不含 0x12。更新加载器会在擦除前于设备上识别芯片；此处无需操作：",
   v16NeedDump: "V16：请先用 M-Flasher 读取本机的 1 MiB 完整备份并在此载入；未发送任何数据。",
   v16NeedAck: "V16：请勾选已保存备份并知道如何用 M-Flasher 恢复；未发送任何数据。",
-  v16DumpOk: "V16：备份已记录，SHA-256 ",
+  v16DumpOk: "V16：备份已记录，SHA-256 ", v16UnboundShort: "尚未绑定设备",
   v16DumpBad: "V16：该文件不是本机的 1 MiB 完整备份；未发送任何数据。",
+  v16Unbound: "V16：该备份尚未与设备绑定。请在设备已连接时点击校验，然后重新载入备份：其他设备的备份不能作为本机的退路。未发送任何数据。",
+  v16WrongUnit: "V16：该备份是为另一台设备记录的，不是当前连接的设备；未发送任何数据。请载入本机自己的 1 MiB 备份。",
   vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vVendorLoader: "校验：设备处于其自身的更新模式（厂商 loader）。本页面无法完成该安装；未发送任何数据。",
@@ -1331,13 +1340,15 @@ let v16Dump = null;
 const loadV16Dump = () => {
   try {
     const r = JSON.parse(localStorage.getItem(V16_DUMP_KEY) || "null");
-    return r && r.size === V16_DUMP_SIZE && /^[0-9a-f]{64}$/.test(String(r.sha256 || "")) ? r : null;
+    return r && r.size === V16_DUMP_SIZE && /^[0-9a-f]{64}$/.test(String(r.sha256 || ""))
+      ? { ...r, unit: typeof r.unit === "string" && r.unit ? r.unit : null } : null;
   } catch (_) { return null; }
 };
 function showV16Dump() {
   const st = $("v16-dump-status");
   if (st) st.textContent = v16Dump
     ? t("v16DumpOk") + v16Dump.sha256.slice(0, 16) + "\u2026 " + (v16Dump.name || "") + " \u00b7 " + v16Dump.at
+      + (v16Dump.unit ? " \u00b7 " + v16Dump.unit : " \u00b7 " + t("v16UnboundShort"))
     : "";
   if ($("v16-ack")) { $("v16-ack").disabled = !v16Dump; if (!v16Dump) $("v16-ack").checked = false; }
 }
@@ -1351,7 +1362,12 @@ if ($("v16-dump")) $("v16-dump").addEventListener("change", async () => {
   try {
     const b = new Uint8Array(await f.arrayBuffer());
     if (b.length !== V16_DUMP_SIZE) { sayK("v16DumpBad", ` (${b.length} B)`); return; }
-    v16Dump = { size: b.length, sha256: await sha256hexBytes(b), at: new Date().toISOString().slice(0, 10), name: f.name };
+    /* (v1.5.21) WHOSE COPY THIS IS. The record used to be a size and a hash: a copy taken from one unit
+     * satisfied the V16 gate on any other, and "someone else's backup is not the owner's backup". The
+     * identity of the unit that was verified a moment ago is written into the record; a copy loaded with no
+     * unit verified stays unbound and the gate refuses it until it is loaded with that unit in view. */
+    v16Dump = { size: b.length, sha256: await sha256hexBytes(b), at: new Date().toISOString().slice(0, 10), name: f.name,
+      unit: (lastVerify && lastVerify.text) ? String(lastVerify.text) : null };
     try { localStorage.setItem(V16_DUMP_KEY, JSON.stringify(v16Dump)); } catch (_) {}
     showV16Dump();
     sayK("v16DumpOk", v16Dump.sha256.slice(0, 16) + "\u2026");
@@ -1572,6 +1588,10 @@ $("go").addEventListener("click", async () => {
        * them nothing is sent, and the section that asks for them is opened where the reader is looking. */
       if (fw.kind === "stock" && stockVersionOf(fw.text) === "16") {
         if (!v16Dump) { sayK("v16NeedDump"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
+        if (!v16Dump.unit) { sayK("v16Unbound"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
+        if (fw.text && v16Dump.unit !== String(fw.text)) {
+          sayK("v16WrongUnit", " (" + v16Dump.unit + ")"); if ($("v16")) $("v16").open = true; lockInstaller(false); return;
+        }
         if (!$("v16-ack").checked) { sayK("v16NeedAck"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
       }
       /* A stock unit (V15 or V16) installs like any other: its own updater stages this package's loader, and
@@ -1731,7 +1751,13 @@ $("chip").addEventListener("click", async () => {
     lastVerify = { ...lastVerify, chip: r };
     showVerify(lastVerify);
     $("diag").disabled = false;
-    sayK(r.ok ? "chipOk" : "chipNo", r.ok ? ` 0x${Number(r.jedec).toString(16).toUpperCase()} ${r.part}` : ` ${r.why}`);
+    /* (v1.5.21, the report's own message) ONE LABEL FOR EVERY OUTCOME read as "this unit did not answer
+     * its JEDEC" and glued the reason on with no separator -- "JEDEC Truncated identification reply" is
+     * that run-on, on a unit that HAD answered (an echo, a 3-byte body). The label follows the code now:
+     * no answer, an answer that is not an identification, and a real identification are three sentences. */
+    if (r.ok) sayK("chipOk", ` 0x${Number(r.jedec).toString(16).toUpperCase()} ${r.part}`);
+    else if (r.code === "notfound") sayK("chipNo", String(r.why || ""));
+    else sayK("chipOther", String(r.why || r.code));
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }
 });
