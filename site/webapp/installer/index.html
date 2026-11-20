@@ -5,7 +5,7 @@
 <html lang="en" data-palette="quantum">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ahkQVpPnLjQMPzTXvHvqomf4vzZ5mqvstuYiYAARiGQ=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iEVQlqzmgR9Qd5GQ4y34xPGaJoHTskDXeumyCfwh8SY=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QUANTUM GAMMAWAVE — Installer for M-VAVE FM-1</title>
@@ -359,7 +359,7 @@
     <details id="v16" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
       <summary style="cursor:pointer;color:var(--accent);font-weight:600" data-t="v16Title"></summary>
       <p class="small" data-t="v16Text" style="margin-top:8px"></p>
-      <p class="small"><label><span data-t="v16Dump"></span>: <input id="v16-dump" type="file" accept=".bin,application/octet-stream"></label></p>
+      <p class="small"><label><span data-t="v16Dump"></span>: <input id="v16-dump" type="file" accept=".bin,.json,application/octet-stream,application/json"></label></p>
       <p class="small" id="v16-dump-status" style="margin:4px 0 10px"></p>
       <p class="small"><label><input id="v16-ack" type="checkbox" disabled> <span data-t="v16Ack"></span></label></p>
       <p class="small" style="color:var(--gold)" data-t="v16Warn"></p>
@@ -2970,10 +2970,13 @@ const TEXT = {
     chipNo: "Chip: no FM-1 answered the identification query: ",
     chipOther: "Chip: the FM-1 answered, but not with an identification: ",
     chipStock: "Chip: stock firmware carries no 0x12. The update loader identifies the part on the unit before it erases; nothing is needed here:",
-    v16NeedDump: "V16: take the complete 1 MiB copy of this unit with M-Flasher first and load it here; nothing was sent.",
+    v16NeedDump: "V16: take the complete 1 MiB copy of this unit with M-Flasher first and load it here (the .bin next to M-Flasher's .json record); nothing was sent.",
     v16NeedAck: "V16: tick that the copy is kept and that you know how to restore it with M-Flasher; nothing was sent.",
     v16DumpOk: "V16: copy recorded, SHA-256 ", v16UnboundShort: "no unit yet",
     v16DumpBad: "V16: that file is not a 1 MiB full copy of this unit: nothing was sent.",
+    v16RecordOk: "V16: M-Flasher's record of this unit read (part, chip key and the SHA-256 of the copy). Now load the 1 MiB copy itself: its SHA-256 has to be the one the record names.",
+    v16DumpMismatch: "V16: that copy is not the one this unit's M-Flasher record describes (its SHA-256 differs): nothing was sent.",
+    v16RecordBad: "V16: that is neither a 1 MiB complete copy nor an M-Flasher JSON record: nothing was sent.",
     v16Unbound: "V16: this copy is not tied to a unit yet. Press VERIFY with the unit connected, then load the copy again: a record from another unit is not this unit's way back. Nothing was sent.",
     v16WrongUnit: "V16: this copy was recorded for another unit, not the one connected now: nothing was sent. Load this unit's own 1 MiB copy.",
     vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
@@ -3137,10 +3140,13 @@ TEXT.es = {
   chipNo: "Chip: ningun FM-1 respondio a la consulta de identificacion: ",
   chipOther: "Chip: la unidad respondio, pero no con una identificacion: ",
   chipStock: "Chip: el firmware oficial no tiene 0x12. El loader de actualización identifica el chip en la unidad antes de borrar; aquí no hace falta nada:",
-  v16NeedDump: "V16: toma primero la copia completa de 1 MiB de esta unidad con M-Flasher y cargala aca; no se envio nada.",
+  v16NeedDump: "V16: toma primero la copia completa de 1 MiB de esta unidad con M-Flasher y cargala aca (el .bin que queda junto al .json de M-Flasher); no se envio nada.",
   v16NeedAck: "V16: marca que guardaste la copia y que sabes restaurarla con M-Flasher; no se envio nada.",
   v16DumpOk: "V16: copia registrada, SHA-256 ", v16UnboundShort: "sin unidad todavia",
   v16DumpBad: "V16: ese archivo no es una copia completa de 1 MiB de esta unidad: no se envio nada.",
+  v16RecordOk: "V16: leido el registro de M-Flasher de esta unidad (parte, chip key y el SHA-256 de la copia). Ahora carga la copia de 1 MiB: su SHA-256 tiene que ser el que nombra el registro.",
+  v16DumpMismatch: "V16: esa copia no es la que describe el registro de M-Flasher de esta unidad (su SHA-256 no coincide): no se envio nada.",
+  v16RecordBad: "V16: eso no es ni una copia completa de 1 MiB ni un registro JSON de M-Flasher: no se envio nada.",
   v16Unbound: "V16: esta copia todavia no esta atada a una unidad. Pulsa VERIFICAR con la unidad conectada y volve a cargar la copia: el registro de otra unidad no es el camino de vuelta de esta. No se envio nada.",
   v16WrongUnit: "V16: esta copia se registro para otra unidad, no para la conectada ahora: no se envio nada. Carga la copia de 1 MiB de esta unidad.",
   vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
@@ -3247,10 +3253,13 @@ TEXT.zh = {
   chipNo: "闪存芯片：没有 FM-1 回应标识查询：",
   chipOther: "闪存芯片：设备有回应，但不是标识应答：",
   chipStock: "闪存芯片：官方固件不含 0x12。更新加载器会在擦除前于设备上识别芯片；此处无需操作：",
-  v16NeedDump: "V16：请先用 M-Flasher 读取本机的 1 MiB 完整备份并在此载入；未发送任何数据。",
+  v16NeedDump: "V16：请先用 M-Flasher 读取本机的 1 MiB 完整备份并在此载入（M-Flasher 的 .json 记录旁边的 .bin 文件）；未发送任何数据。",
   v16NeedAck: "V16：请勾选已保存备份并知道如何用 M-Flasher 恢复；未发送任何数据。",
   v16DumpOk: "V16：备份已记录，SHA-256 ", v16UnboundShort: "尚未绑定设备",
   v16DumpBad: "V16：该文件不是本机的 1 MiB 完整备份；未发送任何数据。",
+  v16RecordOk: "V16：已读取本机的 M-Flasher 记录（芯片型号、chip key 与备份的 SHA-256）。现在请载入 1 MiB 备份本身：其 SHA-256 必须与记录一致。",
+  v16DumpMismatch: "V16：该备份与本机的 M-Flasher 记录不符（SHA-256 不一致）；未发送任何数据。",
+  v16RecordBad: "V16：该文件既不是 1 MiB 完整备份，也不是 M-Flasher 的 JSON 记录；未发送任何数据。",
   v16Unbound: "V16：该备份尚未与设备绑定。请在设备已连接时点击校验，然后重新载入备份：其他设备的备份不能作为本机的退路。未发送任何数据。",
   v16WrongUnit: "V16：该备份是为另一台设备记录的，不是当前连接的设备；未发送任何数据。请载入本机自己的 1 MiB 备份。",
   vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
@@ -3730,7 +3739,7 @@ const log = (t) => { $("log").textContent += t + "\n"; };
 let image = null;                 // the verified package bytes (the transport derives the image)
 let releaseHash = null;           // the published SHA-256 of those bytes (versions.json)
 let releaseVersion = null;        // the version those bytes are
-const meta = {"version": "1.5.25", "product": "FM-1_965", "pkg": "../../firmware/felucca-1.5.25.fwsc", "sha256": "09c497ee5230844427aa96b311764b82912aae303b893c88723b8990c6f64be1", "size": 610933, "stock": false, "build": {"artifacts": {"felucca-1.5.25.fwsc": {"bytes": 610933, "sha256": "09c497ee5230844427aa96b311764b82912aae303b893c88723b8990c6f64be1"}, "felucca.bin": {"bytes": 582708, "sha256": "e4393fca5000829515f4f288dcc9db358c6091906fa800cc66a59b20ead390b0"}, "loader/ota.bin": {"bytes": 7777, "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"}}, "checks": {}, "commit": "cb56d96a32c8c402a637697b871e58f6bc2173c4", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "cb56d96a32c8", "version": "v1.5.25", "wasm_bytes": 1286486, "wasm_sha256": "8e9e69b6e41651e664839677222c97c9e77e10c3e462fd796c50078ce89c5328"}, "identity": "FM-1_965", "package": "felucca-1.5.25.fwsc", "schema": "qg1-build-1", "sdk": {"commit": "unknown", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/5c4f25ac55a61d136c164907/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/5c4f25ac55a61d136c164907/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.5.25"}, "emu": {"built": "2026-11-20T22:47:54Z", "commit": "cb56d96a32c8", "config": {"EMU_CFLAGS": "", "EMU_OPT": "-O2", "EMU_PREVIEW": "0"}, "dirty": [], "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)", "identity": "FM-1_965", "schema": "qg1-emu-1", "version": "v1.5.25", "wasm_bytes": 1286486, "wasm_sha256": "8e9e69b6e41651e664839677222c97c9e77e10c3e462fd796c50078ce89c5328"}, "keys": {"qg1-release-1": "70b6036fd33da3297a41da2141c5d135b3efce2d815d55911fc4f9b1d07fcd40"}, "versions": [{"version": "1.5.25", "pkg": "../../firmware/felucca-1.5.25.fwsc", "sha256": "09c497ee5230844427aa96b311764b82912aae303b893c88723b8990c6f64be1", "size": 610933, "manifest": "../../firmware/felucca-1.5.25.fwsc.manifest.json", "build": {"artifacts": {"felucca-1.5.25.fwsc": {"bytes": 610933, "sha256": "09c497ee5230844427aa96b311764b82912aae303b893c88723b8990c6f64be1"}, "felucca.bin": {"bytes": 582708, "sha256": "e4393fca5000829515f4f288dcc9db358c6091906fa800cc66a59b20ead390b0"}, "loader/ota.bin": {"bytes": 7777, "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"}}, "checks": {}, "commit": "cb56d96a32c8c402a637697b871e58f6bc2173c4", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "cb56d96a32c8", "version": "v1.5.25", "wasm_bytes": 1286486, "wasm_sha256": "8e9e69b6e41651e664839677222c97c9e77e10c3e462fd796c50078ce89c5328"}, "identity": "FM-1_965", "package": "felucca-1.5.25.fwsc", "schema": "qg1-build-1", "sdk": {"commit": "unknown", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/5c4f25ac55a61d136c164907/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/5c4f25ac55a61d136c164907/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.5.25"}}, {"version": "1.5.24", "pkg": "../../firmware/felucca-1.5.24.fwsc", "sha256": "6f1f66941b68f390c98495d0c71250f9c8d00920e6750cc2adeb8cbefe63d136", "size": 610933, "manifest": "../../firmware/felucca-1.5.24.fwsc.manifest.json", "build": null}, {"version": "1.5.23", "pkg": "../../firmware/felucca-1.5.23.fwsc", "sha256": "a980a5f05697217e35a964b4182eed91f1f3aad50716fcd6bf2e219601b63635", "size": 610933, "manifest": "../../firmware/felucca-1.5.23.fwsc.manifest.json", "build": null}, {"version": "1.5.22", "pkg": "../../firmware/felucca-1.5.22.fwsc", "sha256": "0a4c2cd27c651a4922aa8c38426628bea77addcfd8e7b8f0fd6bfb8fb8d99656", "size": 610933, "manifest": "../../firmware/felucca-1.5.22.fwsc.manifest.json", "build": null}, {"version": "1.5.21", "pkg": "../../firmware/felucca-1.5.21.fwsc", "sha256": "d6ecb687ef76f8a0bdfa5df152994c36544ce6cff50977d24d65e9d0f4572325", "size": 610933, "manifest": "../../firmware/felucca-1.5.21.fwsc.manifest.json", "build": null}, {"version": "1.5.20", "pkg": "../../firmware/felucca-1.5.20.fwsc", "sha256": "0e849cc7494b0b6ae019ec849deee2ba757d9cd71e400da2a9527be468b73237", "size": 610933, "manifest": "../../firmware/felucca-1.5.20.fwsc.manifest.json", "build": null}]};
+const meta = {"version": "1.5.26", "product": "FM-1_965", "pkg": "../../firmware/felucca-1.5.26.fwsc", "sha256": "b2d736ec04a4a49e79f5e179152d2142c39b8af8cb42f4630fcf3e3cc383a59c", "size": 610933, "stock": false, "build": {"artifacts": {"felucca-1.5.26.fwsc": {"bytes": 610933, "sha256": "b2d736ec04a4a49e79f5e179152d2142c39b8af8cb42f4630fcf3e3cc383a59c"}, "felucca.bin": {"bytes": 582724, "sha256": "34f412ecd4ea5d9f7fcfec24c96caabcbd847758a23aa6f94c10447347117fb4"}, "loader/ota.bin": {"bytes": 7777, "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"}}, "checks": {}, "commit": "fb7459222b1ce1afb6bdbb9aac4038914489371e", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "fb7459222b1c", "version": "v1.5.26", "wasm_bytes": 1286544, "wasm_sha256": "62f07e069681bdb70cb8f8f487297fd0062be7e0e85d738e75e8ca2798148704"}, "identity": "FM-1_965", "package": "felucca-1.5.26.fwsc", "schema": "qg1-build-1", "sdk": {"commit": "unknown", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/5c4f25ac55a61d136c164907/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/5c4f25ac55a61d136c164907/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.5.26"}, "emu": {"built": "2026-11-20T23:49:50Z", "commit": "fb7459222b1c", "config": {"EMU_CFLAGS": "", "EMU_OPT": "-O2", "EMU_PREVIEW": "0"}, "dirty": [], "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)", "identity": "FM-1_965", "schema": "qg1-emu-1", "version": "v1.5.26", "wasm_bytes": 1286544, "wasm_sha256": "62f07e069681bdb70cb8f8f487297fd0062be7e0e85d738e75e8ca2798148704"}, "keys": {"qg1-release-1": "70b6036fd33da3297a41da2141c5d135b3efce2d815d55911fc4f9b1d07fcd40"}, "versions": [{"version": "1.5.26", "pkg": "../../firmware/felucca-1.5.26.fwsc", "sha256": "b2d736ec04a4a49e79f5e179152d2142c39b8af8cb42f4630fcf3e3cc383a59c", "size": 610933, "manifest": "../../firmware/felucca-1.5.26.fwsc.manifest.json", "build": {"artifacts": {"felucca-1.5.26.fwsc": {"bytes": 610933, "sha256": "b2d736ec04a4a49e79f5e179152d2142c39b8af8cb42f4630fcf3e3cc383a59c"}, "felucca.bin": {"bytes": 582724, "sha256": "34f412ecd4ea5d9f7fcfec24c96caabcbd847758a23aa6f94c10447347117fb4"}, "loader/ota.bin": {"bytes": 7777, "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"}}, "checks": {}, "commit": "fb7459222b1ce1afb6bdbb9aac4038914489371e", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "fb7459222b1c", "version": "v1.5.26", "wasm_bytes": 1286544, "wasm_sha256": "62f07e069681bdb70cb8f8f487297fd0062be7e0e85d738e75e8ca2798148704"}, "identity": "FM-1_965", "package": "felucca-1.5.26.fwsc", "schema": "qg1-build-1", "sdk": {"commit": "unknown", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/5c4f25ac55a61d136c164907/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/5c4f25ac55a61d136c164907/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.5.26"}}, {"version": "1.5.25", "pkg": "../../firmware/felucca-1.5.25.fwsc", "sha256": "09c497ee5230844427aa96b311764b82912aae303b893c88723b8990c6f64be1", "size": 610933, "manifest": "../../firmware/felucca-1.5.25.fwsc.manifest.json", "build": null}, {"version": "1.5.24", "pkg": "../../firmware/felucca-1.5.24.fwsc", "sha256": "6f1f66941b68f390c98495d0c71250f9c8d00920e6750cc2adeb8cbefe63d136", "size": 610933, "manifest": "../../firmware/felucca-1.5.24.fwsc.manifest.json", "build": null}, {"version": "1.5.23", "pkg": "../../firmware/felucca-1.5.23.fwsc", "sha256": "a980a5f05697217e35a964b4182eed91f1f3aad50716fcd6bf2e219601b63635", "size": 610933, "manifest": "../../firmware/felucca-1.5.23.fwsc.manifest.json", "build": null}, {"version": "1.5.22", "pkg": "../../firmware/felucca-1.5.22.fwsc", "sha256": "0a4c2cd27c651a4922aa8c38426628bea77addcfd8e7b8f0fd6bfb8fb8d99656", "size": 610933, "manifest": "../../firmware/felucca-1.5.22.fwsc.manifest.json", "build": null}, {"version": "1.5.21", "pkg": "../../firmware/felucca-1.5.21.fwsc", "sha256": "d6ecb687ef76f8a0bdfa5df152994c36544ce6cff50977d24d65e9d0f4572325", "size": 610933, "manifest": "../../firmware/felucca-1.5.21.fwsc.manifest.json", "build": null}]};
 /* what install()/resume() need to verify the package themselves: the transport identifies the chip
    on its own link, so no evidence is passed, and it refuses a transfer whose installed version is
    unknown. The page remembers the version it installed itself; anything else stays refused. */
@@ -3799,8 +3808,38 @@ const ctxFor = (firmware = null) => ({ sha256: releaseHash, firmware });
  * hashed here (browser crypto), the whole part is required, and the record is kept beside the language so a
  * reload does not lose it. The transport never sees it: it is a condition of this page's V16 path, not a chip
  * fact, and the chip is still read on the unit by the loader before it erases. */
-const V16_DUMP_KEY = "qg1.v16dump", V16_DUMP_SIZE = 0x100000;
-let v16Dump = null;
+const V16_DUMP_KEY = "qg1.v16dump", V16_REC_KEY = "qg1.v16rec", V16_DUMP_SIZE = 0x100000;
+let v16Dump = null, v16Record = null;
+/* (F5) M-FLASHER'S RECORD IS NOT THE COPY, AND IT IS WORTH READING. M-Flasher leaves two files from a read:
+ * the 1 MiB copy and a small JSON that says which unit it came from -- model, bootloader, firmware, chip key,
+ * part identifier, unit id, and the SHA-256 of the copy. Loading that JSON here answered "that file is not a
+ * 1 MiB full copy", which is true and useless: the file is not the copy, it is the statement of what the copy
+ * has to be. The record is read now, kept, and used to CHECK the copy (the dump's SHA-256 must be the one it
+ * names) and to show the part and the bootloader the unit reported. It authorises nothing: it is a JSON that
+ * any text editor can write and it needs no unit, so the gate still requires the copy itself, the
+ * acknowledgement and the donor package -- and the loader still reads the part on the unit before it erases. */
+function readMflasherRecord(text) {
+  let r;
+  try { r = JSON.parse(String(text || "")); } catch (_) { return null; }
+  if (!r || typeof r !== "object" || Array.isArray(r)) return null;
+  if (String(r.model || "").trim().toUpperCase() !== "FM-1") return null;
+  const sha = String(r.sha256 || "").toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(sha)) return null;          /* the record's whole use is this digest */
+  const hx = (v, n) => (new RegExp("^0x[0-9a-f]{" + n + "}$", "i").test(String(v || "")) ? String(v).toLowerCase() : null);
+  return {
+    sha256: sha,
+    flash: hx(r.flash, 6),                               /* the JEDEC id M-Flasher read, e.g. 0x856014 */
+    chipKey: hx(r["chip key"], 4),
+    bootloader: String(r.bootloader || ""), firmware: String(r.firmware || ""),
+    app: String(r.app || ""), tool: String(r.tool || ""), saved: String(r.saved || ""),
+  };
+}
+const loadV16Record = () => {
+  try {
+    const r = JSON.parse(localStorage.getItem(V16_REC_KEY) || "null");
+    return r && /^[0-9a-f]{64}$/.test(String(r.sha256 || "")) ? r : null;
+  } catch (_) { return null; }
+};
 const loadV16Dump = () => {
   try {
     const r = JSON.parse(localStorage.getItem(V16_DUMP_KEY) || "null");
@@ -3813,7 +3852,8 @@ function showV16Dump() {
   if (st) st.textContent = v16Dump
     ? t("v16DumpOk") + v16Dump.sha256.slice(0, 16) + "\u2026 " + (v16Dump.name || "") + " \u00b7 " + v16Dump.at
       + (v16Dump.unit ? " \u00b7 " + v16Dump.unit : " \u00b7 " + t("v16UnboundShort"))
-    : "";
+    : (v16Record ? t("v16RecordOk") + " " + [v16Record.flash, v16Record.chipKey, v16Record.sha256.slice(0, 16) + "\u2026"]
+        .filter(Boolean).join(" \u00b7 ") : "");
   if ($("v16-ack")) { $("v16-ack").disabled = !v16Dump; if (!v16Dump) $("v16-ack").checked = false; }
 }
 async function sha256hexBytes(b) {
@@ -3825,12 +3865,29 @@ if ($("v16-dump")) $("v16-dump").addEventListener("change", async () => {
   if (!f) return;
   try {
     const b = new Uint8Array(await f.arrayBuffer());
-    if (b.length !== V16_DUMP_SIZE) { sayK("v16DumpBad", ` (${b.length} B)`); return; }
+    if (b.length !== V16_DUMP_SIZE) {
+      /* (F5) not the copy: it may be M-Flasher's record, which is read instead of refused (see
+       * readMflasherRecord). Anything else keeps the message it always had, with its size. */
+      const rec = readMflasherRecord(new TextDecoder().decode(b));
+      if (!rec) { sayK("v16RecordBad", ` (${b.length} B)`); return; }
+      v16Record = { ...rec, name: f.name, at: new Date().toISOString().slice(0, 10) };
+      try { localStorage.setItem(V16_REC_KEY, JSON.stringify(v16Record)); } catch (_) {}
+      showV16Dump();
+      sayK("v16RecordOk", [rec.flash, rec.chipKey, rec.sha256.slice(0, 16) + "\u2026"].filter(Boolean).join(" \u00b7 "));
+      return;
+    }
     /* (v1.5.21) WHOSE COPY THIS IS. The record used to be a size and a hash: a copy taken from one unit
      * satisfied the V16 gate on any other, and "someone else's backup is not the owner's backup". The
      * identity of the unit that was verified a moment ago is written into the record; a copy loaded with no
      * unit verified stays unbound and the gate refuses it until it is loaded with that unit in view. */
-    v16Dump = { size: b.length, sha256: await sha256hexBytes(b), at: new Date().toISOString().slice(0, 10), name: f.name,
+    const dumpSha = await sha256hexBytes(b);
+    /* (F5) the copy against the record's own digest: a copy that is not the one M-Flasher described is not
+     * this unit's way back, whatever its size is. */
+    if (v16Record && v16Record.sha256 !== dumpSha) {
+      sayK("v16DumpMismatch", `${dumpSha.slice(0, 16)}\u2026 \u2260 ${v16Record.sha256.slice(0, 16)}\u2026`);
+      return;
+    }
+    v16Dump = { size: b.length, sha256: dumpSha, at: new Date().toISOString().slice(0, 10), name: f.name,
       unit: (lastVerify && lastVerify.text) ? String(lastVerify.text) : null };
     try { localStorage.setItem(V16_DUMP_KEY, JSON.stringify(v16Dump)); } catch (_) {}
     showV16Dump();
@@ -3838,6 +3895,8 @@ if ($("v16-dump")) $("v16-dump").addEventListener("change", async () => {
   } catch (e) { sayK("error", e && e.message); }
 });
 v16Dump = loadV16Dump();
+v16Record = loadV16Record();
+showV16Dump();
 const stockVersionOf = (text) => {
   const m = /^FM-1_0(\d{2})$/.exec(String(text || ""));   /* the vendor's numbering is FM-1_0NN; 9NN is this project */
   return m ? String(Number(m[1])) : "unreadable";         /* unreadable is refused by the transport, never guessed */

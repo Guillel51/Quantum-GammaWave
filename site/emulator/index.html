@@ -79,7 +79,7 @@ footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <strong style="color:#3adfff;letter-spacing:.08em;font-size:14px">☀️ QUANTUM GAMMAWAVE (QG-1)</strong>
     <span style="font-size:12px;color:#aaa">Web Emulator · M-VAVE FM-1 Synthesizer &amp; Groovebox (12 Voices • Q24 Master EQ • 283 Factory Presets • Stereo M/S)</span>
-    <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">cb56d96a32c8</code></span>
+    <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">fb7459222b1c</code></span>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
     <a href="../webapp/editor/" style="padding:6px 14px;background:rgba(58,223,255,.10);color:#8fd8ff;border:1px solid #24395e;border-radius:999px;text-decoration:none;font-weight:700">🎛️ Open Web Studio (Tape &amp; HUD)</a>
@@ -104,7 +104,7 @@ footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces
 </p>
 
 <footer>
-  <small class="version">v1.5.25 · build <code id="build-commit">cb56d96a32c8</code> · built <code id="build-date">2026-11-20T22:47:54Z</code> · engine <code id="wasm-hash">8e9e69b6e41651e664839677222c97c9e77e10c3e462fd796c50078ce89c5328</code> · 1286486 B</small><br>
+  <small class="version">v1.5.26 · build <code id="build-commit">fb7459222b1c</code> · built <code id="build-date">2026-11-20T23:49:50Z</code> · engine <code id="wasm-hash">62f07e069681bdb70cb8f8f487297fd0062be7e0e85d738e75e8ca2798148704</code> · 1286544 B</small><br>
   <strong>QUANTUM GAMMAWAVE (QG-1)</strong> · <a href="https://github.com/Guillel51/Quantum-GammaWave">Official Repository</a> · Lineage: Pocket GammaWave, <a href="https://github.com/juanjiant-bit/JIANT">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
   <nav><a href="https://github.com/Guillel51/Quantum-GammaWave">GitHub Source</a> · <a href="../webapp/editor/">Web Studio</a> · <a href="../webapp/installer/">USB Web Installer</a></nav>
   <small>M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is not affiliated with or endorsed by them, nor with Hügelton Instruments.</small>
@@ -390,14 +390,22 @@ addEventListener("blur", () => {
 // ------------------------------------------------------------------ screen and lights
 const ctx = document.getElementById("screen").getContext("2d");
 const img = ctx.createImageData(240, 240);
+/* (F5) the panel's 565 to RGBA, without a division per pixel. A frame is 57 600 pixels and each one expanded
+ * three channels with `* 255 / 31` or `* 255 / 63`: 57 600 divides and 57 600 float multiplies a frame, for 96
+ * possible values. The three tables are built once from the same expressions, into the same kind of array the
+ * canvas takes (Uint8ClampedArray rounds half to even, exactly as the per-pixel assignment did), so every byte on
+ * screen is the value it always was -- tests/emu checks all 65 536 panel words. */
+const R5 = new Uint8ClampedArray(32), G6 = new Uint8ClampedArray(64);
+for (let i = 0; i < 32; i++) R5[i] = i * 255 / 31;
+for (let i = 0; i < 64; i++) G6[i] = i * 255 / 63;
 function drawScreen(fb) {
   const d = img.data;
-  for (let i = 0; i < 240 * 240; i++) {
+  for (let i = 0, j = 0; i < 240 * 240; i++, j += 4) {
     const v = fb[i], p = ((v >> 8) | (v << 8)) & 0xFFFF;          // the panel's byte order -> RGB565
-    d[i * 4] = ((p >> 11) & 31) * 255 / 31;
-    d[i * 4 + 1] = ((p >> 5) & 63) * 255 / 63;
-    d[i * 4 + 2] = (p & 31) * 255 / 31;
-    d[i * 4 + 3] = 255;
+    d[j] = R5[(p >> 11) & 31];
+    d[j + 1] = G6[(p >> 5) & 63];
+    d[j + 2] = R5[p & 31];
+    d[j + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
 }
@@ -485,10 +493,10 @@ async function midiOn() {
 // ------------------------------------------------------------------ switching on
 const status = document.getElementById("status");
 const say = (t) => { status.textContent = t; status.hidden = !t; };
-const EXPECTED_WASM_SHA = "8e9e69b6e41651e664839677222c97c9e77e10c3e462fd796c50078ce89c5328";
-const EXPECTED_VERSION = "v1.5.25";
-const BUILD_COMMIT = "cb56d96a32c8";
-const BUILD_DATE = "2026-11-20T22:47:54Z";
+const EXPECTED_WASM_SHA = "62f07e069681bdb70cb8f8f487297fd0062be7e0e85d738e75e8ca2798148704";
+const EXPECTED_VERSION = "v1.5.26";
+const BUILD_COMMIT = "fb7459222b1c";
+const BUILD_DATE = "2026-11-20T23:49:50Z";
 // GitHub Pages caches the HTML for a few minutes. The page may be old even when the new
 // manifest is already live; ask for the manifest without a cache and reload once with
 // the manifest's commit as a query. The WASM already has its own ?v=<sha>.
@@ -531,7 +539,7 @@ async function switchOn() {
     if (!AudioCtx) throw new Error("Web Audio API is not supported in this browser.");
     const ac = new AudioCtx({ sampleRate: 44100, latencyHint: "interactive" });
     const [wasm] = await Promise.all([
-      fetch("felucca.wasm?v=8e9e69b6e41651e664839677222c97c9e77e10c3e462fd796c50078ce89c5328", { cache: "no-store" }).then(async (r) => {
+      fetch("felucca.wasm?v=62f07e069681bdb70cb8f8f487297fd0062be7e0e85d738e75e8ca2798148704", { cache: "no-store" }).then(async (r) => {
         if (!r.ok) {
           if (r.status === 404) throw new Error("felucca.wasm not found (HTTP 404). Compile the emulator binary with 'sh web/emu/build.sh' or run 'python tools/emu_dev.py'.");
           throw new Error(`felucca.wasm: HTTP ${r.status}`);
