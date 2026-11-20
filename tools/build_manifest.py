@@ -209,7 +209,25 @@ def emulator():
     return {k: data[k] for k in ("version", "commit", "wasm_sha256", "wasm_bytes") if k in data}
 
 
-def collect(checks=None, package="felucca.fwsc"):
+def recorded_package():
+    """(FASE 4) WHICH PACKAGE THE BUILD WROTE, when the record already says so. `build.py --release X.Y` names it
+    felucca-X.Y.fwsc and writes the manifest itself; `web/emu/build.sh` then refreshes that manifest with the
+    emulator's own, calling this file as a tool -- with the default name it hashed `build/felucca.fwsc`, a file an
+    older build had left there, and the release that followed published THOSE bytes: v1.5.24's asset was byte for
+    byte v1.5.24's predecessor. Reading the name back keeps the record describing the package the build wrote."""
+    p = BUILD / "manifest.json"
+    try:
+        data = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+    name = data.get("package")
+    if isinstance(name, str) and name and (BUILD / name).exists():
+        return name
+    return None
+
+
+def collect(checks=None, package=None):
+    package = package or recorded_package() or "felucca.fwsc"
     return {
         "schema": SCHEMA,
         "version": version(),
@@ -281,6 +299,13 @@ def verify(path=None, require_clean=False, want_commit=None):
         errors.append(f"commit {data.get('commit')} in the manifest, {head} is the code being checked")
     if require_clean and data.get("dirty"):
         errors.append(f"built from a dirty tree: {len(data['dirty'])} file(s), e.g. {data['dirty'][0]}")
+    # (FASE 4) AND THE RECORD MUST DESCRIBE THE PACKAGE THE BUILD WROTE. A release build names it
+    # felucca-X.Y.fwsc; a record still naming the unversioned file is one an older build's artefact, and every
+    # check below would pass while the release published those bytes (v1.5.24 did exactly that).
+    ver = str(data.get("version") or "").lstrip("v")
+    relpkg = BUILD / ("felucca-%s.fwsc" % ver) if ver else None
+    if relpkg is not None and relpkg.exists() and data.get("package") == "felucca.fwsc":
+        errors.append("the manifest describes build/felucca.fwsc; this build wrote %s" % relpkg.name)
     for name, claim in data.get("artifacts", {}).items():
         p = BUILD / name
         if not claim.get("sha256"):
