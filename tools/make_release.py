@@ -293,7 +293,10 @@ def check(root):
         bm = load(bm_path)
         if bm.get("dirty"):
             problems.append("the build record was made from a dirty tree (%d file(s))" % len(bm["dirty"]))
-        built = os.path.join(root, "build", "felucca.fwsc")
+        # (FASE 4) the package THE BUILD WROTE, as the record names it: a release build writes felucca-X.Y.fwsc,
+        # and comparing against the unversioned file -- one an earlier build left there -- either fails a good
+        # release or passes a wrong one (v1.5.24 shipped its predecessor's bytes this way).
+        built = os.path.join(root, "build", str(bm.get("package") or "felucca.fwsc"))
         if os.path.isfile(built):
             if open(built, "rb").read() != raw:
                 problems.append("release/ and build/ hold different packages: the release was not assembled "
