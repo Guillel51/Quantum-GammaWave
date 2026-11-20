@@ -367,6 +367,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     # cap the allocator applies, LOAD ECO's 6 voices (4 a part) are what the monitor now prints, FM6's own 4, four
     # tracks at once, the release queue, and a preset change under a held chord that neither cuts the audio nor leaves
     # a voice behind. The class of every figure is this host's, not the unit's.
+    # (v1.5.17) THE WHOLE INSTRUMENT: six live tracks and twelve voices together, concentrated, distributed and
+    # saturated, with releases, the load governor, the FX, a preset change under the chord, TRACKS 4's sleep, and the
+    # cost of waking T5/T6 measured on the same machine in the same run.
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_six_test" tests/poly_six_test.c -lm
+    run "POLY SIX: six tracks x 2 = twelve sounding, twelve in one part, 4+4+2+1+1, releases (six gated six ringing), at the cap the released voice goes not a held one, the load governor does not cut a tail with room in the budget, twelve with the FX on, a preset change under the chord, TRACKS 4 sleeps, saturation refuses nothing, and the host cost of 4 vs 6 tracks" "$OUT/poly_six_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_budget_test" tests/poly_budget_test.c -lm
     run "POLY BUDGET: 8, 10 and 12 notes held on one part all sound with nothing stolen, the VOICES setting is the cap applied, LOAD ECO caps at 6 (4 a part) and says so, FM6 gives its engine cap, four tracks fill the pool, releases ring as releases, and a preset change under a chord keeps the audio" "$OUT/poly_budget_test"
     # (v1.5.13) the GLO MONITOR rows, built with a bounded appender: the diag page's POLYPHONY row outgrew its 48-byte

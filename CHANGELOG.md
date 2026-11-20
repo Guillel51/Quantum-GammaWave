@@ -1,3 +1,55 @@
+## v1.5.17 — las seis pistas y las doce voces, juntas y medidas; el gobernador de carga deja de cortar colas
+
+Fase de audio: hacer que el pool sostenga **seis pistas a la vez y doce voces reales**, y comprobarlo contando lo que
+el asignador cuenta (voces activas y con compuerta, en release, robadas, denegadas, pico) en vez de mirar un número
+en pantalla. Lo primero que apareció fue un defecto de verdad, y está corregido en su causa.
+
+- **EL GOBERNADOR DE CARGA CORRÍA COLAS DE RELEASE SIN NECESIDAD.** `audio.c` pone `load_tight` cuando el render de
+  media trama pasa del **65 %** (el guardián de verdad, el que hace algo, es el de audio: dos medias tramas seguidas
+  por encima del **80 %** y se desvanece una voz). Pues bien, con `load_tight` activo, `voice_room()` y
+  `voice_alloc()` **mataban una cola en release aunque el presupuesto estuviera vacío**, para que el número de voces
+  no subiera. El razonamiento no se sostiene: una cola en release renderiza exactamente las mismas muestras que la
+  nota que ocupa su sitio, así que el corte **no ahorraba ni un ciclo de CPU** — sólo impedía acercarse al tope que
+  el usuario eligió — y lo pagaba con una caída de envolvente cortada 6 ms antes de tiempo, que es justo lo que se
+  oye como un chasquido en el decaimiento. Ahora, con hueco en el presupuesto, la nota usa el slot libre y la cola
+  sigue sonando; con el presupuesto **lleno** (12 de 12) se recicla una cola, que es el comportamiento correcto y
+  sigue igual. Medido en `tests/poly_six_test.c`, escenario E, con el gobernador puesto y cuatro colas sonando:
+  **antes** release 4 → 3, robos 0 → 1; **después** release 4 → 4, robos 0 → 0. El guardián del 80 % no se toca.
+- **UN TEST NUEVO QUE MIDE LA FRASE ENTERA, no una pista aislada** (`tests/poly_six_test.c`, cableado en
+  `tests/run_tests.sh`). Cada escenario cuenta voces en el pool, clase host x86-64, fuentes reales:
+
+  | escenario | lo que se pide | medido |
+  |---|---|---|
+  | **A** seis pistas vivas, dos notas cada una | 12 sonando | **gated 12, busy 12, pico 12**, robos 0, denegadas 0, y las seis pistas con 2 voces propias; ocho bloques después siguen las 12 |
+  | **B** las doce en una sola pista | 12 sonando | **12**, la ventana crece a 12 prestando slots ociosos (pool 17), sin tocar ninguna voz que suena; al soltarlas, otra pista recupera su voz |
+  | **C** reparto 4+4+2+1+1 | 12, cada una en su pista | **4 / 4 / 2 / 1 / 1 / 0**, robos 0, denegadas 0 |
+  | **D** seis de doce sueltan | 6 con compuerta + 6 en release | **6 + 6, pico 12**, robos 0 |
+  | **D2** al tope llega una nota más | se recicla una voz en release, no una sostenida | gated 11→12, release 1→0, **robo 1 sobre la cola**, ninguna nota sostenida tocada |
+  | **E** gobernador de carga con hueco | no cortar colas | release 4→**4**, robos **0** (antes del fix: 3 y 1) |
+  | **F** las doce con chorus, delay y reverb en cada pista | 12 sonando | **12**, robos 0, pico del bloque 15 679 (sin llegar al riel) |
+  | **G** cambio de preset con el acorde de doce sostenido | no perder voces ni silencio | gated **12**, robos 0, pico del bloque 13 325 |
+  | **H** TRACKS 4 (el valor de fábrica) | T5 y T6 duermen y lo dicen | T5 0, T6 0, `asleep_hit` 1, **robos 0**: pedir una nota a una pista dormida no es robar nada |
+  | **S** saturación: dos notas más sobre las doce | suenan, no se deniegan | gated 12, **robos +2**, denegadas **0**, pico 12 |
+  | **I** coste del cuadro completo | reloj del host | 4 pistas / 8 voces **6,9 µs/bloque**; 6 pistas / 12 voces **8,9 µs/bloque** (+29 %), mejor 8,4 µs, plazo **725 µs** |
+
+  La distinción que pedía el encargo queda explícita en cada línea y en el propio test: **pedidas** (lo que entra),
+  **asignadas** (lo que el pool da), **activas con compuerta**, **en release**, **robadas** y **pico**. No se usa el
+  pico como si fuera "voces sonando": el pico lo toma `voice_stats()` una vez por trama, y el test lo llama antes de
+  leerlo (la primera corrida, con el pico leído sin actualizar, daba 0 — el monitor no mentía, el test sí).
+- **Lo que NO se cambió, y por qué.** `trk_live` sigue en **4** de fábrica: el modo **TRACKS 6** existe en el menú,
+  está medido en el pool y ahora tiene test propio, pero subir el valor de fábrica es una decisión que necesita una
+  medida en la unidad (no hay FM-1 en este entorno). Los topes por motor tampoco se mueven: `FM6_POLY 4` porque
+  llevarlo a 6 cuesta ~3 552 B de `.bss` y sólo hay 3 268 B de imagen libres además del suelo de 4 KiB de RAM;
+  `eng_formant.c` `.poly = 4` porque su render es el más caro por voz (238 en el presupuesto estático). Son topes de
+  CPU/RAM declarados, no límites escondidos: el pool reparte los demás slots entre las pistas que los piden.
+- **Recursos (build AC791N).** El fix no añade estado y quita dos ramas: imagen **580 344 → 580 280 B** (−64 B,
+  **3 332 B libres** del slot de 583 612), `.data+.bss` **92 832 B** (5 472 libres, piso de 4 KiB). El test nuevo es
+  de host y no entra en la imagen. Emulador: wasm 1 280 848 B, v1.5.17, sha256 `471e7495…`.
+- **Lo que sigue sin verificarse, y se dice:** todo esto es clase **host x86-64** (y **build AC791N** para el tamaño).
+  No hay FM-1 aquí: el pop de encendido, la latencia audible, los clicks y la polifonía *oída* no están medidos en el
+  panel, el DAC ni el amplificador, y no afirmo que este cambio elimine ningún pop físico. El coste en la unidad no
+  es el del host: 8,9 µs de host no se trasladan a ningún número de AC791N.
+
 ## v1.5.16 — la aritmética que el compilador podía leer de otra forma, y un instrumento que medía ruido
 
 Fase de auditoría y corrección con una regla: **nada de lo que ya estaba medido se toca sin volver a medirlo**. El

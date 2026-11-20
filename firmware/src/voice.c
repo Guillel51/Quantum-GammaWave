@@ -673,8 +673,13 @@ static int voice_room(track_t *t, int soft)
     track_t *vp = 0;
     uint32_t k;
     if (voices_busy() < voice_cap()) {
-        if (load_tight && (k = quiet_tail(&vp)) < NVOICE)
-            voice_kill(&V(vp, k));                      /* (the load budget: a dying tail makes the room) */
+        /* (v1.5.17) THE LOAD GOVERNOR DOES NOT CUT A TAIL HERE ANY MORE. load_tight used to take a released
+         * tail with the budget free (below, and in voice_alloc), to keep the voice count flat above 65 % of a
+         * half. A tail in release renders every sample a new note does, so the kill bought no CPU at all -- it
+         * only stopped the count from growing towards the cap the user chose -- and it paid for that with a
+         * decay cut 6 ms short, which is what one hears. The protection that matters stays: the cap (this is
+         * the contract the allocator keeps) and the overload guard in audio.c, which sheds a voice after two
+         * halves above 80 %. tests/poly_six_test.c E measures this with the governor set. */
         return 1;
     }
     k = quiet_tail(&vp);
@@ -739,17 +744,14 @@ static voice_t *voice_alloc(track_t *t, uint32_t note)
      * load_tight alone decided the branch. Under the budget -- where a busy unit spends its notes -- the
      * scan is now skipped until a victim is actually needed, and otherwise the count is taken once. */
     if (nfree) {
-        uint32_t busy = load_tight ? 0u : voices_busy();
+        uint32_t busy = voices_busy();                  /* (v1.5.17: taken once, and load_tight no longer
+                                                         * sends a note to a tail while a slot is free) */
         track_t *vp = 0;
         uint32_t k;
-        if (load_tight || busy >= voice_cap()) {                   /* (0.6.16: the load budget too; 0.6.18: a dying tail) */
+        if (busy >= voice_cap()) {                      /* (0.6.18: a dying tail when the budget is full) */
             k = quiet_tail(&vp);
-            if (k == NVOICE) {
-                if (!busy)
-                    busy = voices_busy();
-                if (busy >= voice_cap())
-                    k = voice_victim(t, 0, &vp);
-            }
+            if (k == NVOICE)
+                k = voice_victim(t, 0, &vp);
             if (k < np && vp == t)
                 return &V(t, k);                        /* our own: restart it in place (no click) */
             if (k < NVOICE)
