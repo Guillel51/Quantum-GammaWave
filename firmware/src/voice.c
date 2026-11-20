@@ -134,6 +134,14 @@ static int32_t lfo_wave(track_t *t, uint32_t ph)
         return (osc_sine(ph) + 32767) >> 1;
     case 8:                                         /* (FASE 2) PULSE: 25 % duty */
         return ph < 0x40000000u ? 32767 : -32767;
+    case 9: {                                       /* (FASE 3) PLUK: a decay inside every cycle, not a wave -- a
+                                                     * trigger tied to RATE (in time: to the beat) that falls like a
+                                                     * plucked envelope. 0 .. 1, one particle of SAW's symmetry and
+                                                     * none of its line: SAW falls straight, this one curves. */
+        int32_t x = (int32_t)(ph >> 16);            /* 0 .. 65535 */
+        uint32_t y = (uint32_t)(65536 - x) >> 8;    /* the headroom left, 0..256 */
+        return (int32_t)(((uint64_t)y * y * y * y) >> 17);   /* (1 - x)^4: 32767 down to 0 */
+    }
     case 6: {                                       /* (QG-1 1.6) EVO: a smooth random walk, one new point a cycle:
                                                      * it eases from this cycle's value to the next (smoothstep), so
                                                      * the wander has no steps and costs a few multiplies */
@@ -298,10 +306,10 @@ static __attribute__((noinline)) void tf_run(track_t *t, int32_t *out, uint32_t 
             ic1 = clamp(s1, -150000, 150000);
             ic2 = clamp(2 * v2 - ic2, -150000, 150000);
             y = ft == FT_HP ? x - v2 - bp : ft == FT_BP ? bp : ft == FT_VOWEL ? (v2 >> 1) + bp - (softclip(x - bp) >> 2) :
-                ft == FT_SCREAM ? v2 + (softclip(v1) >> 1) : v2;
+                ft == FT_SCREAM ? v2 + (softclip(v1) >> 1) : ft == FT_NOTCH ? x - bp : ft == FT_SHELF ? x + v2 : v2;
             if (fo != TF_DRY) {                         /* TYPE changed: from the old one's output */
                 int32_t y0 = fo == FT_HP ? x - v2 - bp : fo == FT_BP ? bp : fo == FT_VOWEL ? (v2 >> 1) + bp - (softclip(x - bp) >> 2) :
-                             fo == FT_SCREAM ? v2 + (softclip(v1) >> 1) : v2;
+                             fo == FT_SCREAM ? v2 + (softclip(v1) >> 1) : fo == FT_NOTCH ? x - bp : fo == FT_SHELF ? x + v2 : v2;
                 y = y0 + (((y - y0) * (w0 + (int32_t)(i + 1u) * dw)) >> 12);
             }
             y = soft_knee(y, 30000);                    /* (the dry part has no knee: the fades after it) */
@@ -326,7 +334,7 @@ static int32_t tf_tmp[CTL];
 static __attribute__((noinline)) void track_filter(track_t *t, int32_t *out, uint32_t n, uint32_t own, int32_t ccut,
                                                    int32_t cres)
 {
-    uint32_t ti = (uint32_t)(t - trk) % NTRK, r = (uint32_t)t->p[P_FTYPE] % 6u, ft, fo, i;
+    uint32_t ti = (uint32_t)(t - trk) % NTRK, r = (uint32_t)t->p[P_FTYPE] % 8u, ft, fo, i;   /* (FASE 3) 8 types */
     uint32_t act = (tf_on[ti] && !own) || tf_cmb[ti];
     int32_t w0, dw;
     if (own && r != FT_COMB)

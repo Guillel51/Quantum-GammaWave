@@ -2103,7 +2103,7 @@ static void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int3
     uint32_t eng = t->eng_req % NENGINES;
     int is_voice = str_eq(ENGINES[eng]->name, "VOICE");
     int is_drum = str_eq(ENGINES[eng]->name, "DRUM");
-    int is_vowel = is_voice || (t->p[P_FTYPE] >= FT_VOWEL);
+    int is_vowel = is_voice || (t->p[P_FTYPE] >= FT_VOWEL && t->p[P_FTYPE] <= FT_SCREAM);
     int32_t nb = is_vowel ? 5 : 6, bw = w / nb, i;
     int32_t cut = gw_trk_cut(t);
     int32_t lfo_mod = (t->p[P_LD_FLT] * mulq15(t->lfo_val, t->lfo_fade)) >> 14;
@@ -2174,6 +2174,14 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
         if (d > 0) att = (d * d) * h_max / (w * 12 + 1);
         if (d > -14 && d < -4) att += h_max / 3;
         res_pk = res_pk * 3 / 2;
+        break;
+    case 6: /* (FASE 3) FT_NOTCH: the cutoff taken out, the band beside it passes */
+        if (ad < 22) att = (22 - ad) * (h_max / 2) / 22;
+        res_pk = 0;
+        break;
+    case 7: /* (FASE 3) FT_SHELF: the bass up, the top where it was */
+        if (d < 0) res_pk = 0;
+        else att = (h_max / 4) * (ad > 24 ? 24 : ad) / 24;
         break;
     default: /* LP: low-pass roll-off above cutoff */
         if (d > 0) att = (d * d) * h_max / (w * 18 + 1);

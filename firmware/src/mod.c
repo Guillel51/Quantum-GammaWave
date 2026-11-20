@@ -49,7 +49,7 @@ static uint32_t clk_n;                          /* (JIANT) .. the 1/16 steps sin
 static uint32_t ms_clock;        /* (JIANT) samples since PLAY on the transport's grid (fx.c mix_block; seq.c seq_start:
                                   * 0): MS_STEP's place */
 enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY, MD_REV, MD_RATE, MD_VIB, MD_E1,
-       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
+       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
                                                           * bank, appended after the master so every stored
                                                           * destination number keeps its meaning */
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
@@ -80,8 +80,10 @@ static uint32_t mod_param(uint32_t d)
 {
     static const uint8_t ID[MD_E1] = {[MD_PAN] = P_PAN, [MD_DIST] = P_DIST, [MD_CHO] = P_CHOR, [MD_DLY] = P_DLY,
                                       [MD_REV] = P_REV, [MD_RATE] = P_LRATE, [MD_VIB] = P_LD_PIT};
-    if (d >= MD_X1)
+    if (d >= MD_X1 && d <= MD_X4)
         return P_XID[d - MD_X1];                    /* (FASE 2) CHARACTER 1..4 */
+    if (d == MD_RES)                                /* (FASE 3) the part filter's resonance */
+        return P_FRES;
     return d >= MD_E1 ? P_E0 + d - MD_E1 : ID[d];
 }
 
@@ -235,7 +237,8 @@ static __attribute__((noinline)) void mod_block_slot(track_t *t, uint32_t k, con
 {
     uint32_t s = (uint32_t)mslot(t, k, 0), d = (uint32_t)mslot(t, k, 1), j;
     int32_t a = mslot(t, k, 2), x;
-    if (!s || !d || !a || s >= MS_N || (d >= MD_CLIP && d < MD_N))   /* (the master's: macro_master; X1..X4 are ours) */
+    if (!s || !d || !a || s >= MS_N || d == MD_CLIP || d == MD_PNCH)   /* (the master's: macro_master; X1..X4 and RES
+                                                                         * are ours) */
         return;
     if (d <= MD_AMP) {                                 /* per voice */
         mp->amp |= d == MD_AMP;
@@ -409,7 +412,7 @@ static const char *mod_dst_name(const track_t *t, int32_t v)
         if (l && l[0] && l[0] != '-')
             return l;
     }
-    if (v >= MD_X1 && v < MD_N) {                     /* (FASE 2) the CHARACTER bank's own labels */
+    if (v >= MD_X1 && v <= MD_X4) {                   /* (FASE 2) the CHARACTER bank's own labels */
         const char *l = v == MD_X3 ? SLEW_DESC.label : v == MD_X4 ? INVERT_DESC.label :
                         track_desc(t, P_XID[v - MD_X1])->label;
         if (l && l[0] && l[0] != '-')

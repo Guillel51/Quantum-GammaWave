@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Parameter descriptors, formatting and the page table. */
-static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE"};   /* (QG-1 1.6) EVO: appended; (FASE 2) HSIN, PULSE */
+static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE", "PLUK"};   /* (QG-1 1.6) EVO: appended; (FASE 2) HSIN, PULSE;
+                                                                                        * (FASE 3) PLUK: a decay a cycle */
 /* (QG-1 1.6) TOUCH > VEL CURVE: how a key's / MIDI note's velocity reaches the engines (voice.c vel_curve) */
 /* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest (next to the slowest free rate) */
 static const char *const N_LSYNC[12] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16",
@@ -35,7 +36,8 @@ static const char *const N_CHOTYPE[] = {"CHORUS", "PHASER", "FLANGER", 0};   /* 
  * they play (seq.c seq_step; the steps keep what was written). Append-only: older projects hold 0..2 */
 static const char *const N_QUANT[] = {"OFF", "SNAP", "WHITE", "SEQ"};
 static const char *const N_DTYPE[] = {"SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"};   /* (QUANTUM) fx.c DT_SOFT..DT_FLUX; (FASE 2) FOLD appended */
-static const char *const N_FTYPE[] = {"LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"};   /* (GAMMAWAVE) P_FTYPE: eng_analog.c FT_* */
+static const char *const N_FTYPE[] = {"LP", "HP", "BP", "COMB", "VOWEL", "SCREAM", "NOTCH", "SHELF"};   /* (GAMMAWAVE) P_FTYPE: eng_analog.c FT_*;
+                                                                        * (FASE 3) NOTCH, SHELF appended */
 static const char *const N_VOICE[] = {"POLY", "MONO", "LEG", "UNI"};   /* V_POLY .. V_UNISON */
 static const char *const N_GLMODE[] = {"RATE", "TIME"};
 static const char *const N_PRIO[] = {"LAST", "LOW", "HIGH"};
@@ -61,9 +63,10 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
                                                          * sequence; 1.2.1-GW, JIANT 0.7.8: a smooth random wander) */
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-                                     "CLIP", "PNCH", "X1", "X2", "X3", "X4"};   /* (JIANT: the master, FX > MASTER);
+                                     "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES"};   /* (JIANT: the master, FX > MASTER);
                                      * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored
-                                     * destination number keeps its meaning */
+                                     * destination number keeps its meaning; (FASE 3) RES: the track filter's
+                                     * resonance (voice.c track_filter), appended for the same reason */
 static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "-", "VOICE", "-", "WHEEL", "-", "-",
                                              "DRUM", "NOISE", "FM6", "-", "WTABLE", "ADDTV"};   /* (JIANT: SAMPLE 4, GRAIN 8, SLICE 13 retired;
                                                                                        * QG-1 3.0: 14 WAVETABLE) */

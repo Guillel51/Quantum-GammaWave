@@ -13,7 +13,9 @@ enum { AW_SYNC = 5, AW_RING, AW_SAW3, AW_TUBE, AW_FOLD, AW_PM };   /* (FASE 2: P
 /* (JIANT 0.5) FILTER TYPE (P_FTYPE): LP as before (analog_render's loop); HP BP from the same state-variable filter
  * (analog_ext's loop, every WAVE); COMB the filter open, the part's sum through a feedback comb tuned to the newest
  * note and CUT (+-32 semitones about it), RES its feedback (voice.c track_comb) */
-enum { FT_LP, FT_HP, FT_BP, FT_COMB, FT_VOWEL, FT_SCREAM };
+enum { FT_LP, FT_HP, FT_BP, FT_COMB, FT_VOWEL, FT_SCREAM, FT_NOTCH, FT_SHELF };   /* (FASE 3) NOTCH = LP + HP (the
+                                                    * cutoff taken out, both sides pass), DIP = LP - BP (a
+                                                    * lowpass with its own corner scooped): both from this SVF */
 static inline int32_t svf_mode(const tsvf_t *c, int32_t in, int32_t *ic1, int32_t *ic2, uint32_t ft, int32_t k)
 {
     int32_t v3 = in - *ic2;
@@ -30,6 +32,10 @@ static inline int32_t svf_mode(const tsvf_t *c, int32_t in, int32_t *ic1, int32_
     }
     if (ft == FT_SCREAM)
         return v2 + (softclip(v1) >> 1);
+    if (ft == FT_NOTCH)                                 /* (FASE 3) LP + HP: the cutoff taken out */
+        return in - ((k * v1) >> 12);
+    if (ft == FT_SHELF)                                 /* (FASE 3) x + LP: a low shelf, +6 dB under the corner */
+        return in + v2;
     return ft == FT_HP ? in - v2 - ((k * v1) >> 12) : ft == FT_BP ? (k * v1) >> 12 : ft == FT_COMB ? in : v2;
 }
 

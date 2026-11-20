@@ -1,3 +1,30 @@
+## v1.5.24 — el LFO que cae como un pulso, la resonancia como destino, y dos filtros que el SVF ya sabía
+
+Fase 3: evolución sonora, opciones de edición y modulación. El árbol llegaba con dos techos medidos —125 de 127
+ids de parámetro y 1 272 B libres de XIP tras esta fase— así que la fase no agrega parámetros: agrega **valores
+nuevos dentro de parámetros que ya existen**, que no rompen ningún formato. Las cuatro incorporaciones cuestan
+**196 B** de imagen y 0 B de RAM. **No hay FM-1 en este entorno**: nada de aquí afirma sonido, panel ni DAC.
+
+- **`PLUK`, la décima forma de LFO.** Una caída `(1 - x)^4` dentro de cada ciclo: no es otra onda, es un
+  disparo atado al RATE (en tiempo, al paso de la rejilla), para plucks rítmicos de filtro o de amplitud sin
+  secuenciador. Se distingue de SAW y de RAMP por la curva y el signo; SLEW e INVERT siguen actuando encima.
+  `[HOST]`, `tests/mod_test.c`: empieza en 32 768, a un tercio vale 14 266, y no es RAMP.
+- **`RES`, la resonancia del filtro como destino de la matriz.** El corte ya se modulaba; la resonancia no.
+  Valor 26 al final de la lista (todo número guardado sigue significando lo mismo), per-block y amordazado a
+  0..127, devuelto al terminar el bloque: un barrido de resonancia por LFO o por envolvente, que era lo que
+  faltaba para el "wow" de un filtro ácido o una cola que se vuelve silbido.
+- **Dos tipos de filtro nuevos: `NOTCH` y `SHELF`.** Salen de las salidas que el state-variable filter ya
+  calculaba —`x - bp` y `x + v2`—, así que el filtro de la parte (todos los motores) y el filtro por voz de
+  ANALOG y LOFI los tienen, con sus dos curvas en el visor. `[HOST]`, `tests/filter_types_test.c`: NOTCH
+  abre un hueco de **−11,9 dB** con los dos extremos dentro de 0,3 dB de unidad; SHELF deja **+6,0 dB** en
+  80 Hz y 0,0 dB en 6,4 kHz donde el LP está −32,2 dB.
+- **Coste:** `[AC791N]` imagen 582 144 → **582 340 B** (1 272 libres), `.data+.bss` 86 912 B sin cambios, sin
+  estado nuevo por voz. Compatibilidad: ningún formato cambia, los presets de v1.5.23 cargan igual y los 306
+  renders golden del `regress` siguen idénticos.
+- **Lo que no entró, con su razón medida:** un parámetro nuevo por motor (2 ids libres, formato de proyecto),
+  un operador/parcial extra en FM6/ADDITIVE (CPU por voz sin unidad para medirlo), y presets nuevos (el banco
+  mide el nivel de cada preset renderizándolo y aquí no hay oído). Está en `docs/FASE3_SONIDO_v1.5.24.md` §4.
+
 ## v1.5.23 — el acorde que sobrevive, el guardián que elige la nota menos audible, y el monitor que dice qué costó
 
 Fase 2: polifonía, gestión de voces y estrés de audio. Primero los pendientes y las regresiones de la Fase 1 (suite

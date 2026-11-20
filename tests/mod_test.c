@@ -1391,6 +1391,53 @@ static void test_eight_slots(void)
     macro_v[0] = 0;
 }
 
+/* --------------------------------------------------------------- (FASE 3) --- */
+/* PLUK: a decay inside the cycle, and RES: the part filter's resonance as a destination. */
+static void test_fase3(void)
+{
+    track_t *t = &trk[0];
+    int32_t v0, v3, v6, v9, saww;
+
+    fresh(0, 0);
+    t->p[P_LWAVE] = 9;                                 /* PLUK */
+    v0 = lfo_wave(t, 0x00000000u);
+    v3 = lfo_wave(t, 0x30000000u);
+    v6 = lfo_wave(t, 0x60000000u);
+    v9 = lfo_wave(t, 0x90000000u);
+    check("LFO PLUK: begins at the top of the cycle and falls to nothing",
+          v0 > 30000 && v0 <= 32768 && v9 >= 0 && v9 < 1500 && lfo_wave(t, 0xFFFFFFFFu) == 0);
+    check("LFO PLUK: it curves (a third in, below half of the top), never rises inside a cycle",
+          v3 < v0 / 2 && v6 < v3 && v9 < v6);
+    t->p[P_LWAVE] = 5;                                 /* RAMP: straight down, the wave PLUK must not be */
+    saww = lfo_wave(t, 0x90000000u);
+    check("LFO PLUK is not RAMP: past the middle RAMP is negative, PLUK still holds a positive tail",
+          saww < 0 && v9 > 0 && v3 < lfo_wave(t, 0x30000000u) * 3);
+    t->p[P_LWAVE] = 9;
+    check("LFO PLUK: one cycle long, the same value each time round",
+          lfo_wave(t, 0x10000000u) == lfo_wave(t, 0x10000000u) &&
+          lfo_wave(t, 0x20000000u) == lfo_wave(t, 0x20000000u));
+
+    /* RES: per block, into the part filter's resonance, restored after it */
+    fresh(0, 0);
+    t->p[P_FRES] = 20;
+    lfo_at(t, 32767);
+    slot(t, 0, MS_LFO, MD_RES, 63);
+    mod_begin(t);
+    check("LFO -> RES +63 at the top: the block's resonance is the range up, clamped at 127", t->p[P_FRES] == 127);
+    mod_end(t);
+    check(".. and the stored resonance is back after the block", t->p[P_FRES] == 20);
+    lfo_at(t, -32768);
+    mod_begin(t);
+    check("LFO -> RES: the bottom of the LFO pulls the resonance down to 0, clamped", t->p[P_FRES] == 0);
+    mod_end(t);
+    check(".. and the stored value survives the clamp", t->p[P_FRES] == 20);
+    slot(t, 0, MS_VEL, MD_RES, 63);                    /* a per-voice source on a per-block destination */
+    t->p[P_M1SRC] = MS_VEL;
+    trk[1].p[P_FRES] = 60;
+    check("RES is a destination the UI can name, and the lists still line up",
+          str_eq(mod_dst_name(t, MD_RES), "RES") && MD_N == QG_DST_N);
+}
+
 int main(int argc, char **argv)
 {
     test_off();
@@ -1406,6 +1453,7 @@ int main(int argc, char **argv)
     test_lofi_tone();
     test_noise_src();
     test_eight_slots();
+    test_fase3();
     if (argc > 1)
         check("demos written", demos(argv[1]));
     printf("%s\n", bad ? "MOD MATRIX TEST FAILED" : "mod matrix test passed");

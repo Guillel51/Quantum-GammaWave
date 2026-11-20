@@ -223,7 +223,9 @@ static uint32_t mod_dst_icon(const track_t *t, int32_t d)
     d = clamp(d, 0, MD_N - 1);
     if (d < MD_E1)
         return I[d];
-    if (d >= MD_CLIP)                                   /* (the master's CLIP / PNCH) */
+    if (d == MD_RES)                                    /* (FASE 3) the part filter's resonance */
+        return ICON_SHAPE;
+    if (d >= MD_CLIP && d <= MD_PNCH)                   /* (the master's CLIP / PNCH) */
         return d == MD_CLIP ? ICON_DIST : ICON_LEVEL;
     id = P_E0 + (uint32_t)(d - MD_E1);
     return param_icon(track_desc(t, id), t->p[id]);
