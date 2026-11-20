@@ -451,7 +451,7 @@ static const preset_t ANALOG_PRESETS[] = {
     /* (QG-1 1.6) EVOLVE / MOTION: the EVO wave (a smooth random walk) at a musical division, the matrix on top */
     {"QUANTUM BLOOM", {AW_SAW3, 40, 66, 4, 58, 26, 6, 7}, {96, 94, 120, 108}, 10, 0, FX(0, 72, 28, 88), PAT(5),
      {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LFADE, 90), XP(P_LD_FLT, 24), XP(P_LD_AMP, 14), XP(P_LEVEL, 114)}},
-    {"ABYSSAL DRONE", {AW_TUBE, 20, 58, 10, 44, 58, 14, -12}, {112, 90, 126, 118}, 0, 0, FX(10, 50, 32, 96), PAT(5),
+    {"ABYSSAL DRONE", {AW_TUBE, 20, 58, 10, 44, 58, 14, -12}, {112, 90, 126, 118}, 0, 0, FX(10, 50, 32, 72), PAT(5),
      {XP(P_LRATE, 5), XP(P_LWAVE, 6), XP(P_LD_FLT, 30), XP(P_LD_SHP, 18), XP(P_LD_AMP, 8), XP(P_LEVEL, 125)}},
     {"PRISM KEYS", {4, 12, 70, 0, 66, 18, 0, 12}, {0, 84, 40, 60}, 30, 0, FX(0, 40, 35, 55), PAT(6),
      {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 46),

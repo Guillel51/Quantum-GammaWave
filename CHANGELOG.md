@@ -1,22 +1,25 @@
-## v1.5.10 — El canvas dibuja de a dos píxeles, y el presupuesto medido
+## v1.5.11 — El banco de presets, medido y nivelado
 
-- **`cv_rect` cambia de stores.** Es la primitiva más usada del canvas (cada tarjeta, pozo, barra y banda), y
-  escribía un píxel de 16 bits por vez. El canvas está alineado a 4 bytes (`cv_buf`), así que a partir de un
-  índice par cada fila se escribe de a dos píxeles en un solo store de 32 bits, con el primer píxel suelto si la
-  fila arranca impar y el último si termina impar: **los mismos bytes, la mitad de los stores**. Una
-  intersección que el recorte dejó vacía ahora vuelve antes de recorrer la fila.
-- **Medición, con su clase.** En host x86-64 (el barrido completo de UI: 3056 frames, 3 corridas por binario)
-  el cambio queda dentro del ruido: 38.37 s de CPU de usuario de media antes, 38.15 s después (−0.6 %, spread
-  ±0.8 %), y los **3056 frames son byte a byte idénticos**. En el AC791N no está medido: es un cambio de
-  instrucciones, no de píxeles, y sin unidad física no hay número que dar. No se presenta como una mejora
-  medida en el dispositivo.
-- **Revisión de recursos (medido, no estimado).** La imagen AC791N queda en **582 684 B** de 583 612 B (**928 B**
-  libres en el slot; +68 B de código respecto de v1.5.9, el precio del cambio de stores) y `.data+.bss` sigue en
-  **91 648 B** de 98 304 B (6 656 B libres): la RAM no cambia. El presupuesto de flash es el recurso más ajustado
-  del proyecto y este cambio no lo empeora de forma significativa, pero tampoco lo mejora. Perfil de host con `-pg` sobre `eng_bench` (3000 bloques × 10
-  motores): `fx_buses` 11 %, `cv_blit` 8.7 %, `ux_mix` 7 %, `cv_rect` 7 %, `rev_room` 5 %. El DSP, el robo de
-  voces, la UI y el transporte no cambian de comportamiento en esta versión.
-- **Pendientes anteriores cerrados.** La instalación desde V16 (v1.5.9) sigue verificada: `test_v16_path`
-  vuelve a pasar dentro de la suite completa.
-- **Sin cambios en:** motores, presets, FX, MIDI, SEQ/ARP, polifonía, backup, instalador y gates.
+- **La medición.** `tests/preset_levels` renderiza los 285 presets de fábrica uno por uno (C4 a
+  velocidad 100, ataque, cuerpo y el primer tramo del release, por el mix real) y da RMS y pico en dBFS.
+  Antes de esta versión: mediana **−18,5 dB**, **28 presets fuera de ±3 dB**, dispersión **25,8 dB**, y los
+  extremos eran `CRYSTAL PLUCK` a −36,8 dB y `QUANTUM BEAT` a −11,0 dB.
+- **El problema no era el fader.** La tabla `firmware/src/preset_level.c` (generada por
+  `tools/gen_preset_levels.py` a partir de esa misma medición) ya pone el nivel al cargar cada sonido, y
+  **25 presets seguían fuera de alcance con el fader a tope**: su contenido era demasiado bajo, no su nivel.
+- **Seis sonidos corregidos en su patch, no en el número:** `CRYSTAL PLUCK` y `METAL CLUSTER` (ADDTV) ganan
+  cuerpo y SUB — el cluster tenía el suboscilador mudo —, `AURORA FM` baja el envío de reverb/delay que lo
+  ahogaba, `ABYSSAL DRONE` baja la reverb de 96 a 72, y `STATIC HAZE` / `GEIGER CNT` (NOISE) recuperan densidad
+  y dejan de esconderse en su propia reverb.
+- **Después, medido con la misma herramienta:** **19 presets** fuera de ±3 dB, dispersión **12,6 dB**, el más
+  fuerte `HEARTH KIT` a −16,9 dB (antes −11,0). La tabla de niveles se regeneró desde la nueva medición, así
+  que cada preset carga al nivel que le corresponde con el sonido nuevo.
+- **Lo que queda fuera a propósito:** `AURORA FM`, `STATIC HAZE`, `GEIGER CNT`, `ARCADE`, `ABYSSAL DRONE`,
+  `CRYSTAL PLUCK`, `GLASS BELL` y `POLAR AURORA` siguen 4–11 dB por debajo de la mediana. Son texturas, colchones
+  y drones: su RMS bajo es su carácter (un geiger contando chispas, una aurora que se abre en 30 ms de ataque) y
+  subirlos más habría sido cambiar el sonido, no nivelarlo. Está documentado en
+  `docs/PRESET_BALANCE.md` con la tabla completa antes/después.
+- **Sin tocar:** motores, algoritmos, polifonía, FX, routing, UI y gates. Sólo datos de preset y la tabla de
+  niveles. Goldens de audio regenerados por el cambio audible (63 renders) y verificados por la suite: 0 fallos
+  de salud, 0 de voces, 0 presupuestos de CPU excedidos.
 

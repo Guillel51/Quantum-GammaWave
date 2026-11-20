@@ -293,7 +293,7 @@ static const preset_t NOISE_PRESETS[] = {
     /* (QUANTUM // QG-1) a riser (the LFO a slow saw on the filter), a counter's clicks, foam */
     {"RISER", {NZ_ANLG, 60, 40, 90, 0, 0, 80, 0}, {120, 90, 127, 60}, 20, 0, FX(0, 30, 40, 80), PAT(5),
      {XP(P_LRATE, 4), XP(P_LWAVE, 2), XP(P_LD_FLT, 40), XP(P_LEVEL, 127)}},
-    {"GEIGER CNT", {NZ_DUST, 10, 90, 60, 64, 30, 30, 0}, {0, 60, 100, 40}, 0, 0, FX(12, 0, 28, 26), PAT(5),
+    {"GEIGER CNT", {NZ_DUST, 28, 90, 60, 64, 30, 30, 0}, {0, 60, 100, 40}, 0, 0, FX(12, 0, 28, 26), PAT(5),
      {XP(P_LRATE, 54), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_LEVEL, 127)}},
     {"QUANTUM FOAM", {NZ_DUST, 50, 100, 85, 90, 95, 85, 20}, {30, 90, 115, 90}, 12, 0, FX(10, 48, 44, 88), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_SHP, 8), XP(P_LEVEL, 127)}},
@@ -302,7 +302,7 @@ static const preset_t NOISE_PRESETS[] = {
      {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_LEVEL, 127)}},
     {"POLAR AURORA", {NZ_DUST, 40, 95, 80, 50, 70, 70, 10}, {70, 90, 118, 95}, 0, 0, FX(0, 58, 34, 86), PAT(5),
      {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LEVEL, 127)}},
-    {"STATIC HAZE", {NZ_DUST, 75, 105, 50, 40, 50, 50, 30}, {85, 90, 120, 100}, 0, 0, FX(16, 28, 26, 80), PAT(5),
+    {"STATIC HAZE", {NZ_DUST, 75, 105, 50, 40, 50, 50, 30}, {85, 90, 120, 100}, 0, 0, FX(16, 28, 26, 60), PAT(5),
      {XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_LD_FLT, 14), XP(P_LEVEL, 127)}},
     {"ABYSS DRONE", {NZ_ANLG, 80, 35, 95, 64, 0, 100, 0}, {100, 95, 127, 110}, 0, 0, FX(8, 36, 20, 92), PAT(5),
      {XP(P_LRATE, 9), XP(P_LWAVE, 6), XP(P_LD_FLT, 20), XP(P_LD_AMP, 8), XP(P_LEVEL, 127)}},

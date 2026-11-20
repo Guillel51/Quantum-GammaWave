@@ -551,7 +551,7 @@ static const preset_t FM6_PRESETS[] = {
       XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 24)}},
 
 
-    {"AURORA FM", {0, 0, 0, 0, 0, 0, 0, 4}, {30, 90, 60, 8}, 0, 0, FX(0, 70, 35, 86), PAT(5),
+    {"AURORA FM", {0, 0, 0, 0, 0, 0, 0, 4}, {30, 90, 60, 8}, 0, 0, FX(0, 52, 35, 64), PAT(5),
      {XP(P_LRATE, -3), XP(P_LWAVE, 6), XP(P_LFADE, 80), XP(P_LD_FLT, 20), XP(P_LD_AMP, 10)}},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
     {"EMBER TINES", {0, 2, 0, 0, 0, 0, 10, 0}, {0, 0, 127, 0}, 18, 0, FX(4, 40, 28, 40), PAT(6),

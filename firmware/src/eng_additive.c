@@ -213,7 +213,7 @@ static const preset_t AD_PRESETS[] = {
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},
     {"GLASS BELL", {55, 78, 78, 42, 118, 14, 0, 0}, {0, 72, 24, 66}, 8, 0, FX(0, 30, 26, 62), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14), XP(P_LEVEL, 118)}},
-    {"CRYSTAL PLUCK", {44, 90, 70, 20, 110, 26, 6, 0}, {0, 76, 0, 40}, 18, 0, FX(8, 20, 40, 34), PAT(3),
+    {"CRYSTAL PLUCK", {44, 90, 56, 20, 110, 26, 22, 28}, {0, 76, 0, 40}, 18, 0, FX(8, 20, 40, 34), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     {"SPECTRAL PAD", {14, 54, 8, 12, 82, 24, 4, 12}, {52, 88, 120, 92}, 0, 0, FX(0, 52, 32, 84), PAT(5),
      {XP(P_LRATE, 11), XP(P_LWAVE, 6), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 30), XP(P_LD_FLT, 14)}},
@@ -223,7 +223,7 @@ static const preset_t AD_PRESETS[] = {
      {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LD_FLT, 16)}},
     {"HARMONIC BASS", {1, 44, 26, 0, 58, 30, 26, 92}, {0, 58, 112, 30}, 0, 1, FX(22, 0, 0, 8), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
-    {"METAL CLUSTER", {127, 96, 64, 74, 114, 40, 30, 0}, {2, 70, 30, 58}, 22, 0, FX(24, 12, 28, 44), PAT(1),
+    {"METAL CLUSTER", {127, 96, 64, 74, 114, 40, 40, 26}, {2, 70, 30, 58}, 22, 0, FX(24, 12, 28, 44), PAT(1),
      {XP(P_LRATE, 44), XP(P_LWAVE, 4), XP(P_M1SRC, 7), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
     /* (1.3.4) the two sounds the bank asked for: odd partials through a soft knee make a reed a reed (SPECTR low,
      * TILT up), and STRETCH holds a choir's partials apart while the slow LFO opens its filter */
