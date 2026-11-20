@@ -177,5 +177,7 @@ Nada de esta fase se probó en la unidad: **no hay FM-1 en este entorno**. Queda
 - `[HOST]` suite completa: 6 3xx `ok`, 306 golden renders sin cambios, CPU PASS en un host descargado (el primer pase
   dio "22 % más lento" con la máquina cargada por otros chats: un segundo pase, con carga 0.09, da PASS con mediana
   1,14 y 18 filas sobre +40 % anotadas, no falladas).
-- `[AC791N]` imagen y `.bss` en la tabla de §5; el emulador WASM se reconstruyó con la misma fuente.
+- `[AC791N]` imagen y `.bss` en la tabla de §5. Paquete `release/felucca-v1.5.23.fwsc`: **610 933 B**, sha256
+  `a980a5f05697217e35a964b4182eed91f1f3aad50716fcd6bf2e219601b63635` (build `b46d06d`); emulador `v1.5.23-b46d06d`
+  (1 284 953 B de wasm, sha256 `d5412afa39165b8c53dcf1695db02174d4b236ee5063a6a4dec92ce4a68395b5`).
 - Documentación: este informe, `CHANGELOG.md`, `docs/VOICE_POOL.md` (§9, la regla del layout), `docs/BUILD_AC791N.md`.
