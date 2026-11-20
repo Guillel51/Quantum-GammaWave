@@ -37,7 +37,11 @@ import aa_raster as ar  # noqa: E402
 
 FONTS = Path(__file__).resolve().parents[1] / "fonts"
 LOCAL_INTER = os.path.expanduser("~/Library/Fonts/Inter.ttc")   # 4.001: 0 Regular, 10 Medium, 12 SemiBold
-EXTRAS = [0xA9, 0xB0, 0xB7, 0xC4, 0xD6, 0xDC, 0xE4, 0xF6, 0xFC, 0x2026]  # (c) deg . A: O: U: a: o: u: (Latin-1), ...
+# (v1.5.14) ONLY WHAT THE FIRMWARE DRAWS. The face used to carry (c) deg . A: O: U: a: o: u: (Latin-1) as well, and
+# nothing in firmware/src or in the generated tables ever puts one of those in a string: nine glyphs x four phases of
+# ink and their table entries, in every face, for characters no screen can show (tests/font_charset_test.py checks it
+# now, so a string that needs one has to add it back here). The ellipsis stays: ui_draw.c draws it.
+EXTRAS = [0x2026]
 CODE = {0x2026: 0x85}                  # characters outside Latin-1 -> their one-byte code in the firmware
 PHASES, PHASES_M, PHASES_L = 4, 2, 2  # horizontal phases per glyph (aa_raster.raster_font): S, M, L. (4.2) M went to
                                        # 2: it is the monospace face, every advance is 9 px, and its fourth-phase cells
@@ -63,18 +67,18 @@ L_CHARS = " #+-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXY"
 def preset(name):
     if name == "chakra-petch":                 # JIANT 0.5: a tech face (SIL OFL 1.1, Google Fonts)
         v = str(FONTS.parent / "assets" / "fonts" / "ChakraPetch-")
-        return [("S", v + "Medium.ttf", 12, (32, 126), EXTRAS, -0.055, PHASES),
-                ("M", v + "SemiBold.ttf", 15, (32, 126), EXTRAS, -0.05, PHASES),
+        return [("S", v + "Medium.ttf", 12, (32, 125), EXTRAS, -0.055, PHASES),
+                ("M", v + "SemiBold.ttf", 15, (32, 125), EXTRAS, -0.05, PHASES),
                 ("L", v + "Bold.ttf", 28, (32, 32), [ord(c) for c in L_CHARS[1:]], 0.0, PHASES_L)]
     if name == "jiant-lab":                    # JIANT 0.6.56: the landing's faces (SIL OFL 1.1, Google Fonts): IBM Plex
         f = FONTS.parent / "assets" / "fonts"  # Mono for labels and values (its digits on the grid Chakra Petch had: 7 / 9
-        return [("S", str(f / "ChakraPetch-Medium.ttf"), 12, (32, 126), EXTRAS, -0.055, PHASES),     # px), Michroma for the
-                ("M", str(f / "IBMPlexMono-SemiBold.ttf"), 15, (32, 126), EXTRAS, 0.0, PHASES_M), # big titles
+        return [("S", str(f / "ChakraPetch-Medium.ttf"), 12, (32, 125), EXTRAS, -0.055, PHASES),     # px), Michroma for the
+                ("M", str(f / "IBMPlexMono-SemiBold.ttf"), 15, (32, 125), EXTRAS, 0.0, PHASES_M), # big titles
                 ("L", str(f / "Michroma-Regular.ttf"), 18, (32, 32), [ord(c) for c in L_CHARS[1:]], 0.0, PHASES_L)]
     if name == "inter-tight":
         v = str(FONTS.parent / "assets" / "fonts" / "InterTight[wght].ttf")   # SIL OFL 1.1, Google Fonts
-        return [("S", v + "@400", 12, (32, 126), EXTRAS, 0.0, PHASES),
-                ("M", v + "@500", 15, (32, 126), EXTRAS, 0.0, PHASES),
+        return [("S", v + "@400", 12, (32, 125), EXTRAS, 0.0, PHASES),
+                ("M", v + "@500", 15, (32, 125), EXTRAS, 0.0, PHASES),
                 ("L", v + "@600", 28, (32, 32), [ord(c) for c in L_CHARS[1:]], 0.0, PHASES_L)]
     if name == "standin":
         if os.path.exists(LOCAL_INTER):
@@ -82,7 +86,7 @@ def preset(name):
         else:                                  # the repo's Inter 3.019 (only Regular + Light)
             reg = med = semi = str(FONTS / "Inter-Regular.ttf")
         t = -0.025                             # Inter Tight is Inter with tighter spacing
-        return [("S", reg, 12, (32, 126), EXTRAS, t, PHASES), ("M", med, 15, (32, 126), EXTRAS, t, PHASES),
+        return [("S", reg, 12, (32, 125), EXTRAS, t, PHASES), ("M", med, 15, (32, 125), EXTRAS, t, PHASES),
                 ("L", semi, 28, (32, 32), [ord(c) for c in L_CHARS[1:]], t, PHASES_L)]
     raise SystemExit(f"unknown preset {name}")
 

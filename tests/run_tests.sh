@@ -287,6 +287,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render" tests/ui_render.c -lm
     rm -rf build/ui_new/ppm           # (FASE 5) from empty: a frame left by an older run cannot stand in for one the
     mkdir -p build/ui_new/ppm build/ui_slot   # sweep failed to write, so the pixel gate below sees exactly this run's
+    # (v1.5.14) the faces lost nine Latin-1 extras and the '~' no string draws: 2 480 B of the app slot. This is
+    # what keeps that sound -- gfx.c falls back to '?' for a code a face does not have, which is a wrong pixel no
+    # test would see. Static, over the generated faces and every literal in firmware/src.
+    run "font charset: S and M cover every character the firmware draws (a glyph trimmed from the faces fails)" \
+        python3 tests/font_charset_test.py
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost" \
         "$OUT/ui_render" build/ui_new build/ui_slot
     # (v1.5.5) the phase-2 report's three UI defects, on the RECTANGLES they touch: the preset pop-up's close leaves

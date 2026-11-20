@@ -1,3 +1,35 @@
+## v1.5.14 — El slot de flash: 2 480 B recuperados del mapa de símbolos, sin tocar el DSP
+
+- **Punto de partida medido** (build AC791N, `build/felucca.map` de v1.5.13): imagen **582 536 B** de 583 612,
+  **1 076 B libres**. Después: **580 056 B**, **3 556 B libres** — el margen se multiplica por 3,3.
+- **Lo que se midió y NO daba nada** (para que nadie lo vuelva a buscar):
+  - *Tablas duplicadas:* ningún blob de ≥64 B aparece dos veces entre los 2 303 símbolos de `.text`
+    (hash de los bytes reales del ELF, no de los nombres): **0 B** recuperables por fusión.
+  - *Flags:* el build ya compila con `-Oz` (elegido por medición: `-Os` mete 20 divisiones de hardware en el loop
+    de `analog_render`, +355 % de presupuesto; `-O2` no entra en XIP), `-ffunction-sections`, `--gc-sections` y
+    `-flto`. Probado además `ld --relax`: **0 B** de diferencia (no implementado para pi32v2).
+  - *Relleno de alineación:* 27 340 B (4,9 %) entre símbolos, pero es alineación de instrucciones y labels: sólo se
+    recupera cambiando alineación, y eso sí toca el tiempo del DSP. No se tocó.
+  - *Datos comprimibles:* `UAC_FIR` (7 680 B, entropía 7,31 bit/B), `FM6_EXP2` (4 100 B, 7,84), `AI12_DATA`
+    (3 855 B, 7,85): densos, sin rodata muerta que recortar.
+- **Lo que sí se recuperó: los glifos que ninguna pantalla dibuja.** Las caras S y M se generaban con todo el
+  ASCII imprimible (32..126) más diez extras Latin-1. Un barrido de todos los literales de `firmware/src` y de las
+  tablas generadas muestra que **ni un string usa** `© ° · Ä Ö Ü ä ö ü` ni `~` (126): nueve extras y el último
+  código de la fila. `tools/gen_aa_font.py`: `EXTRAS` pasa a `[0x2026]` (los puntos suspensivos, que `ui_draw.c` sí
+  dibuja) y la fila de S/M a `(32, 125)`. La cara L no cambia.
+  - Generador: S 12 824 → **11 242 B** (−1 582), M 8 210 → **7 285 B** (−925); kerning de S 592 → 479 pares.
+  - Imagen: −2 480 B. Es **sólo dato**: no se tocó una instrucción del motor, del mezclador ni de los FX, y las
+    líneas base de CPU de la suite (`tests/cpu_baseline.txt`, `cpu_ns_baseline.txt`) siguen pasando sin regenerarse.
+  - Los 3 056 goldens de UI quedan **idénticos** salvo las 48 líneas que llevan la cadena de versión: ningún glifo
+    se movió, ningún texto perdió una letra.
+- **La guarda, porque un glifo que falta no crashea: dibuja `?`** (`gfx.c glyph()` cae al `?`). `tests/font_charset_test.py`
+  lee las caras reales del header generado (`first`, `last`, extras) y todos los literales de `firmware/src` +
+  `build/gen`, y falla si un carácter no tiene glifo en S o M. Probado con una sonda: un `"A~B"` en el árbol hace
+  fallar el test con `U+007E '~' has no glyph in AF_S`; sin la sonda pasa. L queda a cargo del chequeo en ejecución
+  que ya tenía `tests/ui_test.c`. El test está en la suite.
+- **Verificación:** `make_release.py --check` OK (paquete, ambos SHA256SUMS, `versions.json` e installer describen un
+  solo artefacto), suite de host completa en verde, RAM sin cambios (`.data+.bss` 91 648 B de 98 304).
+
 ## v1.5.13 — GLO MONITOR: la fila que se escribía fuera de su buffer, y la polifonía medida
 
 - **GLO MONITOR, la causa del texto que se superpone después de una secuencia.** No era un problema de refresco
