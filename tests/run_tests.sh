@@ -471,6 +471,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_exp2_test" tests/fm6_exp2_test.c -lm
     run "FM6: the 1025 exp2 points are stored as a second difference and decode to the generator's integers exactly (2054 B of XIP instead of 4100)" \
         "$OUT/fm6_exp2_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/sine_table_test" tests/sine_table_test.c -lm
+    run "SINE: the 1025 points are stored as int8 second differences and decode to the generator's integers exactly (1025 B of XIP instead of 2050)" \
+        "$OUT/sine_table_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_options_test" tests/engine_options_test.c -lm
     run "ENGINES: PHASE LINE = FOLD and LOFI WAVE = SYNC sound, differ from every other value of their knob, and no preset uses them" \
         "$OUT/engine_options_test"

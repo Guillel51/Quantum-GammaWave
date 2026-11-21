@@ -1,3 +1,18 @@
+## Etapa 2/8 — la senoide sale del slot, y un bug de host que dejaba pasar cualquier regresión del FM6
+
+- **`SINE` (2 050 B de XIP, 1 025 puntos) se guarda como su segunda diferencia en `int8`** (1 023 B) y
+  `sine_init()` la reconstruye en el arranque en `.bss`: **imagen 580 900 → 579 876 B**, **libre en el slot
+  2 712 → 3 736 B (+38 %)**, `.data+.bss` 91 560 → 93 612 B. Exactitud punto por punto en
+  `tests/sine_table_test.c` (6 checks) y los mismos 306 renders.
+- **Bug encontrado y corregido**: ningún arnés de host inicializaba `fm6_exp2_tab` (Etapa 1), así que el FM6 se
+  probaba con una curva de ceros y `tests/golden.txt` estaba viejo: `HEAD` difería en **65 de 306** renders.
+  Las dos curvas se inicializan ahora en `voices_boot()` (el punto de entrada de todos los arneses), los 31
+  hashes obsoletos se regeneraron y la suite vuelve a 0 cambiados, dos corridas idénticas.
+- **Presupuestos de memoria por ventana**: `tools/resource_map.py` lee XIP, RAM, POOL, LOWBUF, **NOINIT** y
+  RAMTEXT del `app.ld`, con un piso por ventana (`.noinit` no lo vigilaba nadie: 124 B libres, 99.2 %), reparto
+  por subsistema y `--check` que falla al cruzar un piso; `tests/resources_test.py` lo corre (13 checks).
+- Detalle y pendientes en `docs/ETAPA2_MEMORIA_2026-11-21.md`.
+
 ## Etapa 1/8 — la curva exp2 del FM6 sale del slot y el mapa de recursos tiene techo
 
 - **La tabla `FM6_EXP2` (4 100 B de XIP, 1 025 puntos) se guarda como su segunda diferencia** (2 046 B, `int16`) y

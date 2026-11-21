@@ -33,6 +33,21 @@ static inline int32_t clamp_sym(int32_t v, int32_t k)
     return (uint32_t)v + (uint32_t)k > (uint32_t)(2 * k) ? (v < 0 ? -k : k) : v;
 }
 
+/* (ETAPA 2) the sine, rebuilt here instead of stored: the app slot keeps SINE_D2, the 1 025 points' second
+ * differences as int8 (1 025 B, was 2 050 B of the one resource this firmware runs out of first), and this turns
+ * them back into the exact same integers with adds. It lives in .bss and every caller below reads it as before,
+ * so a lookup is a RAM read instead of an XIP one. Same arrangement as WT_GEN and FM6's exp2 curve. */
+int16_t SINE[SINE_N];
+void sine_init(void)
+{
+    int32_t i, v = SINE_V0, d = SINE_D1;
+    SINE[0] = (int16_t)v;
+    for (i = 1; i < (int32_t)SINE_N; i++) {
+        v += d;
+        SINE[i] = (int16_t)v;
+        if (i <= (int32_t)SINE_D2_N) d += SINE_D2[i - 1];   /* the step's own change, the next one */
+    }
+}
 /* sine, linearly interpolated between the 1024 table points (plain lookup: THD -55 dB) */
 static inline __attribute__((always_inline)) int32_t sine_i(uint32_t ph)
 {

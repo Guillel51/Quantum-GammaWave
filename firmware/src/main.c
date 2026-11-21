@@ -124,6 +124,8 @@ static void felucca_init(void)
     wt_gen_init();                            /* (FASE 1, FASE 6) WAVETABLE's band limits: built here, not stored */
     fm6_exp2_init();                          /* (ETAPA 1) FM6's exp2 curve: 2054 B of XIP instead of 4100, decoded
                                                * into .bss with integer adds -- the same points, exactly */
+    sine_init();                              /* (ETAPA 2) the sine: 1025 B of int8 differences in the app slot
+                                               * instead of 2050 B, the same points rebuilt in .bss */
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
         track_defaults(t);

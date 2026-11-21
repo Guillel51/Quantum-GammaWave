@@ -95,8 +95,20 @@ def main():
     size, sec = sym("FM6_EXP2")
     check("the old 4100-byte table is gone from flash", size is None,
           "FM6_EXP2 is back in %s (%s B)" % (sec, size) if size else "")
+    size, sec = sym("SINE_D2")
+    check("the sine is 1023 B of int8 differences in .text (was 2050 B)",
+          size == 1023 and sec == ".text", "%s B in %s" % (size, sec))
+    size, sec = sym("SINE")
+    check("the decoded sine is 2050 B in .bss, where every caller reads it",
+          size == 2050 and sec == ".bss", "%s B in %s" % (size, sec))
 
-    print(fails and ("RESOURCES TEST FAILED (%d)" % len(fails)) or "resources: %d checks, 0 FAILED" % 7)
+    windows = rep.get("regions", {})
+    for name, floor in (("XIP", 2048), ("RAM", 4096), ("POOL", 8192), ("LOWBUF", 1024), ("NOINIT", 64)):
+        w = windows.get(name, {})
+        check("window %s is above its floor (%s B free, floor %s)" % (name, w.get("free"), floor),
+              isinstance(w.get("free"), int) and w["free"] >= floor)
+
+    print(fails and ("RESOURCES TEST FAILED (%d)" % len(fails)) or "resources: %d checks, 0 FAILED" % 13)
     return 1 if fails else 0
 
 

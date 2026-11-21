@@ -34,6 +34,38 @@ BSS_BUDGET = 96 * 1024          # AGENTS.md §8: the linker budget for .data + .
 POOL_SPARE_MIN = 8 * 1024       # AGENTS.md §8: headroom in POOL_END - pool_top stays >= 8 KiB
 LOWBUF_MAX = 32 * 1024          # the .lowbuf the linker declares
 
+# (ETAPA 2) the per-region safety floors. Every window the linker script declares gets one, because they run
+# out one at a time and the tightest one is not always the same: at the end of ETAPA 2 XIP had 3 619 B free of
+# 583 612 (0.62 %), .noinit -- which nothing watched before -- had 336 B of 15 696, .lowbuf 2 204 B of 32 KiB and
+# .data+.bss 4 694 B of 96 KiB. A floor below these is a change that ate a margin, not a build that broke.
+FLOORS = {
+    "XIP": 2 * 1024,            # the app slot: free space, in bytes
+    "RAM": 4 * 1024,            # .data + .bss against 96 KiB
+    "POOL": 8 * 1024,           # the pool's spare (AGENTS.md §8)
+    "LOWBUF": 1024,             # .lowbuf against its 32 KiB window
+    "NOINIT": 64,               # .noinit: proj_slot[4] is 15 360 B of the 15 696 B window BY DESIGN, so the
+                                # linker's own ASSERT is the hard guard; this floor catches slow erosion
+}
+# what a symbol is FOR, by its name: the firmware is one translation unit (felucca.c includes every .c), so
+# there is no per-file attribution in the ELF -- the prefixes are the attribution, in this order
+SUBSYSTEMS = [
+    ("fm6",        r"^(fm6|FM6_|fm4_|FM4_)"),
+    ("wavetable",  r"^(wt_|WT_)"),
+    ("dsp/voice",  r"^(dsp|sine|SINE|blep|svf|voice|vpool|vdead|trk|mg_|mod_|MG_)"),
+    ("fx",         r"^(fx|fx_|rev|cho|dly|cloud|sl_|slicer|cv_buf|comb|echo|dist)"),
+    ("ui/gfx",     r"^(ui|UI_|draw|cv_|gfx|icons|ramp|lcd|FONT|font|KC_|AI12|AI16|AI24|GENRE|TXT)"),
+    ("project",    r"^(proj|PROJ_|storage|upreset|song|chain|seq|ota|editor|undo|pat_|gen_reel)"),
+    ("generator",  r"^(gen_|GEN_|PATTERNS|preset_|PRESET|ANALOG_PRESETS|PHASE_PRESETS|DRUM_)"),
+    ("sdk",        r"^(AF_|UAC_|AI_|AUDIO_|SOC_|SDK_)"),
+]
+
+
+def subsystem(name):
+    for label, pat in SUBSYSTEMS:
+        if re.match(pat, name):
+            return label
+    return "other"
+
 
 def tool(name):
     for p in (name, os.path.join(os.environ.get("JIELI_TOOLCHAIN", ""), "bin", "pi32v2-linux-" + name)):
@@ -124,15 +156,50 @@ def main():
     pool_start = sym_addr("_pool_start")
     pool_end = sym_addr("_pool_end")
     pool_used = (pool_end - pool_start) if (pool_end is not None and pool_start is not None) else None
-    pool_win = None
+    # every window the linker script declares, read (not copied): the budgets of ETAPA 2 are these numbers
+    regions = {}
     try:
         ld = open(os.path.join(ROOT, "firmware", "app.ld"), encoding="utf-8").read()
-        m = re.search(r"POOL\s*\(rw\)\s*:\s*ORIGIN\s*=\s*0x([0-9A-Fa-f]+)\s*,\s*LENGTH\s*=\s*0x([0-9A-Fa-f]+)", ld)
-        if m:
-            pool_win = int(m.group(2), 16)
+        for m in re.finditer(r"^\s*(\w+)\s+\(\w+\)\s*:\s*ORIGIN\s*=\s*(0x[0-9A-Fa-f]+)\s*,\s*LENGTH\s*=\s*(0x[0-9A-Fa-f]+|\d+K)",
+                             ld, re.M):
+            def num(t):
+                t = t.upper()
+                return int(t[:-1]) * 1024 if t.endswith("K") else int(t, 16)   # RAM declares 96K, the rest 0x...
+            regions[m.group(1)] = {"origin": num(m.group(2)), "len": num(m.group(3)), "used": 0}
+            if m.group(1) == "POOL":
+                pool_win = regions["POOL"]["len"]
+        # what each window already holds: the sections the linker placed inside its address range
+        for r in regions.values():
+            r["used"] = sum(x["size"] for x in sections
+                            if r["origin"] <= x["addr"] < r["origin"] + r["len"])
     except OSError:
         pass
     spare = (pool_win - pool_used - size(".c1_stacks")) if (pool_win and pool_used is not None) else None
+    # the two numbers the build script itself reports, from the artefacts it writes: the RAM region up to _bss_end
+    # (alignment pad included) and the linked image, which is the app slot's real occupant -- not .text's size
+    bss_end = sym_addr("_bss_end")
+    if bss_end is not None and "RAM" in regions:
+        regions["RAM"]["used"] = bss_end - regions["RAM"]["origin"]
+    img_path = os.path.join(ROOT, "build", "felucca.bin")
+    image = os.path.getsize(img_path) if os.path.exists(img_path) else None
+    if image is not None and "XIP" in regions:
+        regions["XIP"]["used"] = image
+    for name, r in regions.items():
+        r["free"] = r["len"] - r["used"]
+        r["floor"] = FLOORS.get(name)
+    if "POOL" in regions and spare is not None:
+        regions["POOL"]["free"] = spare          # the pool's headroom is the section's spare, not the window's
+    subs = {}
+    for sy in syms:
+        if not sy["size"]:
+            continue
+        b = subs.setdefault(subsystem(sy["name"]), {"xip": 0, "ram": 0, "objects": 0})
+        if sy["section"] == ".text":
+            b["xip"] += sy["size"]
+            b["objects"] += 1
+        elif sy["section"] in (".bss", ".data", ".pool", ".lowbuf", ".noinit"):
+            b["ram"] += sy["size"]
+            b["objects"] += 1
 
     top = sorted((s for s in syms if s["size"] and s["section"] in (".bss", ".pool", ".text", ".data")),
                  key=lambda s: -s["size"])[:12]
@@ -146,8 +213,12 @@ def main():
         "pool": {"used": pool_used, "window": pool_win, "stacks": size(".c1_stacks"),
                  "spare": spare, "floor": POOL_SPARE_MIN},
         "lowbuf": {"used": size(".lowbuf"), "max": LOWBUF_MAX},
-        "flash": {"xip_text": xip, "app_slot": slot, "free": (slot - xip) if slot else None},
+        "flash": {"xip_text": xip, "image": image, "app_slot": slot,
+                  "free": (slot - image) if (slot and image) else None},
         "c1_stacks": size(".c1_stacks"),
+        "regions": {k: {"used": v["used"], "window": v["len"], "free": v.get("free"), "floor": v["floor"]}
+                    for k, v in sorted(regions.items())},
+        "subsystems": dict(sorted(subs.items())),
         "top_objects": [{"name": s["name"], "bytes": s["size"], "section": s["section"]} for s in top],
         "top_xip_objects": [{"name": s["name"], "bytes": s["size"]} for s in top_xip],
     }
@@ -160,9 +231,18 @@ def main():
         print("  pool  used %7d B  spare %6d B  (floor %d)" % (report["pool"]["used"], spare, POOL_SPARE_MIN))
     print("  low   .lowbuf %6d of %6d B  (%5.1f %%)" % (size(".lowbuf"), LOWBUF_MAX,
                                                        100.0 * size(".lowbuf") / LOWBUF_MAX))
-    print("  XIP   .text %7d B  of an app slot of %s B  (%s free)"
-          % (xip, slot, (slot - xip) if slot else "?"))
+    print("  XIP   image %7s B  of an app slot of %s B  (%s free)"
+          % (image if image else "?", slot, (slot - image) if (slot and image) else "?"))
     print("  stacks .c1_stacks %d B" % size(".c1_stacks"))
+    print("  windows (used of the linker script's own length, and what is left):")
+    for k in ("XIP", "RAM", "POOL", "LOWBUF", "NOINIT", "RAMTEXT"):
+        r = regions.get(k)
+        if r:
+            print("    %-7s %7d of %7d B  (%6d free, floor %s)"
+                  % (k, r["used"], r["len"], r.get("free", 0), r["floor"] if r["floor"] else "-"))
+    print("  by subsystem (symbol names: what holds the bytes):")
+    for k in sorted(subs, key=lambda k: -(subs[k]["xip"] + subs[k]["ram"])):
+        print("    %-10s xip %7d B   ram %7d B   %d objects" % (k, subs[k]["xip"], subs[k]["ram"], subs[k]["objects"]))
     print("  largest objects in RAM:")
     for s in top[:8]:
         print("    %7d  %-9s %s" % (s["size"], s["section"], s["name"]))
@@ -177,6 +257,9 @@ def main():
         fails.append("pool spare %d < %d" % (spare, POOL_SPARE_MIN))
     if size(".lowbuf") > LOWBUF_MAX:
         fails.append(".lowbuf %d > %d" % (size(".lowbuf"), LOWBUF_MAX))
+    for k, r in regions.items():                    # (ETAPA 2) every window, against its own floor
+        if r["floor"] and r.get("free") is not None and r["free"] < r["floor"]:
+            fails.append("%s free %d < floor %d" % (k, r["free"], r["floor"]))
 
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:
@@ -187,7 +270,7 @@ def main():
             for f in fails:
                 print("resource_map: FAIL " + f)
             return 1
-        print("resource_map: ok -- RAM, pool and .lowbuf inside their budgets")
+        print("resource_map: ok -- every window (XIP, RAM, POOL, LOWBUF, NOINIT) above its floor")
     return 0
 
 

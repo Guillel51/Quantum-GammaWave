@@ -40,6 +40,12 @@ static uint8_t vown[VPOOLN];
 void voices_boot(void)
 {
     uint32_t p, i, share;
+    /* (ETAPA 2) the two curves every engine reads from RAM are rebuilt here, at the pool's own boot: the device's
+     * felucca_init calls them too, and every host harness (tests/regress, tests/*_test.c) enters through this
+     * function and nowhere else, so this is where the tables have to exist before a note renders. Both are
+     * idempotent -- pure adds into .bss. */
+    sine_init();
+    fm6_exp2_init();
     for (i = 0; i < VPOOLN; i++) {
         memset(&vpool[i], 0, sizeof(voice_t));
         vown[i] = 0;
