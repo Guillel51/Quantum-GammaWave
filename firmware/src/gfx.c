@@ -416,12 +416,45 @@ void gfx_panel_forget(void)
     cv_fl_yb[0] = 240u;
     cv_fl_n = 1u;
 }
+/* (FASE 6) THE NARROW-WINDOW CACHE: MEASURED, OFF UNTIL XIP HAS ~2,8 KB MORE. With the flag on the host harness
+ * measures 21 440 px per idle frame (29 952 with it off) and the 3 056 frames of its sweep are identical;
+ * `FELUCCA_WINCACHE=1 ./build.sh` does not link -- region `XIP' overflowed by 2 752 bytes -- and cutting code does
+ * not pay, because this TU's size pass re-decides globally: a ten-instruction probe in cv_blit costs +2 592 B and
+ * 306 of the 1 645 functions move by a median of 4 B. docs/FASE6_XIP_NARROW.md has the numbers and the way out. */
+#ifndef FELUCCA_WINCACHE
+#define FELUCCA_WINCACHE 0
+#endif
+#if FELUCCA_WINCACHE
+/* THE NARROW WINDOWS THE PANEL ALREADY HAS ARE NOT SENT EITHER. The row table speaks only for a canvas
+ * 240 wide and at least CV_SENT_MIN_H tall: EDIT's four columns (4 x 57 x 56 = 12 768 px a frame), the MIXER's
+ * strips and the FX > BUSES modules fall through to the path below, which had no memory, so an idle frame pushed
+ * them again. This is the half of the Fase 4 windows table that fits: a 32-bit FNV-1a of the whole canvas, kept for
+ * the last CV_WIN_N windows that went to the panel, so a window drawn again byte for byte is not sent at all. One
+ * that changed is sent whole (3 192 px for an EDIT column); a per-row table would send less, and cost 3,9 KB.
+ * A hash speaks only for what the panel shows: a drawing over the window's rect -- another canvas, a wide band, a
+ * fill -- clears it, and so does a sleeping panel (gfx_panel_forget). hh 0 never is a hash: it means empty. */
+#define CV_WIN_N 4u
+/* (FASE 6) in .noinit, like the panel's learned table: eight bytes of it would have moved every .bss global that
+ * follows by eight, and measured, that alone is +2 600 B of XIP in this build (Fase 2 saw the same: +120 B of
+ * struct, +2 952 B of code). .noinit is a window of its own, so no other global moves. It does not survive a reset
+ * with its meaning: hh 0 is "empty", and cv_win_seen() clears the whole table whenever cv_rowh_on says no 240-wide
+ * band has drawn since the last forget -- the only state in which a slot could be believed without one. */
+static struct { uint16_t x, y, w, h; uint32_t hh; } cv_win[CV_WIN_N] __attribute__((section(".noinit")));
+#endif
+
 /* (FASE 4) the rows the panel was filled under since the last blit: unknown, so forgotten (see gfx_fill_rows) */
 __attribute__((noinline)) static void cv_fill_rows(void)
 {
-    uint32_t r;
+    uint32_t r, i, j;
     if (cv_fl_hi <= cv_fl_lo)
         return;
+#if FELUCCA_WINCACHE
+    for (i = 0; i < CV_WIN_N; i++)                       /* (FASE 6) a window a fill landed on is unknown */
+        for (j = 0; j < cv_fl_n; j++)
+            if (cv_fl_x0[j] < cv_win[i].x + cv_win[i].w && cv_win[i].x < cv_fl_x1[j] &&
+                cv_fl_ya[j] < cv_win[i].y + cv_win[i].h && cv_win[i].y < cv_fl_yb[j])
+                cv_win[i].hh = 0u;
+#endif
     for (r = cv_fl_lo; r < cv_fl_hi && r < CV_ROW_MAX; r++)
         cv_rowv[r] = 0;
     cv_fl_n = 0;
@@ -433,10 +466,52 @@ void gfx_forget(void)
     uint32_t r, i;
     cv_last.on = 0;
     cv_rowh_on = 0;
+#if FELUCCA_WINCACHE
+    for (i = 0; i < CV_WIN_N; i++)
+        cv_win[i].hh = 0u;
+#endif
     for (r = 0; r < CV_ROW_MAX; r++)
         cv_rowv[r] = 0;
 }
-static void cv_blit(uint32_t x, uint32_t y)
+#if FELUCCA_WINCACHE
+/* (FASE 6) 1: the panel already shows exactly this canvas, do not send it. The hash is recorded for the window
+ * either way; out of line so the wide-band path stays as small as it was. */
+__attribute__((noinline)) static int cv_win_seen(uint32_t x, uint32_t y)
+{
+    uint32_t i, n = (uint32_t)cv_w * cv_h, s = 0x811C9DC5u;
+    int k = -1;
+    if (!cv_rowh_on) {                               /* (nothing on this panel is vouched for: not these slots) */
+        for (i = 0; i < CV_WIN_N; i++)
+            cv_win[i].hh = 0u;
+        return 0;
+    }
+    for (i = 0; i < (n >> 1); i++)
+        s = (s ^ cv_buf.w32[i]) * 0x01000193u;
+    if (n & 1u)
+        s = (s ^ cv_px[n - 1u]) * 0x01000193u;
+    if (!s)
+        s = 1u;                                      /* (0 is "empty": a hash of 0 becomes 1, a miss, never a hit) */
+    for (i = 0; i < CV_WIN_N; i++) {
+        if (cv_win[i].x == x && cv_win[i].y == y && cv_win[i].w == cv_w && cv_win[i].h == cv_h) {
+            if (cv_win[i].hh == s)
+                return 1;                            /* the panel already shows exactly this window */
+            k = (int)i;                              /* (the same window, a new picture) */
+            break;
+        }
+        if (!cv_win[i].hh && k < 0)
+            k = (int)i;
+    }
+    if (k >= 0) {
+        cv_win[k].x = (uint16_t)x;
+        cv_win[k].y = (uint16_t)y;
+        cv_win[k].w = (uint16_t)cv_w;
+        cv_win[k].h = (uint16_t)cv_h;
+        cv_win[k].hh = s;
+    }
+    return 0;
+}
+#endif
+__attribute__((noinline)) static void cv_blit(uint32_t x, uint32_t y)
 {
     uint32_t n = cv_w * cv_h, i;
     cv_fill_rows();                                  /* (FASE 4) what a fill touched is not on the panel */
@@ -475,12 +550,22 @@ static void cv_blit(uint32_t x, uint32_t y)
             cv_blit_run(x, y, run0, cv_h);
         }
         cv_last.on = 0;                               /* the row table is the record now */
+#if FELUCCA_WINCACHE
+        for (r = 0; r < CV_WIN_N; r++)                /* (FASE 6) the rows it redrew, windows and all */
+            if (x < cv_win[r].x + cv_win[r].w && cv_win[r].x < x + cv_w &&
+                y < cv_win[r].y + cv_win[r].h && cv_win[r].y < y + cv_h)
+                cv_win[r].hh = 0u;
+#endif
         return;
     } else if (cv_last.on && x < (uint32_t)cv_last.x + cv_last.w && cv_last.x < x + cv_w &&
                y < (uint32_t)cv_last.y + cv_last.h && cv_last.y < y + cv_h)
         cv_last.on = 0;                              /* (drawn over it: what it held is gone) */
-    {   /* (v1.5.15) this canvas writes the panel without the table's knowing what it put there: those rows are
-         * unknown until a 240-wide band draws them again and says what they hold */
+#if FELUCCA_WINCACHE
+    if (cv_win_seen(x, y))                           /* (FASE 6) the panel already shows exactly this window */
+        return;
+#endif
+    {   /* (v1.5.15) rows this canvas wrote without the table's knowing what it put there: unknown until a 240-wide
+         * band draws them again and says what they hold */
         uint32_t r;
         for (r = 0; r < cv_h; r++)
             if (y + r < CV_ROW_MAX)
