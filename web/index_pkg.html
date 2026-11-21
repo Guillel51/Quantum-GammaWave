@@ -1362,10 +1362,18 @@ function readMflasherRecord(text) {
   const sha = String(r.sha256 || "").toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(sha)) return null;          /* the record's whole use is this digest */
   const hx = (v, n) => (new RegExp("^0x[0-9a-f]{" + n + "}$", "i").test(String(v || "")) ? String(v).toLowerCase() : null);
+  /* (FASE A/B, 2026-11-21) THE ONE PER-UNIT SIGNAL THE PAGE CAN GET. The identity answer is the model and
+   * the firmware ("FM-1_016"), which is the same text on every V16 unit, so it cannot tell two units apart;
+   * M-Flasher's record carries the id the loader read from the part ("unit id") and that is the only thing
+   * here that belongs to one unit. It is kept, shown, and compared when both sides are known. It is a JSON
+   * field anyone can write, so it never authorises anything on its own: the copy's bytes, hashed here, and
+   * the loader's own chip check on the unit before it erases still decide. */
+  const uid = String(r["unit id"] ?? "").trim();
   return {
     sha256: sha,
     flash: hx(r.flash, 6),                               /* the JEDEC id M-Flasher read, e.g. 0x856014 */
     chipKey: hx(r["chip key"], 4),
+    unitId: /^[0-9a-zA-Z]{6,32}$/.test(uid) ? uid : null,
     bootloader: String(r.bootloader || ""), firmware: String(r.firmware || ""),
     app: String(r.app || ""), tool: String(r.tool || ""), saved: String(r.saved || ""),
   };
@@ -1383,11 +1391,37 @@ const loadV16Dump = () => {
       ? { ...r, unit: typeof r.unit === "string" && r.unit ? r.unit : null } : null;
   } catch (_) { return null; }
 };
+/* (FASE A/D, 2026-11-21) BINDING WAS A ONE-SHOT EVENT, AND THAT IS WHAT BLOCKED THE INSTALL. The copy was
+ * tied to a unit only at the moment its file was selected, from a `lastVerify` that lives in memory: loading
+ * the copy before pressing VERIFY (or after a reload, when every record comes back unbound) left it unbound
+ * for good, and VERIFY -- the very step the message asks for -- never re-bound it. The copy is now bound
+ * whenever a unit answers with a compatible identity and a whole, hashed 1 MiB copy is in hand: at load, on
+ * VERIFY, and at install time on the identity answer of the connection that is about to write. What makes a
+ * copy this unit's way back is unchanged (the bytes, hashed here, and the loader's chip check on the unit),
+ * so nothing is loosened -- the ordering dependency is gone. */
+function bindV16Dump(text) {
+  const s = String(text || "");
+  if (!v16Dump || !/^FM-1_0\d{2}$/.test(s) || v16Dump.unit === s) return false;
+  v16Dump = { ...v16Dump, unit: s, boundAt: new Date().toISOString() };
+  try { localStorage.setItem(V16_DUMP_KEY, JSON.stringify(v16Dump)); } catch (_) {}
+  showV16Dump();
+  log(`v16: copy ${String(v16Dump.sha256).slice(0, 16)}\u2026 bound to ${s}`);
+  return true;
+}
+/* the other direction: the record arrives after the copy, and the unit id it names is the record's alone */
+function bindV16Record(rec) {
+  if (!v16Dump || !rec || !rec.unitId || v16Dump.unitId) return false;
+  v16Dump = { ...v16Dump, unitId: rec.unitId };
+  try { localStorage.setItem(V16_DUMP_KEY, JSON.stringify(v16Dump)); } catch (_) {}
+  showV16Dump();
+  return true;
+}
 function showV16Dump() {
   const st = $("v16-dump-status");
   if (st) st.textContent = v16Dump
     ? t("v16DumpOk") + v16Dump.sha256.slice(0, 16) + "\u2026 " + (v16Dump.name || "") + " \u00b7 " + v16Dump.at
       + (v16Dump.unit ? " \u00b7 " + v16Dump.unit : " \u00b7 " + t("v16UnboundShort"))
+      + (v16Dump.unitId ? " \u00b7 unit " + v16Dump.unitId : "")
     : (v16Record ? t("v16RecordOk") + " " + [v16Record.flash, v16Record.chipKey, v16Record.sha256.slice(0, 16) + "\u2026"]
         .filter(Boolean).join(" \u00b7 ") : "");
   if ($("v16-ack")) { $("v16-ack").disabled = !v16Dump; if (!v16Dump) $("v16-ack").checked = false; }
@@ -1408,6 +1442,7 @@ if ($("v16-dump")) $("v16-dump").addEventListener("change", async () => {
       if (!rec) { sayK("v16RecordBad", ` (${b.length} B)`); return; }
       v16Record = { ...rec, name: f.name, at: new Date().toISOString().slice(0, 10) };
       try { localStorage.setItem(V16_REC_KEY, JSON.stringify(v16Record)); } catch (_) {}
+      bindV16Record(v16Record);
       showV16Dump();
       sayK("v16RecordOk", [rec.flash, rec.chipKey, rec.sha256.slice(0, 16) + "\u2026"].filter(Boolean).join(" \u00b7 "));
       return;
@@ -1424,8 +1459,10 @@ if ($("v16-dump")) $("v16-dump").addEventListener("change", async () => {
       return;
     }
     v16Dump = { size: b.length, sha256: dumpSha, at: new Date().toISOString().slice(0, 10), name: f.name,
-      unit: (lastVerify && lastVerify.text) ? String(lastVerify.text) : null };
+      unit: (lastVerify && lastVerify.text) ? String(lastVerify.text) : null,
+      unitId: (v16Record && v16Record.unitId) ? v16Record.unitId : null };
     try { localStorage.setItem(V16_DUMP_KEY, JSON.stringify(v16Dump)); } catch (_) {}
+    if (!v16Dump.unit && lastVerify && lastVerify.kind === "stock" && lastVerify.text) bindV16Dump(lastVerify.text);
     showV16Dump();
     sayK("v16DumpOk", v16Dump.sha256.slice(0, 16) + "\u2026");
   } catch (e) { sayK("error", e && e.message); }
@@ -1647,7 +1684,14 @@ $("go").addEventListener("click", async () => {
        * them nothing is sent, and the section that asks for them is opened where the reader is looking. */
       if (fw.kind === "stock" && stockVersionOf(fw.text) === "16") {
         if (!v16Dump) { sayK("v16NeedDump"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
+        /* The unit answered on this very connection: that answer is what binds the copy, so a copy loaded
+         * before VERIFY (or restored from an earlier session with no unit in view) is bound here instead of
+         * being refused for the order its file happened to arrive in. */
+        if (!v16Dump.unit && fw.text) bindV16Dump(fw.text);
         if (!v16Dump.unit) { sayK("v16Unbound"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
+        if (v16Dump.unitId && fw.unitId && v16Dump.unitId !== String(fw.unitId)) {
+          sayK("v16WrongUnit", " (" + v16Dump.unitId + ")"); if ($("v16")) $("v16").open = true; lockInstaller(false); return;
+        }
         if (fw.text && v16Dump.unit !== String(fw.text)) {
           sayK("v16WrongUnit", " (" + v16Dump.unit + ")"); if ($("v16")) $("v16").open = true; lockInstaller(false); return;
         }
@@ -1782,6 +1826,9 @@ async function runVerify() {
     else sayK("vOther", fw.text + t("vOtherTail"));   /* (7.x) detected, not recognised: FM-1_909 and the like */
     showVerify(fw);
     lastVerify = fw;
+    /* (FASE D) VERIFY reconciles the association: a copy already in hand binds to the unit that just
+     * answered, in this order too, and the binding is written to storage so the next reload keeps it. */
+    if (fw && fw.kind === "stock" && fw.text) bindV16Dump(fw.text);
     $("diag").disabled = false;
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }

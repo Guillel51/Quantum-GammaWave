@@ -173,6 +173,27 @@ for (const lang of ["v16Unbound", "v16WrongUnit", "v16UnboundShort"]) {
   ok(hits >= 3, `${lang} is written in every language the page carries (${hits})`);
 }
 
+// ---- 5b. the association no longer depends on the order the files arrive in -----------------------
+/* The report that started this: a real 1 MiB copy of the unit, hashed in the page, refused with "not tied to
+ * a unit yet" because the copy had been selected before VERIFY (or brought back by a reload). Binding was a
+ * one-shot event at `<input type=file>.change`, reading an in-memory `lastVerify`; VERIFY -- the step the
+ * message itself asks for -- never re-bound it. These assertions keep the reconcile in the page. */
+ok(/function bindV16Dump\(text\)/.test(page), "binding is its own step, not a one-shot at file selection");
+ok(/function bindV16Dump[\s\S]{0,900}localStorage\.setItem\(V16_DUMP_KEY/.test(page),
+  "a binding is written to storage, so a reload keeps it");
+ok(/if \(fw && fw\.kind === "stock" && fw\.text\) bindV16Dump\(fw\.text\)/.test(page),
+  "VERIFY reconciles a copy that was already in hand");
+ok(/if \(!v16Dump\.unit && fw\.text\) bindV16Dump\(fw\.text\)/.test(page),
+  ".. and the install path binds a copy loaded before VERIFY, from the answer on that connection");
+const bindAt = page.indexOf("if (!v16Dump.unit && fw.text) bindV16Dump(fw.text);");
+ok(bindAt > 0 && bindAt < page.indexOf('sayK("v16Unbound")'),
+  "the unbound message comes after the binding attempt, never instead of it");
+ok(/v16Dump\.unitId !== String\(fw\.unitId\)/.test(page),
+  "a record that names another unit is refused when both sides name one");
+ok(/function bindV16Record\(rec\)/.test(page) && /bindV16Record\(v16Record\)/.test(page),
+  "a record loaded after the copy lends it the unit id the copy was missing");
+ok(/\{ \.\.\.r, unit:/.test(page), "the stored record keeps its unit id across a reload");
+
 // ---- 6. M-Flasher's RECORD: read, kept, and used to check the copy ------------------------------
 /* A read taken with M-Flasher leaves two files: the 1 MiB copy and a small JSON that says which unit it
  * came from and what the copy's SHA-256 is. Loading the JSON used to answer "that file is not a 1 MiB full
@@ -189,6 +210,13 @@ const rec = readMflasherRecord(JSON.stringify(REC));
 ok(rec && rec.sha256 === SHA, "the record's digest is read");
 ok(rec.flash === "0x123456" && rec.chipKey === "0x1234", "the part and the chip key it names are read as hex");
 ok(rec.bootloader === "a bootloader tag" && rec.firmware === "FM-1 016 (stock)", "the bootloader and the firmware are kept");
+/* (FASE D) the record's unit id is the only per-unit signal the page has: SysEx answers "FM-1_016" on every
+ * V16 unit. It is read, validated, and compared -- and it authorises nothing on its own. */
+ok(rec.unitId === "0000000000000000", "the unit id the record names is read");
+ok(readMflasherRecord(JSON.stringify({ ...REC, "unit id": "not a unit id!" })).unitId === null,
+  "a unit id that is not one is dropped, and the record still reads");
+ok(readMflasherRecord(JSON.stringify({ ...REC, "unit id": undefined })).unitId === null,
+  "a record with no unit id is a record with no unit id, not a broken one");
 ok(readMflasherRecord("not json at all") === null, "a file that is not JSON is not a record");
 ok(readMflasherRecord(JSON.stringify({ ...REC, model: "FM-2" })) === null, "another model is not this unit's record");
 ok(readMflasherRecord(JSON.stringify({ ...REC, sha256: "beef" })) === null,

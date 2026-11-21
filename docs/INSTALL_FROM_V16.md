@@ -37,6 +37,58 @@ firmware tienen que nombrar la misma release. La página le daba a una unidad de
 la regla la rechazaba — con razón. El error no era «falta V16 en una lista blanca»: era que se le mentía al
 transporte sobre la unidad.
 
+### v1.7.1 (2026-11-21): «this copy is not tied to a unit yet», con la copia real en la mano
+
+El informe traía un diagnóstico de una unidad real (`FM-1_016`, chip key `0x980F`, JEDEC `0x856014`, bootloader
+`m-bootloader 2.3-6bc8f45`, loader `M-Flasher 1.3`) y un backup completo de 1 MiB con su SHA-256
+(`15999d02…e96cb3`) más la metadata de M-Flasher con el `unit id` de la unidad. La página respondía
+`v16Unbound` y el reporte decía a la vez `gate.backup: pass` y `v16-backup-not-taken`.
+
+**Causa raíz (dos defectos, ninguno en el transporte ni en el paquete):**
+
+1. **La asociación era un evento único.** El registro se ataba a la unidad **sólo** en el instante en que se
+   seleccionaba el archivo, leyendo un `lastVerify` que vive en memoria:
+   `unit: (lastVerify && lastVerify.text) ? … : null`. Cargar la copia **antes** de pulsar VERIFY — o después de
+   recargar la página, cuando el registro vuelve de `localStorage` sin unidad — la dejaba sin atar para siempre,
+   y VERIFY, el paso que el propio mensaje pide, **no volvía a atarla**. La instrucción era un orden obligatorio
+   que ningún texto de la página declaraba.
+2. **El informe se contradecía.** `fm1verify.js` añadía `v16-backup-not-taken` para **toda** unidad V16, con o
+   sin copia: un `gate.backup: pass` con la limitación «no se tomó el backup» al lado.
+
+**Lo que se arregló** (sin tocar ninguna compuerta):
+
+- `bindV16Dump()` ata la copia en cuanto hay una identidad compatible y una copia completa y hasheada: **al
+  cargar**, **al pulsar VERIFY** (reconcilia lo que ya estaba en la mano) y **al instalar**, con la respuesta de
+  identidad de la conexión que va a escribir. El orden de los archivos deja de importar.
+- La atadura se escribe en `localStorage`: sobrevive al reload y al cierre de la página.
+- El `unit id` de la metadata de M-Flasher se lee, se valida, se muestra y se compara cuando ambos lados lo
+  conocen (`unit id: 4150353835313708`). Es el **único** identificador por unidad que existe: la respuesta SysEx
+  es `FM-1_016` en todas las unidades V16. No autoriza nada por sí solo (es un JSON que cualquiera escribe); la
+  copia y su hash, y la comprobación del chip por el loader en la unidad antes de borrar, siguen decidiendo.
+- El informe ya no se contradice: `v16-backup-not-taken` desaparece con la copia verificada. La atadura es
+  automática sobre cualquier identidad compatible, así que el informe no retiene una copia «sin unidad»
+  mientras la página la aceptaría; lo que se rechaza es una copia atada a **otra** identidad (`v16WrongUnit`) y
+  un `unit id` distinto cuando los dos lados lo declaran.
+
+**Lo que no cambia, y por qué:** una unidad V16 no ofrece lectura por SysEx, así que la página no puede
+**demostrar** que esos 1 MiB vinieron de ese chip; puede demostrar que son 1 MiB, que su SHA-256 es el que la
+metadata declara, y que la unidad conectada responde con la identidad con la que se ató. Eso está escrito en el
+informe y sigue estando. La compuerta del chip la ejecuta el loader **en la unidad**, antes de borrar.
+
+### Cobertura del backup frente a lo que se escribe
+
+| región | en el backup de 1 MiB | la escribe la instalación | recuperable |
+|---|---|---|---|
+| `0x00000–0x03FFF` (head: bootloader/SPL del V16) | sí | **no** | con M-Flasher (no hace falta) |
+| `0x04000–0x92FFF` (ventana del loader de este proyecto) | sí | **sí** | **sí**: es la región que se escribe |
+| `0x93000–0xFFFFF` | sí | **no** | con M-Flasher |
+
+La copia cubre los 1 048 576 B del part; la instalación toca 0x04000–0x92FFF dentro de ella. El retorno se hace
+con **M-Flasher** (modo ROM del chip): la página no puede conducirlo — WebMIDI no expone VID:PID, ni
+almacenamiento masivo, ni el modo ROM — así que el «camino de vuelta» es un procedimiento con herramienta
+externa, descrito abajo, y `gate.recovery` sigue en `conditional`. **Ningún restore se ha observado en esta
+sesión ni en ninguna anterior**: eso no se marca como demostrado.
+
 ## 2. Qué hace ahora
 
 1. **La versión la dice la unidad.** `stockVersionOf("FM-1_016")` → `"16"`. La numeración del fabricante es

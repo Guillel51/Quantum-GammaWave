@@ -130,7 +130,8 @@ function anyWrite(sent) {
    * the browser -- is what the backup condition asks for, so it turns `pass`, recovery stays `conditional` and
    * GO CONDITIONAL admits an install from this page. The limitations are still named: the record does not
    * turn an unobserved restore into an observed one. */
-  const dump = { size: 0x100000, sha256: "ab".repeat(32), at: "2026-11-21", name: "fm1-dump.bin" };
+  const dump = { size: 0x100000, sha256: "ab".repeat(32), at: "2026-11-21", name: "fm1-dump.bin",
+    unit: "FM-1_016" };
   const c = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_016")] });
   const fwd = await verifyDevice(c.midi, { product: "FM-1_965", pkg: built, dump,
     signature: { state: "pass", keyid: "qg1-release-1", size: 610959, sha256: "80".repeat(32), detail: "checked" } });
@@ -144,6 +145,22 @@ function anyWrite(sent) {
         fwd.verdict.limitations.includes("v16-return-and-recovery-not-demonstrated"));
   check("official V16 with a verified dump: still read-only, nothing but the identity query",
         onlyQueries(c.sent) && !anyWrite(c.sent));
+  /* (FASE D, 2026-11-21) THE COPY WITHOUT A UNIT. A record restored from a session that never had the unit in
+   * view is a whole, hashed 1 MiB copy and is not yet this unit's way back: the report names that precondition
+   * (and no longer calls the backup "not taken"), and it does not promise an install the page would refuse. */
+  const cUn = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_016")] });
+  const fwUn = await verifyDevice(cUn.midi, { product: "FM-1_965", pkg: built, dump: { ...dump, unit: null },
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610959, sha256: "80".repeat(32), detail: "checked" } });
+  const gUn = Object.fromEntries((fwUn.gate || []).map((r) => [r.key, r.state]));
+  check("an unbound V16 copy still meets the backup gate", gUn["gate.backup"] === "pass");
+  check(".. and is not called a backup that was never taken",
+        !fwUn.verdict.limitations.includes("v16-backup-not-taken"));
+  /* the page binds any compatible identity answer, so the report must not hold the copy unbound while the
+   * page would accept it: a copy that names a DIFFERENT identity is the one refused (v16WrongUnit) */
+  check(".. the report and the page agree on what a copy with no unit on it means",
+        fwUn.verdict.conditions.length === 0 && fwUn.verdict.canInstall === true);
+  check("a bound V16 copy no longer carries 'backup not taken' either",
+        !fwd.verdict.limitations.includes("v16-backup-not-taken") && fwd.verdict.conditions.length === 0);
   const badDumps = [{ size: 0x100000, sha256: "zz".repeat(32) }, { size: 0x80000, sha256: "ab".repeat(32) },
                     { size: 0x100000 }];
   for (const bad of badDumps) {

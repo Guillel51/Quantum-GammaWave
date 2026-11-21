@@ -9,6 +9,21 @@
 - NO entra en el formato de preset ni de proyecto: ningún byte guardado cambió y una escena es el buffer de
   edición tal como está (capturar el sonido intacto es el "antes" del sonido que estás editando).
 
+**Corregido — instalación desde el V16 oficial**
+
+- «this copy is not tied to a unit yet» con una copia real en la mano: la asociación se hacía **sólo** al
+  seleccionar el archivo, leyendo un VERIFY en memoria, así que cargar la copia antes de VERIFY (o después de
+  recargar) la dejaba sin atar para siempre y VERIFY no la reconciliaba. Ahora se ata al cargar, al verificar y
+  al instalar, y sobrevive al reload.
+- El `unit id` de la metadata de M-Flasher se lee, se muestra y se compara; es el único identificador por unidad
+  disponible (la identidad SysEx es `FM-1_016` en toda unidad V16) y no autoriza nada por sí solo.
+- El reporte decía `gate.backup: pass` y `v16-backup-not-taken` a la vez; la limitación sigue a la copia. La
+  atadura es automática sobre la identidad que responde, así que el informe no retiene una copia «sin unidad»
+  mientras la página la aceptaría; lo que sigue rechazándose es una copia atada a otra identidad.
+
+> Estado de esta corrección: **escrita y sin ejecutar**. La herramienta de shell se retiró a mitad de la tarea,
+> así que los tests nuevos no se han corrido. Ver `docs/VALIDATION_MATRIX.md` §36.3.
+
 **Corregido**
 
 - `fx_probe` corría sin `sine_init()` igual que el arnés de la Etapa 7: medía un LFO mudo, así que el phaser

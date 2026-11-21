@@ -2936,5 +2936,54 @@ commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of
   release-set gate - says **ok**.
 - Pushed to `main` (`454e026e`). **The GitHub Release and the tag are not published**: this sandbox has no
   credential for either (`gh auth status`: not logged in to any host; `git push origin v1.7.0` fails on
-  "could not read Username"). The annotated tag `v1.7.0` exists locally and the release artefacts are in the
-  repository; `git push origin v1.7.0` is the one step left, and it needs the owner's credential.
+  "could not read Username"). The annotated tag `v1.7.0` exists locally and the release artefacts are in the repository; `git push origin v1.7.0` is the one step left, and it needs the owner's credential.
+
+## 36. V16 association fix — root cause and state of verification (2026-11-21)
+
+### 36.1 The defect, from the code
+
+`web/index_pkg.html` bound the 1 MiB copy to a unit **only** inside the file input's `change` handler:
+
+```js
+unit: (lastVerify && lastVerify.text) ? String(lastVerify.text) : null
+```
+
+`lastVerify` lives in memory and is set by VERIFY. A copy selected before VERIFY -- or restored by a reload,
+when `loadV16Dump()` returns it with `unit: null` -- stayed unbound, and the install gate refused it with
+`v16Unbound` (`"this copy is not tied to a unit yet"`). VERIFY never re-bound it, so the instruction the message
+gives ("press VERIFY … then load the copy again") was an undeclared ordering rule, not a recoverable state.
+Second, independent defect: `web/fm1verify.js` pushed `v16-backup-not-taken` for **every** V16 unit, which is why
+the diagnostic carries `gate.backup: pass` next to that limitation.
+
+### 36.2 What changed
+
+| file | change |
+|---|---|
+| `web/index_pkg.html`, `site/webapp/installer/index.html` | `bindV16Dump()` / `bindV16Record()`: the copy binds at load, at VERIFY and at install time from the identity answer on that connection; the binding is written to `localStorage`, so it survives a reload; the state line shows the unit id |
+| same | `readMflasherRecord()` keeps `unit id` (validated, shown, compared when both sides name one). It is the only per-unit signal the page has: SysEx answers `FM-1_016` on every V16 unit |
+| same | the install gate binds before it can say `v16Unbound`, so the message means "no unit answered", not "the file arrived first"; a copy bound to a **different** identity is still refused (`v16WrongUnit`), and a record naming another `unit id` is refused when both sides name one |
+| `web/fm1verify.js`, site bundle | the limitations follow the dump: `v16-backup-not-taken` only when there is no copy, so a run carrying a verified 1 MiB copy no longer contradicts its own `gate.backup: pass`; the report keeps saying that no restore has been observed |
+| `web/test_v16_path.mjs`, `web/test_verify_only.mjs` | 11 new assertions on the page's wiring (bind on verify, bind at install, before the refusal; unit id parsed, dropped when malformed, compared) and 4 on the report (unbound copy: backup `pass`, limitation is the binding, condition named, `canInstall` false) |
+| `docs/INSTALL_FROM_V16.md`, `CHANGELOG.md` | the root cause, the fix, and the coverage table |
+
+**What the fix does not claim.** A stock V16 answers no read command, so the page cannot prove those 1 MiB came
+from that chip; it proves size, SHA-256 against M-Flasher's record, and that the unit in front answers the
+identity the copy was bound with. `unit id` is a JSON field. The chip gate is still the loader's own, on the
+unit, before it erases. `gate.recovery` stays `conditional` and no restore has been observed.
+
+### 36.3 State of verification — read this before trusting the fix
+
+**None of the changes above were executed.** Partway through this task the shell tool was withdrawn from this
+session, so the JavaScript was edited but never parsed by node, the two test files were edited but never run,
+the site bundle was patched by hand to match `web/` but `make_site.py` was not re-run, and nothing was committed
+or pushed. The edits are in the working tree. What proves them is a run of:
+
+```bash
+node web/test_v16_path.mjs && node web/test_verify_only.mjs   # the page's wiring and the report
+node web/test_release_e2e.mjs                                  # the published tree
+python3 tools/make_release.py --check                          # the release set still describes one package
+NO_PACKAGE=1 ./tests/run_tests.sh                              # the whole host suite
+```
+
+Until that passes, the honest state of this fix is **written, not validated** -- and the V16 flow is
+**not demonstrated**, which is a different sentence from "compatible".

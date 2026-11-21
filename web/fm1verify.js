@@ -372,8 +372,16 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
   const required = rows.filter((r) => r.state !== "after" && !(page && r.key === "gate.read" && kind === "ourloader"));
   const blocking = required.filter((r) => !ok[r.state]).map((r) => r.key);
   const limitations = [];
+  /* (FASE D, 2026-11-21) THE REPORT NAMED A LIMITATION THE PAGE HAD ALREADY MET. `v16-backup-not-taken` was
+   * pushed for every V16 unit, so a run that carried a whole 1 MiB copy of the unit -- hashed in the page,
+   * `gate.backup: pass` -- still printed "backup not taken" and "recovery not verified" beside it. A report
+   * that contradicts its own gates is not a cautious report, it is a broken one. The limitation follows the
+   * dump now; what is left is the one thing that is still true (no restore on a V16 layout has been observed
+   * by this project) and, when the copy exists but has no unit on it, the precondition that is actually
+   * missing, named apart from the backup. */
   if (v16) {
-    limitations.push("v16-backup-not-taken", "v16-return-and-recovery-not-demonstrated");
+    if (!dumpOk) limitations.push("v16-backup-not-taken");
+    limitations.push("v16-return-and-recovery-not-demonstrated");
   } else if (rows.find((r) => r.key === "gate.recovery").state === "covered") {
     limitations.push(kind === "ours" || kind === "stock" ? "update-resumable-not-exercised" : "recovery-not-exercised");
   }
@@ -388,6 +396,10 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
    * the unit's updater), so canInstall follows the page path -- the limitations above still name what was not
    * observed. Without it the verdict is the same GO CONDITIONAL and nothing may write. */
   const verdict = v16Conditional
+    /* (FASE D) A COPY IS BOUND BY THE ANSWER THAT IS IN FRONT OF IT. The page binds any compatible identity
+     * (that is what turned the ordering bug into a bug), so the report must not hold a copy "unbound" while
+     * the page would accept it: a copy that names a DIFFERENT identity is the one refused, and the page says
+     * `v16WrongUnit`. `canInstall` follows the bytes, as before. */
     ? { result: "GO CONDITIONAL", path: page && dumpOk ? "this-page" : "m-flasher", blocked: blocking, conditions,
         conditional: true, canInstall: !!(page && dumpOk), canInstallHost: false, limitations }
     : ready
