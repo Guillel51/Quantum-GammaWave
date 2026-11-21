@@ -236,15 +236,19 @@ class WatchedFM1 {
 
 // ---- 5. make_site.py refuses a site that contradicts its record ---------------------------------
 {
-  const pkg = join(ROOT, "build/felucca.fwsc");
   const man = join(ROOT, "build/manifest.json");
-  if (!existsSync(pkg) || !existsSync(man)) {
-    console.log("make_site: no build/felucca.fwsc + manifest.json here, site checks skipped (a web-only checkout)");
+  /* the .fwsc the record names: --release writes felucca-X.Y.fwsc, not the bare name */
+  const pkgName = existsSync(man)
+    ? (Object.keys((JSON.parse(readFileSync(man, "utf8")).artifacts) || {}).find((n) => /\.fwsc$/.test(n)) || null)
+    : null;
+  const pkg = join(ROOT, "build", pkgName || "felucca.fwsc");
+  if (!pkgName || !existsSync(pkg)) {
+    console.log("make_site: no package + manifest.json here, site checks skipped (a web-only checkout)");
   } else {
     const dir = mkdtempSync(join(tmpdir(), "qg1-site-"));
     const raw = readFileSync(pkg), build = JSON.parse(readFileSync(man, "utf8"));
     const bad = JSON.parse(JSON.stringify(build));
-    bad.artifacts["felucca.fwsc"].sha256 = "0".repeat(64);
+    bad.artifacts[pkgName].sha256 = "0".repeat(64);
     const badPath = join(dir, "bad.json");
     writeFileSync(badPath, JSON.stringify(bad));
     let out = "";

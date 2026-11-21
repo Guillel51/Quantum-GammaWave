@@ -115,8 +115,19 @@ export async function verifyProvenance(pkg, build, { product = null, version = n
   if (!build.artifacts || typeof build.artifacts !== "object" || Array.isArray(build.artifacts))
     throw provFail("The build manifest lists no artefacts: the update was not started.");
   for (const [name, art] of Object.entries(build.artifacts)) checkArtifact(art, name);
-  const art = build.artifacts["felucca.fwsc"];
-  if (!art) throw provFail("The build manifest does not name the package (felucca.fwsc): the update was not started.");
+  /* (1.5.29 fix) The package is the .fwsc the record itself names, not the literal "felucca.fwsc". A
+   * --release build writes felucca-X.Y.Z.fwsc (tools/build.py) and tools/build_manifest.py records that
+   * name, so demanding the unversioned key refused every released package -- "The file to install is
+   * damaged" for a file that was byte-identical to the record -- from v1.5.26 on. Exactly one .fwsc is
+   * allowed: two would leave the check picking one of them, which is the ambiguity it exists to remove. */
+  const pkgs = Object.keys(build.artifacts).filter((n) => /\.fwsc$/.test(n));
+  if (pkgs.length === 0)
+    throw provFail("The build manifest does not name the package (a .fwsc artefact): the update was not started.");
+  if (pkgs.length > 1)
+    throw provFail(`The build manifest names ${pkgs.length} packages (${pkgs.join(", ")}): the update was not started.`);
+  const pkgName = pkgs[0], art = build.artifacts[pkgName];
+  if (build.package !== undefined && String(build.package) !== pkgName)
+    throw provFail(`The build manifest says it wrote ${JSON.stringify(build.package)}, its artefact is ${pkgName}: the record contradicts itself, so nothing was sent.`);
   if (!build.artifacts["felucca.bin"])
     throw provFail("The build manifest does not name the firmware image (felucca.bin): the update was not started.");
   if (!(pkg instanceof Uint8Array) || pkg.length === 0)

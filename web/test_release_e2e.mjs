@@ -19,8 +19,13 @@ import { requireProvenance, verifyProvenance } from "./fm1provenance.js";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = join(HERE, "..");
-const PKG = join(ROOT, "build/felucca.fwsc");
 const RECORD = join(ROOT, "build/manifest.json");
+/* The package this checkout built is the .fwsc the record names: a --release build writes
+ * felucca-X.Y.fwsc, and build/felucca.fwsc next to it can be an older, unversioned build. */
+const PKG_NAME = existsSync(RECORD)
+  ? (Object.keys((JSON.parse(readFileSync(RECORD, "utf8")).artifacts) || {}).find((n) => /\.fwsc$/.test(n)) || null)
+  : null;
+const PKG = join(ROOT, "build", PKG_NAME || "felucca.fwsc");
 
 let failed = 0;
 const ok = (cond, what) => { console.log(`${what.padEnd(76)} ${cond ? "ok" : "FAIL"}`); if (!cond) failed++; };
@@ -29,7 +34,7 @@ const refused = async (fn, code) => {
 };
 
 if (!existsSync(PKG) || !existsSync(RECORD)) {
-  console.log("release e2e: no build/felucca.fwsc + build/manifest.json here, skipped (host-only checkout)");
+  console.log("release e2e: no package + build/manifest.json here, skipped (host-only checkout)");
   process.exit(0);
 }
 
@@ -61,7 +66,7 @@ const release = (over = {}, rec = record) => {
      `record: names a full commit (${String(record.commit).slice(0, 12)})`);
   ok(Array.isArray(record.dirty) && record.dirty.length === 0, "record: the tree was clean when it was built");
   ok(record.identity === product, `record: identity ${record.identity} is the package's`);
-  const art = record.artifacts["felucca.fwsc"] || {};
+  const art = record.artifacts[PKG_NAME] || {};
   ok(art.bytes === pkg.length && art.sha256 === sha(pkg),
      `record: the package is the artefact it names (${pkg.length} B)`);
   ok(record.artifacts["felucca.bin"] && record.artifacts["felucca.bin"].sha256,

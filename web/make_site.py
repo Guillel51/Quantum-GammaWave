@@ -219,8 +219,17 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
             raise SystemExit(f"refusing to publish it: {e}")
         pkg_bytes = pkg.read_bytes() if pkg.exists() else b""
         import hashlib as _h
-        art = (rec.get("artifacts") or {}).get("felucca.fwsc") or {}
-        if art.get("sha256") and art["sha256"] != _h.sha256(pkg_bytes).hexdigest():
+        # (1.5.29) the package is the .fwsc the record names: --release writes felucca-X.Y.fwsc, so the
+        # bare "felucca.fwsc" lookup found nothing and the check above silently compared against {} --
+        # a record with a wrong hash (or no hash) still built the site.
+        arts = rec.get("artifacts") or {}
+        names = [n for n in arts if str(n).endswith(".fwsc")]
+        if len(names) != 1:
+            raise SystemExit("refusing to publish it: the build record does not name exactly one .fwsc artefact")
+        if rec.get("package") not in (None, names[0]):
+            raise SystemExit("refusing to publish it: the build record's package name and its artefact disagree")
+        art = arts[names[0]]
+        if not art.get("sha256") or art["sha256"] != _h.sha256(pkg_bytes).hexdigest():
             raise SystemExit("refusing to publish it: the build record's SHA-256 is not the package's")
         if rec.get("commit") and len(set(rec["commit"])) == 1:
             raise SystemExit("refusing to publish it: the build record names another commit")
