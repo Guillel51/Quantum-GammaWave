@@ -139,3 +139,17 @@ arriba — los 65 536 words dan los mismos bytes y los goldens de audio y de ren
 
 Nada de esta fase se escribió, borró ni restauró en la FM-1 física. El backup del dueño no se guardó en el
 repositorio, ni en `site/`, ni en `release/`, ni en tests: el fixture de los tests es inventado en el propio test.
+
+## 7. Dos hashes para una versión, y por qué se dicen los dos
+
+El workflow `tag-and-publish` cortó el tag **v1.5.26** en el commit de artefactos `768ffd21`, con el paquete que
+se construyó en `fb74592` (`sha256 b2d736ec…`, 610 933 B) — es el que sirve el GitHub Release (verificado aquí:
+descarga HTTPS 200, 610 933 B, `b2d736ec04a4a49e…`). Después, el build de este árbol produjo
+`sha256 c156a28c…`, del mismo tamaño, con la **misma imagen de app** (582 724 B) y el mismo código: lo único que
+cambia es la línea `commit` del registro del build (los ocho `static` restaurados no aportan un byte a la imagen;
+el enlazador ya los descartaba). `release/` y `site/` llevan el segundo, y `make_release --check` verifica que
+describen un solo paquete.
+
+No se movió el tag: mover un tag publicado exige force push y este proyecto no lo hace. Queda escrito, con los dos
+digests, para que nadie tenga que adivinar cuál es cuál: el **asset del Release** es `b2d736ec…`; lo que sirve
+**Pages** (`site/firmware/`) es `c156a28c…`; la imagen de firmware dentro de ambos es la misma.
