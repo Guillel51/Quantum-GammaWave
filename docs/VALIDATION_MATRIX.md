@@ -1,13 +1,20 @@
-# VALIDATION MATRIX — what was actually run (v1.9.0, the integrated tree)
+# VALIDATION MATRIX — what was actually run (v1.6.0, published 2026-11-21)
 
-Honesty first: this table records the checks executed **in this session**, on this machine, against
-this tree. Anything not listed here was not run. Labels: `[HOST]` executed natively, `[TARGET]`
-executed against a real AC791N build, `[WASM]` executed in Node against the Emscripten build,
-`[STATIC]` inspected without execution, `[HW]` needs an FM-1.
+Honesty first: this file records checks that were **executed**, on the named class of machine, against
+the named tree. Anything not listed here was not run. Labels: `[HOST]` executed natively, `[TARGET]`
+executed against a real AC791N build, `[EMU]`/`[WASM]` executed against/in the Emscripten build,
+`[STATIC]` inspected without execution, `[PUBLIC]` read back from the public URLs, `[HW]` needs a
+physical FM-1.
 
-Environment: Linux x86-64, gcc 13 (`cc`), Python 3 (Pillow/fontTools/numpy), Node 20,
+**The current release is v1.6.0** (identity `FM-1_965`): the evidence is the last section of this file,
+*Update — 2026-11-21, v1.6.0 published* (§26). Everything above it is the audit trail of earlier trees —
+up to the v1.9.0 line, whose version number was later reconciled to v1.6.0 — and is kept because it is
+the record of what was run then. Its versions, hash prefixes, file names and figures no longer describe
+this repository; where an earlier section disagrees with the last one, the last one is later and wins.
+
+Environment for §26: Linux x86-64, gcc 13 (`cc`), Python 3 (Pillow/fontTools/numpy), Node 20,
 **JieLi pi32v2 toolchain `jieli-linux-toolchains-20260730.1`**, **AC79 SDK
-`AC79NN_SDK_V1.2.1_2023-12-13`** (three files match `SDK_SHA256`), **Emscripten 6.0.11** (the emulator workflow installs the same version).
+`AC79NN_SDK_V1.2.1_2023-12-13`** (three files match `SDK_SHA256`), **Emscripten 6.0.11**.
 No FM-1, no MIDI hardware, no browser automation.
 
 ## 1. Integration
@@ -2089,3 +2096,155 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | Polifonía efectiva mayor que 12 | — | **NOT ENABLED**: 1 134 B de `.bss` por voz y 6 696 B libres; subirlo exige re-medir el sonido y el pool mínimo (`VPOOLN >= NVOICE + NPART`) |
 | Consumo de la Fase 4 (v1.5.25) | segunda optimización, la del dibujo: rellenos que olvidan sólo sus filas, ventanas angostas con tabla de filas propia, y la barra de fader de FX | `[AC791N]`: coste en la fila de abajo; `[HOST]`: `ui_render --idle` **38 272 → 29 952 px** por frame quieto (−22 %), `op_env`/`op_level` **18 176 → 14 016**; `docs/FASE4_RENDER_v1.5.25.md` |
 | Que la caché no se olvide de nada | `[HOST]` | `ui_render` (191 pantallas × 22 paletas): de **3 056 frames cambian 13**, los 13 `*_fx` de la barra nueva; `ui_pixels.py` 3 056 frames idénticos al rebasar; `--regions` 872/872 en su columna, 0 px distintos contra un redibujo entero; `--bands`, `--headers`, `--announce` en verde; 0 hallazgos de lint, 0 píxeles GREY/MONO fuera de gris, 3 785 084 medidas de alineación sin desviación |
+
+## 26. Update — 2026-11-21, v1.6.0 published: the eight stages, and the live pages re-read
+
+This section is the current state of the matrix. §26.1–§26.5 were executed during the stage-8 session on
+this tree and are recorded in `docs/ETAPA8_ENTREGA_2026-11-21.md`; §26.6 was re-run for this matrix
+update, from this host, against the public URLs. No FM-1 was involved in any of it.
+
+### 25.1 The release
+
+| Item | Value | Class |
+|---|---|---|
+| Version | **v1.6.0** (`FELUCCA_VERSION`) | `[STATIC]` |
+| Identity | **`FM-1_965`** (unchanged) | `[STATIC]` |
+| Package built at | commit **`11b9b9edebdd`**, record `dirty: []` | `[TARGET]` |
+| Published `main` | **`aa941353361f73bd32250807a4e24a83751ffd9d`** | `[PUBLIC]` |
+| Package | `release/felucca-v1.6.0.fwsc`, **610 933 B** | `[TARGET]` |
+| SHA-256 | `f6aa3b15e4805d94447360694aacd7c6f62fdde5ac2c71a8a9ccae7bf66506f2` | `[HOST]` |
+| `felucca.bin` | 581 296 B, `450fc110fb2c52cb079dcf9f87a1b7e6ea31a867e2ff7fcee539499020875d77` (build record) | `[TARGET]` |
+| Loader `ota.bin` | 7 777 B, `0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5` | `[TARGET]` |
+| Emulator | 1 291 917 B wasm, `5ba835f505f905b8d4cf8806874f610578a1158eb45aff1b4e888ac11410e0d5`, build `11b9b9edebdd`, Emscripten 6.0.11 | `[EMU]` |
+| Tag | `v1.6.0`, annotated `1a8ddea2…`, peels to `aa941353` | `[PUBLIC]` |
+| GitHub Release | published 2026-11-21T09:36:09Z, five assets: package, its `.manifest.json`, `build-manifest-v1.6.0.json`, `qg1-emulator-v1.6.0.zip`, `SHA256SUMS` | `[PUBLIC]` |
+| Signature | **none, by design**: integrity is SHA-256 + size + build record (`docs/SIGNING.md`, AGENTS §9). Ed25519 `qg1-release-1` is historical and is not used for this release | `[STATIC]` |
+
+The package is reproducible: the same bytes (`f6aa3b15…`) built before and after the documentation
+commits, and `release/`, the Release asset and the copy Pages serves are byte-identical (§26.6).
+
+### 25.2 The eight stages and where their evidence lives
+
+| Etapa | What it did | Evidence | Headline measurement |
+|---|---|---|---|
+| 1 | XIP resource audit; the FM6 `exp2` curve stored as a second difference | `docs/ETAPA1_RECURSOS_2026-11-21.md` | app slot had ~728 B free at the start of the eight stages |
+| 2 | Memory: `exp2` and the sine decoded at boot (`voices_boot`), goldens regenerated | `docs/ETAPA2_MEMORIA_2026-11-21.md` | 65 of 306 golden renders differed before the fix (the Etapa 1 claim of 0 was wrong); 0 after |
+| 3 | Audio/DSP/CPU: per-engine cost measured, nothing over the target's render budget | `docs/ETAPA3_AUDIO_2026-11-21.md` | µs per 32-sample block per engine, `[HOST]` |
+| 4 | `PHASE > WAVE = SYNC`, the ninth phase-distortion wave; preset library 286 → **287** | `docs/ETAPA4_SINTESIS_2026-11-21.md` | cost and integration in the doc |
+| 5 | ARP `PEDAL`/`ALBERTI`, scales `HIJAZ`/`HUNG MINOR`, LFO `1/2D`/`1/16D` — all appended to existing lists | `docs/ETAPA5_HERRAMIENTAS_2026-11-21.md` | no new parameter, no new RAM |
+| 6 | UI: CHANCE draws the 16-step probability pattern; MOD MAP shows the summed routes | `docs/ETAPA6_INTERFAZ_2026-11-21.md` | 191 screens × 22 palettes reviewed |
+| 7 | Audit and bug hunt: four defects found and fixed (audio harness without `sine_init`; the EQ shelf assertion; the ns baseline in `stress`; the LFO division order) | `docs/ETAPA7_AUDITORIA_2026-11-21.md` | each with the failing check before and the passing one after |
+| 8 | V16 compatibility re-verified by executing its tests, release build, publication, this matrix | `docs/ETAPA8_ENTREGA_2026-11-21.md` | §26.3–§26.6 |
+
+Etapa 2 is worth keeping in view: it found that Etapa 1's “0 changed goldens” was **false**. That is why
+the numbers quoted here come from the final tree and its own runs, not from earlier reports.
+
+### 25.3 Test groups and their exit status (final v1.6.0 tree)
+
+Each row is a command that was run to completion; the exit status was captured, not inferred.
+
+| Group / test | Covers | Exit |
+|---|---|---|
+| `tests/groups.sh sync` | emulator ↔ package ↔ page ↔ manifest, v1.6.0 / `11b9b9edebdd` / 1 291 917 B | **0** |
+| `tests/groups.sh presets` | preset library, primary category per sound | **0** (287/287) |
+| `tests/groups.sh web` | site, i18n, installer, editor vs firmware, MIDI export | **0** (64 checks) |
+| `tests/groups.sh target` | AC791N build + `target_budget` + `memory_map_test` | **0** |
+| `tests/groups.sh security` | installer, preflight, gate, signatures, custody, restore, `pkg_bounds`, `pkg_faults`, ASan/UBSan fuzz, storage/OTA cuts, EQ ×4, audio | **0** (all PASS) |
+| `tests/groups.sh ui` | render sweep and alignment lint | **0** (191 × 22; 0 lint findings; 3 787 294 alignment measurements, 0 off by 1 px; GREY/MONO stay grey) |
+| `tests/groups.sh stress` | `regress` twice, project/persistence/robust/midi_control | **0** |
+| `regress` goldens | 307 golden renders | 0 changed |
+| `tests/install_test.py` | package ↔ `fm1pkg.js`, loader marker | **0** |
+| `node web/test_web.mjs`, `web/test_v16_path.mjs`, `web/test_verify_only.mjs` | site/editor sync, V16 report composition, Verify Only | **0 / 0 / 0** (175 checks in the last) |
+| `tools/make_release.py --check` | `release/`, `site/`, installer, editor and both `SHA256SUMS` describe one package | **ok** |
+| `tools/build_manifest.py --verify` / `tests/manifest_test.py` | manifest names this code / the verifier's 12 refusals | **ok / passed** |
+
+One harness defect was fixed to make the `target` row meaningful: `tests/groups.sh run_target()` hard-coded
+`/tmp/jieli/toolchain` and `/tmp/ac79` and ignored `JIELI_TOOLCHAIN`/`AC79_SDK`, so the target build could
+not run where the environment is exported (AGENTS §6). It now honours the variables and keeps `/tmp` as a
+fallback.
+
+### 25.4 Target budgets at v1.6.0 (`[TARGET]`)
+
+| Resource | Value | Budget | Free |
+|---|---|---|---|
+| App slot (XIP image) | **581 296 B** | 583 612 B | **2 316 B** |
+| `.data + .bss` | **93 612 B** | 98 304 B | **4 692 B** |
+| Code RAM (`.ram_text`) | **19 728 B** | 24 576 B | **4 848 B** |
+| Pool spare (`POOL_END - pool_top`) | — | ≥ 8 KiB rule | **9 248 B** |
+| XIP constants | **130 880 B** | — | −2 916 B across stages 1–6 |
+| Cost per sample (`[HOST]`, not AC791N) | `mix` max 1 574 instr/sample; PHASE 1 558 | 32-sample block budget | within |
+
+No DSP change was made to “optimise”: with 2 316 B of slot free, the only remaining move (another table into
+RAM) would trade audio RAM for ~1 KB, and RAM is now the scarcer resource. The measurement is recorded
+instead of an untested guess (AGENTS §8).
+
+### 25.5 Compatibility with the stock V16 firmware
+
+Re-verified by **running** the Fase 5 tests, not by reading them. What the software now does: the page takes
+the unit's version from its identity (`FM-1_016` → `16`) instead of a hard-coded `"15"`, and `probeChip()`
+separates echo, short body, silence, CRC, NOR refusal, unknown JEDEC and geometry, each with its own sentence
+— the old report sentence (“…did not answer its JEDEC… nothing was sent”) can no longer be composed.
+Operating V16 units have no `0x12` handler, so there is no JEDEC to read from stock firmware; the part id is
+read by the **package's loader** before any erase, against the two-part allowlist (`0x856014`, `0xB36014`).
+
+| Claim | Class | Result |
+|---|---|---|
+| The page derives the version from the unit's identity | `[HOST]` | pass |
+| Echo / short body / silence / CRC / refusal / unknown id / geometry are distinguished | `[HOST]` | pass |
+| The old composed sentence cannot be produced; three outcomes, three phrases, three languages | `[HOST]` | pass |
+| A V16 donor is accepted with its own version and rejected otherwise | `[HOST]` | pass |
+| A backup with no unit, another unit's, or one that does not match the record fails the gate | `[HOST]` | pass |
+| The QG package fits the loader window | `[TARGET]` | pass (`fm1pkg_make.py` refuses otherwise) |
+| Verify Only report | `[HOST]` | pass, 175 checks |
+| The V16 updater accepts the package and starts the loader | **`[HW]`** | **not measured** |
+| The V16 SPL starts the QG app | **`[HW]`** | **not measured** |
+| Restoring the 1 MiB copy over a V16 layout | **`[HW]`** | **not measured** |
+
+The gate therefore stays **GO CONDITIONAL** (`gate.backup` pass, `gate.recovery` conditional,
+`gate.chip` at-install). “It installs from V16” is **not** claimed.
+
+### 25.6 What Pages serves, re-read without cache — 2026-11-21 (`[PUBLIC]`)
+
+Every request carried a unique query string, and the responses came back `x-cache: MISS`, `age: 0`,
+`last-modified: Sat, 21 Nov 2026 09:38:5x GMT` (Cloudflare/Fastly, not a cached copy):
+
+```bash
+B=https://guillel51.github.io/Quantum-GammaWave; CB="cb=$(date +%s%N)"
+curl -sS -D- "$B/webapp/installer/?$CB"      # 200, 292 182 B, x-cache: MISS, age: 0
+curl -sS -D- "$B/webapp/editor/?$CB"         # 200, 468 126 B, x-cache: MISS, age: 0
+curl -sS -D- "$B/firmware/versions.json?$CB" # 200, 2 814 B
+curl -sS "$B/firmware/felucca-v1.6.0-11b9b9e.fwsc?$CB" | sha256sum
+```
+
+| URL | What it is | What it says |
+|---|---|---|
+| `firmware/versions.json` | release index | `v1.6.0-11b9b9e`, `felucca-v1.6.0-11b9b9e.fwsc`, sha256 **`f6aa3b15…06f2`**, 610 933 B, commit `11b9b9edebdd`, identity `FM-1_965`, emulator `v1.6.0` / 1 291 917 B / `5ba835f5…` |
+| `webapp/installer/` | WebMIDI installer for the FM-1 | HTTP 200; `meta = {version: "v1.6.0-11b9b9e", product: "FM-1_965", pkg: "../../firmware/felucca-v1.6.0-11b9b9e.fwsc", sha256: "f6aa3b15…06f2", size: 610933, stock: false}` plus the full build record inlined. The page is the uploader: diagnostic `.json`, Verify Only, the install gate and the V16 path (M-Flasher record + 1 MiB copy + official V16 as the way back), in English and Spanish |
+| `webapp/editor/` | **Web Studio** workstation | HTTP 200; `<html data-version="v1.6.0-11b9b9e" lang="ja">`; the workstation (HOME, WAVES, SEQ, TAPE, FX, PUNCH-IN FX, GEN; demo songs; export `.WAV` / `.GW1` / `.MID`; theme picker; `SIMULATE QG-1`). It is an editor driven by the emulator, **not** a package download page: it offers no `.fwsc` and prints no sha256. Its build is the release's, and the emulator it loads is the release's |
+| `emulator/manifest.json` | emulator record | `v1.6.0`, commit `11b9b9edebdd`, `dirty: []`, wasm 1 291 917 B `5ba835f5…`, `emcc … 6.0.11`, identity `FM-1_965` |
+| `firmware/felucca-v1.6.0-11b9b9e.fwsc` | the package the installer offers | HTTP 200, **610 933 B**, sha256 **`f6aa3b15e4805d94447360694aacd7c6f62fdde5ac2c71a8a9ccae7bf66506f2`**; `cmp` against `release/felucca-v1.6.0.fwsc` → identical |
+| Release asset `…/releases/download/v1.6.0/felucca-v1.6.0.fwsc` | the package the Release offers | HTTP 200, 610 933 B, sha256 **`f6aa3b15…06f2`**; `cmp` against `release/` → identical |
+
+So: **the installer and the release serve the same bytes**, and the Web Studio declares the same build
+(`v1.6.0-11b9b9e`) and runs the same release emulator. It does not display the package sha256 because it never
+offers the package — saying otherwise would be inventing a check.
+
+Two naming details, recorded so nobody reads them as a mismatch. The deployed installer points at
+`felucca-v1.6.0-11b9b9e.fwsc` (the name `make_site.py` gives the served copy) while the tracked `site/`
+snapshot and the Release asset use `felucca-v1.6.0.fwsc` (the name `make_release.py --sync` gives it); both
+are 610 933 B with sha `f6aa3b15…`. Reading `firmware/felucca-1.6.0.fwsc` — the name a browser
+autocompletes — answers **404** on the published root; no page links to it.
+
+### 25.7 Still open, and why
+
+| Item | State | Why |
+|---|---|---|
+| V16 updater → loader, V16 SPL → QG app, restore of the 1 MiB copy over a V16 layout | **`[HW]` not verified** | no FM-1 in this environment; §26.5 |
+| JEDEC read by this project's loader on a physical unit | **`[HW]` not verified** | the known `0x856014` comes from an M-Flasher record, not from our query |
+| A real browser session on the published pages | **not run** | no browser automation here; §26.6 is HTTP read-back, not a rendered page |
+| Ed25519 signature on the release | **not applicable** | by design: SHA-256 + size + build record (AGENTS §9, `docs/SIGNING.md`) |
+| GitHub Issues / PR | **not read** | `api.github.com` answers 403 from this host; none was closed on assumption |
+
+The software requirement rows that need the owner's unit — its JEDEC and geometry, a 1 MiB dump of that unit,
+the verification of that dump, a rehearsed recovery and the first controlled write — stay exactly where
+`docs/FORENSIC_FM1_VIABILITY.md` left them. Nothing in v1.6.0 moved them, and nothing in it wrote to a unit.
