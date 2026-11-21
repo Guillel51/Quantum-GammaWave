@@ -144,6 +144,21 @@ Los dos grupos largos (`security`, `ui`) y `stress` se ejecutaron sobre este ár
 - GitHub Pages sirve `site/` desde el workflow del repositorio; el portal, el instalador y el emulador se
   actualizan en el mismo push.
 
+### Publicado y verificado en esta etapa
+
+| | |
+|---|---|
+| Commit publicado (`main`) | **`aa941353361f73bd32250807a4e24a83751ffd9d`** |
+| Tag | **`v1.6.0`** (anotado `1a8ddea2…`, apunta a `aa941353`) |
+| GitHub Release | <https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v1.6.0>, publicada 2026-11-21 09:36 UTC |
+| Assets | `felucca-v1.6.0.fwsc` (`f6aa3b15…`, 597 KB), su `.manifest.json`, `build-manifest-v1.6.0.json`, `qg1-emulator-v1.6.0.zip`, `SHA256SUMS` |
+| Pages, portal | `firmware/versions.json` sirve **v1.6.0-11b9b9e**, sha256 `f6aa3b15…`, 610 933 B |
+| Pages, emulador | `emulator/manifest.json` → `v1.6.0`, commit `11b9b9edebdd`, wasm 1 291 917 B, `5ba835f5…` (idéntico al local) |
+| Pages, Web Studio | `webapp/editor/` sirve el build del mismo paquete (`make_release --check` ata editor, instalador y sitio) |
+
+El paquete se compiló del árbol de `11b9b9ed` (el commit que solo agrega el informe no cambia ningún byte del
+`.fwsc`: el hash es el mismo antes y después), y `make_release --check` pasa desde el árbol publicado.
+
 ## 7. Pendientes reales
 
 1. **`[HW]`** las tres afirmaciones de §2.4 que necesitan una unidad V16: updater→loader, SPL→app de QG y
