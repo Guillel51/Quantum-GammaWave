@@ -493,14 +493,17 @@ int scl_tap(int32_t graph, int32_t x, int32_t y)
         return 0;
     if (graph == GR_SCL_SCALE || graph == GR_SCL_CHORD) {
         if (graph == GR_SCL_SCALE)
-            scl_bed(8, 94, 224, 22, &b);
+            scl_bed(8, 92, 224, 26, &b);   /* (FASE 3/8) the rectangle the page DRAWS, not a smaller one:
+                                            * taps were measured against a bed 2 px down and 4 px short */
         else
-            scl_bed(12, 92, 216, 24, &b);
+            scl_bed(12, 90, 216, 26, &b);  /* (FASE 3/8) likewise: scl_keys() draws this one */
         n = scl_bed_at(&b, x, y);
         if (n < 0 && graph == GR_SCL_SCALE) {              /* the circle: the nearest node within 7 px */
-            int32_t best = -1, bd = 64;
-            for (i = 0; i < 12u; i++) {
-                int32_t nx = 50 + SCL_COS[i] * 24 / 256, ny = 58 + SCL_SIN[i] * 24 / 256;
+            int32_t best = -1, bd = 100;   /* 10 px of slack around a 20 px ring */
+            for (i = 0; i < 12u; i++) {   /* (FASE 3/8) the drawing's own centre and radius: it was
+                                           * 50/58/24 against a circle drawn at 50/54/20, so the rim the
+                                           * player aimed at was not the rim the page drew */
+                int32_t nx = 46 + SCL_COS[i] * 20 / 256, ny = 54 + SCL_SIN[i] * 20 / 256;
                 int32_t dx = x - nx, dy = y - ny, d = dx * dx + dy * dy;
                 if (d < bd) {
                     bd = d;
@@ -563,20 +566,22 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
 {
     uint32_t i, mask = scale_mask(t), n = 0, root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
     uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 17), ti = trk_index(t) % NTRK;
-    uint32_t sel = scl_selm[ti], live = scl_live_mask(t), sn, tn, nm_n = 0;
+    uint32_t sel = scl_selm[ti], live = scl_live_mask(t), sn, tn, ln = 0;
     uint8_t off[12], nt[12];
-    int32_t cx = 50, cy = 54, rn = 20, rl = 30;         /* (FASE 7) the labels' ring stopped at y 100 and the
-                                                        * keyboard began at 94: the bottom of the circle sat on
-                                                        * the keys. The ring is sized so the top label clears
-                                                        * the header (y 18) and the bottom one the keys (y 90). */
+    int32_t cx = 46, cy = 54, rn = 20;                  /* (FASE 3/8) THE LABELS NO LONGER TOUCH. On one 30 px
+                                                        * ring the twelve names sit 15.7 px apart while a two
+                                                        * character name and its box need 16: "A#" and "B" met,
+                                                        * and at the top and bottom the ring pressed on the
+                                                        * header and on the keys. The names alternate between
+                                                        * a 29 px ring and a 35 px one, which puts every pair
+                                                        * 17.5 px apart (x 46 +- 35 = 11..81 inside the panel,
+                                                        * y 18..90 clear of the header and the keybed). */
     int32_t bass = scl_selb[ti] == 0xFFu ? -1 : (int32_t)scl_selb[ti];
     scl_rec_t rec;
     char l[28], nm[16], b[20];
     (void)c;
     for (i = 0; i < 12u; i++)
         n += (mask >> i) & 1u;
-    for (i = 0; i < 12u; i++)
-        nm_n += (sel >> i) & 1u;
     sn = scale_offsets(t, off);
     tn = scl_sel_notes(ti, nt, 12);
     scl_recognise(sel, bass, (int32_t)root, &rec);
@@ -600,6 +605,7 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
         int in = (mask >> deg) & 1u, is_root = (pc == root) && in;
         int picked = (sel >> pc) & 1u, sound = (live >> pc) & 1u;
         int32_t nx = cx + SCL_COS[i] * rn / 256, ny = cy + SCL_SIN[i] * rn / 256;
+        int32_t rl = (i & 1u) ? 35 : 29;               /* the alternated ring: see the comment above */
         int32_t lx = cx + SCL_COS[i] * rl / 256, ly = cy + SCL_SIN[i] * rl / 256;
         if (in)
             cv_line(cx + SCL_COS[i] * 6 / 256, cy + SCL_SIN[i] * 6 / 256, nx, ny,
@@ -624,65 +630,68 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
     }
     cv_text_in(cx - 4, cy - 6, 9, &AF_S, N_NOTE[root], T_ACCENT, T_SURF);
 
-    /* --- the right column: what the set of notes is, and how it sits in the key --- */
-    cv_text_on(98, 6, &AF_L, nm, tn ? T_ACCENT : T_DIM, T_SURF);
+    /* --- the right column: the set as music, in four labelled rows --- */
+    /* (FASE 3/8) WHAT THE COLUMN SAYS NOW. It printed "0 SEL 5 SCALE" and "0 LIVE" -- numbers a player had to
+     * decode -- a chord name with no label, a row of degree digits with no caption, and an interval row that
+     * only existed once the hand held something. Four rows with their own captions: the tones the hand holds,
+     * their degrees in the key (a dash where a note is outside it, never an invented degree), their intervals
+     * over the root, and the key's own semitone steps. Each row starts at the same x, so the four read as one
+     * table, and the chord's name is the headline above them. Nothing here is stored: every row is a function
+     * of (selection, key, scale). */
+    cv_text_on(96, 0, &AF_L, tn ? nm : "-", tn ? T_ACCENT : T_DIM, T_SURF);
     if (rec.amb > 1u)
-        scl_field(98 + text_w(&AF_L, nm) + 3, 12, "AMB", T_MID, T_SURF);
-    scl_notes(nt, tn, b, sizeof b);
-    scl_field(98, 26, tn ? b : "TAP A KEY", tn ? T_TEXT : T_DIM, T_SURF);
-    fmt_int(b, (int32_t)nm_n);
-    str_cpy(b + str_len(b), " SEL ", sizeof b - str_len(b));
+        cv_text_on(96 + text_w(&AF_L, tn ? nm : "-") + 3, 8, &AF_S, "AMB", T_MID, T_SURF);
     {
-        char h[8];
-        uint32_t k, ln = 0;
-        fmt_int(h, (int32_t)n);
-        str_cpy(b + str_len(b), h, sizeof b - str_len(b));
-        str_cpy(b + str_len(b), " SCALE", sizeof b - str_len(b));
-        scl_field(98, 38, b, T_MID, T_SURF);
-        for (k = 0; k < 12u; k++)
-            ln += (live >> k) & 1u;
-        fmt_int(b, (int32_t)ln);
-        str_cpy(b + str_len(b), " LIVE", sizeof b - str_len(b));
-        scl_field(98, 50, b, ln ? T_TEXT : T_DIM, T_SURF);
-    }
-    {   /* the selected notes by degree: the intersection of the hand and the key, or a dash where a picked note
-         * is outside the scale (never a degree it does not have) */
-        char gb[24];
-        uint32_t k, ln = 0;
-        int32_t d;
-        gb[0] = 0;
-        for (k = 0; k < tn && ln + 6u < sizeof gb; k++) {
-            d = scl_degree(nt[k], root, off, sn);
-            if (ln)
-                str_cpy(gb + str_len(gb), " ", 2);
+        char row[44];
+        uint32_t k;
+        scl_notes(nt, tn, row, sizeof row);
+        scl_field(96, 24, "NOTES", T_DIM, T_SURF);
+        cv_text_fit(140, 24, &AF_S, tn ? row : "TAP A KEY", tn ? T_TEXT : T_DIM, T_SURF, 92);
+        row[0] = 0;
+        for (k = 0; k < tn && str_len(row) + 5u < sizeof row; k++) {
+            int32_t d = scl_degree(nt[k], root, off, sn);
+            if (k)
+                str_cpy(row + str_len(row), " ", 2);
             if (d >= 0) {
                 char dg[4];
                 fmt_int(dg, d + 1);
-                str_cpy(gb + str_len(gb), dg, sizeof gb - str_len(gb));
+                str_cpy(row + str_len(row), dg, sizeof row - str_len(row));
             } else
-                str_cpy(gb + str_len(gb), "-", sizeof gb - str_len(gb));
-            ln++;
+                str_cpy(row + str_len(row), "-", sizeof row - str_len(row));
         }
-        scl_field(98, 62, tn ? gb : "-", tn ? T_THEME : T_DIM, T_SURF);
-    }
-    {   /* the intervals of the set over its own root: the same numbers the CHORD page spells out loud */
-        char ib[24];
-        uint32_t k;
-        ib[0] = 0;
+        scl_field(96, 36, "DEG", T_DIM, T_SURF);
+        cv_text_fit(140, 36, &AF_S, tn ? row : "-", tn ? T_THEME : T_DIM, T_SURF, 92);
+        row[0] = 0;
         if (rec.kind != SC_NONE && rec.n > 1u) {
-            for (k = 0; k < tn; k++) {
+            for (k = 0; k < tn && str_len(row) + 5u < sizeof row; k++) {
                 int32_t iv = ((int32_t)nt[k] - (int32_t)nt[0]) % 12;
                 if (iv < 0)
                     iv += 12;
-                if (k && str_len(ib) + 5u < sizeof ib)
-                    str_cpy(ib + str_len(ib), " ", 2);
-                if (str_len(ib) + 4u >= sizeof ib)
-                    break;
-                str_cpy(ib + str_len(ib), N_ITVN[iv], sizeof ib - str_len(ib));
+                if (k)
+                    str_cpy(row + str_len(row), " ", 2);
+                str_cpy(row + str_len(row), N_ITVN[iv], sizeof row - str_len(row));
             }
         } else
-            str_cpy(ib, rec.n == 1u ? "ONE NOTE" : rec.n ? "NO NAME" : "-", sizeof ib);
-        scl_field(98, 74, ib, rec.kind == SC_NONE && rec.n > 1u ? T_MID : T_DIM, T_SURF);
+            str_cpy(row, rec.n ? "ONE NOTE" : "-", sizeof row);
+        scl_field(96, 48, "IVL", T_DIM, T_SURF);
+        cv_text_fit(140, 48, &AF_S, row, rec.kind != SC_NONE ? T_ACCENT : T_DIM, T_SURF, 92);
+        row[0] = 0;
+        for (k = 0; k < sn && str_len(row) + 4u < sizeof row; k++) {
+            char sb[4];
+            fmt_int(sb, (int32_t)off[k]);
+            if (k)
+                str_cpy(row + str_len(row), " ", 2);
+            str_cpy(row + str_len(row), sb, sizeof row - str_len(row));
+        }
+        scl_field(96, 60, "STEPS", T_DIM, T_SURF);
+        cv_text_fit(140, 60, &AF_S, row, T_MID, T_SURF, 92);
+        for (k = 0; k < 12u; k++)
+            ln += (live >> k) & 1u;
+        if (ln) {                                      /* what is sounding now, only while it sounds */
+            fmt_int(row, (int32_t)ln);
+            str_cpy(row + str_len(row), " LIVE", sizeof row - str_len(row));
+            scl_field(96, 72, row, T_TEXT, T_SURF);
+        }
     }
     scl_keyboard(t, 8, 92, 224, 26, 0);
 }
@@ -742,14 +751,15 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
      * hears, the letter is what the key is called, and the line prints both */
     scl_spell(nt, tn, sp, sizeof sp);
     if (tn)                                             /* the hand's set: its tones and intervals */
-        cv_text_fit(12, 34, &AF_S, sp, T_TEXT, T_SURF, 216);
+        cv_text_fit(12, 32, &AF_S, sp, T_TEXT, T_SURF, 216);
     else if (!mode)                                     /* nothing picked and no shape: the hint owns the row */
-        cv_text_fit(12, 34, &AF_S, "TAP THE KEYS BELOW OR A PROG STEP", T_DIM, T_SURF, 216);
+        cv_text_fit(12, 32, &AF_S, "TAP THE KEYS BELOW OR A PROG STEP", T_DIM, T_SURF, 216);
     /* the set against the key: how many of its notes the scale has, and the function of its degree (tonic,
      * subdominant or dominant -- the three jobs a chord has in a key) */
     for (i = 0; i < tn; i++)
         oob += scl_degree(nt[i], (uint32_t)root, off, sn) < 0;
-    {
+    if (tn) {   /* (FASE 3/8) only with a hand: with nothing picked this row printed "0/0 IN KEY" over the
+                 * hint above it, and the lint read the pair as one text on another */
         char kb[24];
         int32_t d = rec.root >= 0 ? scl_degree((uint8_t)(60 + rec.root), (uint32_t)root, off, sn) : -1;
         const char *fn = "-";
@@ -763,8 +773,8 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
             str_cpy(kb + str_len(kb), t2, sizeof kb - str_len(kb));
         }
         str_cpy(kb + str_len(kb), " IN KEY", sizeof kb - str_len(kb));
-        scl_field(12, 46, kb, oob ? T_MID : T_THEME, T_SURF);
-        scl_field(96, 46, fn, tn > 1u && d >= 0 ? T_TEXT : T_DIM, T_SURF);
+        scl_field(12, 44, kb, oob ? T_MID : T_THEME, T_SURF);
+        scl_field(96, 44, fn, tn > 1u && d >= 0 ? T_TEXT : T_DIM, T_SURF);
     }
     /* what a key plays on this track, next to what the hand picked: the two are different answers and the page
      * never lets one pass for the other */
@@ -776,35 +786,57 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
         str_cpy(qb + str_len(qb), N_CHRDN[mode], sizeof qb - str_len(qb));
         str_cpy(qb + str_len(qb), " ", 2);
         str_cpy(qb + str_len(qb), scl_quality(kc, kn, 0), sizeof qb - str_len(qb));
-        scl_field(tn ? 150 : 12, tn ? 46 : 34, qb, T_DIM, T_SURF);
+        scl_field(tn ? 150 : 12, tn ? 44 : 32, qb, T_DIM, T_SURF);
     } else if (tn)                                     /* no shape and nothing picked: the hint already said it */
-        scl_field(150, 46, "NOTE ONLY", T_DIM, T_SURF);
-    /* the voices as lanes: one pitch axis over the set's own compass, the bass marked, the nodes in the accent,
-     * so an inversion is visible as the lowest dot moving to another lane */
+        scl_field(150, 44, "NOTE ONLY", T_DIM, T_SURF);
+    /* (FASE 3/8) THE CHORD, PLACED ON ITS OWN RULER. The middle of the page was four lane lines over a pitch
+     * axis, drawn only when the hand held something: with nothing picked it was an empty band under the name
+     * (the render showed a metre of nothing), and with a chord the lanes still did not say WHICH notes they were
+     * -- a dot's x meant a pitch on a scale nobody could read. It is an interval ruler now: the twelve semitones
+     * over the chord's root, each one named (P1 m2 M2 ... M7), every tone of the chord a chip on its own
+     * semitone with its letter in it -- the root in the accent, a tone outside the key in the page's raise, the
+     * bass on a bright tick -- and, when the hand is empty, the same chart drawn dim for the chord a KEY plays,
+     * so the page always answers something. */
     {
-        int32_t x0 = 22, x1 = 224, lo = 127, hi = 0, k;
-        uint32_t m = tn ? (1u << 0) : 0u;
-        (void)m;
-        for (i = 0; i < tn; i++) {
-            if ((int32_t)nt[i] < lo)
-                lo = (int32_t)nt[i];
-            if ((int32_t)nt[i] > hi)
-                hi = (int32_t)nt[i];
+        int hand = tn > 0;                             /* the hand's set, or the key's shape below */
+        uint8_t kc[KB_CH];
+        const uint8_t *tones = nt;
+        uint32_t cnt = tn, k;
+        int32_t rroot = rec.root, ax0 = 14, ax1 = 226, ay = 74, hh = 12;
+        if (!hand && mode) {
+            cnt = chord_from(t, (uint32_t)(60 + root), mode, vc, kc, 0, 0);
+            tones = kc;
+            rroot = root;
         }
-        if (!tn)
-            lo = hi = 0;
-        if (hi - lo < 7)
-            hi = lo + 7;
-        for (k = 0; k < (int32_t)tn && k < 4; k++) {
-            int32_t y = 68 + k * 6;
-            int32_t px = x0 + ((int32_t)nt[k] - lo) * (x1 - x0) / (hi - lo);
-            int bassk = rec.bass >= 0 && (int32_t)(nt[k] % 12u) == (int32_t)rec.bass;
-            cv_rect(x0, y + 2, x1 - x0, 1, ux_mix(T_THEME, T_SURF, 26));
-            cv_rect(px - 1, y, 3, 3, bassk ? T_TEXT : T_ACCENT);
-            cv_text_on(x0 - 4, y - 1, &AF_S, N_NOTE[nt[k] % 12u], bassk ? T_TEXT : T_MID, T_SURF);
+        if (rroot < 0 && cnt)
+            rroot = (int32_t)tones[0] % 12;
+        cv_rect(ax0, ay, ax1 - ax0, 1, ux_mix(T_SURF, T_LINE, 64));
+        for (k = 0; k < 12u; k++) {                    /* the twelve steps of the octave, the tonic raised */
+            int32_t x = ax0 + ((int32_t)k * (ax1 - ax0) + 6) / 12;
+            cv_rect(x, ay - 2, 1, 5, k == 0 ? T_THEME : ux_mix(T_SURF, T_GRID, 60));
         }
-        if (!tn)
-            cv_rect(x0, 68 + 2, x1 - x0, 1, ux_mix(T_THEME, T_SURF, 30));
+        for (i = 0; i < cnt && i < 6u; i++) {
+            int32_t iv = ((int32_t)tones[i] - rroot) % 12;
+            int in = scl_degree(tones[i], (uint32_t)root, off, sn) >= 0;
+            int bass = hand && rec.bass >= 0 && (int32_t)(tones[i] % 12u) == (int32_t)rec.bass;
+            int32_t x;
+            uint16_t face, ink, lk;
+            if (iv < 0)
+                iv += 12;
+            x = ax0 + (iv * (ax1 - ax0) + 6) / 12;
+            face = !hand ? ux_mix(T_SURF, T_LINE, 120) : !in ? T_RAISE : iv == 0 ? T_ACCENT
+                                                                    : ux_mix(T_THEME, T_SURF, 74);
+            ink = !hand ? T_MID : !in ? T_MID : iv == 0 ? T_INK : T_TEXT;
+            lk = !hand ? T_DIM : !in ? T_DIM : iv == 0 ? T_ACCENT : T_THEME;
+            cv_rrect(x - 7, ay - 2 - hh, 14, hh, 3, face, T_SURF);     /* the chip sits ON the axis */
+            cv_rect(x, ay - 3, 1, 7, bass ? T_TEXT : T_LINE);          /* the tone's tick, the bass bright */
+            cv_text_in(x - 7, ay - 2 - hh, 14, &AF_S, N_NOTE[tones[i] % 12u], ink, face);
+            /* its name over the root, UNDER its own tick: the full twelve-name row was two characters in a
+             * 17 px cell and read as one word; a chord only needs the intervals it actually uses */
+            cv_text_in(x - 8, ay + 3, 17, &AF_S, N_ITVN[iv], lk, T_SURF);
+        }
+        if (!cnt)                                      /* nothing picked and no shape: the ruler alone, and */
+            cv_text_fit(ax0, ay - 19, &AF_S, "TAP THE KEYS OR A PROG STEP", T_DIM, T_SURF, 200);
     }
     /* the strip keeps BOTH readings: the key's scale as the context (so an out-of-key note is still marked as
      * one) and the picked set as the accent. Handing the selection over as the scale -- which this page did

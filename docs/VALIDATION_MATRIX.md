@@ -2425,3 +2425,76 @@ on the same ground as the four cards, and the layout lint reports no ink on its 
 free); XIP code 429 868 → 429 832 B, constants 130 872 → 130 876 B; RAM code 19 728 B and the pool's 9 248 B
 spare unchanged. The build's own link checks pass, and `target_budget.py` keeps every audited path inside its
 stored budget.
+
+## 29. Fase 3/8 — SCL visual & musical redesign (2026-11-21)
+
+Scope: the four scale/chord pages of the SCL section — `graph_scl_scale`, `graph_scl_chord` (and their
+keybed, `scl_bed`, `scl_tap`); `graph_scl_prog` and the large keyboard (`graph_scale`) were read and left
+alone, they already read correctly. No functional behaviour was removed: the same selection, the same
+recognition, the same taps, the same navigation.
+
+### 29.1 Scale: the labels no longer touch, and the right column is a table
+
+**Root cause.** Two separate defects on one page.
+
+*The ring.* `graph_scl_scale()` put all twelve names on one 30 px ring: neighbours sit 15.7 px apart and a two
+character name plus its box needs 16, so `A#` and `B` met, and at the top and the bottom the ring pressed on
+the header and on the keybed. The tap target was worse: `scl_tap()` aimed at `50 + cos·24, 58 + sin·24` while
+the page drew the circle at `50, 54` with `rn = 20` — the rim the player touched was not the rim on screen,
+and the two-inch difference is enough to pick the neighbouring note.
+
+*The column.* It printed `0 SEL 5 SCALE` and `0 LIVE` — three numbers a player had to decode — a chord name
+with no label, a row of degree digits with no caption and an interval row that only existed once the set had
+a root. Nothing said which number was which.
+
+**Fix.** The names alternate between a 29 px ring and a 35 px one, which puts every neighbouring pair 17.5 px
+apart, and the whole ring is centred at `46, 54` so it clears the header and the keybed; the tap test uses
+that same centre and radius (10 px of slack), so what is drawn is what is hit. The column is four labelled
+rows on a common value column (x 140): `NOTES` (the letters the hand holds), `DEG` (their degrees in the key,
+a dash where a note is outside it — never an invented degree), `IVL` (their intervals over the root, the same
+names the CHORD page spells) and `STEPS` (the key's own semitones from its tonic); the chord's name is the
+headline above them and `n LIVE` appears only while something sounds. Every row is a function of (selection,
+key, scale): nothing is stored, and the page did not grow.
+
+### 29.2 Chord: the empty band is an interval ruler
+
+**Root cause.** The middle of the page was four lane lines over a pitch axis drawn only when `tn > 0`: with
+nothing picked the band under the name was empty — a whole third of the panel saying nothing — and with a
+chord the lanes still did not say *which* notes they were, because a dot's x was a pitch on a compass nobody
+could read. `0/0 IN KEY` also printed over the hint when the hand was empty, which is a row that only has
+meaning with a hand.
+
+**Fix.** Twelve semitones from the chord's root along one axis, every semitone ticked (the tonic raised); each
+tone of the chord is a 14×12 chip sitting on its own tick with its letter inside — the root in the accent, a
+tone outside the key in `T_RAISE`, the bass on a bright tick — and the interval the ear hears (`P1 M3 P5 M7`)
+directly under its tick, so a full row of twelve two-character names is never needed. With nothing picked the
+KEY's own chord is drawn the same way, dim, so the page always answers the question a key page should answer;
+the `KEY` tag keeps that reading apart from the hand's. The in-key row now exists only with a hand, and the
+rows above moved one step so no two texts share a row.
+
+### 29.3 Geometry: one rectangle for the keys
+
+`graph_scl_scale()` draws its keys at `(8, 92, 224, 26)` and `graph_scl_chord()` at `(12, 90, 216, 26)`, but
+`scl_tap()` measured taps against `(8, 94, 224, 22)` and `(12, 92, 216, 24)`: two pixels of the drawn key —
+and every edge column — were dead. Both beds are now the drawn rectangles. `tests/scl_test.c` still fixes its
+own `scl_bed(8, 94, 224, 22)` coordinates and still passes unchanged: its taps land inside the drawn keys, so
+the fix widened the real target without touching the test.
+
+### 29.4 Evidence
+
+- `scl` group (`[HOST]`): **all 28 checks passed**, including the four-taps-on-drawn-keys check, the picked
+  chord reaching the panel (3 827 px changed) and the bass/inversion checks.
+- `ui` group (`[HOST]`): **all passed**, 191 screens × 22 palettes, **0 lint findings** in every palette
+  (10 lines of the report are the renderer's own self-test, as its header says), 0 inks on their own colour,
+  0 GREY / MONO pixels off gray / neutral, 3 787 294 alignment measurements with 0 off by 1 px.
+- Renders read for `GAMMA`, `NIGHT`, `MONO` and the LARGE layout, both pages, empty and picked: the ring's
+  names separated, the four rows aligned, the chips and their intervals legible in MONO's greys.
+
+### 29.5 Budget (`[TARGET]`)
+
+`.data+.bss` 93 616 B of 98 304 (4 688 free, unchanged — the page stores nothing new); image 581 248 →
+**581 848 B** of 583 612 (1 764 free); XIP code 429 832 → 430 404 B, constants 130 876 → 130 904 B; RAM code
+19 728 B and the pool's 9 248 B spare unchanged. `tests/target_budget.py` keeps every audited path inside its
+stored budget (`mix_block` 33 342 / 32 667, +2 % under the +10 % limit; every other path at or under its
+baseline). `[HW]` unchanged: no physical FM-1 here, so updater, SPL, restore and JEDEC are still unmeasured
+and the gate stays **GO CONDITIONAL**.
