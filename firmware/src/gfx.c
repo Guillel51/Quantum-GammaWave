@@ -760,13 +760,18 @@ static uint16_t plate_ramp_at(int32_t k, int32_t n, uint16_t hi, uint16_t lo)
     if (n > 0 && n <= PLATE_CACHE) {
         if (plate_cache.n != n || plate_cache.hi != hi || plate_cache.lo != lo) {
             int32_t i;
-            for (i = 0; i < n; i++)
-                plate_cache.g[i] = ux_mix(hi, lo, (i + 1) * 100 / n);
+            for (i = 0; i < n; i++) {
+                int32_t t = (i + 1) * 100 / n;
+                plate_cache.g[i] = ux_mix(hi, lo, t * t / 100);      /* (FASE 4) dark-heavy: see cv_plate_ground */
+            }
             plate_cache.n = n, plate_cache.hi = hi, plate_cache.lo = lo;
         }
         return plate_cache.g[k];
     }
-    return ux_mix(hi, lo, (k + 1) * 100 / n);
+    {
+        int32_t t = (k + 1) * 100 / n;
+        return ux_mix(hi, lo, t * t / 100);
+    }
 }
 static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
 {
@@ -789,7 +794,7 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
      * row it replaced, and a slightly textured row instead of four visible steps. Cards keep the banded
      * ramp, which is where the depth reads. */
     if (h < 24) {
-        gw_dither(x + 1, y + 1, w - 2, h - 2, ux_mix(c, T_TEXT, 7), ux_mix(c, T_BG, 58), 50);
+        gw_dither(x + 1, y + 1, w - 2, h - 2, ux_mix(c, T_TEXT, 4), ux_mix(c, T_BG, 74), 50);   /* (FASE 4) */
         return;
     }
     n = (h - 2 + 1) / 2;
@@ -798,7 +803,13 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
 
          * about ten values, so a run of one fill covers several rows and the picture is the same one. */
 
-        uint16_t hi = ux_mix(c, T_TEXT, 7), lo = ux_mix(c, T_BG, 58), g = plate_ramp_at(0, n, hi, lo);
+        /* (FASE 4) DARKER AND CLEANER: the lit top is 4 % of the text colour instead of 7 (a card was pale under
+         * a bright label), the foot goes 66 % of the way to T_BG instead of 58, and plate_ramp_at squares its
+         * position so the middle of the plate sits close to the foot and the light stays in the first rows. The
+         * result is one quiet surface with a lit edge -- a gradient, not a wash -- and it is the same primitive
+         * for all 191 screens. cv_plate_rows and cv_plate_cut_ground carry the same numbers: a strip repainted
+         * alone has to leave the surface the full pass leaves. */
+        uint16_t hi = ux_mix(c, T_TEXT, 4), lo = ux_mix(c, T_BG, 74), g = plate_ramp_at(0, n, hi, lo);
         int32_t r0 = 0, bh = (h - 2) / n;
         for (k = 1; k < n; k++) {
             uint16_t gn = plate_ramp_at(k, n, hi, lo);
@@ -819,7 +830,7 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
 static void cv_plate_rows(int32_t x, int32_t y0, int32_t y1, int32_t w, int32_t h, uint16_t c)
 {
     int32_t n = h >= 24 ? (h - 1) / 2 : (h > 6 ? 4 : 1), bh, k, a, b;
-    uint16_t hi = ux_mix(c, T_TEXT, 7), lo = ux_mix(c, T_BG, 58);
+    uint16_t hi = ux_mix(c, T_TEXT, 4), lo = ux_mix(c, T_BG, 74);   /* (FASE 4) the numbers of cv_plate_ground */
     if (w < 3 || h < 3 || n < 1)
         return;
     bh = (h - 2) / n;
@@ -839,7 +850,7 @@ static void cv_plate_rows(int32_t x, int32_t y0, int32_t y1, int32_t w, int32_t 
 static void cv_plate_cut_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
 {
     int32_t j, n = h > 7 ? (h - 4 + 1) / 2 : 1, y0 = 0, w0 = -1;
-    uint16_t hi = ux_mix(c, T_TEXT, 14), lo = ux_mix(c, T_BG, 58), g = 0;
+    uint16_t hi = ux_mix(c, T_TEXT, 8), lo = ux_mix(c, T_BG, 74), g = 0;   /* (FASE 4) as cv_plate_ground */
     for (j = 0; j <= h - 4; j++) {
         int32_t dy = j + 2, db = h - 3 - j;                  /* rows to the plate's top and to its foot */
         int32_t d = dy < db ? dy : db, in = d < r ? r - d : 0;
@@ -1077,8 +1088,16 @@ static void ux_ground_rows(int32_t x, int32_t y, int32_t w, int32_t h,
         uint16_t na = 0, nb = 0;
         if (j < h) {
             int32_t k = h > 1 ? j * 100 / (h - 1) : 0;
-            na = ux_mix(T_BG, T_SURF, a0 + (a1 - a0) * k / 100);
-            nb = ux_mix(T_BG, T_ACCENT, b0 + (b1 - b0) * k / 100);
+            /* (FASE 4) DARK-HEAVY, AND THE ACCENT AS A HINT. The ramp was linear, so a 200 px body spent half
+             * its height above the middle tone and the panel's ground read as a wash of teal under the content
+             * (the spectrum and the curve of HOME had to fight it). Squaring the position keeps most of the
+             * height within a few percent of T_BG and spends the lift in the last rows, where it reads as depth
+             * instead of as colour; and the accent's band is cut to three quarters for the same reason: the ground
+             * should sit under the page, not tie with it. Both changes are here, in the one primitive, so every
+             * page that owns a ground moves together. */
+            int32_t q = k * k / 100, aa = (a0 + (a1 - a0) * q / 100) * 4 / 5, bb = (b0 + (b1 - b0) * q / 100) / 2;
+            na = ux_mix(T_BG, T_SURF, aa);
+            nb = ux_mix(T_BG, T_ACCENT, bb);
         }
         if (!have) {
             ca = na, cb = nb, y0 = j, have = 1;
@@ -1106,7 +1125,8 @@ static uint16_t ux_ground_at(int32_t j, int32_t h, int32_t b0, int32_t b1)
         if (j > h - 1) j = h - 1;
         k = j * 100 / (h - 1);
     }
-    return ux_mix(T_BG, T_ACCENT, b0 + (b1 - b0) * k / 100);
+    k = k * k / 100;                                     /* (FASE 4) the same dark-heavy curve as the rows */
+    return ux_mix(T_BG, T_ACCENT, (b0 + (b1 - b0) * k / 100) / 2);
 }
 /* (FASE 6) A RAMP BETWEEN TWO COLOURS, in `n` solid bands. ux_ground_bands walks two of the palette's own
  * ramps (T_BG -> T_SURF, T_BG -> T_ACCENT) because HOME and FX > BUSES start from the page behind the panel;
@@ -1124,13 +1144,18 @@ static uint16_t ramp_at(int32_t k, int32_t h, uint16_t from, uint16_t to)
     if (h > 1 && h <= PLATE_CACHE) {
         if (ramp_cache.h != h || ramp_cache.from != from || ramp_cache.to != to) {
             int32_t i;
-            for (i = 0; i < h; i++)
-                ramp_cache.g[i] = ux_mix(from, to, (i + 1) * 100 / (h - 1));
+            for (i = 0; i < h; i++) {
+                int32_t t = (i + 1) * 100 / (h - 1);
+                ramp_cache.g[i] = ux_mix(from, to, t * t / 100);   /* (FASE 4) dark-heavy, as the ground */
+            }
             ramp_cache.h = h, ramp_cache.from = from, ramp_cache.to = to;
         }
         return ramp_cache.g[k];
     }
-    return ux_mix(from, to, (k + 1) * 100 / (h > 1 ? h - 1 : 1));
+    {
+        int32_t t = (k + 1) * 100 / (h > 1 ? h - 1 : 1);
+        return ux_mix(from, to, t * t / 100);
+    }
 }
 static void ux_ground_ramp(int32_t x, int32_t y, int32_t w, int32_t h, int32_t n, uint16_t from, uint16_t to, int32_t pct)
 {
