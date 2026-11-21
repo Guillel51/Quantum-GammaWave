@@ -95,13 +95,14 @@ verificadas.
 | `groups.sh presets` | **0** — 287/287, una categoría primaria cada uno |
 | `groups.sh web` | **0** — sitio, i18n, instalador, editor vs firmware, MIDI export (64 checks) |
 | `groups.sh target` | **0** — build AC791N + `target_budget` + `memory_map_test` (RAM spare 4 692 B, pool 9 248 B, RAMTEXT 4 848 B, NOINIT 124 B) |
-| `groups.sh security` | ver §5 |
-| `groups.sh ui` | ver §5 |
+| `groups.sh security` | **0 todo PASS** — instalador, preflight, gate, firmas, custodia, restore, `pkg_bounds`/`pkg_faults`, fuzz ASan/UBSan, cortes de storage y OTA, eq ×4, audio |
+| `groups.sh ui` | **0** — 191 pantallas × 22 paletas, 0 lint findings, 3 787 294 medidas de alineación y 0 fuera de 1 px, GREY/MONO sin píxeles fuera de gris |
 | `tests/install_test.py` | **0** |
 | `node web/test_web.mjs` / `test_v16_path.mjs` / `test_verify_only.mjs` | **0 / 0 / 0** (175 checks) |
 | `tools/make_release.py --check` | **ok** |
 | `tools/build_manifest.py --verify`, `tests/manifest_test.py` | **ok / passed** |
-| `regress` (dentro de security/stress) | 307 goldens, 0 cambiados |
+| `groups.sh stress` | **0** — `regress` 2 pasadas completas, project/persistence/robust/midi_control |
+| `regress` | 307 goldens, 0 cambiados |
 
 ## 4. Optimización: medidas y decisión
 
@@ -131,8 +132,7 @@ corazonada** (AGENTS.md §8).
   en `stress`, orden de las divisiones del LFO) está en `docs/ETAPA7_AUDITORIA_2026-11-21.md`, corregida y
   re-verificada aquí en el paquete final.
 
-Los dos grupos largos de esta corrida (`security`, `ui`) se ejecutaron sobre este árbol y su resultado se anota
-en el commit de la release; si alguno no llegara a terminar, se reporta como no terminado, nunca como pass.
+Los dos grupos largos (`security`, `ui`) y `stress` se ejecutaron sobre este árbol y terminaron con **exit 0**.
 
 ## 6. Publicación
 
