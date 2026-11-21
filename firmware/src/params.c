@@ -12,7 +12,8 @@ static const char *const N_LSYNC[14] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1
                                                                               * 1/32 jumped back to a slow one */
 static const char *const N_AMODE[] = {"OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT",   /* (append-only: seq.c AM_*) */
                                        "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD",
-                                       "TRNS", "PEDAL", "ALBERTI"};     /* (JIANT: seq.c AM_TRNS) */   /* (ETAPA 5) */
+                                       "TRNS", "PEDAL", "ALBT"};       /* (JIANT: seq.c AM_TRNS) */   /* (ETAPA 5: ALBT is the Alberti
+                                              * figure; 6 chars, as every mode name is -- a card holds 6) */
 static const char *const N_DIV[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR"};
 /* (JIANT 0.4) the delay's TIME: N_DIV's ten, then 48 free times past the last division (5 ms .. 1.48 s, exponential;
  * fx.c delay_samples, DTIME_MS) */

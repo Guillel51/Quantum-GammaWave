@@ -577,6 +577,10 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
 {
     char key[56];
     int hot = c == ui.hot_col && ui.hot_t, named = fmt_named, mot = card_mot_next && label[0], strip, snap;
+    /* (FASE 4/8) THIS CARD'S KNOB IS AT AN END: a 3 x 7 bar on the end of the card's own gauge (the far end
+     * for MIN, the near one for MAX), and on a value with no gauge a 2 px tick beside it. It expires on
+     * ui.limit_t, so a knob turned away leaves nothing behind. */
+    int lim = ui.limit_t && c == ui.limit_col ? (ui.limit_up ? 1 : -1) : 0;
     uint32_t kind = large_kind();                       /* MENU > LARGE: tall (draw_column_tall), or the label in M */
     uint8_t sig;
     uint16_t lc = hot ? T_ACCENT : T_MID;
@@ -605,7 +609,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
     key[n + 3] = (char)('A' + (vc >> 12));
     key[n + 4] = (char)(' ' + (ratio < 0 ? 0 : 1 + clamp(ratio, 0, 1000) * (COL_W - 10) / 1000));   /* (the gauge's px) */
     key[n + 5] = (char)(icon == ICON_NONE ? '~' : '!' + icon % 90u);
-    key[n + 6] = (char)('0' + hot + 2 * mot + 4 * (int)kind);
+    key[n + 6] = (char)('0' + hot + 2 * mot + 4 * (int)kind + 8 * (lim != 0));
     {   /* (0.6.10) the gauge's colour too: JIANT's heat runs over 256 steps, the width over its pixels */
         uint16_t gc = ratio < 0 ? 0u : gauge_col(ratio);
         key[n + 7] = (char)('A' + (gc & 15u));
@@ -770,6 +774,12 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
                     cv_rect(5 + s, 48, 1, 3, T_SURF);
                 cv_rect(5 + fillw - 2, 47, 2, 4, hot ? T_TEXT : T_ACCENT);
             }
+        }
+        if (!strip && lim) {                            /* (FASE 4/8) the end this knob has reached */
+            if (ratio >= 0)
+                cv_rect(lim > 0 ? COL_W - 8 : 5, 46, 3, 7, T_ACCENT);
+            else
+                cv_rect(lim > 0 ? COL_W - 4 : 2, 18, 2, 9, T_ACCENT);
         }
     }
     cv_oy = 0;

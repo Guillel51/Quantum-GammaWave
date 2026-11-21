@@ -290,14 +290,16 @@ static int arp_new_modes(void)
     track_t *t;
     ui_power_on();
     t = &trk[0];
-    ok = TP[P_AMODE].max == 15 && str_eq(TP[P_AMODE].names[15], "TRNS") && str_eq(TP[P_AMODE].names[6], "REPEAT") && str_eq(TP[P_AMODE].names[7], "DNUP") &&
+    ok = TP[P_AMODE].max == 17 && str_eq(TP[P_AMODE].names[15], "TRNS") &&
+         str_eq(TP[P_AMODE].names[16], "PEDAL") && str_eq(TP[P_AMODE].names[17], "ALBT") &&
+         str_eq(TP[P_AMODE].names[6], "REPEAT") && str_eq(TP[P_AMODE].names[7], "DNUP") &&
          str_eq(TP[P_AMODE].names[8], "UP+8") && str_eq(TP[P_AMODE].names[9], "CONV") &&
          str_eq(TP[P_AMODE].names[10], "DIVG") && str_eq(TP[P_AMODE].names[11], "PINKY") &&
          str_eq(TP[P_AMODE].names[12], "THUMB") && str_eq(TP[P_AMODE].names[13], "WALK") &&
          str_eq(TP[P_AMODE].names[14], "CHORD");
-    for (i = 0; i <= 15u; i++)
+    for (i = 0; i <= 17u; i++)
         ok &= strlen(TP[P_AMODE].names[i]) <= 6u;
-    bad += check("ARP modes: OFF..REPEAT keep their numbers, DNUP UP+8 CONV DIVG PINKY THUMB WALK CHORD TRNS appended (<= 6 chars)", ok);
+    bad += check("ARP modes: OFF..REPEAT keep their numbers, DNUP UP+8 CONV DIVG PINKY THUMB WALK CHORD TRNS PEDAL ALBT appended (<= 6 chars)", ok);
     /* the modes before 1.2 play as they did */
     arp_fresh(t, AM_UP, 1, CEG, 3);   ok = arp_plays(t, (const uint8_t[]){60, 64, 67, 60}, 4);
     arp_fresh(t, AM_DN, 1, CEG, 3);   ok &= arp_plays(t, (const uint8_t[]){67, 64, 60, 67}, 4);
@@ -328,6 +330,14 @@ static int arp_new_modes(void)
     arp_fresh(t, AM_THUMB, 1, CEGB, 4); ok &= arp_plays(t, (const uint8_t[]){60, 64, 60, 67, 60, 71, 60}, 7);
     arp_fresh(t, AM_THUMB, 1, CEG, 1);  ok &= arp_plays(t, (const uint8_t[]){60, 60, 60}, 3);   /* (one note) */
     bad += check("ARP PINKY: C G E G, C B E B G B, the OCT 2 top; THUMB: C E C G, C E C G C B; one note", ok);
+    /* (ETAPA 5) the two modes appended after TRNS: the Alberti figure and the pedal point, worked out from
+     * seq.c arp_step_index by hand and checked against the route they describe */
+    arp_fresh(t, AM_ALBT, 1, CEG, 3);   ok = arp_plays(t, (const uint8_t[]){60, 67, 64, 67, 60, 67, 64}, 7);
+    arp_fresh(t, AM_ALBT, 1, CEGB, 4);  ok &= arp_plays(t, (const uint8_t[]){60, 67, 64, 71, 60, 67, 64, 71}, 8);
+    arp_fresh(t, AM_PEDAL, 1, CEG, 3);  ok &= arp_plays(t, (const uint8_t[]){60, 64, 67, 64, 60, 67, 64, 67}, 8);
+    arp_fresh(t, AM_PEDAL, 1, FIVE, 5); ok &= arp_plays(t, (const uint8_t[]){60, 64, 67, 71, 60, 74, 64, 67}, 8);
+    bad += check("ARP ALBT: C G E G (1-3-2-4), C G E B for 4; PEDAL: the root on every downbeat, the rest climbing",
+                 ok);
     /* CHORD: the held notes together, an octave up each step through OCT; the first 4 of more */
     arp_fresh(t, AM_CHORD, 2, CEG, 3);
     ok = 1;

@@ -11676,6 +11676,111 @@ static int test_still_when_anim_off(void)
                  "ANIM ON: the phase is state again", ok);
 }
 
+
+/* (FASE 4/8) THE END OF A KNOB'S TRAVEL, SAID WHERE THE HAND IS. fb_turn()/fb_limit() (ui.c) decide it once
+ * for every knob that turns a parameter -- HOME's four, a page's, the editor's -- and draw_column() marks the
+ * card of the knob that reached an end (ui_draw.c). These checks are on the state the drawing reads and on
+ * drawn pixels, not on "it compiles":
+ *  - a knob that moved lights its column and reports no limit;
+ *  - a knob already at its end does not pass it, says MAX (or MIN), and marks its own card;
+ *  - the marker really is drawn (the card's picture changes with it) and comes back off;
+ *  - turning away clears it, and a page change clears it with the rest of the page's emphasis;
+ *  - sixty page changes in a row land on a valid page with the sound untouched.
+ * The full class/priority kernel (refusals living longer than a page's name, the bar debounced by class) was
+ * measured at +1 332 B of XIP with no call site changed and the image had 1 764 B: it does not fit, and is
+ * recorded as blocked in docs/VALIDATION_MATRIX.md §30 instead of being half-shipped. */
+static uint32_t card_pixels(int32_t x0, int32_t y0, int32_t w, int32_t h)
+{
+    int32_t x, y;
+    uint32_t n = 0, h2 = 2166136261u;
+    for (y = y0; y < y0 + h; y++)
+        for (x = x0; x < x0 + w; x++) {
+            if (host_screen[y * 240 + x] == T_ACCENT)
+                n++;
+            h2 = (h2 ^ host_screen[y * 240 + x]) * 16777619u;
+        }
+    return (n << 24) ^ (h2 & 0xFFFFFFu);   /* the accent count and the picture */
+}
+static int test_fb_kernel(void)
+{
+    int bad = 0;
+    int16_t *vp = 0;
+    const param_desc_t *d;
+    uint32_t a, b, i;
+    int32_t was, mid;
+    ui_power_on();
+    home_first();
+    frames(80);
+    d = home_param(0, &vp);
+    bad += check("fb: HOME's KNOB 1 has a range to reach an end of", d && vp && d->max > d->min);
+    if (!d || !vp)
+        return bad;
+    /* 1. a value that moved: the column lights, nothing else */
+    mid = (int32_t)(d->min + (d->max - d->min) / 2);
+    *vp = (int16_t)mid;
+    ui.msg_t = 0;
+    ui.limit_t = 0;
+    ui.hot_t = 0;
+    turn(EN_K1, 1);
+    bad += check("fb: a knob that moved lights its column", ui.hot_col == 0u && ui.hot_t != 0u && *vp != mid);
+    bad += check("fb: .. and reports no limit", !ui.limit_t && !msg_is("MAX") && !msg_is("MIN"));
+    /* 2. the end it cannot pass */
+    *vp = d->max;
+    ui.msg_t = 0;
+    turn(EN_K1, 1);
+    bad += check("fb: a knob at its end says MAX, marks its card and does not pass it",
+                 msg_is("MAX") && ui.limit_col == 0u && ui.limit_up == 1u && ui.limit_t != 0u && *vp == d->max);
+    /* 3. against the stop, the marker stays and the value does not creep */
+    for (i = 0; i < 5u; i++)
+        turn(EN_K1, 1);
+    bad += check("fb: five more detents against the stop leave the value at its end and the mark on",
+                 *vp == d->max && ui.limit_t != 0u && ui.limit_up == 1u);
+    /* 4. the marker is drawn: the card's picture changes with it and comes back */
+    ui.limit_t = 24u;
+    ui.hot_t = 0u;
+    ui.force = 1;
+    frame();
+    a = card_pixels(3, 28, 57, 56);
+    ui.limit_t = 0u;
+    ui.force = 1;
+    frame();
+    b = card_pixels(3, 28, 57, 56);
+    bad += check("fb: the marker is drawn on the card (its picture changes with the mark)", a != b);
+    /* 5. turning away clears it */
+    was = *vp;
+    turn(EN_K1, -1);
+    bad += check("fb: turning away clears the marker and moves the value", !ui.limit_t && *vp == was - 1);
+    /* 6. the other end */
+    *vp = d->min;
+    ui.msg_t = 0;
+    turn(EN_K1, -1);
+    bad += check("fb: the other end says MIN and marks the other side", msg_is("MIN") && ui.limit_up == 0u &&
+                 *vp == d->min && ui.limit_t != 0u);
+    /* 7. page changes: no marker survives, and a run of them lands on a valid page with the sound intact */
+    {
+        int32_t dist = TSEL->p[P_DIST];
+        uint32_t e2 = (uint32_t)TSEL->p[P_E2];
+        int16_t *pv = 0;
+        const param_desc_t *pd;
+        press(B_ENV);
+        pd = page_desc(cur_page(), 0, &pv);
+        bad += check("fb: the page in front has a KNOB 1 with a range", pd && pv && pd->max > pd->min);
+        if (pd && pv && pd->max > pd->min) {
+            *pv = pd->max;
+            ui.msg_t = 0;
+            turn(EN_K1, 1);
+        }
+        bad += check("fb: MARKED before the page change", ui.limit_t != 0u);
+        for (i = 0; i < 60u; i++)
+            turn(EN_SELECT, 1);
+        bad += check("fb: sixty page changes clear the marker and land on a page the panel can show",
+                     !ui.limit_t && ui.page < NPAGES && page_visible(ui.page) && !ui.home);
+        bad += check("fb: .. and the sound is untouched by them", TSEL->p[P_DIST] == dist &&
+                     (uint32_t)TSEL->p[P_E2] == e2);
+    }
+    return bad;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -11811,6 +11916,7 @@ int main(void)
     bad += test_fx_scenes();
     bad += test_home_knob_pulse();
     bad += test_home_knob_no_wave();
+    bad += test_fb_kernel();
     bad += test_see_through_ink();
     bad += test_scale_leds();
     bad += test_screen_off();

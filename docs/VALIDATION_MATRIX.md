@@ -2498,3 +2498,86 @@ the fix widened the real target without touching the test.
 stored budget (`mix_block` 33 342 / 32 667, +2 % under the +10 % limit; every other path at or under its
 baseline). `[HW]` unchanged: no physical FM-1 here, so updater, SPL, restore and JEDEC are still unmeasured
 and the gate stays **GO CONDITIONAL**.
+
+## 30. Fase 4/8 — Advanced UI interaction: what was red, what the panel was missing (2026-11-21)
+
+Scope read before changing anything: `ui_input.c` (the frame, the knob and button dispatch, the layers, the
+combos), `ui.c` (`ui_say`/`ui_message`, `page_entered`, `accel`, `btn_hold`), `ui_draw.c` (`draw_column`, the
+message bar, the page flash), `ui_layer.c`. The event system is mature: encoder acceleration per role with
+its direction and ms-per-detent history, press/release edges with the 1.3.2 ghost-tap fix, `btn_hold` for
+tap/hold, layers that mask knobs and keys, and a message bar with a second-message queue. Nothing of that was
+rewritten. What follows is what the measurements found.
+
+### 30.1 The four gates that were red before this phase
+
+Each one was reproduced at `5f585906` with a build of that commit, so none of them is this phase's
+regression; all four are fixed here.
+
+| Gate | What was wrong | Fix |
+|---|---|---|
+| `scale_test` (assert) | the hand-checked table of note masks had 16 rows and the firmware 18: `HIJAZ` and `HUNGMIN` were appended in ETAPA 5 and the table was never extended, so the test aborted on its own size assertion | the two rows added with their music (`0 1 4 5 7 8 10`, `0 2 3 6 7 8 11`), which is what `SCALE_MASK` already says and what the machine keyboard plays |
+| `motion_test` (ARP) | the mode list was asserted at 15 names; the firmware has 17 (`PEDAL`, `ALBT`), so the check failed on the count alone — and `ALBERTI` was 7 characters where every mode name (and every card) holds 6 | the list asserted to 17 with `PEDAL`/`ALBT`, `ALBERTI` renamed `ALBT` (the same word `seq.c`'s `AM_ALBT` already used), and the two modes given real coverage: the Alberti figure `1-3-2-4` over a triad and a seventh (`60 67 64 71`) and the pedal point over a five-note chord (`60 64 67 71 60 74 64 67`), both worked out from `arp_step_index` by hand |
+| UI renders (exit 1) | the SCALE page's STEPS row printed the scale as semitones; a twelve-tone scale is twelve numbers in a row that holds seventeen characters, so `0 1 2 3 4 5 6 7 8…` was ellipsised on ten pages (the render lint counted it, and the gate exited non-zero) | the list stops where the row ends and the rest is counted (`0 1 2 3 4 5 7 +6`): same information, no cut, and the lint is back to its own five self-test lines |
+| UI pixels | the tracked baseline in `tests/ui_pixels.txt` no longer matched the tree at `5f585906` (2 489 px over 20 screens) | regenerated with `ui_pixels.py --update` **after** the three changes above, and the render is pixel-identical to the baseline afterwards |
+| web tests (2 checks) | the editor's copy of the enum tables still spelled the arp mode `ALBERTI` (7 characters) where `params.c` now says `ALBT`, so `web/test_web.mjs` found one difference between the editor's tables and the firmware's | `web/editor.html` and its published copy `site/webapp/editor/index.html` both say `ALBT`; the editor and the device now pin the same 52 lists |
+
+The evidence index was stale for the same reason (it is generated from this file): `tools/evidence_index.py`
+regenerated it, `--check` agrees.
+
+### 30.2 The feedback the panel was missing: the end of a knob's travel
+
+**What it was.** A knob already at MIN or MAX did nothing, and looked exactly like a knob whose value nobody
+can see moving: the column did not change, the bar said nothing, the card said nothing. Every control that
+turns a parameter (HOME's four, a page's, the editor's) had the same silence, which is what "equivalent
+controls answer alike" was asking about.
+
+**Fix, in one place.** `fb_turn(was, now, col, steps)` (ui.c) is the single answer for a knob that turned a
+parameter: if the value moved, the column lights (`ui.hot_col/hot_t`, as before) and any end marker is
+dropped; if it did not move and the turn was real, `fb_limit()` sets the sentence *and* the place —
+`ui.limit_col/limit_up/limit_t` and `MAX`/`MIN` in the top bar. `draw_column()` draws the marker on the card of
+that knob (ui_draw.c): a 3 × 7 bar on the end of the card's own gauge — the far end for MIN, the near one for
+MAX — or a 2 px tick beside a value that has no gauge. It expires on frames (24) and a page change clears it
+with the rest of the page's emphasis, so nothing is left behind. Both knob paths call it: `edit_param()` (a
+page's KNOB 1..4) and HOME's four.
+
+### 30.3 What was designed, measured and NOT shipped
+
+The design started as a class/priority kernel inside `ui_say`: classes (INFO/EDIT/STATE/LIMIT/BLOCK/WARN)
+deciding how long the bar keeps a message (a refusal 90 frames, a page's name 40), a debounce of the same
+sentence, and the limit routed through it. Measured on the `[TARGET]` build: **+1 332 B of XIP with no call
+site changed at all** (the message path is inlined at some hundred and fifty call sites, and its body growing
+by a few bytes costs that much), against **1 764 B free**. A `noinline` on the kernel did not move the number
+(the size pass marks those functions minsize anyway). The class/priority part therefore does not fit and is
+**not** half-shipped: the marker and the limit sentence, which are what the panel was missing, do fit, and the
+kernel is written down here with its measurement so the next resource pass starts from a number.
+
+Same reason, recorded: `ui_message()` keeps its one-argument signature and hands the class through `ui_say()`
+— giving the class argument to every call site cost 382 B in `ui_input_frame` alone, measured.
+
+### 30.4 Evidence
+
+- `tests/ui_test.c`, new `test_fb_kernel()` (12 checks, `[HOST]`): a knob that moved lights its column and
+  reports no limit; a knob at its end does not pass it, says MAX, marks its card and keeps the value; five
+  detents against the stop leave both the value and the mark; the marker is *drawn* (the card's pixels change
+  with it and come back); turning away clears it; MIN marks the other side; a page change clears the marker;
+  sixty page changes in a row land on a page the panel can show with the sound untouched.
+- Whole suite, `NO_PACKAGE=1 ./tests/run_tests.sh`: **no `FAIL` line**, including `scale_test`, `motion_test`
+  (with the two new ARP modes), `scl_test` (28 checks), `ui_test` (`all passed`), the render lint (0 findings
+  of its own beyond its five self-test lines, 0 inks on their own colour, 0 GREY/MONO pixels off, 3 787 294
+  alignment measurements with 0 off by 1 px), the pixel baseline and `make_release --check`.
+- `[TARGET]` (`./build.sh`): XIP code **430 808 B** + constants **130 900 B** = **561 708 B**; image
+  **582 248 B** of 583 612 (**1 364 B** free); `.data+.bss` **93 616 B** of 98 304 (4 688 free). Against the
+  baseline of this same tree (`5f585906`, built here: XIP 561 308 B, image 581 848 B with 1 764 B free, RAM
+  93 616 B) the whole phase costs **+400 B of XIP, +400 B of image and no RAM at all** — the three marker
+  bytes land in the struct's existing padding.
+- Pre-existing, untouched and unchanged by this phase, measured with the same suite on a clean build of
+  `5f585906`: `FX measured` (the EQ LOW SH sweep reports `bad=-99` and flattens at 4 kHz), `FM6 voice bank`
+  plus its ASan run (one of 172 presets does not sound), the ST7789 init table, and the resource map's
+  **XIP floor**: that baseline has **1 764 B** free of XIP against a floor of 2 048 B, so the floor was
+  already missed before this phase; the marker brings it to 1 364 B. The floor is a policy number, not
+  something this phase may lower, and it is reported here rather than worked around: freeing ~700 B of XIP is
+  its own task (the size pass already runs `-Oz` + LTO and `tools/size_fns.py` marks the UI files minsize).
+- Renders re-read for the four SCL pages and HOME after the marker: the bar's `MAX`/`MIN` and the card's end
+  bar, and the STEPS row with its `+N` on a twelve-tone scale.
+- `[HW]` unchanged: no physical FM-1 here, so updater, SPL, restore and JEDEC are still unmeasured and the
+  gate stays **GO CONDITIONAL**.

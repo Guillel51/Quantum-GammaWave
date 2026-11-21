@@ -227,6 +227,9 @@ static struct {
     uint64_t plk_rm, plk_acc;    /* .. the grid's step keys pressed on a hit (bit = step): it goes when the key is let
                                   * go, unless the key was held for a lock (its accent: plk_acc) */
     uint8_t hot_col, hot_t;      /* column whose knob was just turned (drawn white) */
+    /* (FASE 4/8) the end a knob has reached: which column, which end, and the frames its marker lives. The
+     * sentence goes through the bar (fb_limit), the place is the card itself (ui_draw.c draw_column). */
+    uint8_t limit_col, limit_up, limit_t;
     uint8_t menu;                /* 0 off, 1 list, 2 about + credits (HOME held) */
     uint8_t menu_sel;            /* MENU: the row (menu_items.c MI_*; its tab MI_TAB), kept while the device runs */
     uint8_t menu_row[5];         /* MENU: the row last picked in each tab, from its first (ALGORITHM comes back to it) */
@@ -525,6 +528,38 @@ static void ui_say(const char *a, const char *b)
 }
 
 static void ui_message(const char *s) { ui_say(s, ""); }
+/* ------------------------------------------------------- feedback --- */
+/* (FASE 4/8) WHAT A KNOB THAT HAS REACHED ITS END SAYS, AND WHERE. Two questions the panel answered with
+ * silence until now: a knob at MIN/MAX looked exactly like a knob whose value nobody can see moving, and the
+ * card it belongs to said nothing at all. One call decides both, so every knob that turns a parameter through
+ * hardware_edit()/edit_param -- on HOME, on a page, in the editor -- answers the same way:
+ *   - the value did not move because it was already at that end: the bar says MAX or MIN, and the card of that
+ *     knob is marked at the end it reached (ui_draw.c). The marker expires on frames (ui.limit_t), and a page
+ *     change clears it with the rest of the page's emphasis;
+ *   - the value moved: the column lights (ui.hot_col/hot_t) and any marker is dropped -- a knob that is moving
+ *     is not at an end.
+ * Deliberately NOT a rewrite of ui_say: that path is inlined at some hundred and fifty call sites, and a
+ * measured attempt at a class/priority kernel there cost 1 332 B of XIP with no call site changed at all (the
+ * image had 1 764 B free). This is the part of that design that fits, and it is the part the panel was
+ * missing: the answer arrives where the hand is.
+ * ui_say() sets ui.bar_t itself; nothing here re-arms the bar for a value that did not move twice in a row. */
+static void fb_limit(uint32_t col, int32_t dir)
+{
+    ui.limit_col = (uint8_t)clamp((int32_t)col, 0, 3);
+    ui.limit_up = (uint8_t)(dir > 0);
+    ui.limit_t = 24;
+    ui_say(dir > 0 ? "MAX" : "MIN", "");
+}
+static void fb_turn(int32_t was, int32_t now, uint32_t col, int32_t steps)
+{
+    if (now != was) {
+        ui.hot_col = (uint8_t)clamp((int32_t)col, 0, 3);
+        ui.hot_t = 40;
+        ui.limit_t = 0;
+    } else if (steps) {
+        fb_limit(col, steps);
+    }
+}
 /* a message led by an icon: its first byte (ui_draw.c draw_head draws the icon, then the words) */
 #define MSG_NOFILE "\x01"                      /* the no-file icon (ICON_X_NOFILE) */
 
@@ -587,6 +622,7 @@ static void page_entered(void)
     song.seq_mode = !ui.home && pg->fam == FAM_SEQ;
     ui.entry_open = 0;
     ui.hot_t = 0;                                /* clear the previous page's emphasis */
+    ui.limit_t = 0;                              /* (FASE 4/8) and the end marker of a knob that is not here */
     ui.act = pg->graph == GR_USER ? 4u : 0u;     /* the save screen is ready for OCT+ */
     ui.force = 1;
 }

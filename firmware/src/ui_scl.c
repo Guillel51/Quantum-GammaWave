@@ -675,10 +675,24 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
             str_cpy(row, rec.n ? "ONE NOTE" : "-", sizeof row);
         scl_field(96, 48, "IVL", T_DIM, T_SURF);
         cv_text_fit(140, 48, &AF_S, row, rec.kind != SC_NONE ? T_ACCENT : T_DIM, T_SURF, 92);
+        /* (FASE 4/8) AND WHAT FITS. A twelve-tone scale has twelve numbers here and the row holds about
+         * seventeen characters: CHROMATIC printed "0 1 2 3 4 5 6 7 8..." into an ellipsis on every engine's
+         * SCALE page (the render lint caught it). The list stops where the row ends and the rest is counted
+         * ("+6"), which says the same thing without a cut. */
         row[0] = 0;
-        for (k = 0; k < sn && str_len(row) + 4u < sizeof row; k++) {
+        for (k = 0; k < sn; k++) {
             char sb[4];
+            uint32_t n2;
             fmt_int(sb, (int32_t)off[k]);
+            n2 = str_len(row) + (k ? 1u : 0u) + str_len(sb);
+            if (n2 > 12u) {   /* and the count that follows (" +6") still has to fit the row */
+                char rest[8];
+                rest[0] = ' ';
+                rest[1] = '+';
+                fmt_int(rest + 2, (int32_t)(sn - k));
+                str_cpy(row + str_len(row), rest, sizeof row - str_len(row));
+                break;
+            }
             if (k)
                 str_cpy(row + str_len(row), " ", 2);
             str_cpy(row + str_len(row), sb, sizeof row - str_len(row));

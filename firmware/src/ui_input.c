@@ -936,7 +936,7 @@ static void edit_param(uint32_t slot, int32_t steps)
     int16_t *vp;
     const page_t *pg = cur_page();
     const param_desc_t *d;
-    int32_t v;
+    int32_t v, v0;
     if (pg->graph == GR_COMP) {
         comp_knob(slot, steps);
         return;
@@ -1118,8 +1118,10 @@ static void edit_param(uint32_t slot, int32_t steps)
     d = page_desc(pg, slot, &vp);
     if (!d || !vp || d->max == d->min)
         return;
+    v0 = *vp;
     v = param_turn(d, *vp, accel(EN_K1 + slot, steps, d->fmt == F_ENUM ? 0 : d->max - d->min));
     *vp = (int16_t)v;
+    fb_turn(v0, v, slot, steps);    /* (FASE 4/8) moved: the column lights; at an end: the card says which */
     if (pg->graph == GR_MACROS && vp >= &macro_ui[0] && vp <= &macro_ui[3]) {   /* (FASE 8) MACROS: the matrix's
                                                  * M1..M4 (the same values its sources read) */
         macro_set((uint32_t)(vp - macro_ui), v);
@@ -2657,8 +2659,10 @@ static void ui_input_frame(void)
              * something changes, but only PRESETS, a HOME tap and the menu set the pulse: turning EDIT knobs 1 and 4
              * looked alive (their value rows redraw) while 2 and 3 moved a value nothing else showed. The four set it,
              * so the being's ring answers whichever column was turned, in every engine (ui_being.c). */
+            int32_t was = *vp;
             ui.home_pulse = ui.frame | 1u;
             *vp = (int16_t)param_turn(d, *vp, accel(EN_K1 + k, s, d->fmt == F_ENUM ? 0 : d->max - d->min));
+            fb_turn(was, *vp, k, s);    /* (FASE 4/8) the same answer a page's knob gives */
             motion_capture_ui(TSEL, (uint32_t)(vp - TSEL->p), *vp);
         } else {
             edit_param(k, s);

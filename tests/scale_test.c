@@ -17,6 +17,8 @@ static const struct { uint8_t count, notes[12]; } EXPECTED[] = {
     {7, {0, 2, 3, 5, 7, 9, 11}}, {6, {0, 3, 5, 6, 7, 10}},
     {6, {0, 2, 4, 6, 8, 10}}, {8, {0, 1, 3, 4, 6, 7, 9, 10}},
     {8, {0, 2, 3, 5, 6, 8, 9, 11}},
+    {7, {0, 1, 4, 5, 7, 8, 10}},                      /* HIJAZ (ETAPA 5): Phrygian dominant, b2 and natural 3 */
+    {7, {0, 2, 3, 6, 7, 8, 11}},                      /* HUNGMIN (ETAPA 5): harmonic minor with its #4 */
 };
 
 static void mapping_test(void)
