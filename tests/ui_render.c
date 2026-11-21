@@ -602,7 +602,33 @@ static void audit_scene(const char *name)
         if (strlen(words) + strlen(b->s) + 4u < sizeof words)
             snprintf(words + strlen(words), sizeof words - strlen(words), "%s%s", words[0] ? " | " : "", b->s);
     }
-    fprintf(audf, "%s\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%s\t%s\n", name, nt, at, ni, ai, nk, ak, ne, ntight, words, tight);
+    fprintf(audf, "%s\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%s\t%s\t\t\t\n",
+            name, nt, at, ni, ai, nk, ak, ne, ntight, words, tight);
+}
+/* (FASE 7/8) THE RATE LABELS THE SWEEP DRAWS, WRITTEN DOWN. The column sweep renders every value of every
+ * column and RATE is where the LFO's divisions are drawn (-14 .. -1: 1/32T .. 1/64); the audit above only ever
+ * saw the free text of the 191 screens, so those labels had no record. Each value the sweep draws for RATE is
+ * written here with the string the card actually showed, the ink box's width in px, and whether the card had to
+ * ellipsise it -- printed on the row of the value it belongs to, in the three columns added for it. */
+static uint32_t nrate_audit;
+static void audit_rate(const char *base, const param_desc_t *d, int32_t v)
+{
+    char val[16], screen[96];
+    const char *unit = "";
+    uint32_t i, w = 0, a = 0, found = 0, elided = 0;
+    if (!audf) return;
+    param_format(d, v, val, &unit);
+    for (i = 0; i < nscr; i++)                       /* the card's own box: the last one drawn with this text */
+        if (!strcmp(scr[i].s, val)) {
+            w = (uint32_t)(scr[i].x1 - scr[i].x0);
+            a = w * (uint32_t)(scr[i].y1 - scr[i].y0);
+            elided = (scr[i].flags & 1u) ? 1u : 0u;
+            found = 1;
+        }
+    snprintf(screen, sizeof screen, "%s/RATE=%s", base, val);
+    fprintf(audf, "%s\t1\t%u\t0\t0\t0\t0\t%u\t0\t%s\t\t%s\t%u\t%s\n", screen, a, elided, val, val, w,
+            found ? (elided ? "yes" : "no") : "missing");
+    nrate_audit++;
 }
 /* GREY: every pixel RGB565 gray (R = B, G = 2 R); MONO (black and white, its edges blended per channel): neutral
  * (R = B, G within 2 of 2 R, the 5-6-5 rounding). Other palettes: nothing */
@@ -1528,6 +1554,7 @@ static void sweep_columns(void)
                     ui.force = 1;
                     draw_columns();
                     lint();
+                    if (d->label && !strcmp(d->label, "RATE")) audit_rate(name, d, v);
                     nsweep++;
                     if (v - d->min > 300) v = d->max - 1;      /* wide ranges: the ends */
                 }
@@ -2419,7 +2446,8 @@ int main(int argc, char **argv)
         snprintf(ap, sizeof ap, "%s/text_audit.tsv", out);
         audf = fopen(ap, "w");
     }
-    if (audf) fprintf(audf, "screen\ttexts\ttext_px\ticons\ticon_px\tkeycaps\tkeycap_px\tellipsised\ttight\twords\ttight_list\n");
+    if (audf) fprintf(audf, "screen\ttexts\ttext_px\ticons\ticon_px\tkeycaps\tkeycap_px\tellipsised\ttight\twords\ttight_list"
+        "\trate_value\trate_px\trate_elided\n");            /* the last three: the column sweep's RATE labels */
     {   /* the lint itself: an overlap, a value too wide for its column, a text past its canvas, one past its cell */
         state(); pal(0); cur_name = "self-test";
         nscr = npend = 0;
@@ -2711,8 +2739,9 @@ int main(int argc, char **argv)
     fprintf(rep, "\nalignment: %u measurements of %u places, %u off by 1 px or more (OUTDIR/align.txt)\n", al_count, al_nst - 1u, al_fail);
     if (audf) fclose(audf);
     fprintf(rep, "\n%u lint findings, %u inks on their own colour, %u ellipsised free texts, %u GREY / MONO pixels off gray / "
-            "neutral; %u column values swept; %u FM6 charts linted; %u cards linted with MOTION's icon\n", nfind, nink, nfree, mono_bad,
-            nsweep, fmp_charts, nmotion);
+            "neutral; %u column values swept; %u FM6 charts linted; %u cards linted with MOTION's icon; "
+            "%u RATE labels in text_audit.tsv (rate_value / rate_px / rate_elided)\n", nfind, nink, nfree, mono_bad,
+            nsweep, fmp_charts, nmotion, nrate_audit);
     if (!nmotion) { fprintf(stderr, "ui_render: the MOTION sweep marked no card\n"); nfind++; }
     fclose(rep);
     printf("ui_render: %u screens x %u palettes + the page/value sweep; %u lint findings, %u ellipsised free texts (%u distinct), "
