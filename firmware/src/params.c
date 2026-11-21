@@ -68,11 +68,16 @@ static const char *const N_APSYNC[] = {"FREE", "BEAT"};                  /* (JIA
 static const char *const N_APDIV[] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8", "1/16", "1/32"};   /* .. BEAT (fx.c AP_SIXT) */
 /* modulation matrix (mod.c): sources, destinations (E1..E8 = P_E0..P_E7: shown with the engine's labels) */
 static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR",
-                                     "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT"};   /* (QG-1 1.6) PAT: this key's poly aftertouch */   /* (JIANT: the macros, LFO held; the modulation
+                                     "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT",
+                                     "BAR"};   /* (QG-1 1.6) PAT: this key's poly aftertouch; (FASE 5) BAR:
+                                               * the bar's phase, a ramp from the downbeat to the next one (mod.c) */   /* (JIANT: the macros, LFO held; the modulation
                                                          * sequence; 1.2.1-GW, JIANT 0.7.8: a smooth random wander) */
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-                                     "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES"};   /* (JIANT: the master, FX > MASTER);
+                                     "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES",
+                                     "ATK", "DEC", "REL"};   /* (FASE 5) the envelope's three times: a source can
+                                     * stretch or shorten them per block (mod.c); appended after RES, so every
+                                     * stored destination number keeps its meaning */   /* (JIANT: the master, FX > MASTER);
                                      * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored
                                      * destination number keeps its meaning; (FASE 3) RES: the track filter's
                                      * resonance (voice.c track_filter), appended for the same reason */

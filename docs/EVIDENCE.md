@@ -11,7 +11,7 @@ cannot stay invisible: the file is regenerated in the same push.
 
 | | |
 |---|---:|
-| rows in the matrix | 779 |
+| rows in the matrix | 781 |
 | rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 349 |
 | rows still asking for evidence | 30 |
 

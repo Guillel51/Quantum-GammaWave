@@ -147,11 +147,13 @@ static void lfo_divisions(void)
 static void mod_destinations(void)
 {
     uint32_t i, n = (uint32_t)NELEM_(N_MDST);
-    ck(n == 27u, "MOD: N_MDST's length changed; the destination numbers are part of the preset format");
+    ck(n == 30u, "MOD: N_MDST's length changed; the destination numbers are part of the preset format "
+                 "(FASE 5 appended ATK DEC REL)");
     ck((uint32_t)TP[P_M1DST].max + 1u == n, "MOD: the DEST knob's range is not the table's length");
     for (i = 0; i < n; i++)
         ck(N_MDST[i] && N_MDST[i][0], "MOD: a destination has no name");
-    ck(n == (uint32_t)NELEM_(N_MSRC) + 11u, "MOD: the source table is not the one the preset format expects");
+    ck((uint32_t)TP[P_M1SRC].max + 1u == 17u, "MOD: the source table is not the one the preset format expects "
+                                              "(FASE 5 appended BAR)");
     printf("MOD: %u destinations, %u sources, both tables whole\n", n, (unsigned)NELEM_(N_MSRC));
 }
 

@@ -248,6 +248,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "(FASE 2) PM: ANALOG's WAVE = PM and PHASE's LINE = PM bend the phase, move with MORPH / DCW, brighten and are not SIN / MIX / RING" "$OUT/pm_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/phase2_test" tests/phase2_test.c -lm
     run "FASE 2: every engine's CHARACTER bank moves the sound, LFO SLEW / INVERT, ENV VEL, the pages and a project round trip" "$OUT/phase2_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/phase5_test" tests/phase5_test.c -lm
+    run "FASE 5: BAR is the bar's phase as a matrix source (silent when stopped, an arc inside the bar) and ATK DEC REL are the envelope's times as destinations (VEL -> ATK lengthens the loud note, nothing leaks)" "$OUT/phase5_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
     run "MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn" "$OUT/morph_six_test"
     run "the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation" python3 tests/particle_bounds_test.py

@@ -485,8 +485,8 @@ typedef struct {
 #define QG_DST_REV 9             /* MD_REV */
 #define QG_DST_VIB 11            /* MD_VIB */
 #define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
-#define QG_SRC_N 16              /* MS_N: the matrix's sources (mod.c checks the count) */
-#define QG_DST_N 27              /* MD_N: its destinations ((FASE 3) +1: RES) */
+#define QG_SRC_N 17              /* MS_N: the matrix's sources (mod.c checks the count); (FASE 5) +1: BAR */
+#define QG_DST_N 30              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL) */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */

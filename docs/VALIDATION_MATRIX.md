@@ -2581,3 +2581,78 @@ Same reason, recorded: `ui_message()` keeps its one-argument signature and hands
   bar, and the STEPS row with its `+N` on a twelve-tone scale.
 - `[HW]` unchanged: no physical FM-1 here, so updater, SPL, restore and JEDEC are still unmeasured and the
   gate stays **GO CONDITIONAL**.
+
+## 31. Fase 5/8 — New synthesis and sound design capabilities (2026-11-21)
+
+### 31.1 What the instrument already had, before adding anything
+
+Read first, so nothing is duplicated: `mod.c` (eight matrix slots: 16 sources including LFO, ENV, VEL, KEY,
+RAND, the four macros, the CV sequencer STEP, a smooth-noise wander and per-key aftertouch; 27 destinations
+including the engine's E1..E8, the CHARACTER bank X1..X4, the part filter's resonance and the master's CLIP
+and PNCH), `voice.c` (a linear attack, an exponential decay and release, an ENV LOOP, a per-track LFO with
+SLEW, INVERT, FADE and FREE phase, the part filter with 8 types), `engines.c` (16 engines, each with eight
+EDIT parameters and up to three CHARACTER slots, `ch_desc`), `fx.c` (five distortion models, three chorus
+models, the slicer, the master EQ) and the per-engine envelopes (FM6's operators, the drum kit, LOFI's chip
+mode). A per-track envelope *curve*, a per-voice age source and a second envelope do not exist.
+
+### 31.2 Designed, implemented, measured — and not shipped
+
+**The envelope CURVE** (one new track parameter, `P_ECRV`, on an `ENV CURVE` page, shaping the attack and
+the decay in `env_tick` with one multiply per control tick) was built and measured on the target:
+
+- with the shaper stubbed out (so only the parameter's own existence was in the build) the linker reports
+  `region XIP overflowed by 1000 bytes`; with the shaper in, `1 060`. The free slot was **1 364 B**.
+- the cost is not in the DSP (60 B): it is `track_t` growing by two bytes. `p[]` sits near the front of a
+  1 760 B struct, so every `trk[i].p[...]`, `t->p[P_E0 + k]` and UI access after it pays a longer
+  displacement — the same wall `core.h` records for the `xp_note` arrays (+2 952 B for 24 bytes). **+2 364 B
+  of XIP for one parameter**, against 1 364 B free.
+- a per-voice `AGE` source (a one-shot ramp per note) needs per-voice state and hits the same wall.
+
+Both are recorded here with their numbers rather than half-shipped, and the parameter table stays at its
+125 of 127 ids: the only two free ids are not usable while `track_t` cannot grow.
+
+### 31.3 What shipped: two capabilities that cost no storage
+
+Appending *values* to an existing enum costs a table entry and a case, not a struct; both are append-only,
+so every stored number keeps its meaning and no preset, project or automatable id changes.
+
+| | what it is | why it is new |
+|---|---|---|
+| **BAR** (matrix source 16) | the bar's phase: a ramp from the downbeat to the next one, 0..1, on the transport's grid (`mod.c` MS_BAR, four beats from `div_samples(0)`) | the matrix had no source that knows where the bar is. A filter or a send can now arc once a bar while the track's LFO keeps its own job, and it needs no LFO slot, no macro and no voice state. Stopped, it reads 0, so a sound that names it is exactly the sound without it |
+| **ATK, DEC, REL** (matrix destinations 27..29) | the voice's three envelope times as matrix destinations (`mod.c` mod_param: P_ATK, P_DEC, P_REL) | the matrix could reach the engine's parameters, the filters, the sends and the LFO, but not the amp envelope's own times. Velocity -> DEC shortens a pluck, KEY -> ATK makes the top of the keyboard swell, a macro -> REL decides how long a pad rings after the key is up. The envelope reads `p[]` every control tick, so a block's offset moves it and `mod_end` puts the stored value back |
+
+Both are on the MOD page already (the SRC and DEST knobs read `N_MSRC` / `N_MDST`), in the editor's tables,
+and in the factories' reach: no factory preset names them, so every factory sound loads and behaves exactly
+as before.
+
+### 31.4 Evidence
+
+- `tests/phase5_test.c` (new, in the suite): BAR is source 16 and the three times are destinations 27..29
+  while PAT (15) and RES (26) still name what they named and the knobs' ranges follow the tables; with the
+  transport **stopped**, a BAR -> CUT slot renders the sound of no slot at all, sample for sample; **playing**,
+  the same slot changes the signal, and the first half of a bar is not the second; `VEL -> ATK` makes the loud
+  note's attack measurably longer than the quiet one's (measured from the audio: the block where it reaches
+  half its own peak) while the two are identical with the source OFF; `VEL -> DEC` and `VEL -> REL` (with the
+  key released mid-run) change the signal; after the blocks every stored value is back (no leak out of the
+  ISR's mod_end); a slot naming BAR -> ATK survives `proj_pack` -> `proj_import`.
+- The render sweep: 191 screens x 22 palettes, **0 lint findings** of its own, 0 inks on their own colour,
+  0 GREY/MONO pixels off, 3 788 026 alignment measurements with 0 off by 1 px; the pixel baseline is
+  regenerated for the two lists that grew.
+- `[TARGET]`: XIP **561 788 B** (code 430 872 + constants 130 916), image **582 328 B** of 583 612
+  (**1 284 B** free), `.data+.bss` **93 616 B** of 98 304 (4 688 free). Against the commit before this phase
+  (561 708 / 582 248 with 1 364 free) the whole phase costs **+80 B of XIP, +80 B of image and no RAM**.
+- CPU: no new work per sample. BAR is one subtraction and a 64-bit divide per track per *block* (the same
+  shape the LFO's tempo-sync already costs); the three destinations are the matrix's existing per-block
+  offset path, and with no slot naming them the path is the code it was (`mod_scan` finds nothing and
+  returns before any work).
+- Pre-existing reds, unchanged and measured on the baseline this session: `FX measured`, `FM6 voice bank` and
+  its ASan run, the ST7789 init table, and the XIP floor (1 284 B free against a floor of 2 048 B; the
+  baseline of the last commit had 1 364 B, so the floor was already missed before this phase).
+- Host-speed note, recorded rather than smoothed over: on this VM the CPU gate and the two real-time
+  "blocks late" checks (`six_track_test`, `six_track_live_test`) failed *today* at 27..38 % over their
+  recorded baseline. The same binaries built from the commit **before** this phase (`edcc0410` worktree)
+  fail the same way at the same margin while both trees' golden renders stay identical, so the margin is
+  the machine, not the DSP: the baseline was recorded when this host ran faster. Nothing was rebased
+  (`BUDGET_UPDATE=1`) and no limit was loosened, because a throttled host baked into the baseline would
+  hide the next real regression.
+- `[HW]` unchanged: no physical FM-1 here. Gate **GO CONDITIONAL**.

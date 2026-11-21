@@ -2233,8 +2233,8 @@ function makeMockDevice(opt = {}) {
   const NONOFF = ["OFF", "ON"], NDIV = ["1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR"], NGO = ["--", "GO"], NDASH = ["--"];
   const D = (label, fmt, min, max, def, names = null, unit = "") => ({ label, fmt, min, max, def, names, unit });
   const E = (label, names, def) => D(label, F.ENUM, 0, names.length - 1, def, names);
-  const MSRC = ["OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT"];   /* (1.2.1-GW NOISE; PAT 1.6) */
-  const MDST = ["OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE", "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES"];   /* (FASE 2) X1..X4: the engine CHARACTER bank; (FASE 3) RES: the part filter's resonance */
+  const MSRC = ["OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT", "BAR"];   /* (1.2.1-GW NOISE; PAT 1.6; FASE 5 BAR: the bar's phase) */
+  const MDST = ["OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE", "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES", "ATK", "DEC", "REL"];   /* (FASE 2) X1..X4: the engine CHARACTER bank; (FASE 3) RES: the part filter's resonance; (FASE 5) the envelope's three times */
   const TP = [
     D("LEVEL", F.DB, 0, 127, 104),
     D("ATK", F.TIME, 0, 127, 10), D("DEC", F.TIME, 0, 127, 70), D("SUS", F.PCT, 0, 127, 90), D("REL", F.TIME, 0, 127, 60),

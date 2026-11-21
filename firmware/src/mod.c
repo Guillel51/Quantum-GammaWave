@@ -39,8 +39,8 @@
  * and the engines read t->p as before. An engine reads its parameters in note_on (events_block) unmodulated.
  * Nothing active (every slot with SRC, DST or AMT at 0): no work, and the sound is bit-identical. */
 enum { MS_OFF, MS_LFO, MS_ENV, MS_VEL, MS_KEY, MS_RAND, MS_MODW, MS_AT, MS_EXPR, MS_M1, MS_STEP = MS_M1 + 4, MS_NOISE,
-       MS_PAT, MS_N };   /* (1.2.1-GW, JIANT 0.7.8) NOISE: appended, the stored numbers stay; (QG-1 1.6) PAT: this
-                           * key's polyphonic aftertouch (MIDI 0xA0), appended too */
+       MS_PAT, MS_BAR, MS_N };   /* (1.2.1-GW, JIANT 0.7.8) NOISE: appended, the stored numbers stay; (QG-1 1.6) PAT: this
+                           * key's polyphonic aftertouch (MIDI 0xA0), appended too; (FASE 5) BAR: the bar's phase */
 static uint32_t div_samples(uint32_t div);   /* fx.c */
 #define CLK_START 0xFFFFFFFFu
 static uint32_t clk_pos = CLK_START, clk_step;  /* (seq.c click_tick) samples into the transport's 1/16 step, the step of
@@ -49,7 +49,7 @@ static uint32_t clk_n;                          /* (JIANT) .. the 1/16 steps sin
 static uint32_t ms_clock;        /* (JIANT) samples since PLAY on the transport's grid (fx.c mix_block; seq.c seq_start:
                                   * 0): MS_STEP's place */
 enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY, MD_REV, MD_RATE, MD_VIB, MD_E1,
-       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
+       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_ATK, MD_DEC, MD_REL, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
                                                           * bank, appended after the master so every stored
                                                           * destination number keeps its meaning */
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
@@ -84,6 +84,10 @@ static uint32_t mod_param(uint32_t d)
         return P_XID[d - MD_X1];                    /* (FASE 2) CHARACTER 1..4 */
     if (d == MD_RES)                                /* (FASE 3) the part filter's resonance */
         return P_FRES;
+    if (d >= MD_ATK)                                /* (FASE 5) the envelope's three times: the shaper reads p[] every
+                                                     * tick, so a block's offset moves ATK, DEC and REL like any other
+                                                     * parameter, and mod_end puts the stored values back */
+        return d == MD_ATK ? P_ATK : d == MD_DEC ? P_DEC : P_REL;
     return d >= MD_E1 ? P_E0 + d - MD_E1 : ID[d];
 }
 
@@ -159,6 +163,15 @@ static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, 
         return (127 - t->ex_off) * 258;
     case MS_STEP:
         return t->ms_v;
+    case MS_BAR: {                                      /* (FASE 5) the bar's phase: a ramp from the downbeat to the
+                                                         * next one, 0..1, on the transport's grid. It costs no
+                                                         * voice state and no LFO slot: a filter arcs once a bar
+                                                         * while the LFO keeps its own job */
+        uint32_t len = div_samples(0) * 4u;              /* four beats, the transport's bar */
+        if (!len)
+            return 0;
+        return (int32_t)(((uint64_t)(ms_clock % len) << 15) / len);
+    }
     case MS_NOISE:                                      /* (1.2.1-GW, JIANT 0.7.8) a random wander, eased: a smooth
                                                          * random LFO, each track its own; (3.5) N.RATE sets how long
                                                          * a point holds, 46 ms being what it always was */
