@@ -467,7 +467,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "PRESETS: no two of them measure as the same sound (ten bands, level and envelope, per engine)" \
         python3 tools/preset_audit.py --gate-sound 0.05 --fingerprint "$OUT/preset_fingerprint.jsonl"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_param_test" tests/engine_param_test.c -lm
-    run "ENGINES: every EDIT knob at both ends of its range moves the rendered note (216 knobs)" "$OUT/engine_param_test"
+    run "ENGINES: every EDIT knob at both ends of its range moves the rendered note" "$OUT/engine_param_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_options_test" tests/engine_options_test.c -lm
+    run "ENGINES: PHASE LINE = FOLD and LOFI WAVE = SYNC sound, differ from every other value of their knob, and no preset uses them" \
+        "$OUT/engine_options_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/tone_cache_test" tests/tone_cache_test.c -lm

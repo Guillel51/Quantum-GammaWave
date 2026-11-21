@@ -1,3 +1,23 @@
+## v1.5.28 — PHASE gana LINE = FOLD y LOFI gana WAVE = SYNC: dos opciones de motor, medidas
+
+Fase 6 (cierre). La Fase 3 pedía opciones nuevas **en los motores** y lo que entró fue transversal (LFO, matriz,
+tipos de filtro). Estas dos son del motor, audibles, con su control, su test y su medición de XIP. Sin FM-1 en este
+entorno: nada de aquí afirma cómo suenan en la unidad.
+
+- **PHASE · LINE = FOLD (valor 3).** La línea 2 ya podía mezclarse, modular en anillo o modular en fase la línea 1;
+  ahora puede **plegarla**: la suma se envuelve en los rieles en vez de recortarse, y la cresta vuelve como armónicos.
+  El control es el que ya existía: **LINE** elige el modo, **WAVE2** da la forma y **DTN** el detalle de la línea 2.
+  Ningún preset de fábrica usa el valor 3, así que la biblioteca no se mueve.
+- **LOFI · WAVE = SYNC (valor 7).** Un pulso cuya fase corre **2 a 5 veces** la de la nota y se reinicia con ella
+  —un *hard sync* de chip, metálico— con **DUTY** eligiendo la relación. Ningún preset usa el valor 7.
+- **Medido `[HOST]`** (`tests/engine_options_test.c`, nuevo): las dos opciones **suenan** (RMS sobre el piso de 16
+  bits), **difieren de todos los demás valores de su knob** midiendo sobre las muestras (105–164 % de la señal
+  cambiada) y la biblioteca queda intacta: **0 presets** con FOLD o SYNC, **306 golden renders, 0 cambiados**.
+  El barrido de UI da **0 hallazgos de lint** y **0 alineaciones fuera** con la cuarta posición de LINE en pantalla.
+- **Medido `[AC791N]`:** lo que cuesta en XIP, cada cosa por separado y juntas — **FOLD +96 B**, **SYNC +64 B**,
+  **las dos +160 B** (imagen **582 884 B** de 583 612, **728 B libres**). Entran porque la lista de valores se
+  extiende detrás de los viejos, sin tocar ids de parámetro, páginas, formato de preset ni el pool.
+
 ## v1.5.27 — la canción sale como .MID, y el barrido de encendido deja de recalcular 246 potencias por frame
 
 Fase 6. El firmware no cambia salvo la versión: lo nuevo vive en el **Web Studio** y en el **emulador**, que es donde

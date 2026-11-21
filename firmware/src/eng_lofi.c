@@ -10,10 +10,10 @@
  * duties are 12.5 / 25 / 50 / 75 %; CRSH then sets the envelope (shown as "DCY"). */
 #define ENGI_LOFI 3u             /* engines.c ENGINES[] (append-only): the index ui_graph.c dispatches on */
 static const char *const N_CHIP[] = {"4BIT", "4B/2", "8BIT", "1BIT", "STEP"};
-static const char *const N_RWAVE[] = {"PLS", "TRI", "SAW", "NOIS", "WRAM", "BYTE", "FLOAT"};
+static const char *const N_RWAVE[] = {"PLS", "TRI", "SAW", "NOIS", "WRAM", "BYTE", "FLOAT", "SYNC"};
 static const char *const N_RARP[] = {"OFF", "OCT", "MAJ", "MIN"};
 enum { CHIP_4BIT, CHIP_4B2, CHIP_8BIT, CHIP_1BIT, CHIP_STEP };
-enum { RW_PLS, RW_TRI, RW_SAW, RW_NOIS, RW_WRAM, RW_BYTE, RW_FLOAT };
+enum { RW_PLS, RW_TRI, RW_SAW, RW_NOIS, RW_WRAM, RW_BYTE, RW_FLOAT, RW_SYNC };
 
 /* wave RAM: 16 tables x 32 samples x 4 bits, two samples a byte (high nibble first);
  * our own shapes, from simple formulas (squares, sine, triangle, saws, harmonic sums,
@@ -445,6 +445,7 @@ static int32_t lofi_mto(uint32_t w, uint32_t ph0, uint32_t duty, const uint8_t *
         b = (k & 1u) ? b & 15u : b >> 4;
         return ((int32_t)b * 2 - 15) * Q4 - wdc;
     }
+    case RW_SYNC: return (((ph0 * (2u + (duty >> 29))) & 0xFFFFu) < 32768u ? 32767 : -32768);
     default: return (ph0 < duty ? 32767 : -32768) - ((int32_t)(duty >> 16) - 32768);
     }
 }
@@ -557,6 +558,11 @@ static void lofi_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
                 q = 0;
                 break;
             }
+            case RW_SYNC:                               /* (FASE 6) hard sync: the pulse's phase runs 2..5x
+                                                         * the note's and restarts with it (DUTY picks the)
+                                                         * ratio): a metallic pulse the chip never had */
+                s = (((ph0 * (2u + ((uint32_t)p[P_E2] >> 5))) & 0xFFFFu) < 32768u ? 32767 : -32768);
+                break;
             default:                                    /* minus its mean: no DC for narrow pulses */
                 s = (ph0 < duty ? 32767 : -32768) - ((int32_t)(duty >> 16) - 32768);
                 break;
@@ -665,7 +671,7 @@ static const engine_t ENG_LOFI = {
     .page_title = {"CHIP", "TONE", "CHAR"},
     .edit = {
         {"CHIP", F_ENUM, 0, 4, 0, N_CHIP, 0},
-        {"WAVE", F_ENUM, 0, 6, 0, N_RWAVE, 0},
+        {"WAVE", F_ENUM, 0, 7, 0, N_RWAVE, 0},   /* (FASE 6: 7 = SYNC) */
         {"DUTY", F_INT, 0, 127, 64, 0, 0},              /* WRAM: the table, DUTY / 8 (lofi_desc) */
         {"CRUSH", F_PCT, 0, 127, 0, 0, 0},               /* STEP: the envelope (lofi_desc) */
         {"CUT", F_CUTOFF, 0, 127, 110, 0, 0},          /* (JIANT 0.4: the filter, was SWP) */
