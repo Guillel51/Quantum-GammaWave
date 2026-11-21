@@ -1,36 +1,26 @@
 [
  {
-  "version": "1.6.0",
-  "file": "felucca-1.6.0.fwsc",
-  "sha256": "f6aa3b15e4805d94447360694aacd7c6f62fdde5ac2c71a8a9ccae7bf66506f2",
+  "version": "1.7.0",
+  "file": "felucca-1.7.0.fwsc",
+  "sha256": "8abaddbe9bbc40d2a80938e54824aede9df741ceeed27b3377307fec44b24e4d",
   "size": 610933,
   "build": {
    "artifacts": {
     "felucca.bin": {
-     "bytes": 581296,
-     "sha256": "450fc110fb2c52cb079dcf9f87a1b7e6ea31a867e2ff7fcee539499020875d77"
+     "bytes": 577572,
+     "sha256": "33d9541db4ff231332f84db93bb67cd91bca677ccb3930af0f96a8092417d643"
     },
     "felucca.fwsc": {
      "bytes": 610933,
-     "sha256": "f6aa3b15e4805d94447360694aacd7c6f62fdde5ac2c71a8a9ccae7bf66506f2"
+     "sha256": "8abaddbe9bbc40d2a80938e54824aede9df741ceeed27b3377307fec44b24e4d"
     },
     "loader/ota.bin": {
      "bytes": 7777,
      "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"
     }
    },
-   "checks": {
-    "checks": "ok",
-    "identity": "FM-1_965",
-    "notes": [
-     ".ram_text: 1193 insns, no calls",
-     "image 581296 B; RAM .data+.bss 93612 B of 98304; pool 311256 B, spare 9248 B; LOWBUF 30564 B of 32768",
-     "XIP code 429876 B, constants 130880 B",
-     "RAM code 19728 B of 24576; calls reach 30636 B past the code's end",
-     "register access: hal/ only (src/, loader/ clean)"
-    ]
-   },
-   "commit": "6213ec6ced1c65e3de366fff397162357dd97b37",
+   "checks": {},
+   "commit": "84745ad27af00733c385431f960f3900ac849eec",
    "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -51,10 +41,10 @@
    },
    "dirty": [],
    "emulator": {
-    "commit": "11b9b9edebdd",
-    "version": "v1.6.0",
-    "wasm_bytes": 1291917,
-    "wasm_sha256": "5ba835f505f905b8d4cf8806874f610578a1158eb45aff1b4e888ac11410e0d5"
+    "commit": "84745ad27af0",
+    "version": "v1.7.0",
+    "wasm_bytes": 1293843,
+    "wasm_sha256": "081d33c8ed18d8b6c8de4cff70427062fe6e47ed8bbf456a0658b9c599af1dd7"
    },
    "identity": "FM-1_965",
    "package": "felucca.fwsc",
@@ -74,11 +64,11 @@
     "path": "/workspace/homes/5c4f25ac55a61d136c164907/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
    },
-   "version": "v1.6.0"
+   "version": "v1.7.0"
   },
   "emulator": {
-   "built": "2026-11-21T09:14:48Z",
-   "commit": "11b9b9edebdd",
+   "built": "2026-11-21T23:13:51Z",
+   "commit": "84745ad27af0",
    "config": {
     "EMU_CFLAGS": "",
     "EMU_OPT": "-O2",
@@ -88,10 +78,18 @@
    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
    "identity": "FM-1_965",
    "schema": "qg1-emu-1",
-   "version": "v1.6.0",
-   "wasm_bytes": 1291917,
-   "wasm_sha256": "5ba835f505f905b8d4cf8806874f610578a1158eb45aff1b4e888ac11410e0d5"
+   "version": "v1.7.0",
+   "wasm_bytes": 1293843,
+   "wasm_sha256": "081d33c8ed18d8b6c8de4cff70427062fe6e47ed8bbf456a0658b9c599af1dd7"
   },
+  "manifest": "felucca-1.7.0.fwsc.manifest.json"
+ },
+ {
+  "version": "1.6.0",
+  "file": "felucca-1.6.0.fwsc",
+  "sha256": "f6aa3b15e4805d94447360694aacd7c6f62fdde5ac2c71a8a9ccae7bf66506f2",
+  "size": 610933,
+  "build": null,
   "manifest": "felucca-1.6.0.fwsc.manifest.json"
  },
  {
