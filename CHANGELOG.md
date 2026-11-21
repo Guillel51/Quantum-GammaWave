@@ -1,3 +1,16 @@
+## Etapa 4/8 — una onda nueva en PHASE: SYNC (relación 1..8x reiniciada por el ciclo maestro)
+
+- **`PHASE > WAVE = SYNC`** (la novena): la portadora corre a una relación continua que fija **DCW** (1× … 8×, en
+  octavos) y el ciclo maestro la reinicia — el timbre sync, de la senoide pura al timbre duro y metálico, en un knob que ya
+  existía. **+96 B** de XIP (slot: 3 640 B libres), **0 B** de RAM, sin parámetro nuevo y sin cambio de formato:
+  los valores 0..7 guardados suenan exactamente igual que antes.
+- **Preset nuevo**: `PHASE > SYNC CATHEDRAL`. La biblioteca pasa a **287** sonidos (no se borró ninguno).
+- **Test nuevo** `tests/pd_sync_test.c`: las nueve ondas dan nueve hashes distintos en la misma nota, y DCW en
+  8/64/120 da tres sonidos distintos.
+- Verificación: **307 golden renders, 0 cambiados, 1 nuevo**; presets 287/287; categorías 287/287; web 0;
+  recursos 13/13; `target_budget` exit 0.
+- Detalle, evaluación de los demás motores y el muro de XIP en `docs/ETAPA4_SINTESIS_2026-11-21.md`.
+
 ## Etapa 3/8 — el coste real del audio, un banco de estrés y dos optimizaciones medidas (una entra, una no)
 
 - **Nuevo `tests/audio_stress.c`**: seis motores, seis partes, dieciséis teclas, todos los buses, MIDI y cambios

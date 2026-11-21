@@ -10,7 +10,7 @@
  * (JIANT 0.4) FB: phase feedback, line 1's output (the mean of its last two samples, as a DX operator's) bends its
  * own phase further, up to a quarter cycle: from a harder edge through growl to noise; the ENV / LFO / matrix move it
  * as E8. */
-static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
+static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC"};
 static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
 static const char *const N_PD_LINE[] = {"MIX", "RING", "PM"};   /* (FASE 2: PM appended, the stores' 0 / 1 stay).
                                                                   * (FASE 6) LINE = FOLD was designed and measured
@@ -57,6 +57,9 @@ static void pd_setup(pd_t *b, uint32_t w, uint32_t dcw)
         b->k0 = pd_slope(65535u, x);
         b->k1 = pd_slope(65535u, 65535u - x);
         break;
+    case 8:                                                  /* (ETAPA 4) SYNC: the carrier's ratio in eighths, 1 .. 8 */
+        b->x = 8u + ((dcw * 56u) >> 16);
+        return;
     case 4:                                                  /* SAW-PULSE */
         x = 65535u - ((dcw * 32767u) >> 16);
         b->peak = (x * (32768u + ((dcw * 29491u) >> 16))) >> 16;
@@ -105,6 +108,11 @@ static int32_t pd_wave(const pd_t *b, uint32_t ph)
         else
             pd = 32768u + (((ph - b->peak) * b->k1) >> 16);
         break;
+    case 8:                                                  /* (ETAPA 4) SYNC: a sine at 1..8x, reset by the master every
+                                                              * cycle -- the wrap inside the period is the sync edge, and
+                                                              * DCW is the ratio, so the sweep goes from a pure sine to a
+                                                              * hard, metallic one at 8x */
+        return pd_cos(((ph * b->x) >> 3) & 0xFFFFu);
     default: {                                               /* RESONANCE: windowed sine, rez = pitch of the core */
         uint32_t rp = (ph + ((ph * b->rez) >> 16) * 7u) & 0xFFFFu, win;
         int32_t core = (pd_cos(rp) * 5) >> 3;
@@ -147,7 +155,9 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
                                                             const vmod_t *m, int32_t nza)
 {
     const int16_t *p = t->p;
-    uint32_t w1 = (uint32_t)p[P_E0] & 7u, w2 = (uint32_t)p[P_E1], i;
+    uint32_t w1 = (uint32_t)p[P_E0] & 15u, w2 = (uint32_t)p[P_E1], i;   /* (ETAPA 4) 15u: wave 8 (SYNC) is here */
+    if (w1 > 8u)
+        w1 = 8u;                                          /* a stored value past the last wave plays the last one */
     int32_t depth = (p[P_E2] << 8) + m->cutoff + mulq15(m->envq15, p[P_E3] * 256);
     uint32_t dcw, inc = m->inc, inc2;
     int32_t det = p[P_E4], line = p[P_E5], line2 = det != 0 || line, ring = line == 1, sub = p[P_E6] * 200;
@@ -329,6 +339,9 @@ static const preset_t PHASE_PRESETS[] = {
      {XP(P_LRATE, 62), XP(P_LWAVE, 4), XP(P_LD_FLT, 24)}},  /* D: glitch */
     {"ROTOR GLASS", {1, 3, 70, 40, 14, 1, 0, 0}, {6, 62, 74, 52}, 0, 0, FX(30, 36, 30, 46), PAT(6),
      {XP(P_LRATE, 52), XP(P_LWAVE, 0), XP(P_LD_PIT, 4), XP(P_M1SRC, 3), XP(P_M1DST, 0), XP(P_M1AMT, 10)}},  /* (v1.5.19) two phases turning against each other */
+    /* (ETAPA 4) the ninth wave: SYNC, DCW its ratio (2.4x), a slow shimmer over it */
+    {"SYNC CATHEDRAL", {8, 0, 76, 46, 0, 0, 30, 26}, {0, 86, 34, 82}, 18, 0, FX(0, 34, 44, 86), PAT(5),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LRATE, 22), XP(P_LWAVE, 0), XP(P_LD_FLT, 12)}},
 };
 
 static const param_desc_t PHASE_CH[2] = {
@@ -339,7 +352,7 @@ static const engine_t ENG_PHASE = {
     .name = "PHASE",
     .page_title = {"PHS", "LINE", "CHAR"},
     .edit = {
-        {"WAVE", F_ENUM, 0, 7, 0, N_PD_WAVE, 0},
+        {"WAVE", F_ENUM, 0, 8, 0, N_PD_WAVE, 0},
         {"WAVE2", F_ENUM, 0, 8, 0, N_PD_WAVE2, 0},
         {"DCW", F_PCT, 0, 127, 60, 0, 0},
         {"ENV", F_PCT, 0, 127, 64, 0, 0},

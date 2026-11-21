@@ -15,7 +15,7 @@ import sys
 ROOT = "firmware/src/"
 ENGINES = [
     ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 69),
-    ("PHASE", "eng_phase.c", "PHASE_PRESETS", 33),
+    ("PHASE", "eng_phase.c", "PHASE_PRESETS", 34),
     ("LOFI", "eng_lofi.c", "LOFI_PRESETS", 29),
     ("FORMANT", "eng_formant.c", "FORMANT_PRESETS", 25),
     ("WHEEL", "eng_wheel.c", "WHEEL_PRESETS", 22),
@@ -29,10 +29,10 @@ ENGINES = [
     # (1.2.6) ADDTV was missing here for the same reason WTABLE was in FASE 5: the eight additive presets
     # (GLASS BELL, HOLLOW REED, ...) live in eng_additive.c's AD_PRESETS and count in the firmware's total.
     # (1.3.4) ten: REED HORN and AIR CHOIR joined, the two sounds the engine did not have.
-    # 286 browsable + 2 legacy kits = 285.
+    # (ETAPA 4) PHASE SYNC CATHEDRAL joined: 287 browsable + 2 legacy kits = 289.
     ("ADDTV", "eng_additive.c", "AD_PRESETS", 10),
 ]
-TOTAL = 286
+TOTAL = 287
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
              "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]
