@@ -1,4 +1,16 @@
-## v1.5.29 — el instalador vuelve a instalar (V16 incluida), y el sobrepintado tiene techo
+## v1.5.28 — la Fase 6 llega al firmware: un frame no vuelve a construir sus rampas
+
+- **La caché de rampas de texto pasa de 6 a 20 entradas.** Fase 6 había quedado resuelta del lado del Web Studio
+  y el firmware no se había movido; esto sí es del firmware y se mide. Una pantalla con cuatro tarjetas de
+  perilla, un valor, una unidad, una etiqueta y un acento pide **10 a 17** pares `(tinta, fondo, calor, curva)`
+  distintos, y con seis ranuras el que el siguiente glifo necesitaba ya había sido desalojado: el barrido de UI
+  contaba **12 rampas reconstruidas por frame** en HOME y **17** en MIXER, cada una recorriendo los 16 niveles de
+  cobertura por tres canales. Con 20 ranuras el mismo barrido cuenta **0 en las 12 pantallas medidas**, y el
+  primer frame es el único que construye algo. **`[HOST]`:** 0 hallazgos de lint, 0 de 3 785 110 medidas de
+alineación, **306 golden renders, 0 cambiados** (un acierto de caché devuelve el mismo array que la
+  reconstrucción escribiría, así que esto no puede tocar un píxel ni una muestra). **`[AC791N]`:** cuesta sólo
+  `.bss` — 20 ranuras son 760 B de los 11 KiB de RAM libres — y **0 B de XIP**. El barrido ahora **falla** si una
+  pantalla reconstruye más de 2 rampas por frame: la tabla no puede volver a quedarse chica sin que se sepa.
 
 Cierre de pendientes sobre lo anterior en esta misma versión. Todo `[HOST]`: no hubo unidad física y nada se
 le escribió.
@@ -30,7 +42,7 @@ alineación**, goldens intactos. Antes/después en `docs/shots/` y detalle en
   usan, en áreas chicas) y **no se shippeó**: la imagen queda en **582 836 B de 583 612 (776 B libres)** y
   **11 392 B de RAM**, sin gastar esos bytes.
 
-## v1.5.29 — LOFI gana WAVE = SYNC; PHASE LINE = FOLD queda medido y afuera
+### LOFI gana WAVE = SYNC; PHASE LINE = FOLD queda medido y afuera
 
 Fase 6. Dos opciones de motor se diseñaron para los 888 B de XIP libres. Una entra; la otra entra en flash pero
 **rompe el presupuesto de DSP**, y el guardián del CI la rechaza con el número: eso es lo que se publica, no un
@@ -52,7 +64,7 @@ presupuesto retocado. (v1.5.28 llevaba las dos y su CI falló en `target_budget.
   limpieza de la biblioteca, y además **verifica que FOLD no está**: el control vuelve a terminar en PM, así que
   código, docs y pantalla no pueden separarse.
 
-## v1.5.28 — PHASE gana LINE = FOLD y LOFI gana WAVE = SYNC: dos opciones de motor, medidas
+### PHASE gana LINE = FOLD y LOFI gana WAVE = SYNC: dos opciones de motor, medidas
 
 Fase 6 (cierre). La Fase 3 pedía opciones nuevas **en los motores** y lo que entró fue transversal (LFO, matriz,
 tipos de filtro). Estas dos son del motor, audibles, con su control, su test y su medición de XIP. Sin FM-1 en este

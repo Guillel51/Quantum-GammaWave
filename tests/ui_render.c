@@ -224,6 +224,7 @@ static void hk_ink(uint16_t ink, uint16_t bg);
 #define GFX_HOOK_PIXELS(n) (px_visited += (n))
 static uint64_t px_fill;                        /* (FASE 8) the pixels every cv_rect paints: exact, not timed */
 static uint64_t n_fill;                         /* (1.5.29) how many cv_rect calls a screen asks for */
+extern unsigned gfx_ramp_builds;               /* (1.5.28) text ramps rebuilt: a cache miss in gfx.c's ramp() */
 #define GFX_HOOK_FILL(w, h) \
     (n_fill++, px_fill += ((w) > 0 && (h) > 0) ? (uint64_t)(uint32_t)(w) * (uint64_t)(uint32_t)(h) : 0u)
 #define UI_FILL_HOOK(x, y, w, h) hk_fill(x, y, w, h)
@@ -2573,7 +2574,7 @@ int main(int argc, char **argv)
             setup(COST[k]); pal(1);
             draw(COST[k]);
             px_visited = n_text = 0;
-            px_fill = 0; n_fill = 0;
+            px_fill = 0; n_fill = 0; gfx_ramp_builds = 0;
             c0 = clock();
             for (i = 0; i < N; i++) draw(COST[k]);
             px = px_visited / N; nt = n_text / N;
@@ -2581,6 +2582,15 @@ int main(int argc, char **argv)
                     (double)(clock() - c0) / CLOCKS_PER_SEC / N * 1e6,
                     (unsigned long long)nt, (unsigned long long)px, (unsigned long long)(px_fill / N),
                     (unsigned long long)(n_fill / N));
+            fprintf(rep, "  %-16s ramps rebuilt per frame: %u\n", S_NAME[COST[k]], gfx_ramp_builds / N);
+            /* (1.5.28) A STEADY-STATE FRAME REBUILDS NOTHING. The cache holds every (ink, ground, heat, curve)
+             * a screen uses, so from the second frame on the ramps are hits; more than two per frame means the
+             * table is too small again and the same work is being redone 200 times in this very loop. */
+            if (gfx_ramp_builds / N > 2u) {
+                nfind++;
+                fprintf(rep, "  ! %s rebuilds %u text ramps per frame (limit 2: the cache is too small)\n",
+                        S_NAME[COST[k]], gfx_ramp_builds / N);
+            }
             /* (1.5.29) A CEILING ON OVERDRAW, because it is the number a redraw costs the panel and nothing
              * watched it. A 240 x 240 screen is 57 600 px; the worst screen here paints 160 481 (2.8x, FX's
              * wells and buses) and the limit is 200 000 -- a change that doubles a screen's painted area now

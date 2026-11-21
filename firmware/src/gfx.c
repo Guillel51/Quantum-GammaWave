@@ -957,7 +957,18 @@ static const uint8_t CURVE_LIGHT[16] = {0, 12, 27, 42, 58, 75, 91, 109, 126, 144
  * changes is how solid the strokes are: an edge that was a quarter covered is three quarters now, so the stems gain
  * the column that a second weight in flash would have paid for in XIP. The 15 nibble a stem already is stays 255. */
 static const uint8_t CURVE_BOLD[16] = {0, 62, 96, 126, 152, 175, 195, 212, 227, 240, 250, 255, 255, 255, 255, 255};
-#define NRAMP 6u
+/* (1.5.28) SIX WAS TOO SMALL FOR A SCREEN. The sweep counts what a frame rebuilds, and a page with four knob
+ * cards, a value, a unit, a label and an accent asks for 10 to 17 distinct (ink, ground, heat, curve) pairs:
+ * with six slots the one a glyph needed next had already been evicted, so the same ramps were built again and
+ * again every frame. A build walks 16 coverage levels through three channels, and it costs nothing but .bss to
+ * remember them: 20 slots are 760 B of the 11 KiB of RAM the linker leaves free, and no byte of XIP (the
+ * modulo is a constant). Output is untouched by construction -- a cache hit returns the very array a rebuild
+ * would have written, which is what the golden renders check. */
+#define NRAMP 20u
+/* (1.5.28) HOW OFTEN A RAMP IS BUILT, because it is the text path's biggest cost: a miss walks 16 coverage
+ * levels and three channels each. Counter only, no behaviour: the sweep reads it to say whether the cache is
+ * big enough for a screen (see tests/ui_render.c). */
+unsigned gfx_ramp_builds;
 static struct {
     uint16_t fg[NRAMP], bg[NRAMP], hot[NRAMP], v[NRAMP][16];   /* v: byte-swapped panel values */
     uint32_t gen;
@@ -986,6 +997,7 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg, uint16_t hot)
         if (rc.fg[i] == fg && rc.bg[i] == bg && rc.hot[i] == hot && rc.bold[i] == cv_bold)
             return rc.v[i];
     i = rc.next;
+    gfx_ramp_builds++;
     rc.next = (uint8_t)((i + 1u) % NRAMP);
     if (rc.n < NRAMP)
         rc.n++;
