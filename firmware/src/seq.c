@@ -30,6 +30,10 @@ static const uint16_t SCALE_MASK[] = {
     (1 << 0) | (1 << 2) | (1 << 4) | (1 << 6) | (1 << 8) | (1 << 10),              /* WHOLE */
     (1 << 0) | (1 << 1) | (1 << 3) | (1 << 4) | (1 << 6) | (1 << 7) | (1 << 9) | (1 << 10), /* DIMHW */
     (1 << 0) | (1 << 2) | (1 << 3) | (1 << 5) | (1 << 6) | (1 << 8) | (1 << 9) | (1 << 11), /* DIMWH */
+    (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 8) | (1 << 10),  /* HIJAZ (ETAPA 5): Phrygian
+                                                                                   * dominant, the b2 and the natural 3 */
+    (1 << 0) | (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 11),  /* HUNGMIN (ETAPA 5): the harmonic
+                                                                                   * minor with its #4 */
 };
 
 #define KB_SILENT 255u
@@ -531,7 +535,8 @@ static int pfx_rec_ok(void) { return song.rec && song.playing && !chain.running;
  * notes together (the first 4), an octave higher each step through OCT */
 enum { AM_OFF, AM_UP, AM_DN, AM_UPDN, AM_RND, AM_ORD, AM_REPEAT, AM_DNUP, AM_UP8, AM_CONV, AM_DIVG, AM_PINKY,
        AM_THUMB, AM_WALK, AM_CHORD,
-       AM_TRNS };   /* (JIANT) TRNS: a key no note but the track's sequence transposed by its interval from C4 (t->trn, kept
+       AM_TRNS, AM_PEDAL, AM_ALBT };   /* (ETAPA 5) PEDAL: the lowest note held under a rising line; ALBT: the Alberti
+                                      * figure, 1-3-2-4, the accompaniment every cadence in this machine can sit on */   /* (JIANT) TRNS: a key no note but the track's sequence transposed by its interval from C4 (t->trn, kept
                      * when let go: the next key moves it), MIDI in too; the steps' notes, never the lane hits */
 
 static void arp_forget(track_t *t)               /* (its notes ended otherwise: trk_all_off) */
@@ -615,6 +620,28 @@ static uint32_t arp_step_index(uint32_t m, uint32_t i, uint32_t len)
         return len < 2u ? 0u : (k & 1u) ? len - 1u : k / 2u;
     case AM_THUMB:
         return len < 2u ? 0u : (k & 1u) ? 1u + k / 2u : 0u;
+    case AM_PEDAL: {                             /* (ETAPA 5) a pedal point: the lowest note held lands on every
+                                                  * downbeat of four, the three steps between them climb the rest */
+        uint32_t q = i & 3u, g = i >> 2;          /* (no recursive call: the compiler must keep flattening
+                                                   * this; UP's index is simply i % len) */
+        if (len < 2u)
+            return 0u;
+        if (q == 0u)
+            return 0u;
+        return 1u + (g * 3u + (q - 1u)) % (len - 1u);
+    }
+    case AM_ALBT: {                              /* (ETAPA 5) 1 - 3 - 2 - 4, the Alberti figure */
+        uint32_t q = i & 3u;
+        if (len < 2u)
+            return 0u;
+        if (q == 0u)
+            return 0u;
+        if (q == 1u)
+            return len > 2u ? 2u : 1u;
+        if (q == 2u)
+            return 1u;
+        return len > 3u ? 3u : len - 1u;
+    }
     default:
         return i % len;
     }

@@ -321,8 +321,8 @@ async function editorMock() {
   }
   await rq(E.req.uiSet(3, 0));
   const scale = E.parse[E.CMD.DESC](await rq(E.req.desc(0, 26)));
-  const scaleNames = ["CHR", "MAJ", "MIN", "DOR", "MIX", "PEN", "MPEN", "HARM", "PHRY", "LYD", "LOC", "MEL", "BLUES", "WHOLE", "DIMHW", "DIMWH"];
-  ok(scale.label === "SCALE" && scale.max === 15 && eq(scale.names, scaleNames), "editor: all 16 scale names exposed");
+  const scaleNames = ["CHR", "MAJ", "MIN", "DOR", "MIX", "PEN", "MPEN", "HARM", "PHRY", "LYD", "LOC", "MEL", "BLUES", "WHOLE", "DIMHW", "DIMWH", "HIJAZ", "HUNGMIN"];
+  ok(scale.label === "SCALE" && scale.max === 17 && eq(scale.names, scaleNames), "editor: all 18 scale names exposed");
   const scaleSet = E.parse[E.CMD.SET](await rq(E.req.set(0, scale.id, 15)));
   ok(scaleSet.value === 15, "editor: new scale selection is not clamped to the old range");
   const dump = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);

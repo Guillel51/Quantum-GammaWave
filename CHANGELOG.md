@@ -1,3 +1,18 @@
+## Etapa 5/8 — herramientas nuevas en ARP, SCL y LFO (sin parámetros nuevos)
+
+- **ARP > MODE = PEDAL**: el bajo de los acordes sostenidos en cada tiempo fuerte de cuatro y la línea subiendo
+  entre ellos (pedal point). **ARP > MODE = ALBERTI**: la figura 1-3-2-4.
+- **SCL > SCALE = HIJAZ** (dominante frigia) y **HUNG MINOR** (menor armónica con #4), con nombre completo y
+  familia para el explorador. La UI deja de limitar el tope a 16.
+- **LFO > RATE = 1/2D y 1/16D**: las dos divisiones con puntillo que faltaban (RATE llega a −14).
+- Todo son valores **al final de una lista existente**: presets, proyectos y MIDI guardados conservan su
+  significado; no hay campos ni RAM nuevos. Web Studio sincronizado (y su mock, que además estaba atrasado en
+  PHASE/LOFI WAVE).
+- **+208 B** de XIP (3 432 B libres), **0 B** de RAM, `target_budget` exit 0 tras reescribir PEDAL sin la
+  llamada recursiva que había hecho crecer `mix_block` un 37 % en el presupuesto estático.
+- Test nuevo `tests/etapa5_tools_test.c`; 307 golden renders, **0 cambiados**; ui/presets/web en 0.
+- Detalle y lo evaluado sin hacer en `docs/ETAPA5_HERRAMIENTAS_2026-11-21.md`.
+
 ## Etapa 4/8 — una onda nueva en PHASE: SYNC (relación 1..8x reiniciada por el ciclo maestro)
 
 - **`PHASE > WAVE = SYNC`** (la novena): la portadora corre a una relación continua que fija **DCW** (1× … 8×, en

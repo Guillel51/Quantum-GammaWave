@@ -4,12 +4,13 @@
 static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE", "PLUK"};   /* (QG-1 1.6) EVO: appended; (FASE 2) HSIN, PULSE;
                                                                                         * (FASE 3) PLUK: a decay a cycle */
 /* (QG-1 1.6) TOUCH > VEL CURVE: how a key's / MIDI note's velocity reaches the engines (voice.c vel_curve) */
-/* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest (next to the slowest free rate) */
-static const char *const N_LSYNC[12] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16",
-                                        "1/16T", "1/32"};
+/* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest, -14 the fastest (ETAPA 5: 1/2D, 1/16D) */
+static const char *const N_LSYNC[14] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16",
+                                        "1/16T", "1/32", "1/2D", "1/16D"};   /* (ETAPA 5) 1/2D, 1/16D appended: the two
+                                                                              * dotted lengths the set was missing */
 static const char *const N_AMODE[] = {"OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT",   /* (append-only: seq.c AM_*) */
                                        "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD",
-                                       "TRNS"};                         /* (JIANT: seq.c AM_TRNS) */
+                                       "TRNS", "PEDAL", "ALBERTI"};     /* (JIANT: seq.c AM_TRNS) */   /* (ETAPA 5) */
 static const char *const N_DIV[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR"};
 /* (JIANT 0.4) the delay's TIME: N_DIV's ten, then 48 free times past the last division (5 ms .. 1.48 s, exponential;
  * fx.c delay_samples, DTIME_MS) */
@@ -17,14 +18,19 @@ static const char *const N_DIV[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "
 static const char *const N_DTIME[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR", "5ms", "6ms", "7ms", "8ms", "9ms", "10ms", "11ms", "12ms", "13ms", "15ms", "17ms", "19ms", "21ms", "24ms", "27ms", "31ms", "35ms", "39ms", "44ms", "50ms", "56ms", "64ms", "72ms", "81ms", "91ms", "103ms", "116ms", "131ms", "148ms", "167ms", "189ms", "213ms", "241ms", "272ms", "307ms", "346ms", "391ms", "441ms", "498ms", "562ms", "634ms", "716ms", "808ms", "912ms", "1.03s", "1.16s", "1.31s", "1.48s"};
 static const uint16_t DTIME_MS[48] = {5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 17, 19, 21, 24, 27, 31, 35, 39, 44, 50, 56, 64, 72, 81, 91, 103, 116, 131, 148, 167, 189, 213, 241, 272, 307, 346, 391, 441, 498, 562, 634, 716, 808, 912, 1029, 1162, 1311, 1480};
 static const char *const N_SCALE[] = {"CHR", "MAJ", "MIN", "DOR", "MIX", "PEN", "MPEN", "HARM",
-                                    "PHRY", "LYD", "LOC", "MEL", "BLUES", "WHOLE", "DIMHW", "DIMWH"};
+                                    "PHRY", "LYD", "LOC", "MEL", "BLUES", "WHOLE", "DIMHW", "DIMWH",
+                                    "HIJAZ", "HUNGMIN"};   /* (ETAPA 5) the two the set was missing: Phrygian
+                                                            * dominant and Hungarian minor */
 /* (2.8) SCL > SCALE names the scale in full and its family, which is what the explorer is for: CHR is no key
  * at all, the rest are major, minor, modal, pentatonic (blues too) or symmetric (whole tone, diminished) */
 static const char *const N_SCALELONG[] = {"CHROMATIC", "MAJOR", "NAT MINOR", "DORIAN", "MIXOLYDIAN", "MAJ PENTA",
                                           "MIN PENTA", "HARM MINOR", "PHRYGIAN", "LYDIAN", "LOCRIAN", "MEL MINOR",
-                                          "BLUES", "WHOLE TONE", "DIM H/W", "DIM W/H"};
+                                          "BLUES", "WHOLE TONE", "DIM H/W", "DIM W/H",
+                                          "HIJAZ", "HUNG MINOR"};   /* (ETAPA 5) */
 static const char *const N_SCLFAM[] = {"ATONAL", "MAJOR", "MINOR", "MODAL", "MODAL", "PENTA", "PENTA", "MINOR",
-                                       "MODAL", "MODAL", "MODAL", "MINOR", "BLUES", "SYMM", "SYMM", "SYMM"};
+                                       "MODAL", "MODAL", "MODAL", "MINOR", "BLUES", "SYMM", "SYMM", "SYMM",
+                                       "MODAL", "MINOR"};   /* (ETAPA 5) HIJAZ is modal (it is Phrygian with a major
+                                                             * third), HUNG MINOR is a minor key */
 static const char *const N_ONOFF[] = {"OFF", "ON"};
 static const char *const N_NRATE[] = {"1/1", "1/2", "1/4", "1/8", "1/16", "46ms"};   /* (3.5) mod.c MS_NOISE's hold:
                                      * the tempo's grid, then the free 46 ms it always was (the default, last so the
@@ -84,7 +90,7 @@ static const param_desc_t TP[P_COUNT] = {
     [P_ED_PIT] = PD("PITCH", F_BIPCT, -64, 63, 0),
     [P_ED_SHP] = PD("SHAPE", F_BIPCT, -64, 63, 0),
     [P_ED_FX] = PE("LOOP", N_ONOFF, 0),          /* (JIANT 0.4, P_ELOOP) ON: held, the ENV starts again at the sustain */
-    [P_LRATE] = PD("RATE", F_LFOHZ, -12, 127, 60),  /* (JIANT 0.6.51) below 0 in time: 4BAR .. 1/32 (N_LSYNC) */
+    [P_LRATE] = PD("RATE", F_LFOHZ, -14, 127, 60),  /* (JIANT 0.6.51) below 0 in time: 4BAR .. 1/32 (N_LSYNC) */
     [P_LWAVE] = PE("WAVE", N_LWAVE, 0),
     [P_LPHASE] = PD("PHASE", F_INT, -1, 127, 0),   /* (JIANT 0.6.51) -1: FREE, never restarted by a note */
     [P_LFADE] = PD("FADE", F_TIME, 0, 127, 0),
@@ -470,7 +476,7 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
     case F_LFOHZ: {
         uint32_t h = LFO_HZ_X100[v & 127];
         if (v < 0) {                                    /* (0.6.51) the LFO in time */
-            str_cpy(val, N_LSYNC[(uint32_t)(-v - 1) % 12u], 6);
+            str_cpy(val, N_LSYNC[(uint32_t)(-v - 1) % 14u], 6);
             break;
         }
         if (h < 1000u)

@@ -728,7 +728,7 @@ static void graph_scale(const track_t *t, uint16_t c)
     /* the title line, above the keys */
     str_cpy(sb, N_NOTE[root], sizeof sb);
     str_cpy(sb + str_len(sb), " ", 2);
-    str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
+    str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 17)], sizeof sb - str_len(sb));
     cv_text_on(12, 7, &AF_S, sb, T_THEME, T_SURF);
     if (t->p[P_QUANT])
         cv_text_r(228, 7, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);

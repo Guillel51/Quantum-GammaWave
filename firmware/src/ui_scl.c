@@ -562,7 +562,7 @@ static int32_t scl_degree(uint8_t note, uint32_t root, const uint8_t *off, uint3
 static void graph_scl_scale(const track_t *t, uint16_t c)
 {
     uint32_t i, mask = scale_mask(t), n = 0, root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
-    uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 15), ti = trk_index(t) % NTRK;
+    uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 17), ti = trk_index(t) % NTRK;
     uint32_t sel = scl_selm[ti], live = scl_live_mask(t), sn, tn, nm_n = 0;
     uint8_t off[12], nt[12];
     int32_t cx = 50, cy = 54, rn = 20, rl = 30;         /* (FASE 7) the labels' ring stopped at y 100 and the
@@ -708,7 +708,7 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
     scl_recognise(sel, bass, root, &rec);
     str_cpy(l, N_NOTE[root], sizeof l);
     str_cpy(l + str_len(l), " ", 2);
-    str_cpy(l + str_len(l), N_SCALELONG[(uint32_t)clamp(t->p[P_SCALE], 0, 15)], sizeof l - str_len(l));
+    str_cpy(l + str_len(l), N_SCALELONG[(uint32_t)clamp(t->p[P_SCALE], 0, 17)], sizeof l - str_len(l));
     scl_head(l, tn > 1u ? "CHORD" : tn ? "NOTE" : "FREE", tn > 1u ? T_ACCENT : tn ? T_THEME : T_DIM);
 
     /* the name, with the inversion the bass makes and a word when the set fits more than one root */

@@ -477,6 +477,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/sine_table_test" tests/sine_table_test.c -lm
     run "SINE: the 1025 points are stored as int8 second differences and decode to the generator's integers exactly (1025 B of XIP instead of 2050)" \
         "$OUT/sine_table_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/etapa5_tools_test" tests/etapa5_tools_test.c -lm
+    run "ETAPA 5: ARP PEDAL/ALBERTI, SCL HIJAZ/HUNG MINOR and LFO 1/2D, 1/16D are new and exact" "$OUT/etapa5_tools_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/pd_sync_test" tests/pd_sync_test.c -lm
     run "PHASE: wave 8 SYNC is a new sound (9 distinct waves on one note) and DCW is its ratio" "$OUT/pd_sync_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_options_test" tests/engine_options_test.c -lm
