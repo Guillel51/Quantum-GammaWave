@@ -2809,3 +2809,81 @@ The XIP floor (2 048 B free) is **met for the first time**: 6 040 B free, ~4 KB 
   golden renders are 0 changed). `window XIP is above its floor (6040 B free, floor 2048)` now **passes**:
   the floor that had been red since before Fase 5 is green.
 - `[HW]`: unchanged, no physical FM-1. Gate **GO CONDITIONAL**.
+
+## 34. Fase 7/8 — UI, optimization and security review (2026-11-21)
+
+This phase is a review with measurements, not a rebuild: what follows is what was run, what it found, and what
+was changed. Class of every number: `[HOST]` for anything that ran on this VM, `[TARGET]` for the linked
+AC791N build.
+
+### 34.1 The open items from the six phases, and where they stand
+
+| item | state after this review |
+|---|---|
+| XIP floor (2 048 B free) | **green**: `ok window XIP is above its floor (6040 B free, floor 2048)` |
+| CPU aggregate of the host simulation | **red, environment**: this VM runs ~24 % slower than the baseline it was recorded on; the binaries of the previous commit fail it by the same margin, and the 307 golden renders are 0 changed. Not rebaselined (§31.4). |
+| `FX measured`: phaser depth, flanger null travel, EQ low shelf | **red, investigated, not yet fixed** — see 34.5 |
+| `FM6 voice bank` + its ASan run | **red, pre-existing**: the bank's write/read and the 1.2 presets, unchanged by these phases (it fails identically at the commit before Fase 5) |
+| `[HW]` (no physical FM-1) | unchanged: **GO CONDITIONAL** |
+
+### 34.2 UI review, measured
+
+- Render sweep `[HOST]`: **191 screens x 22 palettes** plus the page/value sweep — **0 lint findings**, 0 inks on
+  their own colour, 0 GREY / MONO pixels off the gray or neutral axis, **3 823 446** alignment measurements of
+  74 places with **0 off by 1 px**. The 456 "ellipsised free texts" are user-supplied names (preset and track
+  names) cut at their column, which is the designed behaviour of a 240x240 card, not a defect.
+- Every page's knobs are swept by `control_map_test` at every engine and every computed-page state
+  (24 103 checks): each knob edits its own value, no two share one, an empty slot has no control.
+- What changed in the UI in this phase and the last one: the **SCENES** page (Fase 6) and MENU > USB SERIAL
+  showing `--` in a console-less build. Both are in the regenerated pixel baseline; nothing else moved —
+  the sweep's caveats are recorded here rather than in a claim that "the UI was reviewed by eye": **no human
+  looked at these screens in this session**, and the emulator page was rebuilt only so a person can.
+
+### 34.3 Optimization round 2, profiled
+
+- **Where the CPU is** `[HOST]`, from the regression's per-preset table: the WAVETABLE engine is the most
+  expensive family by a clear margin (`cpu/WTABLE/07_SUB_BASS` 134.7, `05_HOLLOW_WOOD` 132.2,
+  `03_VOCAL_AAH` 127.8), then ADDITIVE (`08_REED_HORN` 126.1). The cheapest are FM6 (`31_DEEP_MARIMBA` 30.6)
+  and LOFI (`25_POCKET_CONSOLE` 53.1). That is the shape the two wavetable readers have by design (two
+  interpolated reads per voice per sample), and nothing there was changed blind.
+- **What was actually optimized in the last two phases**: `size_fns.py` extended to every main-loop file
+  (-288 B XIP, §32), the morph engine written so it adds **no** work to the interrupt path (§33), and the
+  console's 8 136 B of image freed for it (§33.3). Result now: XIP 556 944 B with **6 040 B free**, RAM
+  **93 440 of 98 304** (4 864 free), pool spare 9 248 B, LOWBUF 2 204 B.
+- **What was checked for waste and found clean** `[TARGET]`/`[HOST]`: no `malloc` in the audio path (the
+  project has none anywhere), `--gc-sections` + `-ffunction-sections` already drop unreachable code, the
+  shipped tables are delta- or Huffman-coded where it pays (sine 1 025 B instead of 2 050, keycaps 1 947 B of
+  Huffman), and the two knobs that would cut more (blanket `noinline`, alignment flags) were measured and
+  rejected (§32.1, +672 B and no change).
+
+### 34.4 Security and stability review
+
+- **Writes**: nothing in this session touched a physical unit, the updater, the loader, the boot head or the
+  flash. The V16 install path, the packages and the signatures are as committed.
+- **Buffer arithmetic** `[HOST]` (grep over the update/preset/USB/storage paths): the only `memcpy` outside a
+  `sizeof` is `up_fm6.c:207`, and its source is selected by a bounded comparison
+  (`s >= 0 && s < FM6_NFACTORY ? FM6_FACTORY[s] : FM6_INIT`) with a fixed `FM6_PACKED` length; every other
+  copy is a `sizeof` of the destination. No `strcpy`, no `sprintf`.
+- **The guards that already existed and still pass** `[HOST]`: `package bounds: all checks passed` (the
+  package's declared sizes against its content), `install tests passed`, the backup audit, the chip/JEDEC
+  allowlist test, the OTA handshake and the transition test, and the editor's robustness suite
+  (`BACKUP_PUT data without a session: refused`). The integrity chain (firmware -> package -> WASM -> editor ->
+  installer) was re-checked with `make_release.py --check` and `groups.sh sync` after the rebuild.
+- **Stability under load** `[HOST]`: the regression's voice budget, stealing, fade and routing checks
+  (14 129 random MIDI/key events, no hanging gate) all pass; the audio is bit-identical to the previous commit
+  across 307 golden renders.
+
+### 34.5 What is still open, with its numbers
+
+- `PHASER: the comb has depth somewhere in 200 Hz..6 kHz (>= 20 dB)` measures **6.6 dB**; the chain is
+  bounded and does not click, so it is a depth problem, not a stability one.
+- `FLANGER: the null moves with the sweep` reports **4 383 Hz** where the movement is expected.
+- `EQ LOW SH -24 dB curve: 30:-24.0 60:-23.8 120:-22.4 250:-13.6 1000:-19.9 4000:-24.0 16000:-24.0` — the
+  shelf rises out of its corner and then falls back to its cut at 1 kHz and above, i.e. the applied filter is
+  not the shelf its coefficients describe. The coefficient chain was replicated in the host and gives the
+  correct curve (`30 Hz -24.0, 1 kHz -3.9, 4 kHz -0.0`), so the defect is in how the master EQ applies the
+  mode, not in `qg_biquad_set_lowshelf`'s arithmetic; that is the next thing to fix and it is written here
+  rather than left as "FX fails".
+- No new UI defect was found by the sweeps and none was invented to show work; the pages a person should look
+  at on the unit are the ones the sweeps cannot judge — the visualizers (FORGE / HEARTH / WRAITH) and the
+  SCENES page in the hand.

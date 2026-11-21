@@ -11,9 +11,9 @@ cannot stay invisible: the file is regenerated in the same push.
 
 | | |
 |---|---:|
-| rows in the matrix | 790 |
-| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 351 |
-| rows still asking for evidence | 30 |
+| rows in the matrix | 796 |
+| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 355 |
+| rows still asking for evidence | 31 |
 
 Classes of evidence named across the matrix (a row can name more than one):
 
@@ -62,6 +62,7 @@ Classes of evidence named across the matrix (a row can name more than one):
 | [2258](VALIDATION_MATRIX.md#L2258) | A real browser session on the published pages | **not run** | no browser automation here; §26.6 is HTTP read-back, not a rendered page |
 | [2299](VALIDATION_MATRIX.md#L2299) | `eq_response_test` | **passed, 0 failed** (17 checks, incl. half gain at 20 kHz and the boot check) |  |
 | [2300](VALIDATION_MATRIX.md#L2300) | `eq_sweep_test`, `eq_state_test`, `eq_dc_test` | **passed, 0 failed** |  |
+| [2824](VALIDATION_MATRIX.md#L2824) | CPU aggregate of the host simulation | **red, environment**: this VM runs ~24 % slower than the baseline it was recorded on; the binaries of the previous commit fail it by the same margin, and the 307 golden renders are 0 changed. Not rebaselined (§31.4). |  |
 
 ## What this page cannot say
 
