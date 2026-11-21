@@ -12,8 +12,11 @@
  * as E8. */
 static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
 static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
-static const char *const N_PD_LINE[] = {"MIX", "RING", "PM", "FOLD"};   /* (FASE 2: PM appended, the stores' 0 / 1 stay;
-                                                                         * FASE 6: FOLD, line 2 folds the sum) */
+static const char *const N_PD_LINE[] = {"MIX", "RING", "PM"};   /* (FASE 2: PM appended, the stores' 0 / 1 stay).
+                                                                  * (FASE 6) LINE = FOLD was designed and measured
+                                                                  * (+96 B of XIP) and left out: +13 instructions a
+                                                                  * sample in this loop broke the DSP budget. Its own
+                                                                  * loop would not fit either. docs/FASE6_OPCIONES_v1.5.29.md */
 
 static inline int32_t pd_cos(uint32_t ph16)             /* -cos, Q15, from the 16-bit PD phase */
 {
@@ -157,8 +160,7 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
                                                               * knob jumped the phase: a click, louder the higher it was) */
     int32_t dfb = ((p[P_E7] << 8) - fb) / (int32_t)(n ? n : 1u);
     int32_t nst = v->s[5];                               /* noise32() takes a signed state: same bits */
-    int32_t mixk = line2 && line != 2 && line != 3;          /* (1.0.2) the mix, decided once: no composite test a sample */
-    int32_t fld = line == 3;                                 /* (FASE 6) LINE = FOLD: line 2 folds line 1's sum */
+    int32_t mixk = line2 && line != 2;                       /* (1.0.2) the mix, decided once: no composite test a sample */
     pd_t b1, b2, bm;
     int32_t mf = 0, dmf = 0;                                 /* (0.6.45) MORPH: line 1 towards the next WAVEs; (0.6.50)
                                                               * its blend ramped across the block, Q8 */
@@ -207,16 +209,6 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
         tg0 ^= (ph0 < old);
         if (mixk)                                     /* (PM already bent line 1's phase: nothing to mix in) */
             s = ring ? mulq15(s, s2) : (s + s2) >> 1;     /* both within +-32767 */
-        if (fld) {                                    /* (FASE 6) FOLD: the sum wrapped at the rails, so the crest
-                                                       * folds back into harmonics instead of clipping (a
-                                                       * wavefolder: LINE picks it, WAVE2 and DTN its shape) */
-            int32_t q = s + s2;
-            if (q > 32767)
-                q = 65534 - q;
-            else if (q < -32767)
-                q = -65534 - q;
-            s = q;
-        }
         if (sub) {
             ph2 += inc >> 1;
             s += mulq15(osc_sine(ph2), sub);
@@ -352,7 +344,7 @@ static const engine_t ENG_PHASE = {
         {"DCW", F_PCT, 0, 127, 60, 0, 0},
         {"ENV", F_PCT, 0, 127, 64, 0, 0},
         {"DETUNE", F_INT, 0, 127, 0, 0, "ct"},
-        {"LINE", F_ENUM, 0, 3, 0, N_PD_LINE, 0},   /* (FASE 6: 3 = FOLD) */
+        {"LINE", F_ENUM, 0, 2, 0, N_PD_LINE, 0},
         {"SUB", F_PCT, 0, 127, 0, 0, 0},
         {"FB", F_PCT, 0, 127, 0, 0, 0},
     },

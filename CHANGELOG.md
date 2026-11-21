@@ -1,3 +1,25 @@
+## v1.5.29 — LOFI gana WAVE = SYNC; PHASE LINE = FOLD queda medido y afuera
+
+Fase 6. Dos opciones de motor se diseñaron para los 888 B de XIP libres. Una entra; la otra entra en flash pero
+**rompe el presupuesto de DSP**, y el guardián del CI la rechaza con el número: eso es lo que se publica, no un
+presupuesto retocado. (v1.5.28 llevaba las dos y su CI falló en `target_budget.py`.)
+
+- **LOFI · WAVE = SYNC (valor 7), nuevo.** Un pulso cuya fase corre **2 a 5 veces** la de la nota y se reinicia con
+  ella —el *hard sync* de los chips, que este motor no tenía—; **DUTY** elige la relación y el modo entra también en
+  el morfado (MORPH hacia SYNC lo barre). **`[HOST]`:** suena (rms muy por encima del piso de 16 bits) y difiere de
+  los otros siete WAVE en **105–141 %** de la señal, medido sobre las muestras; **0 presets** de fábrica lo usan, así
+  que la biblioteca no se movió (**306 golden renders, 0 cambiados**). **`[AC791N]`:** **+64 B** (imagen
+  **582 788 B**, **824 B libres**) y **+9 instrucciones** en `lofi_render` (+5 %, dentro del +10 % del
+  presupuesto).
+- **PHASE · LINE = FOLD: no entra, y está medido.** El *wavefolder* (la suma de las dos líneas envuelta en los
+  rieles) costaba **+96 B** de XIP, que entraban, pero **+13 instrucciones por muestra** dentro del lazo de
+  `phase_render`: **107 frente a un presupuesto de 94 (+14 %)**, y `phase_render_noise` 125 contra 113 (+11 %). Su
+  propio lazo (para no pagarlo con FOLD apagado) no cabe en los 744 B que quedaban: duplicar el lazo son cientos de
+  bytes. Descartado por medición, no por gusto. Detalle en `docs/FASE6_OPCIONES_v1.5.29.md`.
+- **Tests.** `tests/engine_options_test.c` (nuevo, en `tests/run_tests.sh`) mide sonido, distancia entre valores y
+  limpieza de la biblioteca, y además **verifica que FOLD no está**: el control vuelve a terminar en PM, así que
+  código, docs y pantalla no pueden separarse.
+
 ## v1.5.28 — PHASE gana LINE = FOLD y LOFI gana WAVE = SYNC: dos opciones de motor, medidas
 
 Fase 6 (cierre). La Fase 3 pedía opciones nuevas **en los motores** y lo que entró fue transversal (LFO, matriz,

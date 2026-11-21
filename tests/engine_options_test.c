@@ -2,10 +2,11 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* (FASE 6) The two engine options this phase added, measured instead of assumed:
  *
- *   PHASE  LINE = FOLD  (3)   line 2 folds line 1's sum at the rails: a wavefolder whose shape is WAVE2 and
- *                             whose intensity is DTN, on a control that already existed (the LINE knob).
  *   LOFI   WAVE = SYNC  (7)   a pulse whose phase runs 2..5x the note's and restarts with it (DUTY picks the
  *                             ratio): the metallic hard sync the chip never had.
+ *   PHASE  LINE = FOLD        designed and measured (docs/FASE6_OPCIONES_v1.5.29.md), rejected: +96 B of XIP
+ *                             but +13 instructions a sample in phase_render's loop, over the DSP budget. Its
+ *                             absence is checked here too, so the knob and the docs cannot drift apart.
  *
  * What this proves, and what it cannot:
  *   render       a held note renders at all (RMS above the floor: an option that produces silence is not one).
@@ -153,29 +154,17 @@ int main(void)
     int e, i, k;
     double peak_rms;
 
-    /* --- PHASE: LINE 0..3, the new one is FOLD */
+    /* --- PHASE: LINE = FOLD was designed, measured and rejected (docs/FASE6_OPCIONES_v1.5.29.md):
+     * +96 B of XIP, but +13 instructions a sample inside phase_render's loop (+14 % over the DSP budget), so it
+     * is not in the engine and the knob still ends at 2 */
     e = eng_by_name("PHASE");
     ok(e >= 0, "PHASE is one of ENGINES[]");
     if (e >= 0) {
-        ok(ENGINES[e]->edit[5].max == 3, "PHASE LINE accepts 0..3 (the new value has a range)");
-        ok(ENGINES[e]->edit[5].names && ENGINES[e]->edit[5].names[3] &&
-           !strcmp(ENGINES[e]->edit[5].names[3], "FOLD"), "PHASE LINE is called FOLD at 3");
-        peak_rms = 0;
-        for (i = 0; i < 4; i++) {
-            render((uint32_t)e, 0, 5, i, &rms[i], &zcr[i]);
-            memcpy(keep[i], buf, sizeof buf);
-            if (rms[i] > peak_rms) peak_rms = rms[i];
-            snprintf(line, sizeof line, "PHASE LINE %d (%s): rms %.0f, zero crossings %.4f/sample", i,
-                     ENGINES[e]->edit[5].names[i], rms[i], zcr[i]);
-            printf("     %s\n", line);
-        }
-        ok(rms[3] > 8.0, "PHASE LINE = FOLD sounds (rms above the 16-bit floor)");
-        for (i = 0; i < 3; i++) {
-            snprintf(line, sizeof line, "PHASE FOLD differs from %s: %.0f %% of the signal changed",
-                     100.0 * dist(3, i), ENGINES[e]->edit[5].names[i]);
-            ok(dist(3, i) > 0.05, line);
-        }
-        ok(ENGINES[e]->edit[0].max == 7, "PHASE WAVE still ends at 7: FOLD is a LINE, not a missing WAVE");
+        printf("     PHASE edit[5] max %d, names[0] %s, names[3] %s\n", ENGINES[e]->edit[5].max,
+               ENGINES[e]->edit[5].names ? ENGINES[e]->edit[5].names[0] : "?", 
+               ENGINES[e]->edit[5].names && ENGINES[e]->edit[5].names[3] ? ENGINES[e]->edit[5].names[3] : "(none)");
+        ok(ENGINES[e]->edit[5].max == 2, "PHASE LINE still ends at 2: FOLD did not ship");
+        ok(ENGINES[e]->edit[5].names && ENGINES[e]->edit[5].names[3] == 0, "PHASE LINE names stop at PM");
     }
 
     /* --- LOFI: WAVE 0..7, the new one is SYNC */
@@ -203,15 +192,8 @@ int main(void)
 
     /* --- and the library cannot have moved: no factory preset carries the new values */
     {
-        int used_line = 0, used_wave = 0;
+        int used_wave = 0;
         uint32_t pi, n;
-        if ((e = eng_by_name("PHASE")) >= 0)
-            for (n = ENGINES[e]->npresets, pi = 0; pi < n; pi++) {
-                const preset_t *pr = ENGINES[e]->presets + pi;
-                for (k = 0; k < 8; k++)
-                    if (pr->x[k].id == P_E0 + 5 && pr->x[k].v == 3)
-                        used_line++;
-            }
         if ((e = eng_by_name("LOFI")) >= 0)
             for (n = ENGINES[e]->npresets, pi = 0; pi < n; pi++) {
                 const preset_t *pr = ENGINES[e]->presets + pi;
@@ -219,9 +201,8 @@ int main(void)
                     if (pr->x[k].id == P_E0 + 1 && pr->x[k].v == 7)
                         used_wave++;
             }
-        printf("     presets on LINE = FOLD: %d, on WAVE = SYNC: %d\n", used_line, used_wave);
-        ok(used_line == 0 && used_wave == 0,
-           "no factory preset uses FOLD or SYNC: the library and the golden renders keep their samples");
+        printf("     presets on WAVE = SYNC: %d\n", used_wave);
+        ok(used_wave == 0, "no factory preset uses SYNC: the library and the golden renders keep their samples");
     }
 
     printf("engine options: %s\n", fails ? "FAILED" : "all passed");
