@@ -2298,3 +2298,76 @@ corner is held to half gain again, which is the check that fails if the boot is 
 |---|---|
 | `eq_response_test` | **passed, 0 failed** (17 checks, incl. half gain at 20 kHz and the boot check) |
 | `eq_sweep_test`, `eq_state_test`, `eq_dc_test` | **passed, 0 failed** |
+
+## 27. Fase 1/8 — Deep Optimization & Resource Recovery (2026-11-21)
+
+The phase opened by re-reading the tree instead of the reports: `main`, HEAD `2de963fb`, clean, and the
+toolchain, the Jieli SDK and emsdk all present, so a `[TARGET]` build was possible.
+
+### 27.1 Baseline, measured before touching anything (`[TARGET]`)
+
+`ulimit -n 9000; JIELI_TOOLCHAIN=… AC79_SDK=… ./build.sh` at `2de963fb`:
+
+| Quantity | Value | Budget |
+|---|---|---|
+| image (app slot) | **581 296 B** | 583 612 B — 2 316 B free |
+| XIP code | 429 876 B | — |
+| XIP constants | 130 880 B | — |
+| `.data+.bss` | 93 612 B | 98 304 B — 4 692 B free |
+| RAM code | 19 728 B | 24 576 B |
+| pool | 311 256 B, **9 248 B spare** | — |
+| LOWBUF | 30 564 B | 32 768 B |
+
+Baseline `[HOST]`: `target_budget.py` on `build/felucca.dis` reports every audited path inside its stored
+budget (`perf_block` 253/254, `rev_spring` 126/126, `rev_room` 243/243, `DRUM path` 1153/1153,
+`slicer_bus` 801/806, `drum_mix` 123/123, `uac_tap48` 465/504); `ui_render` reports 0 ramps rebuilt per
+frame and a full redraw of 103–307 µs per screen, with `step` 146 µs and the HOME visualizer 399 µs a frame
+at HIGH; `tests/regress` and `groups.sh sync` are green.
+
+### 27.2 What this pass changed
+
+`felucca_init()` called `fm6_exp2_init()` and `sine_init()` a **second** time, right after `fm6_init()` and
+`wt_gen_init()`. `voices_boot()` already calls both (every host harness enters through it), and neither
+`fm6_init()` (which only reads the exp2 curve) nor `wt_gen_init()` writes either table, so the pair rebuilt
+1 025 sine differences and 2 054 exp2 points at every power-on for nothing. Removed; the order of the
+remaining init steps is unchanged.
+
+| `[TARGET]` | before | after |
+|---|---|---|
+| image | 581 296 B | **581 280 B** (−16) |
+| XIP code | 429 876 B | **429 868 B** (−8) |
+| XIP constants | 130 880 B | **130 872 B** (−8) |
+| `.data+.bss`, RAM code, pool | unchanged | unchanged |
+
+`[HOST]`: 1.8 µs per redundant pair (x86, `-O2`), i.e. that much boot time back. `startup_test` passes
+(saved project restore, rows, bars, END, scenes, flash), the target build links and its budget checks pass.
+
+### 27.3 Measured and **not** changed — the reason, with the number
+
+An optimization is only worth its risk if the measurement says so. These were instrumented and rejected:
+
+| Candidate | Measurement | Verdict |
+|---|---|---|
+| `master_begin()`'s `clip_g`/`clip_mk` division cached per `clip_eff` change | 7.0 / 5.7 ns per call with the divide already in it, 1 divide a block | noise next to a 725 µs block: not worth a behavioural edge at `clip_eff == 0` |
+| Skip `fx_buses()` when all sends are 0 and the gate is closed | gate closed means "below the floors", not "silent state"; freezing the delay/comb state would replay a stale tail when the gate reopens | would change samples; forbidden |
+| `fx_run_t()`'s per-block `fx_sl`/`fx_sr` clear | the buses accumulate into both with `+=`, so unset samples would be undefined | required |
+| HOME visualizer (399 µs/frame) | already one band measurement per frame, one 2 px trace pass (the 3 px glow was removed in an earlier phase), shared `gw_embers()`, quality steps at LOW/BALANCED | the remaining cost is the animated field itself; nothing left to hoist without changing pixels |
+| flash: icons/fonts/shapes compression | fonts 23.5 KB, shapes 10.9 KB, icons 7.7 KB, keycaps 2.8 KB; kerning 1 437 B per face | compression of kerning or icon bitmaps changes spacing/pixels; a decoder costs per-frame CPU. Parked for a phase that can measure it end-to-end |
+
+### 27.4 State left behind
+
+`release/` still holds the published v1.6.0 package, assembled from `decbf613`; the tree is now one boot
+optimization **ahead** of it, so the packaged artefacts under `build/` (`felucca.fwsc`, `manifest.json`)
+were removed rather than left claiming to be that release. `make_release.py --check` is green in this state
+(`release/`, `site/`, the installer, the editor and both `SHA256SUMS` still describe one package), and the
+next release (`--sync` at a new version) is what adopts this change. The emulator was rebuilt at the new
+HEAD and `groups.sh sync` agrees with it (`b82f02bd`, 1 291 630 B, `2127e2b9…`).
+
+### 27.5 For Fase 2
+
+The instrument is at **99.6 % of its app slot and 95.2 % of its RAM**; the pool keeps 9 248 B spare. The
+bytes that remain are not in dead code (`--gc-sections` and the constant dedup were already taken) but in
+the assets the UI draws. Anything that wants real space should start from a measured experiment on one of:
+icon/keycap bitmap coding (a decoder in the `.hot_text` headroom that has 4 848 B free), the 10.9 KB of
+UI shape points, or moving a hot XIP routine into the RAM-code headroom — each needs its own
+before/after numbers in this matrix, and none may change a pixel or a sample.
