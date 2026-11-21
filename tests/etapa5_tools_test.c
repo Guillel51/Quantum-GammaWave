@@ -108,16 +108,16 @@ static void lfo_checks(void)
         ph[r + 14] = trk[0].lfo_ph;
     }
     /* -12 is 1/32 (3/24 beat), -13 is 1/2D (36/24 = twelve times its period), -14 is 1/16D (9/24 = three) */
-    /* ph[0] is -14 (1/16D: 9/24 of a beat), ph[1] is -13 (1/2D: 36/24), ph[2] is -12 (1/32: 3/24): the faster
-     * the division the further the phase runs, and the increments are the ratio the names promise */
-    ck(ph[2] && ph[2] > ph[0] && ph[0] > ph[1], "LFO: 1/32, 1/16D and 1/2D do not come out slowest last");
+    /* ph[0] is -14 (1/64: 1/24 of a beat), ph[1] is -13 (1/32T: 2/24), ph[2] is -12 (1/32: 3/24): the faster
+     * the division the further the phase runs (ETAPA 7: the appended pair is the fast end, so RATE grows) */
+    ck(ph[2] && ph[0] > ph[1] && ph[1] > ph[2], "LFO: 1/32, 1/32T and 1/64 do not come out fastest first");
     {   /* the increment per tick is truncated, so the ratio is checked to 2 %, not to the sample */
-        double r3 = (double)ph[2] / (double)ph[0], r12 = (double)ph[2] / (double)ph[1];
-        ck(r3 > 2.94 && r3 < 3.06, "LFO 1/16D is not three times 1/32's period");
-        ck(r12 > 11.75 && r12 < 12.25, "LFO 1/2D is not twelve times 1/32's period");
+        double r2 = (double)ph[0] / (double)ph[1], r3 = (double)ph[0] / (double)ph[2];
+        ck(r2 > 1.96 && r2 < 2.04, "LFO 1/64 is not twice 1/32T's rate");
+        ck(r3 > 2.94 && r3 < 3.06, "LFO 1/64 is not three times 1/32's rate");
     }
     ck(TP[P_LRATE].min == -14, "LFO RATE still refuses -13 and -14");
-    printf("LFO: 14 divisions; 1/2D = 12 x 1/32, 1/16D = 3 x 1/32\n");
+    printf("LFO: 14 divisions; 1/32T = 1.5 x 1/32, 1/64 = 3 x 1/32\n");
 }
 
 int main(void)

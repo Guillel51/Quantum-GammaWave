@@ -1,3 +1,21 @@
+## Etapa 7/8 — auditoría: cuatro defectos encontrados y corregidos, con test de regresión
+
+- **P1 test de audio sobre un instrumento sin inicializar**: `tests/audio_test.c` llamaba a `delay_edge()` antes
+  del boot; desde la Etapa 2 la senoide se decodifica en `.bss` (`sine_init`), así que el arnés medía un oscilador
+  mudo y `groups.sh security` estaba en rojo. Ahora arranca con `fresh()` y lleva un check propio de que la senoide
+  está viva.
+- **P1 test del EQ con la afirmación equivocada**: el medio gain en la esquina sólo vale lejos de Nyquist; se mide
+  a 495 Hz y la esquina de 20 kHz se contrasta con lo que el diseño bilineal promete. `eq_response` pasa.
+- **P2 `stress` medía tiempo de CPU con la máquina cargada** (`CPU_NS_BASE=/dev/null` en el lazo; el presupuesto
+  se mide en reposo y en el destino). `stress: all ok`.
+- **P2 divisiones del LFO fuera de orden** (introducido en la Etapa 5): las dos agregadas pasan a ser `1/32T` y
+  `1/64`, el extremo rápido y en orden; mismo significado para todo valor guardado.
+- **Test nuevo** `tests/etapa7_audit_test.c` (ASan/UBSan, registrado en `run_tests.sh`): índices del ARP para
+  1..64 notas, ondas de PHASE 0..15, coherencia de las cuatro tablas de escalas, orden de las divisiones del LFO y
+  la tabla de destinos de MOD que causó el cuelgue de la Etapa 6.
+- Verificación: `security` completo, `stress 2`, `presets` 287/287, `web` 0, `regress` 307 goldens sin cambios,
+  `target_budget` 0, build 581 296 B (2 316 libres). Informe en `docs/ETAPA7_AUDITORIA_2026-11-21.md`.
+
 ## Etapa 6/8 — interfaz: CHANCE y MOD MAP dibujan lo que antes sólo se leía
 
 - **CHANCE** (SEQ): la tarjeta era el piano roll con la pantalla casi vacía. Ahora los 16 pasos de la página son

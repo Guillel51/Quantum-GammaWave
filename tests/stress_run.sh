@@ -30,7 +30,11 @@ if ! $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
 fi
 i=0
 while [ "$i" -lt 2 ]; do
-    if ! "$OUT/regress" tests/golden.txt tests/cpu_baseline.txt >"$OUT/regress.$i.log" 2>&1; then
+    # (ETAPA 7) no ns baseline inside the stress loop: this script is the load. The CPU budget is a wall-clock
+    # measurement of an idle host (renice-sensitive, +-25 %) and a pass that runs while four sanitizer binaries
+    # are still warm cannot measure it -- it reported an idle scene over budget that three standalone runs put at
+    # 0. The host/target runs check the budget; here the pass is for crashes, ASan and identical goldens.
+    if ! CPU_NS_BASE=/dev/null "$OUT/regress" tests/golden.txt tests/cpu_baseline.txt >"$OUT/regress.$i.log" 2>&1; then
         echo "stress: regress failed on run $i"; fails=$((fails+1)); break
     fi
     i=$((i+1))

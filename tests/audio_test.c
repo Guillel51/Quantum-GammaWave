@@ -357,6 +357,8 @@ static void delay_edge(void)
         song.g[G_DTIME] = (int16_t)g;
         if (delay_samples() > worst) worst = delay_samples();
     }
+    /* (ETAPA 7) the guard that would have caught the above: a zeroed sine reads as no drift at all */
+    check("the sine the drift rides is decoded at boot (sine_init)", osc_sine(0x40000000u) > 30000);
     song.g[G_DMOD] = 127;
     for (b = 0; b < 20000u; b++) {
         dly_wow_adv(CTL, &m0, &dm);
@@ -463,6 +465,11 @@ static void scope_window(void)
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    /* (ETAPA 7) the boot state first: since ETAPA 2 the sine is decoded into .bss by sine_init (voices_boot), not a
+     * table in flash, so a harness that starts from zeroed memory has no oscillator at all -- delay_edge's MOD
+     * sweep was reading a silent sine (mmax 0) and failing, and the rest of the file would have run on a dead
+     * instrument. fresh() is the boot: defaults, the pool's windows, the tables. */
+    fresh();
     delay_edge();
     meter_envelope();
     stereo_meters();

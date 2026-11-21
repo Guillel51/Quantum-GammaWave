@@ -1526,7 +1526,7 @@ function fmtValue(d, v) {
       return [(ms10 / 10000).toFixed(2), "s"];
     }
     case F.LFOHZ: {
-      if (v < 0) return [["4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/2D", "1/16D"][(-v - 1) % 14], ""];   /* (0.6.51) in time; (ETAPA 5) 1/2D, 1/16D */
+      if (v < 0) return [["4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"][(-v - 1) % 14], ""];   /* (0.6.51) in time; (ETAPA 7) 1/32T, 1/64 */
       const h = 0.05 * Math.pow(800, (v & 127) / 127); return [h < 10 ? h.toFixed(2) : h.toFixed(1), "Hz"];
     }
     case F.CUTOFF: { const h = 30 * Math.pow(16000 / 30, (v & 127) / 127); return h < 1000 ? [String(Math.round(h)), "Hz"] : [(h / 1000).toFixed(1), "kHz"]; }

@@ -6,8 +6,10 @@ static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP",
 /* (QG-1 1.6) TOUCH > VEL CURVE: how a key's / MIDI note's velocity reaches the engines (voice.c vel_curve) */
 /* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest, -14 the fastest (ETAPA 5: 1/2D, 1/16D) */
 static const char *const N_LSYNC[14] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16",
-                                        "1/16T", "1/32", "1/2D", "1/16D"};   /* (ETAPA 5) 1/2D, 1/16D appended: the two
-                                                                              * dotted lengths the set was missing */
+                                        "1/16T", "1/32", "1/32T", "1/64"};   /* (ETAPA 7) the two appended divisions are
+                                                                              * the fast end, in order: ETAPA 5 had put
+                                                                              * 1/2D and 1/16D here, so turning RATE past
+                                                                              * 1/32 jumped back to a slow one */
 static const char *const N_AMODE[] = {"OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT",   /* (append-only: seq.c AM_*) */
                                        "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD",
                                        "TRNS", "PEDAL", "ALBERTI"};     /* (JIANT: seq.c AM_TRNS) */   /* (ETAPA 5) */
