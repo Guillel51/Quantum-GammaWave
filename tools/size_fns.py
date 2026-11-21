@@ -22,7 +22,14 @@ SIZE_FILES = ["ui.c", "favorites.c", "menu_items.c", "icons.c", "ui_graph.c", "u
               "editor.c", "editor_preferences.c", "editor_backup.c", "editor_menu.c", "console.c",
               "usb.c", "midi_uart.c", "midi_control.c", "midi_clock.c", "seq.c", "song_chain.c", "motion.c",
               "panel.c", "lcd.c", "gfx.c", "ota.c", "ota_hw.c", "up_fm6.c", "params.c", "editor_fm6.c",
-              "ui_layer.c", "ui_name.c", "ui_events.c", "song_main.c", "main.c", "libc.c", "storage_hw.c", "engines.c", "fm4_convert.c"]
+              "ui_layer.c", "ui_name.c", "ui_events.c", "song_main.c", "main.c", "libc.c", "storage_hw.c", "engines.c", "fm4_convert.c",
+              # (FASE 5) the rest of the screens and the generators: the same main-loop-only rule as the ones
+              # above (an interrupt-reachable function still keeps -Os through isr_reach), so minsize applies
+              # to code an encoder, a button or a redraw runs
+              "ui_being.c", "ui_dx.c", "ui_fm6op.c", "ui_fxb.c", "ui_homeviews.c", "ui_organic.c", "ui_scl.c",
+              "ui_seqtools.c", "ui_tech.c", "ui_tools.c", "gen.c", "gen_reel.c", "gen_trap.c", "song_dice.c",
+              "announce.c", "preset_level.c", "fm6_vbank.c", "perform.c", "fugue.c", "song_play.c",
+              "gen_reel_flash.c", "storage.c", "console.c"]
 ISR_ROOTS = ("fm1_alnk0_irq", "fm1_timer5_irq")      # hal/fm1_isr.S: the audio ISR, the key / LED scan (+ USB poll)
 DEF = re.compile(r"^(?:static|void|int|uint\w*|int\w*|const)\b[^;=(]*?\b([A-Za-z_]\w*)\s*\(", re.M)
 IR_DEF = re.compile(r"^(define [^\n]*?@\"?([\w.]+)\"?\([^\n]*\)(?: unnamed_addr| local_unnamed_addr)?)( #\d+[^\n]*\{)$",

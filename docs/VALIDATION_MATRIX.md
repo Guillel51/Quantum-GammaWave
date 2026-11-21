@@ -2656,3 +2656,52 @@ as before.
   (`BUDGET_UPDATE=1`) and no limit was loosened, because a throttled host baked into the baseline would
   hide the next real regression.
 - `[HW]` unchanged: no physical FM-1 here. Gate **GO CONDITIONAL**.
+
+## 32. XIP headroom for the next phase (2026-11-21)
+
+XIP is the binding resource: 583 612 B of app slot, 1 284 B free after Fase 5, against a floor of 2 048 B
+that was already red. This section records what was tried, what it cost, and where the bytes actually are, so
+the next phase starts from numbers instead of guesses.
+
+### 32.1 What was measured, and what it bought
+
+| what | result | kept? |
+|---|---|---|
+| `minsize` + `noinline` extended to every remaining main-loop file (the other `ui_*.c` screens, `gen*.c`, `song_dice`, `perform`, `fugue`, `announce`, `preset_level`, `fm6_vbank`, `song_play`, `gen_reel_flash`, `storage`, `console`) | **561 788 -> 561 500 B** (-288 B); image 582 040 B, **1 572 B free** | yes |
+| the same flag on **every** function an interrupt cannot reach (instead of a file list) | **562 220 B** (+672 B over the list): the audio init and the engines lose the inlining the DSP depends on | no, reverted |
+| `-Oz` alone | already in place (`tools/build.py` CFLAGS), so the -288 B above is `noinline`, not the level | — |
+
+The list is safe by construction: `tools/size_fns.py` computes `isr_reach` from the IR (every function the
+two interrupt roots call or name), and anything an interrupt runs keeps `-Os` whatever file it is in.
+
+### 32.2 Where the bytes are, per file
+
+`tools/xip_report.py` (new) attributes the linked image to the source file that defines each symbol, from the
+target ELF and its symbol table (`[TARGET]`, the same binary the budget check reads):
+
+```
+XIP 553 171 B attributed, 364 B in unnamed literals
+  141 681  25.6%  (SDK / headers / literals: UAC_FIR, the FM6 tables, the icon and font bitmaps, usb descriptors)
+   43 628   7.9%  ui_graph.c        <- the 20 graph screens, 1.1..2.7 KB each, each drawn by hand
+   28 651   5.2%  gen.c
+   26 511   4.8%  ui_draw.c
+   24 383   4.4%  ui_being.c
+   23 836   4.3%  ui_input.c
+   20 776   3.8%  gen_reel.c
+   16 644   3.0%  project.c
+```
+
+RAM (`--ram`): `fx.c` 188 240 B (delay and reverb buffers in `.pool`), `slicer.c` 32 768 B, `ui_draw` 10 746 B,
+`eng_fm6` 9 026 B, `project` 7 773 B. `.data+.bss` is 93 616 B of 98 304 (4 688 free) and the pool keeps
+9 248 B of spare, so flash — not RAM — is what stands between this firmware and the next phase.
+
+### 32.3 What this does not solve
+
+The floor is still missed: **1 572 B free of 2 048**. The remaining 476 B are not reachable with flags —
+both knobs above were measured and one was rejected on measurement. They are reachable only by changing what
+is drawn or generated: `ui_graph.c` is 43.6 KB of hand-drawn screens, and `gen*.c` is 56 KB of preset
+generators; a shared grid/axis/caption helper across the graph screens is the single largest candidate
+(~1-3 KB if their pixels stay identical, which the 307 golden renders and the render sweep would prove), and
+it is the first item of the next phase rather than something to rush in here.
+
+`[HW]`: unchanged, no physical FM-1. Gate **GO CONDITIONAL**.
