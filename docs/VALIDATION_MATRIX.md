@@ -2923,3 +2923,18 @@ this run.
 site's `versions.json` and the installer's meta are written by `make_release.py --sync` from the package, so
 they describe one artefact rather than four hand-edited copies. The build in `release/` is the one this
 commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of 98 304.
+
+### 35.4 Publication state `[HOST]`, this session
+
+- The emulator **is** rebuilt from the same commit: `~/emsdk` was simply not on `PATH`, so the earlier
+  `web/emu/build.sh` had skipped itself. With it on `PATH` (emcc 6.0.11, the pinned version) the WASM is
+  `v1.7.0`, build `84745ad`, 1 293 843 B, and `web/emu/emu_test.mjs` passes (`1 s of the heavy song in
+  26.8 ms: 2.7 % of real time`), as does `web/test_provenance.mjs`.
+- `make_release.py --sync` wrote `release/felucca-v1.7.0.fwsc` (610 933 B, sha256 `8abaddbe9bbc40d2`), its
+  manifest, `build-manifest-v1.7.0.json`, the emulator zip, both `SHA256SUMS`, and the site tree
+  (`site/firmware/felucca-1.7.0.fwsc`, `versions.json`, installer meta, editor label). `--check` - the suite's
+  release-set gate - says **ok**.
+- Pushed to `main` (`454e026e`). **The GitHub Release and the tag are not published**: this sandbox has no
+  credential for either (`gh auth status`: not logged in to any host; `git push origin v1.7.0` fails on
+  "could not read Username"). The annotated tag `v1.7.0` exists locally and the release artefacts are in the
+  repository; `git push origin v1.7.0` is the one step left, and it needs the owner's credential.
