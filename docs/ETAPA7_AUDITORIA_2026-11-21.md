@@ -30,6 +30,18 @@ bilineal, y al acercarse la esquina a Nyquist el punto medio sube hacia el gain 
   20 kHz se contrasta con lo que el diseño sí promete (entre medio y gain pleno, nunca por encima).
 - **Resultado**: `eq response: passed (0 failed)`, `eq states`, `eq dc`, `eq sweep` también.
 
+> **Corrección de esta corrección (Etapa 8, 2026-11-21).** El párrafo de arriba es **falso**: la shelf no se
+deforma así. `eq_response_test` medía un instrumento que nunca arrancó. Desde la Etapa 2 la senoide vive en
+`.bss` y la decodifica `sine_init()` dentro de `voices_boot()`; el arnés del EQ no llamaba a ninguna de las dos,
+así que para todo ángulo ≥ 0.1 rad (≈701 Hz) `sine_i()` devolvía 0 y el coseno 1, y la shelf degeneraba en una
+ganancia plana de A² (coeficientes `b = A²·(1,−2,1)`, `a = (1,−2,1)`). Eso es lo que se midió como “+24 dB
+desde 2 kHz”. Con `host_tracks_init()` al principio —el mismo boot que usan los demás arneses— el punto medio
+cae **en la esquina pedida** en todo el rango: 20 Hz→20 Hz, 495 Hz→495.7 Hz, 5 kHz→4605 Hz, 20 kHz→19 994 Hz
+(relación 0.999–1.002), +12.0 dB en la esquina y 0 dB una década abajo. No hace falta pre-warp: el diseño RBJ ya
+coloca el punto medio donde se le pide, y no se tocó ni un byte del firmware (§26.8 de
+`docs/VALIDATION_MATRIX.md`). Las cuatro pruebas del EQ arrancan ahora el instrumento y la esquina de 20 kHz
+vuelve a exigir medio gain.
+
 ### P2 — `[HOST]` El `stress` fallaba por medir tiempo en una máquina cargada
 
 `tests/stress_run.sh` corría `regress` con el baseline de **ns** de este host mientras el propio script es la

@@ -2103,7 +2103,7 @@ This section is the current state of the matrix. §26.1–§26.5 were executed d
 this tree and are recorded in `docs/ETAPA8_ENTREGA_2026-11-21.md`; §26.6 was re-run for this matrix
 update, from this host, against the public URLs. No FM-1 was involved in any of it.
 
-### 25.1 The release
+### 26.1 The release
 
 | Item | Value | Class |
 |---|---|---|
@@ -2123,7 +2123,7 @@ update, from this host, against the public URLs. No FM-1 was involved in any of 
 The package is reproducible: the same bytes (`f6aa3b15…`) built before and after the documentation
 commits, and `release/`, the Release asset and the copy Pages serves are byte-identical (§26.6).
 
-### 25.2 The eight stages and where their evidence lives
+### 26.2 The eight stages and where their evidence lives
 
 | Etapa | What it did | Evidence | Headline measurement |
 |---|---|---|---|
@@ -2133,13 +2133,13 @@ commits, and `release/`, the Release asset and the copy Pages serves are byte-id
 | 4 | `PHASE > WAVE = SYNC`, the ninth phase-distortion wave; preset library 286 → **287** | `docs/ETAPA4_SINTESIS_2026-11-21.md` | cost and integration in the doc |
 | 5 | ARP `PEDAL`/`ALBERTI`, scales `HIJAZ`/`HUNG MINOR`, LFO `1/2D`/`1/16D` — all appended to existing lists | `docs/ETAPA5_HERRAMIENTAS_2026-11-21.md` | no new parameter, no new RAM |
 | 6 | UI: CHANCE draws the 16-step probability pattern; MOD MAP shows the summed routes | `docs/ETAPA6_INTERFAZ_2026-11-21.md` | 191 screens × 22 palettes reviewed |
-| 7 | Audit and bug hunt: four defects found and fixed (audio harness without `sine_init`; the EQ shelf assertion; the ns baseline in `stress`; the LFO division order) | `docs/ETAPA7_AUDITORIA_2026-11-21.md` | each with the failing check before and the passing one after |
+| 7 | Audit and bug hunt: four defects found and fixed (audio harness without `sine_init`; the EQ shelf “warp”, which was the same missing boot in the EQ harness; the ns baseline in `stress`; the LFO division order) | `docs/ETAPA7_AUDITORIA_2026-11-21.md` | each with the failing check before and the passing one after |
 | 8 | V16 compatibility re-verified by executing its tests, release build, publication, this matrix | `docs/ETAPA8_ENTREGA_2026-11-21.md` | §26.3–§26.6 |
 
 Etapa 2 is worth keeping in view: it found that Etapa 1's “0 changed goldens” was **false**. That is why
 the numbers quoted here come from the final tree and its own runs, not from earlier reports.
 
-### 25.3 Test groups and their exit status (final v1.6.0 tree)
+### 26.3 Test groups and their exit status (final v1.6.0 tree)
 
 Each row is a command that was run to completion; the exit status was captured, not inferred.
 
@@ -2163,7 +2163,7 @@ One harness defect was fixed to make the `target` row meaningful: `tests/groups.
 not run where the environment is exported (AGENTS §6). It now honours the variables and keeps `/tmp` as a
 fallback.
 
-### 25.4 Target budgets at v1.6.0 (`[TARGET]`)
+### 26.4 Target budgets at v1.6.0 (`[TARGET]`)
 
 | Resource | Value | Budget | Free |
 |---|---|---|---|
@@ -2178,7 +2178,7 @@ No DSP change was made to “optimise”: with 2 316 B of slot free, the only re
 RAM) would trade audio RAM for ~1 KB, and RAM is now the scarcer resource. The measurement is recorded
 instead of an untested guess (AGENTS §8).
 
-### 25.5 Compatibility with the stock V16 firmware
+### 26.5 Compatibility with the stock V16 firmware
 
 Re-verified by **running** the Fase 5 tests, not by reading them. What the software now does: the page takes
 the unit's version from its identity (`FM-1_016` → `16`) instead of a hard-coded `"15"`, and `probeChip()`
@@ -2203,7 +2203,7 @@ read by the **package's loader** before any erase, against the two-part allowlis
 The gate therefore stays **GO CONDITIONAL** (`gate.backup` pass, `gate.recovery` conditional,
 `gate.chip` at-install). “It installs from V16” is **not** claimed.
 
-### 25.6 What Pages serves, re-read without cache — 2026-11-21 (`[PUBLIC]`)
+### 26.6 What Pages serves, re-read without cache — 2026-11-21 (`[PUBLIC]`)
 
 Every request carried a unique query string, and the responses came back `x-cache: MISS`, `age: 0`,
 `last-modified: Sat, 21 Nov 2026 09:38:5x GMT` (Cloudflare/Fastly, not a cached copy):
@@ -2235,7 +2235,7 @@ snapshot and the Release asset use `felucca-v1.6.0.fwsc` (the name `make_release
 are 610 933 B with sha `f6aa3b15…`. Reading `firmware/felucca-1.6.0.fwsc` — the name a browser
 autocompletes — answers **404** on the published root; no page links to it.
 
-### 25.7 Still open, and why
+### 26.7 Still open, and why
 
 | Item | State | Why |
 |---|---|---|
@@ -2248,3 +2248,39 @@ autocompletes — answers **404** on the published root; no page links to it.
 The software requirement rows that need the owner's unit — its JEDEC and geometry, a 1 MiB dump of that unit,
 the verification of that dump, a rehearsed recovery and the first controlled write — stay exactly where
 `docs/FORENSIC_FM1_VIABILITY.md` left them. Nothing in v1.6.0 moved them, and nothing in it wrote to a unit.
+
+### 26.8 Update — 2026-11-21, the high‑shelf “warp” was an uninitialised sine table
+
+The EQ test used to document that a high shelf gives full gain at its corner above ~1 kHz, and stage 7
+wrote that down as a property of the bilinear design. It is not. The harness never booted the instrument:
+since stage 2 the sine lives in `.bss` and `sine_init()` (inside `voices_boot()`) decodes it, so
+`fx_eq_sin_q26()` returned **0** and `fx_eq_cos_q26()` returned **1** for every angle ≥ 0.1 rad
+(≈701 Hz). With `sin = 0, cos = 1` the shelf's coefficients become `b = A²(1, −2, 1)` and
+`a = (1, −2, 1)`: a flat gain of A² with a double pole at DC. That is the “+24 dB from 2 kHz” the test
+reported, and the loose bound `9.5 … 26.5` it used to pass is what let it stand for two stages.
+
+Measured through `qg_biquad_process()`, sweep before and after adding `host_tracks_init()` at the start of
+the four EQ harnesses (`[HOST]`, no firmware change):
+
+| High shelf +24 dB, corner | Before: at DC | Before: at the corner | After: at DC | After: at the corner | After: midpoint / corner |
+|---|---|---|---|---|---|
+| 1552 Hz (idx 80) | **+24.02 dB** | +24.00 dB | −0.00 dB | **+11.99 dB** | 1552.7 / 1552 = **1.000** |
+| 4605 Hz (idx 100) | **+24.02 dB** | +24.00 dB | −0.00 dB | **+12.00 dB** | 4605.5 / 4605 = **1.000** |
+| 13 667 Hz (idx 120) | **+24.02 dB** | +24.00 dB | −0.00 dB | **+12.00 dB** | 13 667.2 / 13 667 = **1.000** |
+| 20 000 Hz (idx 127) | **+24.02 dB** | +24.02 dB | −0.00 dB | **+12.06 dB** | 19 993.9 / 20 000 = **1.000** |
+
+Low shelf −24 dB at a 20 kHz corner: before, **+16.23 dB at 20 Hz** and −19.13 dB at 20 kHz; after,
+−0.00 dB at 20 Hz, −12.04 dB at 20 kHz. Across corners from 20 Hz to 20 kHz the midpoint/corner ratio is
+**0.999–1.002**: RBJ's shelf already places its midpoint at the frequency it is given, so **no pre‑warp is
+needed and none was added**. The redesign would have moved a midpoint that is already correct.
+
+Cost: **0 B of XIP and 0 B of RAM** — `firmware/src/fx.c` is untouched; only the four test files changed.
+The device was never exposed: `felucca_init()` calls `voices_boot()` (and therefore `sine_init()`) before
+any track, preset or EQ exists, so the collapsed‑cosine filter existed only in the harness. The EQ tests
+now assert the boot explicitly (`the sine table is decoded before the EQ is measured`) and the 20 kHz
+corner is held to half gain again, which is the check that fails if the boot is ever skipped.
+
+| Test | Result |
+|---|---|
+| `eq_response_test` | **passed, 0 failed** (17 checks, incl. half gain at 20 kHz and the boot check) |
+| `eq_sweep_test`, `eq_state_test`, `eq_dc_test` | **passed, 0 failed** |

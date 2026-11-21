@@ -51,6 +51,8 @@ static void dc(int mode, int freq, int gain, double secs, int32_t *yl, int32_t *
 
 int main(void)
 {
+    /* (ETAPA 8) the EQ reads its sine from .bss, decoded by sine_init() in voices_boot() */
+    host_tracks_init();
     const double x = 1000.0;
     double b0, b1, b2, a1, a2, ideal, amp;
     int32_t y1l, y1r, y20l, y20r;

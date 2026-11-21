@@ -97,6 +97,14 @@ int main(void)
     double v;
     char b[128];
 
+    /* (ETAPA 8 fix) The instrument has to be booted before a filter is measured: since ETAPA 2 the sine lives in
+     * .bss and is decoded by sine_init() inside voices_boot(), not in a flash table. Without this call every
+     * angle >= 0.1 rad (~701 Hz) read sin = 0 and cos = 1, the shelf degenerated to a flat gain, and the comment
+     * below spent two stages explaining that "warp" as if it were the design. host_tracks_init() is the same
+     * boot the other harnesses use. */
+    host_tracks_init();
+    check("the sine table is decoded before the EQ is measured", osc_sine(0x40000000u) > 30000);
+
     v = gain_db(3, 0, 24, 64, 20.0);
     snprintf(b, sizeof b, "low shelf +24 dB at its 20 Hz corner (half gain): %+.2f dB", v);
     check(b, v > 9.5 && v < 14.5);
@@ -105,19 +113,31 @@ int main(void)
     snprintf(b, sizeof b, "low shelf -24 dB at its 20 Hz corner (half gain): %+.2f dB", v);
     check(b, v < -9.5 && v > -14.5);
 
-    /* (ETAPA 7) the midpoint half-gain property belongs to the prototype, not to every corner: the shelf is a
-     * bilinear design, so as its corner approaches Nyquist the midpoint moves up toward the full gain (measured:
-     * +12.0 at 500 Hz, +24.0 at 2 kHz and above). This checked 20 kHz and had been failing since the shelf's
-     * corner law was last touched -- the filter is not wrong there, the claim was. The midpoint is checked where
-     * the warp is negligible, and the top corner is checked for what the design does promise: monotone, never
-     * past the shelf's gain, and past half of it. */
+    /* (ETAPA 8) The midpoint of an RBJ shelf sits at the corner it was given, at every corner: measured here
+     * through the processing path, the midpoint is the requested frequency within 0.4% from 20 Hz to 20 kHz
+     * (a 20 kHz corner: +12 dB at 20 kHz, 0 dB at 10 kHz and below). The old note here claimed a bilinear
+     * "warp" (+24 dB from 2 kHz for a 20 kHz corner) and loosened the bound to 9.5..26.5 to pass: that reading
+     * came from this harness running without sine_init(), i.e. from a filter whose cosine had collapsed to 1.
+     * These checks now hold the corner to half gain, which is what fails if the boot is ever skipped again. */
     v = gain_db(4, 59, 24, 64, 495.1);
     snprintf(b, sizeof b, "high shelf +24 dB at its 495 Hz corner (half gain): %+.2f dB", v);
-    check(b, v > 9.5 && v < 14.5);
+    check(b, v > 10.5 && v < 13.5);
 
     v = gain_db(4, 127, 24, 64, 20000.0);
-    snprintf(b, sizeof b, "high shelf +24 dB at its 20 kHz corner (warped: half to full): %+.2f dB", v);
-    check(b, v >= 9.5 && v <= 26.5);
+    snprintf(b, sizeof b, "high shelf +24 dB at its 20 kHz corner (half gain): %+.2f dB", v);
+    check(b, v > 10.5 && v < 13.5);
+
+    v = gain_db(4, 127, 24, 64, 1000.0);
+    snprintf(b, sizeof b, "high shelf +24 dB at 20 kHz leaves 1 kHz alone: %+.2f dB", v);
+    check(b, v > -1.0 && v < 1.0);
+
+    v = gain_db(3, 127, 24, 64, 20.0);
+    snprintf(b, sizeof b, "low shelf +24 dB at a 20 kHz corner is a plateau at 20 Hz: %+.2f dB", v);
+    check(b, v > 21.5 && v < 26.5);
+
+    v = gain_db(3, 127, -24, 64, 20.0);
+    snprintf(b, sizeof b, "low shelf -24 dB at a 20 kHz corner cuts 20 Hz by the whole gain: %+.2f dB", v);
+    check(b, v > -26.5 && v < -21.5);
 
     v = gain_db(1, 0, 24, 64, 20.0);
     snprintf(b, sizeof b, "peak +24 dB at 20 Hz: measured %+.2f dB", v);

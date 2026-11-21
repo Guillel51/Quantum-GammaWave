@@ -56,6 +56,9 @@ static int coefficients_ok(void)
 
 int main(void)
 {
+    /* (ETAPA 8) sine_init() lives in voices_boot(): without this boot every angle >= 0.1 rad reads sin = 0
+     * and the sweep below measures a filter that is not the one the firmware installs. */
+    host_tracks_init();
     static const int MODE[4] = {1, 2, 3, 4};
     static const int FREQ[6] = {0, 1, 32, 64, 96, 127};
     static const int GAIN[5] = {-24, -18, 0, 18, 24};
