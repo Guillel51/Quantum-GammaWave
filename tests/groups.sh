@@ -41,6 +41,7 @@ run_web() {
     fi
     python3 web/test_i18n.py
     python3 web/test_installer_i18n.py
+    python3 tests/make_site_name_test.py
     node web/test_web.mjs
     node web/test_mid.mjs
 }
@@ -63,13 +64,26 @@ run_sync() {
 }
 
 run_emu() {
-    if [ -f /tmp/emsdk/emsdk_env.sh ]; then
-        . /tmp/emsdk/emsdk_env.sh
+    # emcc is wherever the environment says it is: $EMSDK, ~/emsdk (where docs put it) or /tmp/emsdk (the
+    # older layout). Hard-coding /tmp made the group measure a stale WASM on any other machine.
+    for e in "${EMSDK:-}" "$HOME/emsdk" /tmp/emsdk; do
+        if [ -n "$e" ] && [ -f "$e/emsdk_env.sh" ]; then
+            . "$e/emsdk_env.sh" >/dev/null 2>&1
+            break
+        fi
+    done
+    if command -v emcc >/dev/null 2>&1; then
         sh web/emu/build.sh
     else
         echo "emu: emcc unavailable; testing the existing packaged WASM (not a rebuild)" >&2
         [ -f build/emu/felucca.wasm ] || return 1
     fi
+    # the native reference the WASM is compared against bit for bit: tests/run_tests.sh builds it, and a
+    # group run on a clean tree failed here on a missing file instead of on a wrong emulator. Build it
+    # from this tree, so the parity claim is about these sources.
+    mkdir -p build/host
+    cc -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o build/host/emu_native web/emu/native_check.c -lm || return 1
+    ./build/host/emu_native build/host/emu_native.f32 || return 1
     node web/emu/emu_test.mjs build/emu/felucca.wasm build/host/emu_native.f32
     run_sync
 }

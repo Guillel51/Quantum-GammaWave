@@ -2163,6 +2163,14 @@ One harness defect was fixed to make the `target` row meaningful: `tests/groups.
 not run where the environment is exported (AGENTS §6). It now honours the variables and keeps `/tmp` as a
 fallback.
 
+Re-run on 2026-11-21 after the site-naming change (same tree, HEAD `decbf613`): `sync` **0**, `emu` **0**
+(88 200 frames bit for bit against the native build, 2.8 % of real time), `ui` **0** (191 × 22, 0 lint
+findings, 3 787 294 alignment measurements, 0 off by 1 px). Two harness gaps were closed rather than
+worked around: `run_emu()` now finds emcc through `$EMSDK`, `~/emsdk` or `/tmp/emsdk` (it only knew
+`/tmp`) and builds its own native reference, so the group no longer fails on a clean tree for a missing
+`build/host/emu_native.f32`; and `tests/make_site_name_test.py` pins the served filename to the package's
+version, so the 404 documented in §26.6 cannot return through a display label.
+
 ### 26.4 Target budgets at v1.6.0 (`[TARGET]`)
 
 | Resource | Value | Budget | Free |

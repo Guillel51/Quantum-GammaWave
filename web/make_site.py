@@ -56,6 +56,38 @@ def base_of(version):
     return version.split("-")[0]
 
 
+def _slug(version):
+    """a version as it may appear in a file name (no 'v': the release tree's own spelling)"""
+    v = str(version).strip()
+    if v[:1] in ("v", "V"):
+        v = v[1:]
+    return re.sub(r"[^A-Za-z0-9.-]", "-", v)
+
+
+def package_filename(version, build=None, signed_manifest=None):
+    """The served package's name: the PACKAGE's own version, not the label this run displays.
+
+    The label ("v1.6.0-11b9b9e") used to reach the file name, so the published root owned
+    `felucca-v1.6.0-11b9b9e.fwsc` and the obvious `felucca-1.6.0.fwsc` -- the name the Release asset
+    carries and a browser completes -- was a 404. `tools/make_release.py` writes and checks the
+    version name, so that is the one name the site serves; the label stays in versions.json.
+    """
+    for src in ((signed_manifest or {}).get("version"), (build or {}).get("version"), version):
+        if src:
+            return f"felucca-{_slug(src)}.fwsc"
+    return f"felucca-{_slug(version)}.fwsc"
+
+
+def label_filename(version):
+    """The name a previous site served the package under: kept as a copy, because Pages has no redirects.
+
+    Verbatim, `v` included: the published URL was `felucca-v1.6.0-11b9b9e.fwsc`, and a "v" stripped here
+    would have retired it silently (the name test fails if this drifts).
+    """
+    v = str(version).strip()
+    return f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', v)}.fwsc"
+
+
 def earlier(prev, version, product):
     """[(entry, file)]: PREV_DIR's versions, newest first, one per version, not this one, at most KEEP_OLD, each
     package there and with this device's identity"""
@@ -286,10 +318,7 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     # `firmware/felucca-v1.6.0-11b9b9e.fwsc` and the obvious `firmware/felucca-1.6.0.fwsc` (the release
     # asset's name, and the one a browser completes) was a 404. One package, one name: the commit and the
     # label stay in `versions.json` and in the installer's meta, where they are read, not in a URL.
-    _pkgver = str((signed_manifest or {}).get("version") or (build or {}).get("version") or version).strip()
-    if _pkgver[:1] in ("v", "V"):
-        _pkgver = _pkgver[1:]
-    name = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', _pkgver)}.fwsc"
+    name = package_filename(version, build, signed_manifest)
     # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
     # not the one the package's build record names when the package is a committed release: the release
     # pins the emulator built with it, the site copies the one built now. Both are true, so both are
@@ -333,7 +362,7 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     # ...and, when this run displays a different label, a copy under the name the site served until now
     # ("felucca-v1.6.0-11b9b9e.fwsc"): a published URL is a promise, and Pages has no redirects. Same
     # bytes, verified by the same hash; the installer and versions.json still name only `name`.
-    alias = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', version)}.fwsc"
+    alias = label_filename(version)
     if alias != name:
         shutil.copy(pkg, fw / alias)
     if rel_manifest:

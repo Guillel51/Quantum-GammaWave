@@ -13,7 +13,7 @@ En esta etapa **no hubo `[HW]`**: no hay unidad conectada a este entorno.
 | Commit del paquete | **`11b9b9edebdd`** (el build dice `v1.6.0 at 11b9b9edebdd`, sin `dirty`) |
 | Paquete | `release/felucca-v1.6.0.fwsc` — **610 933 B** |
 | SHA-256 del paquete | `f6aa3b15e4805d94447360694aacd7c6f62fdde5ac2c71a8a9ccae7bf66506f2` |
-| `felucca.bin` | 582 884 B, `450fc110…` según el registro del build |
+| `felucca.bin` | **581 296 B**, `450fc110…` según el registro del build (el slot de app usa esos 581 296 B de 583 612, §4) |
 | loader `ota.bin` | 7 777 B |
 | Emulador | `site/emulator/felucca.wasm` — 1 291 917 B, `5ba835f5…`, build `11b9b9edebdd`, `[EMU]` |
 | Paquete del emulador | `release/emu/qg1-emulator-v1.6.0.zip` |
