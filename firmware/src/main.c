@@ -122,10 +122,11 @@ static void felucca_init(void)
     load_depth++;                             /* (the power-on loads: one outer load) */
     fm6_init();                               /* every track's FM6 patch: the init voice */
     wt_gen_init();                            /* (FASE 1, FASE 6) WAVETABLE's band limits: built here, not stored */
-    fm6_exp2_init();                          /* (ETAPA 1) FM6's exp2 curve: 2054 B of XIP instead of 4100, decoded
-                                               * into .bss with integer adds -- the same points, exactly */
-    sine_init();                              /* (ETAPA 2) the sine: 1025 B of int8 differences in the app slot
-                                               * instead of 2050 B, the same points rebuilt in .bss */
+    /* (FASE 1/8, 2026-11-21) The two curves are already decoded by voices_boot() -- it calls sine_init() and
+     * fm6_exp2_init() because every host harness enters through it -- and nothing between that call and this
+     * point writes either table (fm6_init reads the exp2 curve, wt_gen_init builds band limits elsewhere).
+     * The second pair of calls rebuilt 1 025 sine differences and 2 054 exp2 points for nothing at every
+     * power-on; they are gone. */
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
         track_defaults(t);
