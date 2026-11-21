@@ -17,7 +17,11 @@
 #define FELUCCA_OTA_DRYRUN 0     /* 1 = stage, ask "success", then undo: no record, no reset */
 #endif
 #ifndef FELUCCA_CDC
-#define FELUCCA_CDC 1            /* USB CDC-ACM serial console */
+/* (FASE 6) 0: the read-only serial console is a developer tool (menu_items.c), and the flash it costs is what
+ * morph.c needs. Measured on the AC791N link: with it 561 500 B and the morph page 2 096 B over the slot; without
+ * it 557 252 B with the morph page in, 5 732 B free. A diagnosis build sets FELUCCA_CDC=1 (build.sh) and gets
+ * the console back, USB SERIAL included. */
+#define FELUCCA_CDC 0
 #endif
 #ifndef FELUCCA_UAC
 #define FELUCCA_UAC 1            /* USB audio input: the master output, 16-bit stereo 44.1 kHz (usb.c) */
@@ -84,6 +88,7 @@
 #endif
 #include "preset_level.c"        /* (2.1) the measured level of every factory preset */
 #include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns */
+#include "morph.c"            /* (FASE 6) MORPH SCENES: the page's engine, used by params.c and ui_input.c */
 #include "params.c"
 #include "mod.c"               /* the modulation matrix, used by voice.c and fx.c */
 #include "voice.c"

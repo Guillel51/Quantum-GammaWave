@@ -2705,3 +2705,107 @@ generators; a shared grid/axis/caption helper across the graph screens is the si
 it is the first item of the next phase rather than something to rush in here.
 
 `[HW]`: unchanged, no physical FM-1. Gate **GO CONDITIONAL**.
+
+## 33. Fase 6/8 — Morph scenes (2026-11-21)
+
+### 33.1 What was already there, read before building
+
+- **UNDO / REDO of the whole project** (`project.c undo_st[2]`, 3 840 B each in `.lowbuf`): a snapshot of the
+  music, not of one sound, and a single step, not a set of states to move between.
+- **MOTION** (`motion.c`): 64 automation records and parameter locks per track — a value at a step, not a state
+  to interpolate between two states.
+- **MORPH** already named a *per-engine* parameter: `drumx_voice.c`, `eng_additive.c` and `eng_analog.c` blend
+  their own two internal patches. That is inside one engine; the page table already carries a "MORPH" page for
+  it, which is why the scenes page is called **SCENES**.
+- Snapshots of a preset exist as the user presets (`upreset.c`) and the project slots: whole, discrete, on disk.
+
+Nothing stored two whole editable states of the same track and moved between them continuously.
+
+### 33.2 What shipped
+
+`firmware/src/morph.c` (new, 1 096 B of `.bss`) and one page, **SCENES** (`FAM_LFO > SC_TRACK`):
+
+| row | what it does |
+|---|---|
+| **MORPH** 0..127 | the position between the pair. 0 is scene A, 127 is scene B |
+| **A** 1..4 | which stored scene is A |
+| **B** 1..4 | which stored scene is B (picking the same one steps to the next) |
+| **SCENE** | `STORE A`, `STORE B` capture the sound as it is now; `DIFF` reports how many parameters of the two scenes differ |
+
+Semantics, in one place:
+
+- A scene is `track.p[P_COUNT]` (125 values) plus the matrix's slots 5..8 (12 values) of the **selected** track.
+  Four scenes, one track at a time: six tracks x four scenes would be 6x the RAM for a page that edits one.
+- The position interpolates every id `motion_param()` already classifies as sound — engine parameters, the
+  envelope's times, the filters, the sends, the CHARACTER bank — as `A + (B - A) * pos / 127`, in the id's
+  own integers.
+- Ids that are a *choice* (MUTE, a routing, a mode) follow the **near scene**: A below 64, B from 64 on. So
+  position 0 is scene A exactly and 127 is scene B exactly, and a value never sits half way between two names.
+- The matrix's four spare slots blend their **AMT**; their **SRC/DST** follow the near scene for the same reason.
+- **Never touched**: `track_t.engine` (an engine swap is a separate, already-crossfaded event and two engines'
+  tables are not comparable), the transport, the note allocator, the routing. The morph changes a sound, not
+  a setup.
+- **No clicks by construction**: a jump (a stored position, a recalled pair) is walked by `msc_tick()` at
+  3/127 per main-loop frame (~0.7 s end to end at 60 fps), so no step larger than 1/40 of the pair's distance
+  reaches the engines between two blocks; a knob turn is one step already. The writes are batched under the
+  same interrupt guard `motion.c` uses.
+- **The preset is never at risk**: scenes copy the edit buffer and the morph writes the edit buffer, so the
+  stored sound is the stored sound until the user saves it. STORE A on an untouched sound is the "snapshot
+  before editing" this page is for; the UNDO of the project still covers the music.
+- **Not in the preset format**: scenes are RAM state (as MOTION's records are), so every existing preset,
+  project and user-preset byte keeps its meaning and no store has to change. A power cycle starts with four
+  empty scenes; the sound is whatever the project/preset says.
+
+### 33.3 The wall this phase hit, and how it was paid
+
+The feature is ~900 B of code, but the AC791N link grew by **3 668 B** (561 500 -> 2 096 B over the slot):
+past this point every addition also moves code across the long-branch veneers (measured in §32 as well:
++54..+92 B appearing on unrelated functions). Free space was 1 572 B. Three attempts to make the feature
+cheaper by construction were measured and are recorded so nobody repeats them: a hook in `ui_input.c`'s knob
+path (+3 700 B), `noinline` on the morph's helpers (no change), reading the knobs from `msc_tick()` instead of
+a UI hook (the version that shipped; still 2 096 B over).
+
+**What paid for it: the read-only serial console.** `console.c` is `FELUCCA_CDC`, which this repository's own
+`menu_items.c` calls "a developer tool (README: FELUCCA_CDC)"; measured on the same sources with the morph in,
+the console is the difference between over the slot by 2 096 B and 577 572 B of image (8 136 B).
+`FELUCCA_CDC` now defaults to **0** in `felucca.c`, and
+MENU > USB SERIAL shows `--` instead of `ON/OFF` in such a build rather than pretending to switch something.
+`FELUCCA_CDC=1 ./build.sh` brings the console and its row back byte for byte.
+
+```
+before this phase   561 500 B XIP, 1 572 B free, RAM 93 616/98 304
+after (§33)         556 944 B XIP, 6 040 B free, RAM 93 440/98 304 (4 864 free)
+```
+
+The XIP floor (2 048 B free) is **met for the first time**: 6 040 B free, ~4 KB of headroom for the next phase.
+
+### 33.4 Evidence
+
+- `tests/morph_test.c` (new, in the suite): the page and its four rows; capture leaves the sound alone; two
+  scenes hold what each had; 0 is A, 127 is B, a mid position is the linear blend; a choice id follows the near
+  scene at the half point; the engine byte and the matrix's SRC/DST are not morphed; a jump walks 3 a frame and
+  lands exactly on the target, both extremes exact; a preset load after the capture does not disturb the scenes
+  and scene A comes back on the new buffer; A and B on the same scene picks the next.
+- `[TARGET]`: links (exit 0). XIP 556 944 B, image 577 572 B of 583 612 (**6 040 B** free), `.data+.bss`
+  93 440 B of 98 304 (4 864 free), pool spare 9 248 B, LOWBUF 30 564 of 32 768.
+- Rendering: 191 screens x 22 palettes, **0 lint findings**, 0 inks on their own colour, 0 GREY/MONO pixels off,
+  3 823 446 alignment measurements with 0 off by 1 px; the pixel baseline was regenerated for the new page and
+  for the USB SERIAL row.
+- CPU: no work in the interrupt path. `msc_tick()` runs once per frame on the main loop: four comparisons, and
+  when the position did not move, nothing else. A morph step is one guarded write of 137 int16 values, ~0.1 ms
+  at 60 fps, and only while the position is moving.
+
+### 33.5 Limits, stated
+
+- Scenes are not stored in presets or projects (see §33.2): a saved sound does not carry its scenes.
+- An engine swap cannot be morphed (discrete, and two engines' parameter meanings differ); capture both scenes
+  on the same engine.
+- Continuous control is the MORPH knob and the MIDI/automation that reach a page knob. A dedicated CC or a
+  macro driving the position needs a parameter id, and `track_t` cannot grow (measured in §31.2: +2 364 B for
+  two bytes); that is the next phase's first option if the headroom above is spent there.
+- Full suite (this session): the only reds are the ones that were red before this phase - `FX measured`,
+  `FM6 voice bank` and its ASan run - plus the host CPU aggregate (the machine runs ~24 % slower than the
+  baseline it was recorded on; the same binaries of the previous commit fail it the same way, and the 307
+  golden renders are 0 changed). `window XIP is above its floor (6040 B free, floor 2048)` now **passes**:
+  the floor that had been red since before Fase 5 is green.
+- `[HW]`: unchanged, no physical FM-1. Gate **GO CONDITIONAL**.

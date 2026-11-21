@@ -60,7 +60,9 @@ static void sweep_page(const page_t *pg)
         if (!computed_page(pg) && pg->id[s] == 0xFF)
             check("an empty slot has no control", !d[s] && !vp[s], pg->title, s);
         /* 4. a plain slot edits the parameter the page names */
-        if (!computed_page(pg) && pg->id[s] != 0xFF && vp[s] && !IS_MAC_ID(pg->id[s])) {
+        /* (FASE 6) the SCENES page's four rows are virtual ids too: their values are morph.c's (morph_test
+         * checks that a turn edits them), not a p[] or song.g slot */
+        if (!computed_page(pg) && pg->id[s] != 0xFF && vp[s] && !IS_MAC_ID(pg->id[s]) && !IS_MSC_ID(pg->id[s])) {
             if (pg->scope == SC_TRACK)
                 check("the slot edits the id the page names", vp[s] == &TSEL->p[pg->id[s]], pg->title, s);
             else if (pg->scope == SC_GLOBAL && pg->id[s] != G_TRKS && pg->id[s] != G_LOADP)

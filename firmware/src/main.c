@@ -405,6 +405,7 @@ static void fm1_main(void)
 #endif
         mutate_poll();                                /* (JIANT 0.6.43) MUTATE on the bar: project.c */
         song_poll();                                  /* the song: the next section staged, the music back after it */
+        msc_tick();                                   /* (FASE 6) the morph between two scenes, walked */
         felucca_dbg.stage = 2;
         ui_leds();
         ui_draw();

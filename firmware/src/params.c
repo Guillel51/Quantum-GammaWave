@@ -617,6 +617,20 @@ static const param_desc_t MAC3_DESC = PD("M3", F_PCT, 0, 127, 0);
 static const param_desc_t MAC4_DESC = PD("M4", F_PCT, 0, 127, 0);
 static const param_desc_t *const MAC_DESC[4] = {&MAC1_DESC, &MAC2_DESC, &MAC3_DESC, &MAC4_DESC};
 #define IS_MAC_ID(id) ((id) >= G_MAC1 && (id) <= G_MAC4)
+/* (FASE 6) MORPH SCENES: the page's four controls. Not song.g and not p[] - a scene is a copy of the sound
+ * (morph.c) - so the page reads and writes it through morph.c's own state, the way MACROS does with the
+ * matrix's M1..M4. F5..F8: virtual ids, past every song.g the stores carry */
+#define G_MSCP 0xF5u
+#define G_MSCA 0xF6u
+#define G_MSCB 0xF7u
+#define G_MSCG 0xF8u
+#define IS_MSC_ID(id) ((id) >= G_MSCP && (id) <= G_MSCG)
+static const char *const N_MSCS[] = {"1", "2", "3", "4"};
+static const char *const N_MSCG[] = {"--", "STORE A", "STORE B", "DIFF"};
+static const param_desc_t MSCP_DESC = PD("MORPH", F_PCT, 0, 127, 64);
+static const param_desc_t MSCA_DESC = PE("A", N_MSCS, 0);
+static const param_desc_t MSCB_DESC = PE("B", N_MSCS, 1);
+static const param_desc_t MSCG_DESC = PE("SCENE", N_MSCG, 0);
 static const char *const N_LOAD[] = {"ECO", "LITE", "FULL"};
 static const param_desc_t LOAD_DESC = PE("LOAD", N_LOAD, 2);
 static int16_t load_ui;
@@ -634,6 +648,8 @@ static const page_t PAGES[] = {
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
     {"MACROS", FAM_LFO, SC_GLOBAL, GR_MACROS, {G_MAC1, G_MAC2, G_MAC3, G_MAC4}},   /* (FASE 8) M1..M4: what the
                                      * matrix's sources of the same name read, KNOB 1..4 */
+    {"SCENES", FAM_LFO, SC_TRACK, GR_NONE, {G_MSCP, G_MSCA, G_MSCB, G_MSCG}},   /* (FASE 6) four scenes of this
+                                       * track's sound and the position between A and B (morph.c) */
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
     {"BUSES", FAM_FX, SC_GLOBAL, GR_FX_BUSES, {0xFF, G_DMIX, G_RSIZE, G_CDEPTH}},   /* (6.1) the routing console:
                                      * KNOB 1 the link, 2..4 its parameters (page_desc) */
@@ -767,6 +783,10 @@ static const param_desc_t VEL_DESC = {"VEL", F_PCTINV, 0, 127, 0, 0, 0};
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (IS_MSC_ID(id)) {                              /* (FASE 6) MORPH SCENES: the position, the pair, the actions */
+        *valp = id == G_MSCP ? &msc_ui_p : id == G_MSCA ? &msc_ui_a : id == G_MSCB ? &msc_ui_b : &msc_ui_g;
+        return id == G_MSCP ? &MSCP_DESC : id == G_MSCA ? &MSCA_DESC : id == G_MSCB ? &MSCB_DESC : &MSCG_DESC;
+    }
     if (IS_MAC_ID(id)) {                              /* (FASE 8) MACROS: the project's M1..M4, the matrix's sources */
         uint32_t m = id - G_MAC1;
         macro_ui[m] = (int16_t)macro_get(m);

@@ -41,6 +41,7 @@
 static struct { volatile uint32_t notes, buttons; } fm1_in;
 #include "../firmware/src/core.h"
 #include "../firmware/src/engines.c"
+#include "../firmware/src/morph.c"    /* (FASE 6) params.c hands its page the morph's knobs */
 #include "../firmware/src/params.c"
 #include "../firmware/src/mod.c"
 #include "../firmware/src/voice.c"
