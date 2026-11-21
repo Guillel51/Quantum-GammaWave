@@ -113,6 +113,57 @@ static int32_t bar_x(uint32_t i) { return 12 + (int32_t)(i % 16u) * 13 + (int32_
 
 /* PATTERN page: the 64 steps as 4 rows of 16 bars (an accent: the accent colour, a tie: a lower bar,
  * empty: a stub), the cursor and the playhead under them */
+/* (ETAPA 6) CHANCE: the whole pattern's probability at a glance, not just the cursor's step.
+ * The page used to be the piano roll with a die drawn on the knob, so 16 steps' chances -- the one
+ * thing the page is about -- were invisible: the card was mostly empty and a step's probability could
+ * only be read one at a time. This draws the bank of 16 as columns measured from the bottom, the
+ * ratchet's parts as pips above the baseline, a 25/50/75/100 % guide, the cursor framed and the
+ * step the transport is on marked under it. Colour says the chance: T_THEME at 100 %, warmer as it
+ * falls (heat_col 0..200), so the risky steps read at a glance without a legend. */
+static void graph_chance(const track_t *t, uint16_t c)
+{
+    uint32_t i, len = (uint32_t)t->p[P_SLEN], base = ((uint32_t)ui.cursor / 16u) * 16u, play = seq_src(t, t->seq_idx);
+    int32_t gh = graph_ht < 40 ? 40 : graph_ht;    /* (a short card -- MENU > LARGE's strip -- never makes a
+                                                    * negative height: the bars just live in less room) */
+    int32_t yb = gh - 10, hmax = gh - 18, x0 = 28, pitch = 12, w = 10, g;
+    cv_rect(x0 - 4, yb, 196, 1, T_MID);                        /* the floor every bar stands on */
+    for (g = 0; g < 4; g++)                                     /* the beats: five separators, 4 steps apart */
+        cv_rect(x0 - 3 + g * 4 * pitch, yb - hmax, 1, hmax + 3, g ? T_RAISE : T_MID);
+    for (g = 1; g <= 4; g++) {                                  /* the guides: 25, 50, 75 and 100 % */
+        int32_t y = yb - hmax * g / 4;
+        cv_rect(x0 - 4, y, 196, 1, T_RAISE);
+        cv_rect(x0 - 10, y, 5, 1, g == 4 ? T_MID : T_DIM);      /* the tick, wider at the ceiling */
+    }
+    for (i = 0; i < 16u; i++) {
+        int32_t x = x0 + (int32_t)i * pitch, ch, h;
+        uint32_t st_i = base + i;
+        const step_t *st = st_i < NSTEP ? &seq_steps(t)[st_i] : 0;
+        if (!st || st_i >= len) {                               /* past the pattern's length: a stub */
+            cv_rect(x + 3, yb - 2, 4, 2, T_RAISE);
+            continue;
+        }
+        ch = (int32_t)step_chance(st);
+        h = ch * hmax / 100;
+        cv_rect(x, yb - hmax, w, hmax, T_SURF);                 /* the well the bar fills */
+        if (h) {
+            cv_rrect(x, yb - h, w, h, h > 6 ? 2 : 0, ch >= 100 ? T_THEME : heat_col((uint32_t)ch * 2u), T_SURF);
+            if (h > 3)
+                cv_rect(x + 1, yb - h + 1, w - 2, 1, ux_mix(ch >= 100 ? T_THEME : heat_col((uint32_t)ch * 2u), T_TEXT, 40));
+        }
+        if (st->time == ST_TIE)                                 /* a tie still offers no die roll */
+            cv_rect(x, yb - 1, w, 1, T_MID);
+        if (st->time == ST_NOTE && (st->n || st->hit)) {        /* RATCH x1..x4 as pips under the bar */
+            uint32_t r = step_ratchet(st), k;
+            for (k = 0; k < r && k < 4u; k++)
+                cv_rect(x + 1 + (int32_t)k * 2, yb + 1, 1, 3, T_MID);
+        }
+        if (st_i == (uint32_t)ui.cursor)                        /* the cursor: a 1 px frame, as SCL's keys */
+            cv_frame(x - 1, yb - hmax - 1, w + 2, hmax + 2, T_TEXT);
+        else if (song.playing && st_i == play)                  /* the step the transport is on */
+            cv_rect(x, yb + 5, w, 2, T_TEXT);
+    }
+}
+
 static void graph_steps(const track_t *t, uint16_t c)
 {
     uint32_t i, len = (uint32_t)t->p[P_SLEN];
@@ -1646,6 +1697,44 @@ static void graph_mod(const track_t *t, uint16_t c, int map)
             }
         }
         (void)unit;
+    }
+    if (map) {                                       /* (ETAPA 6) where the routes land: the destination each
+                                                      * assigned slot drives, with its slots' amounts added,
+                                                      * as a bipolar bar under the rows -- the map's other half,
+                                                      * the one the chip only counted. Read only. */
+        uint32_t d, r = 0, y = 2 + i * 15 + 6, used = 0, lim = (uint32_t)(graph_ht > 40 ? graph_ht - 14 : 0);
+        uint32_t ndst = (uint32_t)(sizeof N_MDST / sizeof N_MDST[0]);   /* a count: N_MDST alone is the
+                                                                         * array, and -w never complains */
+        for (d = 1; d < ndst && used < 4u; d++) {
+            int32_t sum = 0, k2;
+            char nm[12];
+            for (k2 = 0; k2 < NMSLOT; k2++)
+                if (mslot(t, k2, 0) && mslot(t, k2, 1) == (int32_t)d && mslot(t, k2, 2))
+                    sum += mslot(t, k2, 2);
+            if (!sum)
+                continue;
+            char vb[6];
+            if ((uint32_t)y + 13u > lim)                 /* the card's end: never past it */
+                break;
+            used++;
+            cv_rrect(4, y, 232, 13, 3, T_SURF, T_BG);
+            str_cpy(nm, N_MDST[d], sizeof nm);
+            cv_text_on(12, y - 1, &AF_S, nm, c, T_SURF);
+            {   /* the bar: the track from the middle, the amount -252 .. 252 as the slots add up */
+                int32_t xm = 84, x1 = 192, px = xm + clamp(sum, -252, 252) * (x1 - xm) / 252;
+                cv_rect(xm - 30, y + 4, x1 - xm + 60, 5, T_RAISE);
+                cv_rect(px < xm ? px : xm, y + 4, px > xm ? px - xm : xm - px, 5, sum > 0 ? T_ACCENT : T_MID);
+                cv_rect(xm, y + 3, 1, 7, T_TEXT);        /* the zero */
+            }
+            vb[0] = sum < 0 ? '-' : '+';
+            fmt_int(vb + 1, sum < 0 ? -sum : sum);
+            cv_text_r(230, y - 1, &AF_S, vb, sum > 0 ? T_ACCENT : sum < 0 ? T_MID : T_DIM, T_SURF);
+            y += 15;
+            r++;
+        }
+        if (!used)                                   /* nothing assigned: the map says so, in the band */
+            cv_text_on(12, 2 + i * 15 + 8, &AF_S, "NO ROUTES", T_DIM, T_SURF);
+        (void)r;
     }
 }
 
@@ -3801,8 +3890,14 @@ static void draw_graph(void)
         case GR_FUGUE:
             graph_fugue(t);
             break;
+        case GR_CHANCE:                              /* (ETAPA 6) the bank's 16 chances, drawn */
+            cv_oy = 0;
+            if (drum_track(t))
+                graph_grid(t, c);
+            else
+                graph_chance(t, c);
+            break;
         case GR_ROLL:
-        case GR_CHANCE:
         case GR_SHAPE:                               /* (0.6.85) STRETCH: the whole sequence, as the roll shows it */
             cv_oy = 0;
             if (drum_track(t))

@@ -1,3 +1,17 @@
+## Etapa 6/8 — interfaz: CHANCE y MOD MAP dibujan lo que antes sólo se leía
+
+- **CHANCE** (SEQ): la tarjeta era el piano roll con la pantalla casi vacía. Ahora los 16 pasos de la página son
+  columnas medidas desde el piso, con guías de 25/50/75/100 %, separadores cada cuatro pasos, el color como
+  probabilidad (tema al 100 %, más cálido cuanto más baja), los pips de RATCH, el cursor enmarcado y el paso que
+  suena marcado.
+- **MOD MAP**: debajo de las rutas, una banda nueva con cada destino asignado y la **suma de las cantidades** que
+  lo mueven, en barra bipolar con su valor; sin rutas, dice `NO ROUTES`.
+- **+1 120 B** de XIP (2 312 B libres, piso 2 048), **0 B** de RAM. Barrido UI completo: 191 pantallas × 22
+  paletas, **0 hallazgos de lint, 0 desalineaciones**; `ui_test` all passed; 307 goldens, **0 cambiados**.
+- El barrido encontró un `for` que comparaba contra la tabla (`N_MDST`) en vez de su tamaño: compilaba con `-w` y
+  colgaba el render. Corregido y documentado en `docs/ETAPA6_INTERFAZ_2026-11-21.md`.
+- Lo que no se hizo y por qué (el rediseño de 23 pantallas no cabe en 2,3 KB de XIP): mismo documento.
+
 ## Etapa 5/8 — herramientas nuevas en ARP, SCL y LFO (sin parámetros nuevos)
 
 - **ARP > MODE = PEDAL**: el bajo de los acordes sostenidos en cada tiempo fuerte de cuatro y la línea subiendo
