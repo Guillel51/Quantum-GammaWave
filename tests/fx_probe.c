@@ -372,6 +372,11 @@ int main(void)
 {
     memset(trk, 0, sizeof trk);
     song.g[G_MWIDTH] = 64;
+    /* SINE lives in .bss and voices_boot() decodes it with sine_init(); a harness that skips that boot reads
+     * sin = 0 for every angle above 0.1 rad. This probe ran without it, so the phaser's and the flanger's LFO
+     * never moved and the EQ's cosines collapsed to 1: three "failures" that were the instrument, not the DSP.
+     * The other EQ tests already call it for this reason (eq_response_test.c). */
+    sine_init();
     printf("fx_probe: host x86, %.0f Hz\n\n", (double)FS);
     probe_phaser();
     probe_flanger();

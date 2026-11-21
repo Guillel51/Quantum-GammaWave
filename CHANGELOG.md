@@ -1,3 +1,25 @@
+## v1.7.0 — SCENES (morph entre cuatro estados) y el cierre de la auditoría
+
+**Nuevo: MORPH SCENES**
+
+- Cuatro escenas por pista: **STORE A / STORE B** capturan el sonido completo del track (todos sus parámetros
+  y los cuatro slots del matrix 5..8) y el knob **MORPH** lo lleva de A a B. Interpola sólo lo que MOTION ya
+  trata como sonido; las elecciones (MUTE, routing, modos) siguen la escena más cercana, y el motor, el
+  transporte y el allocator no se tocan. Un salto se recorre a 3/127 por frame, así que no hay click.
+- NO entra en el formato de preset ni de proyecto: ningún byte guardado cambió y una escena es el buffer de
+  edición tal como está (capturar el sonido intacto es el "antes" del sonido que estás editando).
+
+**Corregido**
+
+- `fx_probe` corría sin `sine_init()` igual que el arnés de la Etapa 7: medía un LFO mudo, así que el phaser
+  daba 6.6 dB de peine, el flanger no movía su null y el shelf del EQ leía su propio corte a 4 kHz. Con la
+  senoide decodificada, los tres miden bien (peine profundo, null que viaja, shelf plano en +0.0 dB).
+- El guard de presets de `fm6bank` seguía en 171 cuando la lista ya tenía 172 (los tres sonidos del remaster
+  de 1.5.19); el propio comentario del test decía 172.
+- El consola serie de diagnóstico (`FELUCCA_CDC`) queda **off por defecto**: pagan los 3 668 B de enlace del
+  motor de escenas. `FELUCCA_CDC=1 ./build.sh` lo devuelve; MENU > USB SERIAL muestra `--` sin él.
+- XIP: 556 944 B con 6 040 B libres — el floor de 2 048 B vuelve a pasar.
+
 ## v1.6.0 — Etapas 1–8: síntesis, herramientas, interfaz y el cierre del proyecto
 
 Primera versión que reúne las ocho etapas en un solo paquete publicado, con la instalación desde el V16

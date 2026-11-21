@@ -2887,3 +2887,39 @@ AC791N build.
 - No new UI defect was found by the sweeps and none was invented to show work; the pages a person should look
   at on the unit are the ones the sweeps cannot judge — the visualizers (FORGE / HEARTH / WRAITH) and the
   SCENES page in the hand.
+
+## 35. Fase 8/8 — cierre: los tres fallos de FX eran el instrumento (2026-11-21)
+
+### 35.1 What was actually wrong
+
+`fx_probe` ran without `sine_init()`. `SINE` moved to `.bss` and is decoded by `voices_boot()`; a harness that
+skips that boot reads `sin = 0` for every angle above 0.1 rad (the Taylor branch below it still works, which is
+why only the checks above ~700 Hz failed). So the phaser's and the flanger's LFO never moved and the EQ's
+cosines collapsed to 1: the three readings were exactly what a frozen LFO and `cos = 1` produce
+(6.6 dB, 4 383 Hz, and the shelf reading its own cut at 4 kHz). This is the same class of defect the changelog
+records for the audio harness in the Etapa 7 audit, and `eq_response_test.c` already calls `sine_init()` for
+this reason. With one line added, `fx probe passed`: the phaser's comb, the flanger's travelling null and the EQ
+low shelf (-24.0 dB at 30 Hz, -0.5 at 1 kHz, +0.0 at 4 kHz and 16 kHz) all measure as designed.
+
+**Nothing in `fx.c` was changed for this.** The coefficient chain was replicated by hand in the host before the
+harness was suspected, and it gave the correct curve; the DSP was never the broken part.
+
+**The second fix** was a stale guard: `fm6bank_test.c` still demanded 171 presets past the generator's pool
+while the list has 172 since the 1.5.19 remaster - its own comment says "172, not 169". The 172 per-preset
+checks (extra values, the FM-6 voice, the peak in range) passed. The guard now says 172.
+
+### 35.2 Full suite `[HOST]`, this commit
+
+`NO_PACKAGE=1 ./tests/run_tests.sh`: **two failures, both from the version bump before the release was
+re-stamped** - `release set` (the package in `release/` was still v1.6.0) and `UI pixels` (the splash and the
+menu draw `FELUCCA_VERSION`). Both are artefacts of this phase: `ui_pixels.txt` was regenerated (3 056 frames)
+and `make_release.py --sync` re-stamped the package from the clean commit, after which both gates pass. The FX
+and FM6 gates that had been red across the previous phases are now green, and the host CPU aggregate passed in
+this run.
+
+### 35.3 Version and ecosystem
+
+`FELUCCA_VERSION` v1.7.0 (`FM-1_965`), README and CHANGELOG carry it; the package, both `SHA256SUMS`, the
+site's `versions.json` and the installer's meta are written by `make_release.py --sync` from the package, so
+they describe one artefact rather than four hand-edited copies. The build in `release/` is the one this
+commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of 98 304.
