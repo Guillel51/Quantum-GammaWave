@@ -1,3 +1,45 @@
+## v1.6.0 — Etapas 1–8: síntesis, herramientas, interfaz y el cierre del proyecto
+
+Primera versión que reúne las ocho etapas en un solo paquete publicado, con la instalación desde el V16
+oficial documentada y probada hasta donde el software puede probarla.
+
+**Síntesis y herramientas**
+
+- **PHASE**: la octava onda es **SYNC**, una portadora reiniciada por el ciclo maestro (Etapa 4).
+- **ARP**: modos **PEDAL** y **ALBERTI**, además de los ocho existentes (Etapa 5).
+- **Escalas**: **HIJAZ** y **HUNG MINOR** en el motor de escalas y acordes (Etapa 5).
+- **LFO**: divisiones con puntillo y el extremo rápido ordenado — `1/32T` y `1/64` cierran la lista (Etapa 7).
+
+**Interfaz**
+
+- **CHANCE** dibuja la probabilidad de todo el patrón, no un valor suelto, y **MOD MAP** muestra en una banda
+  dónde aterrizan las rutas (Etapa 6).
+
+**Corregido en la auditoría de la Etapa 7**
+
+- El arnés de audio corría sin `sine_init()` desde que la senoide se mudó a `.bss`: medía un oscilador mudo y
+  dejaba `security` en rojo.
+- La afirmación del test del EQ (medio gain en la esquina) sólo vale lejos de Nyquist; se mide a 495 Hz y la
+  esquina de 20 kHz contra lo que el diseño bilineal promete.
+- El lazo de `stress` medía ns de CPU mientras él mismo era la carga.
+- Las dos divisiones que agregó la Etapa 5 estaban fuera de orden: al pasar de `1/32` el LFO saltaba a lento.
+
+**Instalación desde el V16 oficial**
+
+- La página toma la versión de la identidad que la unidad responde (`FM-1_016` → `16`), no una constante.
+- El chip se **diagnostica**: eco, cuerpo corto, silencio, CRC, negativa, JEDEC desconocido y geometría tienen
+  frases distintas; el mensaje del informe («did not answer its JEDEC Truncated identification reply») ya no se
+  puede componer.
+- Una unidad stock **no** implementa `0x12`: el loader del paquete lee la parte en la unidad antes de borrar, y
+  la página no inventa una identificación.
+- El camino V16 exige la **copia completa de 1 MiB** de esa unidad, la confirmación de que se sabe restaurar y
+  el `FM-1.fwsc` oficial como vuelta atrás; el registro de M-Flasher se lee y se ata a la copia por SHA-256.
+  Estado del gate: **GO CONDITIONAL** (la restauración sobre un layout V16 no se ha observado en hardware).
+
+**Verificación de esta versión**: `security` completo, `stress 2`, `presets` 287/287, `web` 0, `sync` con el WASM
+del mismo build, `regress` 307 goldens, `install_test` + los tests de la página V16 (175 checks), `make_release
+--check` sobre `release/` y `site/`. Build AC791N: ver el informe de la Etapa 8 para los bytes y el margen.
+
 ## Etapa 7/8 — auditoría: cuatro defectos encontrados y corregidos, con test de regresión
 
 - **P1 test de audio sobre un instrumento sin inicializar**: `tests/audio_test.c` llamaba a `delay_edge()` antes
