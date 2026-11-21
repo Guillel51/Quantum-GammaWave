@@ -164,7 +164,19 @@ def fm6_tables():
          f"#define FM6_AMS_K {int(round(0.07 / 262144 * math.log2(math.e) * 2 ** 24 * 1024))}      /* d/dsensamp of it, Q24 / 1024 */"]
     # 2^(i / 1024) - 1, Q30: the mantissa of Exp2::lookup and Freqlut::lookup (linear between the points, as
     # msfa's: within 6e-8 of 2^x; a Q16 table drifted the partials of a ratio against each other)
-    L += arr("FM6_EXP2", "uint32_t", [int(round((1 << 30) * (2 ** (i / 1024) - 1))) for i in range(1025)], 8)
+    # (ETAPA 1) THE SAME POINTS, STORED AS A SECOND DIFFERENCE. 2^(i/1024) - 1 is smooth, so its second
+    # difference is 491..983 for every one of the 1025 points and fits an int16: the table of 4100 B of XIP
+    # becomes 2054 B, and fm6_core.c rebuilds the exact integers at boot with plain adds (fm6_exp2_init),
+    # keeping them in .bss where a lookup is cheaper than an XIP read. Nothing about the sound moves: the
+    # decode is integer-exact, and tests/fm6_exp2_test.c compares all 1025 points against the formula.
+    exp2 = [int(round((1 << 30) * (2 ** (i / 1024) - 1))) for i in range(1025)]
+    d1 = [exp2[i + 1] - exp2[i] for i in range(1024)]
+    d2 = [d1[i + 1] - d1[i] for i in range(1023)]
+    L += ["#define FM6_EXP2_V0 %du     /* 2^(0/1024) - 1, Q30 */" % exp2[0],
+          "#define FM6_EXP2_D1 %du     /* the first step: the table is V0, V0 + D1, then the curve's d2 */" % d1[0],
+          "#define FM6_EXP2_N %du" % len(exp2),
+          "#define FM6_EXP2_D2_N %du" % len(d2)]
+    L += arr("FM6_EXP2_D2", "int16_t", d2, 12)
     lforatio = int(4437500000.0 * CTL / FS)                                  # msfa Lfo::lforatio_ (uint32)
     L += arr("FM6_LFO_DELTA", "uint32_t", [int(s * lforatio) for s in FM6_LFO_SOURCE], 8)
     # msfa note osc_freq: the DETUNE step of note mn, Q24 log2 (0.0209 * exp(-0.396 * lf) / 7 * lf, lf in octaves)

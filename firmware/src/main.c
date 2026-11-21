@@ -122,6 +122,8 @@ static void felucca_init(void)
     load_depth++;                             /* (the power-on loads: one outer load) */
     fm6_init();                               /* every track's FM6 patch: the init voice */
     wt_gen_init();                            /* (FASE 1, FASE 6) WAVETABLE's band limits: built here, not stored */
+    fm6_exp2_init();                          /* (ETAPA 1) FM6's exp2 curve: 2054 B of XIP instead of 4100, decoded
+                                               * into .bss with integer adds -- the same points, exactly */
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
         track_defaults(t);

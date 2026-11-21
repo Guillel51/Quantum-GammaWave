@@ -45,11 +45,31 @@ enum {
 };
 
 /* ---------------------------------------------------------------- math --- */
-/* 2^(x / 2^24), Q24 (msfa Exp2::lookup): the Q30 mantissa from FM6_EXP2, shifted by the integer part */
+/* (ETAPA 1) THE EXP2 TABLE, IN RAM, DECODED ONCE. The 1025 points of 2^(i/1024) - 1 are a smooth curve, so the
+ * generated header stores only their second difference (an int16 each: 491..983 here) plus the first point and the
+ * first step, and this rebuilds the very same integers with adds -- no floating point, no rounding, no table of
+ * 4100 B in the app slot, which is the resource this firmware runs out of first. The decoded copy lives in .bss
+ * (4100 B of the 10.8 KB the linker leaves free) and every lookup is now a RAM read instead of an XIP one, so the
+ * hot path of the FM6 engine does not get slower. fm6_exp2_init runs at boot beside wt_gen_init, which is the same
+ * arrangement WAVETABLE's band limits already use. */
+uint32_t fm6_exp2_tab[FM6_EXP2_N];
+void fm6_exp2_init(void)
+{
+    int32_t i, a = (int32_t)FM6_EXP2_V0, b = a + (int32_t)FM6_EXP2_D1;
+    fm6_exp2_tab[0] = (uint32_t)a;
+    fm6_exp2_tab[1] = (uint32_t)b;
+    for (i = 0; i < (int32_t)FM6_EXP2_D2_N; i++) {
+        int32_t c = b + (b - a) + (int32_t)FM6_EXP2_D2[i];   /* the same step again, plus its own change */
+        fm6_exp2_tab[i + 2] = (uint32_t)c;
+        a = b;
+        b = c;
+    }
+}
+/* 2^(x / 2^24), Q24 (msfa Exp2::lookup): the Q30 mantissa from fm6_exp2_tab, shifted by the integer part */
 static inline uint32_t fm6_mant(int32_t x)
 {
-    uint32_t f = (uint32_t)x & 0xFFFFFFu, k = f >> 14, a = FM6_EXP2[k];
-    return (1u << 30) + a + (uint32_t)(((uint64_t)(FM6_EXP2[k + 1u] - a) * (f & 0x3FFFu)) >> 14);
+    uint32_t f = (uint32_t)x & 0xFFFFFFu, k = f >> 14, a = fm6_exp2_tab[k];
+    return (1u << 30) + a + (uint32_t)(((uint64_t)(fm6_exp2_tab[k + 1u] - a) * (f & 0x3FFFu)) >> 14);
 }
 static inline int32_t fm6_exp2(int32_t x)
 {

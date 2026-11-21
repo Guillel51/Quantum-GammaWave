@@ -468,6 +468,9 @@ if [ -f build/gen/felucca_tables.h ]; then
         python3 tools/preset_audit.py --gate-sound 0.05 --fingerprint "$OUT/preset_fingerprint.jsonl"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_param_test" tests/engine_param_test.c -lm
     run "ENGINES: every EDIT knob at both ends of its range moves the rendered note" "$OUT/engine_param_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_exp2_test" tests/fm6_exp2_test.c -lm
+    run "FM6: the 1025 exp2 points are stored as a second difference and decode to the generator's integers exactly (2054 B of XIP instead of 4100)" \
+        "$OUT/fm6_exp2_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_options_test" tests/engine_options_test.c -lm
     run "ENGINES: PHASE LINE = FOLD and LOFI WAVE = SYNC sound, differ from every other value of their knob, and no preset uses them" \
         "$OUT/engine_options_test"
@@ -594,6 +597,7 @@ fi
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
     build/felucca.dis tests/target_budget.txt
 run "the ST7789's init table: no gamma, no brightness, no VCOM (the 1.4 black-screen class, kept out)" \
+    python3 tests/resources_test.py
     python3 tests/panel_table_test.py firmware/src/lcd.c
 run "target memory map: 1 MiB flash, RAM / pool / stacks / noinit do not overlap" python3 tests/memory_map_test.py
 run "engine size: which symbol belongs to which engine, XIP vs RAM, the map cross-check" python3 tests/engine_size_test.py

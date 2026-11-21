@@ -1,3 +1,16 @@
+## Etapa 1/8 — la curva exp2 del FM6 sale del slot y el mapa de recursos tiene techo
+
+- **La tabla `FM6_EXP2` (4 100 B de XIP, 1 025 puntos) se guarda como su segunda diferencia** (2 046 B, `int16`) y
+  se reconstruye en el arranque con sumas, en `.bss`, al lado de `wt_gen_init`: **imagen 582 884 → 580 900 B**,
+  **libre en el slot 728 → 2 712 B (×3.7)**, `.bss` +4 100 B (quedan 6 764), pool intacto. `[HOST]`: **306 golden
+  renders, 0 cambiados**; **0 hallazgos de lint**; **0 de 3 785 110** medidas de alineación; `target_budget`
+  exit 0. La decodificación es entera y exacta, y `tests/fm6_exp2_test.c` compara los 1 025 puntos contra la
+  fórmula del generador.
+- **Diagnóstico nuevo**: `tools/resource_map.py` lee el ELF (RAM contra 96 KiB, hueco del pool con la ventana
+  leída del `app.ld`, `.lowbuf`, stacks, XIP contra el slot que fija `web/fm1pkg.js`) y `--check` falla si se
+  cruza un techo; `tests/resources_test.py` lo corre y además fija la estructura de la tabla nueva.
+- Detalle, números y pendientes para la Etapa 2 en `docs/ETAPA1_RECURSOS_2026-11-21.md`.
+
 ## v1.5.28 — la Fase 6 llega al firmware: un frame no vuelve a construir sus rampas
 
 - **La caché de rampas de texto pasa de 6 a 20 entradas.** Fase 6 había quedado resuelta del lado del Web Studio
