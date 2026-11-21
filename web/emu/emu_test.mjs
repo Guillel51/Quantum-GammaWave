@@ -195,6 +195,26 @@ check("FX: a short hold peeks, four seconds pin the map, FX again unlocks; none 
   check(`all 65 536 panel words give the same bytes through the tables (${off} off)`, off === 0 && okR && okG);
 }
 
+{ // (FASE 6) the power-on sweep's colours are remembered, not recomputed: 246 pow() a frame became 0. The cache
+  // must give the string the formula gives, for every level of both kinds, or the LEDs change colour.
+  const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
+  const head = html.indexOf("const ANIM_CACHE = {");
+  const tailIdx = html.indexOf("function drawAnim(anim)");
+  check("the sweep's colours go through a cache", head > 0 && tailIdx > head);
+  const ANIM = { btn: [[0.02, 0.02, 0.015], [0.02, 0.02, 0.015], [1, 0.9, 0.7]],
+    slit: [[0.02, 0.02, 0.03], [0.2, 0.2, 0.22], [0.85, 0.85, 0.87]] };
+  const animFill = new Function("ANIM", html.slice(head, tailIdx) + "\nreturn animFill;")(ANIM);
+  const formula = (kind, q) => {
+    const [dark, glow, lit] = ANIM[kind], s = Math.min(q & 127, 64) / 64, base = q & 128 ? glow : dark;
+    return `rgb(${base.map((v, i) => Math.round(255 * (v + (lit[i] - v) * s) ** (1 / 2.2))).join(",")})`;
+  };
+  let off = 0;
+  for (const kind of ["btn", "slit"]) for (let q = 0; q < 256; q++) if (animFill(kind, q) !== formula(kind, q)) off++;
+  check(`all 512 sweep levels give the formula's colour (${off} off)`, off === 0);
+  check("a level asked twice is the same string, computed once",
+    animFill("btn", 200) === animFill("btn", 200) && animFill("slit", 3) === animFill("slit", 3));
+}
+
 // ---- a user preset saved from the panel, kept across a fresh instance
 const w0 = a.ex.web_flash_writes_count();
 a.tap(B.SAVE);

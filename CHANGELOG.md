@@ -1,3 +1,24 @@
+## v1.5.27 — la canción sale como .MID, y el barrido de encendido deja de recalcular 246 potencias por frame
+
+Fase 6. El firmware no cambia salvo la versión: lo nuevo vive en el **Web Studio** y en el **emulador**, que es donde
+estaban las dos oportunidades reales. Sin FM-1 en este entorno: nada de aquí afirma sonido ni panel de la unidad.
+
+- **Nuevo: EXPORT .MID.** El estudio ya renderizaba la canción de 4 compases a `.WAV` y la guardaba como proyecto
+  (`.GW1`), pero las notas no salían de la página: para usar el bajo en un DAW había que volver a tocarlo. El botón
+  **🎼 EXPORT .MID** escribe un **Standard MIDI File tipo 1** con 480 ppq (una semicorchea = 120 ticks), el tempo de
+  la canción, compás 4/4, **una pista por lane no muteada**, los tambores en el **canal 10** con notas GM (36/38/42),
+  el pad **sostenido hasta el siguiente ataque** y el bajo/arp una semicorchea. Sin SysEx ni parches: notas, tempo y
+  compás, que es lo que un DAW importa sin ayuda. Las lanes muteadas no se escriben.
+- **Medido `[HOST]`:** `web/test_mid.mjs`, **64 comprobaciones**, con un lector SMF escrito en el propio test:
+  cabecera, división, tempo, una pista por lane viva, canal 10, cada nota cerrada, el pad sostenido, la lane muteada
+  ausente, y los bordes (canción vacía, lane de 200 pasos, tempo 0, valor de batería fuera de rango).
+- **Optimización: el barrido de encendido.** `animFill` corría **246 `pow()` por frame** (41 LEDs × 6 potencias) para
+  un byte con 256 valores posibles. Ahora el color de cada `(tipo, nivel)` se recuerda y los nodos de cada LED se
+  buscan una vez. **`[HOST]`**: 0,021 → 0,001 ms por frame en la parte medida (**19,6×**), y los **512** valores
+  posibles dan la **misma cadena** que la fórmula (`web/emu/emu_test.mjs`).
+- **UI:** la fila de exportación tiene ahora tres botones y envuelve en vez de apretarse; el texto de la sección
+  nombra `.WAV`, `.MID` y `.GW1`.
+
 ## v1.5.26 — el registro de M-Flasher se lee, la copia se comprueba contra él, y el emulador no divide por píxel
 
 Fase 5. Unidad del dueño con **V16 oficial**: el archivo que entrega M-Flasher no es la copia de 1 MiB, es el

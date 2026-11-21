@@ -413,14 +413,28 @@ function drawScreen(fb) {
 // LED's share of lit between its dark (or glowing) colour and the lit one, mixed in linear light
 const lin = (h) => [1, 3, 5].map((i) => (parseInt(h.slice(i, i + 2), 16) / 255) ** 2.2);
 const ANIM = { btn: [lin("#3a3934"), lin("#3a3934"), lin("#fff4d6")], slit: [lin("#3a3a3c"), lin("#77777b"), lin("#ececee")] };
+/* (FASE 6) THE POWER-ON SWEEP'S COLOURS, COMPUTED ONCE. Every lights frame asked animFill for 41 LEDs (14 buttons
+ * and 27 keys), and each call ran three `** 1/2.2` powers and three `** 2.2` ones: 246 pow() a frame, for a byte's
+ * 256 possible values per kind. The result of a (kind, q) pair never changes, so both are remembered (lazily, so
+ * nothing is computed for a level the sweep never reaches) and the LED's own nodes are looked up once instead of a
+ * querySelector per LED per frame. The string is the one the formula gives, byte for byte: tests/emu checks it. */
+const ANIM_CACHE = { btn: new Array(256), slit: new Array(256) };
 function animFill(kind, q) {
-  const [dark, glow, lit] = ANIM[kind], s = Math.min(q & 127, 64) / 64, base = q & 128 ? glow : dark;
+  const k = q & 255, memo = ANIM_CACHE[kind];
+  if (memo[k] !== undefined) return memo[k];
+  const [dark, glow, lit] = ANIM[kind], s = Math.min(k & 127, 64) / 64, base = k & 128 ? glow : dark;
   const c = base.map((v, i) => Math.round(255 * (v + (lit[i] - v) * s) ** (1 / 2.2)));
-  return `rgb(${c.join(",")})`;
+  return (memo[k] = `rgb(${c.join(",")})`);
 }
 function drawAnim(anim) {
-  for (const b of buttons) b.g.querySelector(".face").style.fill = anim ? animFill("btn", anim[b.bit]) : "";
-  keys.forEach((k, i) => { k.g.querySelector(".slit").style.fill = anim ? animFill("slit", anim[14 + i]) : ""; });
+  for (const b of buttons) {
+    const f = b._face || (b._face = b.g.querySelector(".face"));
+    f.style.fill = anim ? animFill("btn", anim[b.bit]) : "";
+  }
+  keys.forEach((k, i) => {
+    const s = k._slit || (k._slit = k.g.querySelector(".slit"));
+    s.style.fill = anim ? animFill("slit", anim[14 + i]) : "";
+  });
 }
 function drawLights([litB, litK, dimB, dimK, dimLo = 0, brB = 0, brK = 0, midK = 0], anim = null) {
   drawAnim(anim);

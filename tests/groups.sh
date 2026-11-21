@@ -42,6 +42,7 @@ run_web() {
     python3 web/test_i18n.py
     python3 web/test_installer_i18n.py
     node web/test_web.mjs
+    node web/test_mid.mjs
 }
 
 run_browser() {
