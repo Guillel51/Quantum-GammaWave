@@ -2371,3 +2371,57 @@ the assets the UI draws. Anything that wants real space should start from a meas
 icon/keycap bitmap coding (a decoder in the `.hot_text` headroom that has 4 848 B free), the 10.9 KB of
 UI shape points, or moving a hot XIP routine into the RAM-code headroom — each needs its own
 before/after numbers in this matrix, and none may change a pixel or a sample.
+
+## 28. Fase 2/8 — HOME & FX precision fixes (2026-11-21)
+
+### 28.1 HOME: a knob no longer sends a second trace across the graph
+
+**Symptom.** Turning any of HOME's four knobs slid an extra wave across the main graph, reading as an
+oscilloscope that answered the hand. **Root cause, in the code and not in the report:** `ui_being.c`
+`gw_draw_forge_bay()` step 5b draws a half-second sine across the bay, gated on `ui.home_pulse` — and
+`ui_input.c` sets `ui.home_pulse` on **every** HOME knob turn (`ui_input.c:2660`, and `presets_turn` at
+`1477`), because the system's ring in the lower-left bay is meant to answer a knob. One stamp, two
+consumers, so the ring's trigger also armed the wave. Nothing was moving the live trace: `gw_live_trace()`
+reads `scope_buf` only (audio.c), and `graph_ecosys()`'s other motion is audio and palette state.
+
+**Fix.** The wave has its own stamp: `ui.bay_wave` (4 B), armed only by a tap on HOME and by arriving on it
+(`go_home()`), never by a knob. `gw_draw_forge_bay()` 5b reads it and clears it when the half second is
+spent, so no stale wave waits for the next visit. The rings still answer the knobs (`home_pulse` untouched),
+and the live trace, the spectrogram, the filter curve and its cyan modulation range keep their own triggers.
+
+**Evidence (`[HOST]`, `tests/ui_test.c`).** New checks, in the suite:
+- *no knob sends the bay's wave*: each of the four encoders, alone and two in the same frame, still pulses
+  the system (`home_pulse != 0`) and leaves `bay_wave == 0`, on the real `turn()` path;
+- *the wave draws on the tap's stamp and spends back*: with the bay's stamp armed the bay's rows change
+  (so that wave was the moving element), and once spent the frame is bit for bit what it was before;
+- *a knob on another page arms nothing*: a turn on FX arms nothing, arriving on HOME arms it once, and after
+  its half second `ui_draw()` has cleared it -- the stamp expires on the clock, so a static or ANIM OFF
+  screen cannot keep one waiting for a later redraw.
+`ui` group: **all passed**, 0 lint findings, 0 inks on their own colour, 0 GREY / MONO pixels off,
+3 787 294 alignment measurements with 0 off by 1 px.
+
+### 28.2 FX: the three master modules are the four cards' family
+
+**Root cause.** `graph_fx()` drew the four bus cards with `ux_ground_rows(…, 22, 62, 10, 45, …)` over 73
+rows and a 5 px corner, and the three modules (EQ, DEPTH, SLICER) with a 3 px corner and a different ramp
+(`14, 50, 6, 32` over 37 rows). Worse, two of the modules' texts — the icon and the name — asked
+`ux_ground_at(0, 37, 10, 45)` for their ground while their body had been filled with `6, 32`, and the three
+values asked `ux_ground_at(13, …, 6, 32)` for a row that is not theirs: each glyph was blended over a tone
+that was not under it, which is what read as a different gradient.
+
+**Fix.** Same corner (5 px), same ramp and direction (`22 → 62` over T_SURF, `10 → 45` over the accent) and
+the same row asked of `ux_ground_at` for every one of the seven boxes; the modules keep their own height and
+their own accent (EQ theme, DEPTH theme/DIM by mode, SLICER theme/DIM by mode), so the functional colour of
+each control is untouched.
+
+**Evidence.** Renders regenerated for every palette (`build/ui_group/ppm/*_fx.ppm`): the three modules now sit
+on the same ground as the four cards, and the layout lint reports no ink on its own colour and no text within
+2 px of a cell edge that it did not already report.
+
+### 28.3 Budget
+
+`ui` struct +4 B (one `uint32_t`), measured on the `[TARGET]` build (`[TARGET]`, `./build.sh` at this tree):
+`.data+.bss` 93 612 → **93 616 B** of 98 304 (4 688 free); image 581 280 → **581 248 B** of 583 612 (2 364
+free); XIP code 429 868 → 429 832 B, constants 130 872 → 130 876 B; RAM code 19 728 B and the pool's 9 248 B
+spare unchanged. The build's own link checks pass, and `target_budget.py` keeps every audited path inside its
+stored budget.

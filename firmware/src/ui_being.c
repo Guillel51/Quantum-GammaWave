@@ -2474,12 +2474,19 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
         cv_rect(gx0 + cut_x - 1, cy_node - 1, 3, 3, T_TEXT);
     }
 
-    /* 5b. THE GRAPH ANSWERS: a knob turned on HOME (or HOME tapped) sends a wave across the bay for half a
-     *     second, and the node that moved throws three sparks. No pool, no allocation: a sine of decaying
-     *     amplitude and three pixels, all inside this bay -- nothing is drawn under the mini-knobs. */
-    if (ui.home_pulse) {
-        uint32_t age = ui.frame - ui.home_pulse;
-        if (age < 30u) {
+    /* 5b. THE GRAPH ANSWERS: a TAP on HOME sends a wave across the bay for half a second, and the node that
+     *     moved throws three sparks. No pool, no allocation: a sine of decaying amplitude and three pixels, all
+     *     inside this bay -- nothing is drawn under the mini-knobs.
+     *     (FASE 2/8) THE WAVE IS THE TAP'S, NOT THE KNOBS'. It hung off ui.home_pulse, and every HOME knob turn
+     *     sets that too (the system's ring answers a knob, which is right). So turning CUT, RES, ATK or REL --
+     *     any of the four -- drew this extra sine sweeping across the graph for half a second: the picture the
+     *     player reported as "an oscilloscope that moves when I touch the knobs". The wave has its own stamp now,
+     *     set only by go_home()'s tap; the rings keep answering the knobs exactly as they did. */
+    if (ui.bay_wave) {
+        uint32_t age = ui.frame - ui.bay_wave;
+        if (age >= 30u)
+            ui.bay_wave = 0;                        /* spent: one wave per tap, never a stale one on return */
+        else {
             int32_t amp = (int32_t)(30u - age) * gh / 150;
             uint16_t wc = ux_mix(T_BG, T_THEME, 210 - (int32_t)age * 6);
             for (x = 0; x < gw; x += 2) {

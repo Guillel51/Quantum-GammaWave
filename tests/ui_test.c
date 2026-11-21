@@ -11530,6 +11530,76 @@ static int test_home_viz(void)
 /* (1.2.6) SOUND EDITED: the sound against the snapshot the last load / save left. A knob marks it, a save
  * clears it, and the automation of a playing transport does not (it writes p[] for its step and puts it
  * back). The watch runs in ui_notices, once a frame. */
+/* (FASE 2/8) THE BAY'S WAVE IS THE TAP'S, NOT THE KNOBS'.
+ * HOME's graph answers a gesture with a sine across the bay for half a second (ui_being.c, gw_draw_forge_bay
+ * 5b). It used to hang off ui.home_pulse, which EVERY HOME knob turn also sets -- the system's ring answers a
+ * knob, and that is right -- so turning CUT, RES, ATK or REL swept a second trace across the graph: the
+ * "oscilloscope that moves when I touch the knobs" the player reported. The wave has its own stamp now
+ * (ui.bay_wave), armed by a tap on HOME and by arriving on it, never by a knob:
+ *   the state:  each of the four knobs still pulses the system (home_pulse) and leaves bay_wave at 0;
+ *   the pixels: a fresh bay_wave really draws (the bay's rows change with the clock and the frame held
+ *               still), and once the half second is spent the bay is bit for bit what it was -- one wave
+ *               per tap, no stale one waiting for the next visit. */
+static int test_home_knob_no_wave(void)
+{
+    int bad = 0, ok = 1;
+    uint32_t k;
+    stop_transport();
+    ui_viz_q = 0;
+    ui_power_on();
+    go_home();
+    home_first();
+    frames(4);
+    ui_prefs |= PREF_ANIM_OFF;
+    frames(80);                                   /* whatever arriving armed has spent */
+    for (k = 0; k < 4u; k++) {
+        ui.bay_wave = 0;
+        ui.home_pulse = 0;
+        turn((uint32_t)(EN_K1 + k), 3);
+        ok &= ui.home_pulse != 0u && ui.bay_wave == 0u;
+    }
+    {   /* two at once, in the same frame: still the rings' stamp and never the wave's */
+        ui.bay_wave = 0;
+        ui.home_pulse = 0;
+        turn(EN_K1, 2);
+        turn(EN_K3, 2);
+        ok &= ui.home_pulse != 0u && ui.bay_wave == 0u;
+    }
+    bad += check("HOME: no knob sends the bay's wave -- all four, alone and two at once (the ring answers them)", ok);
+    {   /* a knob on ANOTHER page, then HOME: the arrival's own wave spends, and the return leaves none */
+        ok = 1;
+        go_page(GR_FX);
+        frames(2);
+        ui.bay_wave = 0;
+        turn(EN_K1, 2);
+        ok &= ui.bay_wave == 0u;
+        press(B_HOME);
+        ok &= ui.bay_wave != 0u && ui.home;       /* arriving on HOME arms it, once */
+        ui.frame += 40u;                          /* half a second of frames: the stamp's whole life */
+        frame();
+        ok &= ui.bay_wave == 0u;                  /* gone, with nothing waiting for a later redraw */
+        bad += check("HOME: a knob on another page arms nothing; the arrival's wave spends and leaves none", ok);
+    }
+    {
+        uint32_t ms0 = fm1_ms, fr0 = ui.frame, h0, h1;
+        ok = 1;
+        ui.bay_wave = 0;
+        draw_at(ms0, fr0);
+        frame_keep();
+        h0 = frame_hash();
+        ui.bay_wave = fr0 | 1u;                   /* the tap's own stamp */
+        draw_at(ms0, fr0);
+        h1 = frame_hash();
+        ok &= h1 != h0 && frame_diff(6, 60, 228, 90) > 0;
+        ui.bay_wave = 0;
+        draw_at(ms0, fr0);
+        ok &= frame_hash() == h0;                 /* spent: the bay is what it was */
+        bad += check("HOME: the bay's wave draws on the tap's stamp and spends back to the same picture", ok);
+    }
+    ui_prefs &= ~PREF_ANIM_OFF;
+    return bad;
+}
+
 static int test_sound_edited(void)
 {
     int bad = 0, ok;
@@ -11740,6 +11810,7 @@ int main(void)
     bad += test_step_leds();
     bad += test_fx_scenes();
     bad += test_home_knob_pulse();
+    bad += test_home_knob_no_wave();
     bad += test_see_through_ink();
     bad += test_scale_leds();
     bad += test_screen_off();

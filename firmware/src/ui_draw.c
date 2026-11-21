@@ -2089,6 +2089,11 @@ static void ui_draw(void)
         ui.home_view = HV_HOME;
     }
     ui.frame++;
+    /* (FASE 2/8) THE BAY'S WAVE EXPIRES ON THE CLOCK, not on a redraw: with ANIM OFF (or any static screen)
+     * the bay is not redrawn every frame, and a stamp cleared only inside gw_draw_forge_bay would wait for the
+     * next redraw. Nothing would be drawn (the age is past the half second), but the flag would linger. */
+    if (ui.bay_wave && ui.frame - ui.bay_wave >= 30u)
+        ui.bay_wave = 0;
     if (counting != (uint8_t)seq_counting()) {          /* a count-in began or ended: the page drawn again after it */
         counting = (uint8_t)seq_counting();
         ui.force = 1;

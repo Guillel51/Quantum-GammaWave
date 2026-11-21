@@ -256,6 +256,10 @@ static struct {
                                   * still reads one flag; the two screens added in 3.0 are read by ui_draw.c and
                                   * ui_graph.c from this one */
     uint32_t home_pulse;         /* (2.0) the frame of the last HOME gesture: HOME's system answers with a ring and a burst */
+    uint32_t bay_wave;           /* (FASE 2/8) the frame of the last TAP on HOME: the bay's own wave. A knob turn
+                                  * pulses the system (home_pulse) and must never send this one -- it used to share
+                                  * home_pulse, so turning CUT, RES, ATK or REL swept a second trace across the
+                                  * graph, which the player read as an oscilloscope moving with the hand */
     uint32_t ly_t0;              /* the layer button's press time | 1, LY_* bits (ui_layer.c layer_gesture) */
     uint8_t ly;                  /* the layer whose button is down (LAYER_*), 0 = none */
     uint8_t layer;               /* the layer whose map is shown (LAYER_*), 0 = none */
@@ -839,12 +843,15 @@ static void go_home(void)
 {
     if (ui.home) {
         ui.home_pulse = ui.frame;                /* (2.0) HOME tapped on HOME: the system pulses */
+        ui.bay_wave = ui.frame | 1u;             /* (FASE 2/8) and the bay's wave answers the TAP, nothing else */
         ui.home_view = (uint8_t)((ui.home_view + 1u) % HV_COUNT);
         ui.home_viz = ui.home_view == HV_VIZ;
     } else {
         ui.home = 1;
         ui.home_view = HV_HOME;
         ui.home_viz = 0;
+        ui.bay_wave = ui.frame | 1u;             /* (FASE 2/8) arriving on HOME: the bay shows itself once, the
+                                                  * same gesture a tap makes -- never a knob's */
     }
     ui.plk_src = 0;                              /* (parameter locks: HOME's four) */
     ui.entry_open = 0;

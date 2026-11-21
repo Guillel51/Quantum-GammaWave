@@ -1028,8 +1028,14 @@ static void graph_fx(const track_t *t, uint16_t c)
         uint32_t m;
         char vb[12];
         for (m = 0; m < 3u; m++) {
-            cv_rrect(MX3[m], 82, 76, 39, 3, T_SURF, T_BG);
-            ux_ground_rows(MX3[m] + 2, 83, 72, 37, 14, 50, 6, 32, 83, 119, 100);   /* (1.2.6) the bottom row too */
+            /* (FASE 2/8) THE SEVEN BOXES ARE ONE FAMILY. The three modules were a different ground: a 3 px corner
+             * and a ramp of their own (14..50 over T_SURF, 6..32 over the accent, 37 rows) beside the four
+             * cards' 5 px corner and 22..62 / 10..45 -- and two of their texts asked ux_ground_at for the
+             * accent band (10..45) while their body had been filled with (6..32), so the icon and the name sat
+             * on a tone that was not under them (a halo the layout lint cannot see). Same corner, same ramp,
+             * same direction; only the height differs, and the row asked of ux_ground_at is the module's own. */
+            cv_rrect(MX3[m], 82, 76, 39, 5, T_SURF, T_BG);
+            ux_ground_rows(MX3[m] + 2, 83, 72, 37, 22, 62, 10, 45, 83, 119, 100);   /* (1.2.6) the bottom row too */
             cv_icon_on(MX3[m] + 4, 83, 12, IC[m], T_MID, ux_ground_at(0, 37, 10, 45));
             cv_text_on(MX3[m] + 19, 83, &AF_S, NM[m], T_DIM, ux_ground_at(0, 37, 10, 45));
             cv_rect(MX3[m] + 4, 108, 68, 9, T_BG);        /* the bar's track, under the value */
@@ -1043,14 +1049,14 @@ static void graph_fx(const track_t *t, uint16_t c)
             if (em) {
                 int32_t c = 34;                        /* the centre: 0 dB */
                 str_cpy(vb, N_EQMODE[em], sizeof vb);
-                cv_text_on(MX3[0] + 4, 94, &AF_S, vb, T_THEME, ux_ground_at(13, 37, 6, 32));
+                cv_text_on(MX3[0] + 4, 94, &AF_S, vb, T_THEME, ux_ground_at(11, 37, 10, 45));
                 if (bar[0] >= c)
                     cv_rect(MX3[0] + 4 + c, 110, bar[0] - c, 5, T_THEME);   /* boost: centre -> right */
                 else
                     cv_rect(MX3[0] + 4 + bar[0], 110, c - bar[0], 5, T_THEME);   /* cut: left -> centre */
                 cv_rect(MX3[0] + 4 + bar[0], 108, 4, 9, T_ACCENT);   /* where the gain sits */
             } else {
-                cv_text_on(MX3[0] + 4, 94, &AF_S, "BYP", T_DIM, ux_ground_at(13, 37, 6, 32));
+                cv_text_on(MX3[0] + 4, 94, &AF_S, "BYP", T_DIM, ux_ground_at(11, 37, 10, 45));
                 cv_rect(MX3[0] + 4 + 32, 110, 2, 5, T_DIM);  /* flat and bypassed: the centre only */
             }
             cv_rect(MX3[0] + 4 + 34, 108, 1, 9, T_LINE);      /* the 0 dB line, over the fill */
@@ -1061,7 +1067,7 @@ static void graph_fx(const track_t *t, uint16_t c)
             fx_ease(&bar[1], w);
             fmt_int(vb, d * 100 / 127);
             str_cpy(vb + str_len(vb), "%", 2);
-            cv_text_on(MX3[1] + 4, 94, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(13, 37, 6, 32));
+            cv_text_on(MX3[1] + 4, 94, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(11, 37, 10, 45));
             if (bar[1] > 0)
                 cv_rect(MX3[1] + 4, 110, bar[1], 5, song.g[G_SLMODE] ? T_THEME : T_DIM);
             if (bar[1] > 0)                            /* the head, and where it is going */
@@ -1073,7 +1079,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         {
             uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k, pat = sl_pattern();
             str_cpy(vb, N_SLCR[sm], sizeof vb);
-            cv_text_on(MX3[2] + 4, 94, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(13, 37, 6, 32));
+            cv_text_on(MX3[2] + 4, 94, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(11, 37, 10, 45));
             for (k = 0; k < 16u; k++) {
                 int32_t sx = MX3[2] + 4 + (int32_t)k * 4;
                 int on = sm && ((pat >> k) & 1u), now = sm && k == (sl.idx & 15u);
