@@ -2229,11 +2229,17 @@ So: **the installer and the release serve the same bytes**, and the Web Studio d
 (`v1.6.0-11b9b9e`) and runs the same release emulator. It does not display the package sha256 because it never
 offers the package — saying otherwise would be inventing a check.
 
-Two naming details, recorded so nobody reads them as a mismatch. The deployed installer points at
-`felucca-v1.6.0-11b9b9e.fwsc` (the name `make_site.py` gives the served copy) while the tracked `site/`
-snapshot and the Release asset use `felucca-v1.6.0.fwsc` (the name `make_release.py --sync` gives it); both
-are 610 933 B with sha `f6aa3b15…`. Reading `firmware/felucca-1.6.0.fwsc` — the name a browser
-autocompletes — answers **404** on the published root; no page links to it.
+**Naming, unified 2026-11-21.** The published root used to answer **404** for
+`firmware/felucca-1.6.0.fwsc` (the name the Release asset carries and a browser completes) because
+`make_site.py` named the served copy after the label it displayed (`v1.6.0-11b9b9e`), while
+`make_release.py` wrote and checked `felucca-<version>.fwsc`. `make_site.py` now names the package after the
+package's own version (signed manifest, then build record, then the label, with the leading `v` removed),
+which is the name `make_release.py --check` holds the site to: installer, `versions.json`, Release asset and
+URL now agree. When the label differs it also publishes a byte-identical copy under the old label name
+(`firmware/felucca-v1.6.0-11b9b9e.fwsc`), because GitHub Pages has no redirects and a published URL is a
+promise; the copy is listed in the site's `SHA256SUMS`. Reproduced with the workflow's own call
+(`make_site.py release/felucca-v1.6.0.fwsc v1.6.0-11b9b9e <out>`): `firmware/felucca-1.6.0.fwsc`, 610 933 B,
+sha256 `f6aa3b15…`, plus the alias; `make_release.py --check` → **ok**, with the check itself unchanged.
 
 ### 26.7 Still open, and why
 

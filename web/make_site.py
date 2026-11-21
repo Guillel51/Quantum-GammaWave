@@ -266,7 +266,6 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
         strip_module((HERE / "fm1state.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1backup.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8"))
-    name = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', version)}.fwsc"
     old = earlier(Path(prev), version, product) if prev else []
     # (QG-1) each package with its SHA-256 and size: the installer refuses bytes that do not match
     def digest(b):
@@ -281,6 +280,16 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     else:
         build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
     emu = emulator_record(pkg, emu_manifest)
+    # (ETAPA 8) The served file is named after the PACKAGE's own version -- `release/felucca-1.6.0.fwsc`,
+    # the name `tools/make_release.py --check` holds the site to -- not after the label this run displays
+    # ("v1.6.0-11b9b9e"). The label used to reach the filename, so the published site served only
+    # `firmware/felucca-v1.6.0-11b9b9e.fwsc` and the obvious `firmware/felucca-1.6.0.fwsc` (the release
+    # asset's name, and the one a browser completes) was a 404. One package, one name: the commit and the
+    # label stay in `versions.json` and in the installer's meta, where they are read, not in a URL.
+    _pkgver = str((signed_manifest or {}).get("version") or (build or {}).get("version") or version).strip()
+    if _pkgver[:1] in ("v", "V"):
+        _pkgver = _pkgver[1:]
+    name = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', _pkgver)}.fwsc"
     # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
     # not the one the package's build record names when the package is a committed release: the release
     # pins the emulator built with it, the site copies the one built now. Both are true, so both are
@@ -321,6 +330,12 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     (out / "plan").mkdir(parents=True, exist_ok=True)
     (out / "plan" / "index.html").write_text(with_csp(plan.replace("/*LIB*/", plib)), encoding="utf-8")
     shutil.copy(pkg, fw / name)
+    # ...and, when this run displays a different label, a copy under the name the site served until now
+    # ("felucca-v1.6.0-11b9b9e.fwsc"): a published URL is a promise, and Pages has no redirects. Same
+    # bytes, verified by the same hash; the installer and versions.json still name only `name`.
+    alias = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', version)}.fwsc"
+    if alias != name:
+        shutil.copy(pkg, fw / alias)
     if rel_manifest:
         (fw / (name + ".manifest.json")).write_text(json.dumps(rel_manifest, indent=1, sort_keys=True) + "\n",
                                                     encoding="utf-8")
@@ -337,6 +352,8 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     # carries its build record -- the app image and the loader it was made from, so a download can be
     # checked against the build it says it is without trusting the page that served it.
     sums = [f"{hashlib.sha256(raw).hexdigest()}  {name}"]
+    if alias != name:
+        sums.append(f"{hashlib.sha256(raw).hexdigest()}  {alias}")     # same bytes, plain line: `sha256sum -c` clean
     for art, meta in sorted(((build or {}).get("artifacts") or {}).items()):
         if isinstance(meta, dict) and meta.get("sha256"):
             sums.append(f"{meta['sha256']}  {art}  ({meta.get('bytes', '?')} B, from the build record)")
