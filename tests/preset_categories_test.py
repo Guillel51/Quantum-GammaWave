@@ -11,9 +11,17 @@ import gen_preset_categories as g
 ALLOWED = {"BASS", "LEADS", "PADS", "PLUCKS", "KEYS", "BELLS", "ORGANS", "BRASS", "STRINGS",
            "DRUMS", "TEXTURES", "FX"}
 rows = g.table()
+allrows = g.table_all()
 fails = []
-if len(rows) != 273:
-    fails.append("expected 273 presets, got %d" % len(rows))
+# (1.5.29 fix) the count is not a constant here: it is the number of entries the engines' own tables carry,
+# minus the legacy aliases engine_library() skips. 273 was true until engines were added, and a fixed
+# number only ever told the next release that it had shipped more sounds.
+if len(rows) != sum(1 for r in allrows if not r[5]):
+    fails.append("table() has %d browsable sounds, table_all() has %d live entries"
+                 % (len(rows), sum(1 for r in allrows if not r[5])))
+if len(rows) != len({(r[0], r[2]) for r in allrows if not r[5]}):
+    fails.append("the browsable library is %d sounds, the engines' live tables hold %d"
+                 % (len(rows), len({(r[0], r[2]) for r in allrows if not r[5]})))
 seen = set()
 for eng, i, n, c in rows:
     if (eng, n) in seen:
@@ -29,7 +37,6 @@ if len(m) != len(rows) or any(x["name"] != n or x["category"] != c for x, (_, _,
 import re
 import tempfile
 hdr = os.path.join(os.path.dirname(__file__), "..", "build", "gen", "preset_cats.h")
-allrows = g.table_all()
 if not os.path.exists(hdr):
     hdr = tempfile.NamedTemporaryFile("w", suffix=".h", delete=False).name
     g.header(hdr)
@@ -37,10 +44,15 @@ t = open(hdr, encoding="utf-8").read()
 base = [None if x.strip() == "PCAT_GONE" else int(x.rstrip("u")) for x in
         re.search(r"PCAT_BASE\[NENGINES\] = \{(.*?)\};", t).group(1).split(",")]
 nib = [int(x.rstrip("u")) for x in re.search(r"PCAT_NIB\[\d+u?\] = \{(.*?)\};", t).group(1).split(",")]
-names = re.findall(r'"([^"]+)"', re.search(r"PCAT_NAME\[PCAT_N\]\[7\] = \{(.*?)\};", t).group(1))
+# (1.5.29 fix) the array width is the generator's business: it grew from 7 to 9 when TEXTURES and the
+# longer names arrived, and a test that spells the width out fails on a header that is correct.
+ncat = int(re.search(r"#define PCAT_N (\d+)u?", t).group(1))
+names = re.findall(r'"([^"]+)"', re.search(r"PCAT_NAME\[PCAT_N\]\[\d+u?\] = \{(.*?)\};", t).group(1))
 cats = sorted({r[4] for r in allrows})
 if names != ["ALL"] + cats:
     fails.append("preset_cats.h names %r, the tables say %r" % (names, ["ALL"] + cats))
+if ncat != len(names):
+    fails.append("PCAT_N is %d, the header names %d categories" % (ncat, len(names)))
 
 
 def cat(e, k):

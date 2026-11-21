@@ -101,6 +101,12 @@ async function valid() {
     ["an emulator from another version", () => verifyProvenance(PKG, { ...base, emulator: { ...base.emulator, version: "v1.8.9" } }, {})],
     ["an emulator with no wasm digest", () => verifyProvenance(PKG, { ...base, emulator: { ...base.emulator, wasm_sha256: "nope" } }, {})],
     ["no emulator record", () => verifyProvenance(PKG, { ...base, emulator: undefined }, {})],
+    /* (1.5.29) a name the site would fetch is a relative path and nothing else */
+    ["an artefact name that climbs out", () => verifyProvenance(PKG, { ...base, artifacts: { ...base.artifacts, "../evil.bin": { bytes: 1, sha256: "a".repeat(64) } } }, {})],
+    ["an absolute artefact name", () => verifyProvenance(PKG, { ...base, artifacts: { ...base.artifacts, "/etc/passwd": { bytes: 1, sha256: "a".repeat(64) } } }, {})],
+    ["an artefact name with a climb inside", () => verifyProvenance(PKG, { ...base, artifacts: { ...base.artifacts, "loader/../../x.bin": { bytes: 1, sha256: "a".repeat(64) } } }, {})],
+    ["two packages", () => verifyProvenance(PKG, { ...base, artifacts: { ...base.artifacts, "felucca-1.9.0.fwsc": { bytes: PKG.length, sha256: "a".repeat(64) } } }, {})],
+    ["a package name the record denies", () => verifyProvenance(PKG, { ...base, package: "felucca-1.9.0.fwsc" }, {})],
     ["a second emulator manifest that disagrees", () => verifyProvenance(PKG, base, { emulator: { ...base.emulator, wasm_sha256: "9".repeat(64) } })],
   ];
   for (const [what, fn] of cases) ok(await refused(fn), `provenance refuses ${what}`);

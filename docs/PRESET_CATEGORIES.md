@@ -311,7 +311,7 @@ motor entra por su número de `ENGINES[]` (WTABLE es el 14), no por su posición
   favoritos está puesto. KNOB 4 sigue conmutando ese filtro.
 - Los presets de usuario no tienen categoría (no nacen de una regla sobre su nombre): salen en `ALL`.
 - La categoría es estado de sesión, como el filtro de favoritos: no se guarda en el proyecto.
-- La biblioteca son 273 sonidos: `engine_library()` salta los alias legacy **en cualquier posición** (no solo
+- La biblioteca son 286 sonidos: `engine_library()` salta los alias legacy **en cualquier posición** (no solo
   al final), así que DRUM muestra 16 y no los 18 de su tabla, como el editor y este documento. Los ids no se
   mueven: un proyecto que guardó `HEARTH KIT` (id 10) sigue cargando ese sonido.
 

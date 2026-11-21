@@ -1,3 +1,35 @@
+## v1.5.29 — el instalador vuelve a instalar (V16 incluida), y el sobrepintado tiene techo
+
+Cierre de pendientes sobre lo anterior en esta misma versión. Todo `[HOST]`: no hubo unidad física y nada se
+le escribió.
+
+- **El instalador rechazaba todo paquete publicado desde v1.5.26.** `tools/build_manifest.py` registra el
+  archivo que escribió (`felucca-X.Y.fwsc`) y la página exigía la clave literal `felucca.fwsc`: el mensaje era
+  *“The file to install is damaged”* con bytes idénticos al registro. Ahora se usa **el nombre que el registro
+  trae**, con la exigencia de que sea **exactamente uno** y que su campo `package` coincida; `make_site.py`
+  valida ese mismo artefacto en vez de comparar contra `{}` (publicaba un sitio con un registro falso en
+  silencio). `web/test_release_e2e.mjs` cubre además el par **publicado** (`release/build-manifest-vX.json`
+  contra `release/felucca-vX.fwsc`) y que el instalador construido busque el paquete por ese nombre.
+- **Instalar desde una FM-1_016 (V16).** La condición de respaldo ya no acepta “un archivo cargado”: pide el
+  registro del dump (**1 MiB + SHA-256** calculado en el navegador). Con ese registro el gate da `pass`,
+  la recuperación queda `conditional` y **GO CONDITIONAL habilita INSTALL desde la página**; las limitaciones
+  siguen nombrando que la vuelta y la recuperación no se observaron. Un registro malformado la deja en
+  `required`.
+- **Seguridad del camino de instalación.** Los nombres de artefacto tienen que ser rutas relativas simples
+  (sin `..`, sin `/` inicial, sin `__proto__`). Revisión completa, hallazgos aceptados y riesgo residual en
+  `docs/INSTALL_SECURITY_REVIEW_v1.5.29.md`.
+- **`tests/preset_categories_test.py` vuelve a pasar** (286 sonidos): el conteo ya no es una constante ni el
+  ancho del array está escrito a mano, se derivan del header y de `table_all()`.
+- **Degradados de todas las pantallas** (Fase 4): rampa de placa y de suelo *dark-heavy*, pie del panel al
+  74 % del fondo y acento del suelo a la mitad; `[HOST]` **0 hallazgos de lint, 0 de 3 785 110 medidas de
+alineación**, goldens intactos. Antes/después en `docs/shots/` y detalle en
+  `docs/FASE4_GRADIENTES_v1.5.29.md`.
+- **El sobrepintado es ahora un número con techo.** El barrido imprime **fills** y **px pintados** por
+  redibujado y falla por encima de **200 000 px** (una pantalla entera son 57 600; la peor es FX con 160 481).
+  Con esa medida, reescribir el dither de píxel por píxel se midió como **sin ganancia** (sólo tres llamadas lo
+  usan, en áreas chicas) y **no se shippeó**: la imagen queda en **582 836 B de 583 612 (776 B libres)** y
+  **11 392 B de RAM**, sin gastar esos bytes.
+
 ## v1.5.29 — LOFI gana WAVE = SYNC; PHASE LINE = FOLD queda medido y afuera
 
 Fase 6. Dos opciones de motor se diseñaron para los 888 B de XIP libres. Una entra; la otra entra en flash pero

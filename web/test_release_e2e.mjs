@@ -131,5 +131,34 @@ const release = (over = {}, rec = record) => {
   rmSync(dir, { recursive: true, force: true });
 }
 
+/* (1.5.29) THE PUBLISHED PAIR, NOT ONLY THE BUILD DIRECTORY: the record and the package the site serves are the
+ * ones a visitor's browser fetches. `release/build-manifest-vX.json` names `felucca-vX.fwsc` -- the name the
+ * installer used to refuse as damaged -- and the built installer is the page that has to accept it. */
+{
+  const ver = String(record.version || "").replace(/^v/, "");
+  const rec = join(ROOT, `release/build-manifest-v${ver}.json`);
+  const pkgPath = join(ROOT, `release/felucca-v${ver}.fwsc`);
+  if (!existsSync(rec) || !existsSync(pkgPath)) {
+    ok(false, `release: the published record and package are on disk (v${ver})`);
+  } else {
+    const published = JSON.parse(readFileSync(rec, "utf8"));
+    const bytes = new Uint8Array(readFileSync(pkgPath));
+    const names = Object.keys(published.artifacts || {}).filter((n) => /\.fwsc$/.test(n));
+    /* the record keeps the name the build wrote (felucca-X.Y.fwsc); the release directory renames the copy it
+     * publishes (felucca-vX.Y.fwsc). What matters is that the record names exactly one package and says so. */
+    ok(names.length === 1 && /^felucca-[\d.]+\.fwsc$/.test(names[0]) && published.package === names[0],
+       `release: the published record names exactly one package (${names.join(", ")})`);
+    let prov = null, why = "";
+    try { prov = await verifyProvenance(bytes, published, { product: productOf(bytes), version: published.version }); }
+    catch (e) { why = e.message; }
+    ok(!!prov && prov.bytes === bytes.length,
+       `release: the installer accepts the published package (${why || "verified"})`);
+    const sitePage = join(ROOT, "site/webapp/installer/index.html");
+    const page = existsSync(sitePage) ? readFileSync(sitePage, "utf8") : "";
+    ok(/Object\.keys\(build\.artifacts\)/.test(page) && /a \.fwsc artefact/.test(page),
+       "release: the built installer looks the package up by the name the record carries");
+  }
+}
+
 console.log(failed ? `RELEASE E2E FAILED (${failed})` : "release e2e passed");
 process.exit(failed ? 1 : 0);

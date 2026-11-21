@@ -115,6 +115,14 @@ export async function verifyProvenance(pkg, build, { product = null, version = n
   if (!build.artifacts || typeof build.artifacts !== "object" || Array.isArray(build.artifacts))
     throw provFail("The build manifest lists no artefacts: the update was not started.");
   for (const [name, art] of Object.entries(build.artifacts)) checkArtifact(art, name);
+  /* (1.5.29) EVERY NAME IS A FILE NAME THE SITE WILL SERVE. `artefacts` is a list of paths, and the installer
+   * uses them to fetch and to label: a name with a separator that climbs (`../`), an absolute path, a drive
+   * letter or a character a filesystem rewrites is not an artefact of this build, and a record that carries one
+   * is refused here rather than resolved by whatever reads it next. */
+  for (const name of Object.keys(build.artifacts)) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/.test(name) || name.includes(".."))
+      throw provFail(`The build manifest names an artefact that is not a plain relative path (${JSON.stringify(name)}): the update was not started.`);
+  }
   /* (1.5.29 fix) The package is the .fwsc the record itself names, not the literal "felucca.fwsc". A
    * --release build writes felucca-X.Y.Z.fwsc (tools/build.py) and tools/build_manifest.py records that
    * name, so demanding the unversioned key refused every released package -- "The file to install is

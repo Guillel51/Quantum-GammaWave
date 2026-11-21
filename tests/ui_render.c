@@ -223,8 +223,9 @@ static void hk_ink(uint16_t ink, uint16_t bg);
 #define GFX_HOOK_INK(ink, bg) hk_ink(ink, bg)
 #define GFX_HOOK_PIXELS(n) (px_visited += (n))
 static uint64_t px_fill;                        /* (FASE 8) the pixels every cv_rect paints: exact, not timed */
+static uint64_t n_fill;                         /* (1.5.29) how many cv_rect calls a screen asks for */
 #define GFX_HOOK_FILL(w, h) \
-    (px_fill += ((w) > 0 && (h) > 0) ? (uint64_t)(uint32_t)(w) * (uint64_t)(uint32_t)(h) : 0u)
+    (n_fill++, px_fill += ((w) > 0 && (h) > 0) ? (uint64_t)(uint32_t)(w) * (uint64_t)(uint32_t)(h) : 0u)
 #define UI_FILL_HOOK(x, y, w, h) hk_fill(x, y, w, h)
 static void fm6_hook(uint32_t kind, uint32_t a, uint32_t b);
 #define FM6_CHART_HOOK(kind, a, b) fm6_hook(kind, a, b)
@@ -2565,20 +2566,30 @@ int main(int argc, char **argv)
         enum { N = 200 };
         uint32_t i, k;
         fprintf(rep, "\ndraw cost on the host (cc -O1; only the ratios mean anything on the device):\n");
-        fprintf(rep, "  screen            full redraw us   texts+icons   glyph px read     px filled\n");
+        fprintf(rep, "  screen            full redraw us   texts+icons   glyph px read     px filled      fills\n");
         for (k = 0; k < sizeof COST / sizeof COST[0]; k++) {
             clock_t c0;
             uint64_t px, nt;
             setup(COST[k]); pal(1);
             draw(COST[k]);
             px_visited = n_text = 0;
-            px_fill = 0;
+            px_fill = 0; n_fill = 0;
             c0 = clock();
             for (i = 0; i < N; i++) draw(COST[k]);
             px = px_visited / N; nt = n_text / N;
-            fprintf(rep, "  %-16s %15.1f %13llu %15llu %14llu\n", S_NAME[COST[k]],
+            fprintf(rep, "  %-16s %15.1f %13llu %15llu %14llu %9llu\n", S_NAME[COST[k]],
                     (double)(clock() - c0) / CLOCKS_PER_SEC / N * 1e6,
-                    (unsigned long long)nt, (unsigned long long)px, (unsigned long long)(px_fill / N));
+                    (unsigned long long)nt, (unsigned long long)px, (unsigned long long)(px_fill / N),
+                    (unsigned long long)(n_fill / N));
+            /* (1.5.29) A CEILING ON OVERDRAW, because it is the number a redraw costs the panel and nothing
+             * watched it. A 240 x 240 screen is 57 600 px; the worst screen here paints 160 481 (2.8x, FX's
+             * wells and buses) and the limit is 200 000 -- a change that doubles a screen's painted area now
+             * fails the sweep instead of quietly eating the frame time. */
+            if (px_fill / N > 200000u) {
+                nfind++;
+                fprintf(rep, "  ! %s paints %llu px in a redraw (limit 200000; a whole screen is 57600)\n",
+                        S_NAME[COST[k]], (unsigned long long)(px_fill / N));
+            }
         }
         {
             clock_t c0;
