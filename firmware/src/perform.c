@@ -165,6 +165,14 @@ static uint32_t perf_buf_playing(void)
         n += pb[i].mode != BM_NONE && pb[i].state;
     return n;
 }
+static uint32_t perf_buf_state(uint32_t e)
+{
+    uint32_t i;
+    for (i = 0; i < PB_HEADS; i++)
+        if (pb[i].mode != BM_NONE && pb[i].src == (uint8_t)e)
+            return pb[i].state ? 2u : 1u;
+    return 0;
+}
 static int pb_free(void)
 {
     uint32_t i;

@@ -69,6 +69,7 @@ static sl_t sl;
 static uint8_t sl_lent;          /* perform.c has borrowed sl_buf: STUT plays live, records nothing */
 static int32_t sl_l[CTL], sl_r[CTL];   /* the bus, a block (fx.c mix_block) */
 
+static void slicer_reset(void) { memset(&sl, 0, sizeof sl); }
 static void slicer_start(void)   /* seq_start: the next block starts step 0 */
 {
     sl.idx = 15;

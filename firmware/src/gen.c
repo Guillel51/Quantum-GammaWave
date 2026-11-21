@@ -54,6 +54,23 @@ static struct {
         .swing = GA_AUTO, .human = 30, .fills = GA_AUTO, .wet = GA_AUTO, .grit = GA_AUTO};
 /* (QG-1 audit) the power-on defaults, for the test harness too: ui_power_on must not inherit a previous test's GEN
  * settings (the DICE ALL tempo check failed when a soak had left gp.tempo set) */
+static void gen_power_on(void)
+{
+    uint32_t i;
+    memset(&gp, 0, sizeof gp);
+    gp.genre = 0;
+    gp.seed = 1;
+    gp.energy = 50;
+    gp.form = 1;
+    for (i = 0; i < GP_N; i++)
+        gp.amt[i] = GA_AUTO;
+    gp.complex = 50;
+    gp.swing = GA_AUTO;
+    gp.human = 30;
+    gp.fills = GA_AUTO;
+    gp.wet = GA_AUTO;
+    gp.grit = GA_AUTO;
+}
 static const uint8_t GEN_SCL[8] = {0, SC_MIN, SC_MAJ, SC_DOR, SC_PHRY, SC_HARM, SC_MIX, SC_LYD};   /* (gp.scale) */
 
 /* the generator's own random numbers: a stream a part, from the seed */
@@ -1928,6 +1945,26 @@ static void dice_engines_move(const uint8_t *prev)
         moved++;
     }
 }
+static void dice_all(void)
+{
+    uint8_t g = gp.genre, prev[NTRK];
+    int16_t b0 = song.g[G_BPM];
+    uint32_t k;
+    gp.genre = 0;
+    gen_new_seed();
+    gen_fresh_recipe();
+    gen_how = GH_NEW;
+    now_from = 0;
+    for (k = 0; k < NTRK; k++) prev[k] = trk[k].eng_req;
+    gen_go();
+    dice_engines_move(prev);
+    if (song.g[G_BPM] == b0 && !gp.tempo && !(ui_prefs & PREF_BPM_LOCK))   /* (1.0-GW) a throw always moves the tempo: landed on the
+                                                         * last one (two genres' ranges meet), one BPM off it */
+        song.g[G_BPM] = (int16_t)(b0 + (b0 < (int16_t)gs.g->bpm_hi ? 1 : -1));
+    reel_tempo(1);                                      /* (the take's tempo: the throw's) */
+    gp.sig = gen_sig();
+    gp.genre = g;
+}
 static uint32_t dice_print(void)                        /* a fingerprint of the piece (the tests) */
 {
     uint32_t k, h = 2166136261u ^ (uint32_t)song.g[G_BPM];
@@ -2017,6 +2054,12 @@ static void gen_knob(uint32_t k, int32_t s)
     ui.force = 1;
 }
 /* the page: PRESETS (1.0-GW), round */
+static void gen_page(int32_t s)
+{
+    gp.page = (uint8_t)((gp.page + GEN_PAGES + (s > 0 ? 1u : GEN_PAGES - 1u)) % GEN_PAGES);
+    gp.hot = 0xFF;
+    ui.force = 1;
+}
 /* (1.0-GW) SELECT: the pages (from the reel: back to them); (TAKES v2) ALGORITHM: new sounds for the piece (the notes
  * kept), a take once it rests, playing or not; turned back, the sounds before */
 static void gen_take_arm(uint32_t how)

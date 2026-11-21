@@ -797,6 +797,13 @@ extern voice_t vpool[VPOOLN];
 #define VSLOT(v) ((uint32_t)((v) - vpool))     /* a voice's pool slot: the engines' per-voice state is keyed by it */
 /* (3.5) every voice of a part back to silence (what a memset of the old per-part array did), leaving the
  * pool's inert slot alone: it is shared, and clearing it would make it stealable */
+static inline void voices_clear(track_t *t)
+{
+    uint32_t i;
+    for (i = 0; i < NVOICE; i++)
+        if (t->vidx[i] != VDEAD)
+            memset(&V(t, i), 0, sizeof(voice_t));
+}
 /* the window index of a sounding voice (0..NVOICE-1), NVOICE when it is not this part's: what per-part,
  * per-voice arrays of the engines are keyed by. A note-on path's helper, never per sample */
 static inline uint32_t vindex(const track_t *t, const voice_t *v)
