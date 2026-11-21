@@ -78,12 +78,14 @@ release):
 
 ## 4. Auditoría final del proyecto
 
-- **Código muerto**: barrido de `firmware/src` (y `firmware/hal` después del primer intento) por funciones
-  `static` sin una sola referencia. **28 funciones eliminadas** (783 líneas netas menos); el enlazador ya las
-  descartaba con `--gc-sections`, así que la imagen **no** baja: el cambio es de limpieza, no de tamaño. Un
-  candidato, `fm1_fault()`, **se conservó**: lo llama el manejador de crash del HAL (`firmware/hal/fm1_irq.h`), un
-  referencia que el primer barrido no veía porque no estaba en `firmware/src`. El enlace lo dijo en el primer
-  build y se corrigió antes de publicar.
+- **Código muerto**: barrido de `firmware/src` por funciones `static` sin una sola referencia. **20 funciones
+  eliminadas**; el enlazador ya las descartaba con `--gc-sections`, así que la imagen **no** baja: el cambio es de
+  limpieza, no de tamaño (el paquete mide lo mismo con y sin ellas). Dos correcciones que el propio build y la
+  propia suite forzaron, y que se dicen porque costaron un build cada una: `fm1_fault()` **se conservó** — la llama
+  el manejador de crash del HAL (`firmware/hal/fm1_irq.h`), una referencia que el primer barrido no veía porque no
+  está en `firmware/src` — y **ocho funciones volvieron** porque los runneres de host las llaman (`dice_all`,
+  `proj_pack_vb`, `slicer_reset`, `voices_clear`, `gen_power_on`, `perf_buf_state`, `motion_replace_track`,
+  `vz_flares`): el enlace del firmware las tiraba igual, pero `tests/groups.sh ui` no compilaba sin ellas.
 - **Duplicaciones**: las 67 tablas `const` del firmware no tienen dos copias idénticas; los literales repetidos que
   un escaneo ingenuo marca son falsos positivos de expresiones multilínea.
 - **Sincronización**: firmware → paquete → WASM → manifiesto → sitio, verificada por `make_release --check`.
