@@ -1,3 +1,16 @@
+## Etapa 3/8 — el coste real del audio, un banco de estrés y dos optimizaciones medidas (una entra, una no)
+
+- **Nuevo `tests/audio_stress.c`**: seis motores, seis partes, dieciséis teclas, todos los buses, MIDI y cambios
+  de motor bajo las notas; vigila NaN/Inf, pico, DC, clicks (salto entre muestras) y el tiempo por bloque.
+  Pasa: pico 0.300, DC −0.0001, salto máximo 0.151, 0 frames sobre escala completa.
+- **Nueva escena 3 en `tests/fx_bench`** («idle, los buses armados»): con la caja encendida y sin notas el bloque
+  cuesta **78 ns/muestra contra 128** con todo sonando, y `fx_buses`+`rev_room` son el 52 % de ese coste.
+- **Saltar el coro cuando su línea está vacía** quedó **escrito, probado y exacto** (24 046 bloques saltados,
+  diferencia 0.000e+00 en 20 s) pero **no se publica**: cuesta **+3 172 B** del slot, que tiene 3 736 libres.
+  Detalle y mediciones en `docs/ETAPA3_AUDIO_2026-11-21.md`.
+- **Saltar los buses enteros en silencio** se descartó con medición: la reverb guarda energía en sus líneas que
+  la salida no muestra (0.26 de cola liberada al reanudar) y el residuo nunca llega a cero (40–42 LSB eternos).
+
 ## Etapa 2/8 — la senoide sale del slot, y un bug de host que dejaba pasar cualquier regresión del FM6
 
 - **`SINE` (2 050 B de XIP, 1 025 puntos) se guarda como su segunda diferencia en `int8`** (1 023 B) y

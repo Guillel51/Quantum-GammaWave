@@ -127,6 +127,8 @@ static void load_scene(uint32_t sc)
     song.g[G_DMIX] = 80;                              /* the delay's wet, on the bus */
     song.g[G_CTYPE] = sc == 2u ? 2 : 0;               /* (4.0) 0 the ensemble, 2 the FLANGER */
     song.g[G_CDEPTH] = 100;
+    if (sc == 3u)                                     /* (ETAPA 3) idle: the buses armed, nothing playing */
+        return;
     for (i = 0; i < 4u; i++) {                        /* a sixteen-step pattern on each part */
         trk[i].step[i * 2u].time = ST_NOTE;
         trk[i].step[i * 2u].n = i < 2u ? 3u : 1u;
@@ -156,17 +158,20 @@ static double now_cpu_s(void)
 int main(int argc, char **argv)
 {
     uint32_t r, reps = argc > 1 ? (uint32_t)atoi(argv[1]) : 5u, b, i, sc;
-    static const char *const SCENE[3] = {"every bus fed", "dry parts (sends 0)", "every bus fed, CHORUS in FLANGER"};
-    double best[3] = {1e9, 1e9, 1e9}, best_cpu[3] = {1e9, 1e9, 1e9};
+    static const char *const SCENE[4] = {"every bus fed", "dry parts (sends 0)", "every bus fed, CHORUS in FLANGER",
+                                         "idle: the buses armed, nothing playing"};
+    double best[4] = {1e9, 1e9, 1e9, 1e9}, best_cpu[4] = {1e9, 1e9, 1e9, 1e9};
     double budget = 725e-6 / 32.0;                    /* ns of budget per sample (AGENTS.md, 32-sample block) */
     printf("fx_bench: host x86, %u Hz, %u blocks of %u samples per repeat\n", (unsigned)FS, NBLOCKS, (unsigned)CTL);
-    for (sc = 0; sc < 3u; sc++) {
+    for (sc = 0; sc < 4u; sc++) {
         printf(" scene %u: %s\n", sc, SCENE[sc]);
         for (r = 0; r < reps; r++) {
             double t0, t1, ns, c0, c1, nsc;
             load_scene(sc);
-            seq_start();
-            for (b = 0; b < 64u; b++) mix_block(out, CTL);         /* warm: the loads, the buses, the lines */
+            if (sc != 3u)
+                seq_start();
+            for (b = 0; b < (sc == 3u ? 5000u : 64u); b++)          /* (ETAPA 3: idle) the tails run out first */
+                mix_block(out, CTL);                                 /* warm: the loads, the buses, the lines */
             t0 = now_s();
             c0 = now_cpu_s();
             for (b = 0; b < NBLOCKS; b++) mix_block(out, CTL);
