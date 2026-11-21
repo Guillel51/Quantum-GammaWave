@@ -122,11 +122,15 @@ run_stress() {
 }
 
 run_target() {
-    if [ ! -d /tmp/jieli/toolchain ] || [ ! -d /tmp/ac79 ]; then
-        echo "target: JieLi toolchain or AC79 SDK missing" >&2
+    # the variables win; the /tmp paths are the old CI layout and stay as the fallback, so a machine that
+    # exports the toolchain (AGENTS.md §6) does not have to copy it to /tmp just to run this group
+    tl=${JIELI_TOOLCHAIN:-/tmp/jieli/toolchain}
+    sdk=${AC79_SDK:-/tmp/ac79}
+    if [ ! -d "$tl" ] || [ ! -d "$sdk" ]; then
+        echo "target: JieLi toolchain or AC79 SDK missing (JIELI_TOOLCHAIN=$tl AC79_SDK=$sdk)" >&2
         return 1
     fi
-    JIELI_TOOLCHAIN=/tmp/jieli/toolchain AC79_SDK=/tmp/ac79 python3 tools/build.py
+    JIELI_TOOLCHAIN=$tl AC79_SDK=$sdk python3 tools/build.py
     python3 tests/target_budget.py
     python3 tests/memory_map_test.py
 }
