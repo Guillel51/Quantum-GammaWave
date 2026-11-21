@@ -533,10 +533,15 @@ static const preset_t FM6_PRESETS[] = {
      {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
     {"GONG SHIMMER", {0, 4, 16, 0, -10, 2, 26, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 38, 48, 86), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+    /* (FASE 3) KOTO HARP now carries two of the four new values: the part filter is a NOTCH (the cut taken out,
+     * so the pluck rings hollow) and the LFO is PLUK, a decay inside every cycle (its `(1-x)^4` falls where the
+     * sine would still be rising), sweeping that cut. Velocity still opens the cut. */
     {"KOTO HARP", {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 18, 32, 44), PAT(15),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
+     {XP(P_FTYPE, 6), XP(P_FCUT, 58), XP(P_LRATE, 30), XP(P_LWAVE, 9), XP(P_LD_FLT, 44)}},
+    /* (FASE 3) SITAR RESON carries the other two: a SHELF (x + LP: +6 dB under the corner, the top where it was)
+     * and the matrix's RES destination, so the velocity opens the resonance of that shelf instead of its cut. */
     {"SITAR RESON", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(16, 28, 36, 58), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 26), XP(P_M1AMT, 24), XP(P_FTYPE, 7), XP(P_FCUT, 44)}},
     {"GAMELAN MET", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 22, 38, 76), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"STEEL DRUM", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 26, 48), PAT(3),

@@ -167,6 +167,32 @@ int main(void)
         ok(ENGINES[e]->edit[5].names && ENGINES[e]->edit[5].names[3] == 0, "PHASE LINE names stop at PM");
     }
 
+    /* --- the four values of FASE 3 reach factory sounds (docs/FASE3_SONIDO_v1.5.24.md §"lo que quedó": the
+     * report asked for presets that demonstrate them, not for the engine alone to know them). Two presets of
+     * FM6 carry them: KOTO HARP (NOTCH + PLUK) and SITAR RESON (SHELF + the matrix's RES). Found here by walking
+     * every engine's table, so a preset edit that drops one is caught rather than silently un-demonstrated. */
+    {
+        static const int want[4] = {P_FTYPE, P_FTYPE, P_LWAVE, P_M1DST};
+        static const int val[4] = {6, 7, 9, 26};
+        static const char *const what[4] = {"NOTCH", "SHELF", "PLUK", "RES"};
+        int w, ee, nn, pp, kk;
+        for (w = 0; w < 4; w++) {
+            int found = 0;
+            for (ee = 0; ee < NENGINES && !found; ee++)
+                for (nn = ENGINES[ee]->npresets, pp = 0; pp < nn && !found; pp++) {
+                    const preset_t *pr = ENGINES[ee]->presets + pp;
+                    for (kk = 0; kk < 6; kk++)
+                        if (pr->x[kk].id == want[w] + 1 && pr->x[kk].v == val[w]) {
+                            found = 1;
+                            printf("     %s: %s / %s\n", what[w], ENGINES[ee]->name, pr->name);
+                            break;
+                        }
+                }
+            printf("     %s in a factory preset: %s\n", what[w], found ? "yes" : "NO");
+            ok(found, what[w][0] ? "a factory preset uses the new value" : "");
+        }
+    }
+
     /* --- LOFI: WAVE 0..7, the new one is SYNC */
     e = eng_by_name("LOFI");
     ok(e >= 0, "LOFI is one of ENGINES[]");
