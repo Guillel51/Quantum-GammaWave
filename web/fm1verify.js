@@ -320,6 +320,11 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
    * the two conditions are `required` and `not-demonstrated`, they block in every path (they are in neither
    * ok map), and the most this page will say is an explicit GO CONDITIONAL that still cannot write. */
   const v16 = kind === "stock" && Number(stockVersion) === 16;
+  /* (FASE 5 fix) A DUMP RECORD, NOT A TRUTHY OBJECT. "the user loaded a file" is not evidence: the record
+   * the page keeps is a 1 MiB copy of this unit with its SHA-256 computed in the browser, so that is what
+   * is asked for here -- the whole part's size and a 64-hex digest. Anything else leaves the backup
+   * condition `required`, which is the state it is in when no copy exists. */
+  const dumpOk = !!(dump && Number(dump.size) === 0x100000 && /^[0-9a-f]{64}$/.test(String(dump.sha256 || "")));
   const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
     || compat === "upgrade-legacy";
   const image = Number((pkg && pkg.binary) || 0);
@@ -352,9 +357,9 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
      * that record the backup condition is met -- it is the unit's own bytes, hashed here -- and the recovery
      * condition is `conditional`: the procedure exists and the copy is the thing it needs, but no restore on a
      * V16 layout has been observed by this project, and the verdict keeps saying so. */
-    { key: "gate.backup", state: v16 ? (dump ? "pass" : "required")
+    { key: "gate.backup", state: v16 ? (dumpOk ? "pass" : "required")
       : (kind === "ours" || kind === "stock" ? "not-required" : "unknown") },
-    { key: "gate.recovery", state: v16 ? (dump ? "conditional" : "not-demonstrated")
+    { key: "gate.recovery", state: v16 ? (dumpOk ? "conditional" : "not-demonstrated")
       : (kind === "ours" || kind === "stock" ? "covered" : "unknown") },
     { key: "gate.revalidate", state: "after" },
   ];
@@ -374,7 +379,7 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
   }
   const ready = blocking.length === 0 && found && read && pkg && pkg.identity;
   /* the two conditions a V16 unit carries, in the words of the tool that can meet them */
-  const conditions = v16 && !dump ? ["m-flasher-dump", "m-flasher-verify"] : [];
+  const conditions = v16 && !dumpOk ? ["m-flasher-dump", "m-flasher-verify"] : [];
   /* a V16 unit whose other rows are all established: the honest answer is GO CONDITIONAL -- correct path,
    * correct conditions named, and still not an authorisation to write until the dump exists and verifies */
   const v16Conditional = v16 && blocking.every((k) => k === "gate.backup" || k === "gate.recovery") &&
@@ -383,8 +388,8 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
    * the unit's updater), so canInstall follows the page path -- the limitations above still name what was not
    * observed. Without it the verdict is the same GO CONDITIONAL and nothing may write. */
   const verdict = v16Conditional
-    ? { result: "GO CONDITIONAL", path: page && dump ? "this-page" : "m-flasher", blocked: blocking, conditions,
-        conditional: true, canInstall: !!(page && dump), canInstallHost: false, limitations }
+    ? { result: "GO CONDITIONAL", path: page && dumpOk ? "this-page" : "m-flasher", blocked: blocking, conditions,
+        conditional: true, canInstall: !!(page && dumpOk), canInstallHost: false, limitations }
     : ready
     ? { result: page ? "GO" : "GO-HOST", path: page ? "this-page" : "m-flasher", blocked: [],
         conditions, conditional: false, canInstall: page, canInstallHost: !page, limitations }

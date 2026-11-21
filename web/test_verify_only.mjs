@@ -126,6 +126,34 @@ function anyWrite(sent) {
         (() => { const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));
           return st["RECOVERY NOT VERIFIED"] === true && st["INSTALL READY"] === false && st["INSTALL BLOCKED"] === true; })());
   check("official V16: still read-only, nothing but the identity query", onlyQueries(a.sent) && !anyWrite(a.sent));
+  /* (FASE 5 fix) WITH THE COPY IN HAND THE PAGE IS THE PATH: the dump record -- 1 MiB and a SHA-256 hashed in
+   * the browser -- is what the backup condition asks for, so it turns `pass`, recovery stays `conditional` and
+   * GO CONDITIONAL admits an install from this page. The limitations are still named: the record does not
+   * turn an unobserved restore into an observed one. */
+  const dump = { size: 0x100000, sha256: "ab".repeat(32), at: "2026-11-21", name: "fm1-dump.bin" };
+  const c = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_016")] });
+  const fwd = await verifyDevice(c.midi, { product: "FM-1_965", pkg: built, dump,
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610959, sha256: "80".repeat(32), detail: "checked" } });
+  const gd = Object.fromEntries((fwd.gate || []).map((r) => [r.key, r.state]));
+  check("official V16 with a verified 1 MiB dump: the backup condition is met",
+        gd["gate.backup"] === "pass" && gd["gate.recovery"] === "conditional");
+  check("official V16 with a verified dump: GO CONDITIONAL from this page, and canInstall says so",
+        fwd.verdict.result === "GO CONDITIONAL" && fwd.verdict.path === "this-page" &&
+        fwd.verdict.canInstall === true && fwd.verdict.conditions.length === 0);
+  check("official V16 with a verified dump: the limitations do not become a demonstration",
+        fwd.verdict.limitations.includes("v16-return-and-recovery-not-demonstrated"));
+  check("official V16 with a verified dump: still read-only, nothing but the identity query",
+        onlyQueries(c.sent) && !anyWrite(c.sent));
+  const badDumps = [{ size: 0x100000, sha256: "zz".repeat(32) }, { size: 0x80000, sha256: "ab".repeat(32) },
+                    { size: 0x100000 }];
+  for (const bad of badDumps) {
+    const m = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_016")] });
+    const f = await verifyDevice(m.midi, { product: "FM-1_965", pkg: built, dump: bad,
+      signature: { state: "pass", keyid: "qg1-release-1", size: 610959, sha256: "80".repeat(32), detail: "checked" } });
+    const gg = Object.fromEntries((f.gate || []).map((r) => [r.key, r.state]));
+    check(`official V16 with a malformed dump record (${JSON.stringify(bad).slice(0, 40)}): still required`,
+          gg["gate.backup"] === "required" && f.verdict.canInstall === false);
+  }
   /* and V15 keeps the evidence it has: the rule is about V16, it does not leak to the older release */
   const b = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
   const fw15 = await verifyDevice(b.midi, { product: "FM-1_965", pkg: built,
