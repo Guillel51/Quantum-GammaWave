@@ -749,7 +749,11 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
-       S_SCL_SCALE, S_SCL_CHORD, S_SCL_PROG, S_FX_BUSES, S_SEQ_TOOLS_EDITS, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
+       S_SCL_SCALE, S_SCL_CHORD, S_SCL_PROG, S_FX_BUSES, S_SEQ_TOOLS_EDITS,
+       S_TILT, S_LFO_CURVE,                       /* (v1.12.9) the two pages v1.12.4 and v1.12.5 added: they had no
+                                                   * frame in this sweep at all, so neither the pixel baseline nor
+                                                   * the alignment lint had ever seen them. BEFORE S_MOCK_HOME, which
+                                                   * starts the mock branch: after it, setup() never reaches them */   S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
        S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_PERF, S_COUNT };
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
@@ -769,7 +773,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf"};
+    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1156,6 +1160,20 @@ static void setup(int s)
     case S_EDIT_CHAR: eng(0); TSEL->p[P_X0] = 80; TSEL->p[P_X1] = 34; go_title("CHARACTER"); break;
     case S_EDIT_VOICE_CHAR: eng(5); TSEL->p[P_X0] = 96; TSEL->p[P_X1] = 44; TSEL->p[P_MORPH] = 70; go_title("CHARACTER"); break;
     case S_LFO_SHAPE: TSEL->p[P_X2] = 40; TSEL->p[P_X3] = 90; go_title("LFO SHAPE"); break;
+    case S_TILT: TSEL->p[P_HARM] = 45; go_page(GR_TILT); break;         /* (v1.12.9) the page and its graph:
+                                                    * go_title() searches the page FAMILY the UI is in, and this file
+                                                    * starts at HOME, so it landed on HOME and the frame lied */
+    case S_LFO_CURVE:
+        TSEL->p[P_LSHP] = 40;
+        go_page(GR_LFO);
+        {   /* GR_LFO is the LFO page's graph too: this page is the one whose KNOB 1 is the curve */
+            uint32_t i;
+            for (i = 0; i < NPAGES; i++)
+                if (PAGES[i].graph == GR_LFO && PAGES[i].id[0] == P_LSHP)
+                    ui.page = (uint8_t)i;      /* go_page(GR_LFO) already put the UI in the LFO family */
+
+        }
+        break;
     case S_ALG1: case S_ALG2: case S_ALG3: case S_ALG4: case S_ALG5: case S_ALG6: case S_ALG7: case S_ALG8:
         eng(1); TSEL->p[P_E0] = (int16_t)(s - S_ALG1);      /* the 8 DIGITAL charts; FB on the odd ones, IDX high .. 0 */
         TSEL->p[P_E6] = (s - S_ALG1) & 1 ? 40 : 0; TSEL->p[P_E4] = (int16_t)((S_ALG8 - s) * 18);

@@ -1,3 +1,25 @@
+## v1.12.9 — la cobertura que faltaba: TILT y LFO CURVE entran en el barrido
+
+**El pendiente de la Fase 7, cerrado de verdad.** Las dos páginas que las fases 3 y 4 añadieron no tenían **ni un
+frame** en `tests/ui_render.c`: la lista de escenas (`S_NAME`) es explícita y no las incluía, así que ni la línea base
+de píxeles ni el lint de alineación las habían visto nunca. Ya están, con su escena propia (`go_page(GR_TILT)` y la
+página cuyo KNOB 1 es `P_LSHP`), **antes de `S_MOCK_HOME`** — después de esa constante `setup()` entra en la rama de
+mocks y no llega a ejecutar la escena: ese fue el detalle que hizo que el primer intento escribiera frames de HOME.
+
+**Y se miraron.** `GREY_tilt.png` muestra el mando `TILT +71 %` y el estante dibujado: eje de 0 dB plano a la
+izquierda, codo en el pivote, meseta a la derecha y el punto sobre ella. `GREY_lfo_curve.png` muestra `CURVE +63 %`
+con la onda del LFO cuadrada y asimétrica: el doblez se ve. Las dos capturas están en `build/` de esta corrida.
+
+**Números del barrido.** **193 pantallas × 22 paletas** (antes 191), **0 lint**, **0 desalineaciones** sobre
+**3 830 618** medidas, y la línea base de píxeles crece a **3 088 frames** (32 nuevos: `tilt` y `lfo_curve` en 16
+paletas cada una).
+
+**Sitio y repositorio.** `site/index.html` actualizado a 1.12.9 en sus cinco menciones, y **54 capturas** de
+`assets/screenshots/` regeneradas con `tools/generate_screenshots.py` desde el firmware de este árbol (la versión de
+las capturas se lee de `FELUCCA_VERSION`, no de un texto copiado).
+
+**Audio intacto:** `regress` **307 renders, 0 cambiados**.
+
 ## v1.12.8 — cierre de las siete fases: lo que hay y lo que no
 
 **Sin cambios de audio ni de UI en esta entrega.** Es el cierre: versión, documentación y paquete sellado. El motor

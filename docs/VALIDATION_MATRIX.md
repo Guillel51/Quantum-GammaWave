@@ -3484,3 +3484,21 @@ páginas TILT ni LFO CURVE — síntoma confirmado, causa no encontrada; (b) pre
 en V16); (e) tag y GitHub Release bloqueados por falta de credencial `gh`.
 
 **No medido.** FPS del panel, comportamiento en el AC791N y en la unidad física.
+
+## 54. v1.12.9: TILT y LFO CURVE entran en el barrido de píxeles
+
+**Cerrado.** Las dos páginas añadidas en v1.12.4 y v1.12.5 no tenían escena en `tests/ui_render.c` (`S_NAME` es una
+lista explícita) y por eso no aparecían en ningún frame: ni línea base de píxeles ni lint de alineación. Ahora tienen
+`S_TILT` y `S_LFO_CURVE`, colocadas **antes de `S_MOCK_HOME`** (después, `setup()` entra en la rama de mocks y la
+escena no se ejecuta — causa del primer intento fallido, que escribió frames de HOME).
+
+**Barrido.** **193 pantallas × 22 paletas**, **0 lint**, **0 desalineaciones** (3 830 618 medidas); línea base
+**3 088 frames** (32 nuevos). Las dos páginas **se miraron**: `GREY_tilt.png` (mando +71 %, estante dibujado) y
+`GREY_lfo_curve.png` (CURVE +63 %, onda cuadrada asimétrica).
+
+**Audio.** `regress` **307 renders, 0 cambiados**.
+
+**Sitio.** `site/index.html` a 1.12.9; **54 capturas** de `assets/screenshots/` regeneradas desde este árbol.
+
+**Sigue abierto.** Presets de fábrica sin TILT/CURVE/ONE; ids de parámetro 127/127; instalación V16 = GO CONDITIONAL
+(sin medida de `USR`/`BTIF`/`NVS`); tag y GitHub Release sin credencial `gh`.
