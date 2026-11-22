@@ -37,6 +37,10 @@
   (`prof_eq`), aplicado después del EQ, así que los dos pueden estar a la vez. `fx_probe` mide el EQ por la
   ruta aplicada (el struct que corre `qg_biquad_process`, no una copia) y comprueba que sobrevive al cambio de
   perfil.
+- El MIXER de MENU > LARGE cortaba el nombre del sonido con puntos suspensivos donde las seis columnas del
+  mixer normal lo cortan sin ellos (`PULSE…` en una tarjeta de 57 px contra `PULS` en una columna de 38),
+  dos formas de imprimir el mismo dato en la misma pantalla. Ahora las dos usan la misma regla: la tarjeta
+  dice `PULSE`, `GLASS`, `SAW`. Los textos recortados del barrido bajan de 456 a 264.
 - El FLANGER barría con un producto de 32 bits desbordado: `(sin + 32768) * amt` llega a 4,26e9, así que a
   partir de media vuelta del LFO el tap caía de 302 a 9 muestras y el peine saltaba en vez de viajar. Ahora
   recorre 48..302 muestras (null de 73 a 450 Hz) y `fx_probe` lo mide con un impulso por la ruta real.

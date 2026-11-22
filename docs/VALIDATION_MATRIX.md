@@ -3113,3 +3113,43 @@ números separados pasaba el 20 %.
 - Build AC791N `[AC791N]` desde `e137b99`: XIP 558 180 B (4 804 libres, +16 B), RAM 93 504/98 304 (sin
   cambio), imagen 578 320/583 612. Paquete re-sellado: 610 933 B, sha256 `28552f81e96cf8d2`, emulador
   `e137b99`; `make_release.py --check` ok, `sha256sum -c` en `site/firmware/` ok y `emu_test.mjs` verde.
+
+## 40. La pasada de pulido de UI que faltaba en la Fase 7 (2026-11-22)
+
+### 40.1 What was reviewed
+
+Las pantallas nombradas, en GREY y en MENU > LARGE: **HOME** (1/5 mensaje, 3/5 overview, 4/5 MIXER, 5/5
+PERFORMANCE), **FX** (sends y los tres módulos EQ / DEPTH / SLICER), **SCL** (escala y acorde), **EDIT** (FM6 con
+el diagrama ALG 05), **ARP**, **SEQ** (paso y grid), **MIXER** (seis columnas y las cuatro de LARGE), **PERFORMANCE**,
+**PRESETS**, **MENU**, **MASTER** y los overlays (`mock_dialog`, `message`, `confirm_*`). Mirado además con los
+recortes a 3–4× en los sitios dudosos: el bucle de feedback del diagrama FM6 (es una flecha dibujada, no un
+resto), `LEDS DIM HI` (es **un** nombre de opción: `LEDS_MENU` tiene cuatro, no dos) y la fila parcial al pie de
+la lista de presets (es el asomo que dice que hay más).
+
+### 40.2 What the gates already answered
+
+`ui_render` en todos sus modos, antes y después del cambio: **191 pantallas × 22 paletas**, 0 hallazgos de lint,
+0 tintas sobre su color, 0 píxeles GREY/MONO fuera de gris, **3 823 446** medidas de alineación con **0** a 1 px,
+`--idle` 29 952 px escritos y **0** cambiados, `--regions` 0 px distintos fuera de las dos columnas de la
+selección, `--bands` 0 filas sin enviar que estuvieran mal, `--headers` 0 px de cabecera con la pantalla quieta y
+`--announce` diciendo exactamente lo que la pantalla tiene. No había estados congelados que encontrar en esas
+cuatro pruebas: la pasada visual no encontró ninguno más.
+
+### 40.3 The defect it did find, and the fix
+
+El **nombre del sonido en el MIXER de MENU > LARGE** se dibujaba con puntos suspensivos mientras las seis
+columnas del mixer normal lo cortan a su primera palabra sin puntos (`0.6.24`, escrito en su comentario). La
+tarjeta de LARGE es **57 px** y la columna **38 px**, y aun así la tarjeta mostraba menos: `PULSE...` contra
+`PULS`, `SAW LE...` contra `SAW`. Dos formas de imprimir el mismo dato en la misma pantalla.
+
+`trk_cut_name()` es ahora esa única regla (primera palabra, las letras que quepan, sin puntos) y la usan las dos:
+la tarjeta dice `PULSE`, `GLASS`, `CHOIR` y `SAW`, la columna lo mismo. Los textos libres recortados del barrido
+bajan de **456 (10 distintos)** a **264 (3 distintos)**, y los tres que quedan son nombres de fichero/Usuario en
+la cabecera y en el overlay, donde los puntos suspensivos son la señal correcta de que hay más.
+
+### 40.4 The pixel baseline, regenerated deliberately
+
+`tests/ui_pixels.py --update`: **3 056 frames**, de los que cambian **12** — `mixer`, `mixer_pan`, `mixer_tracks4`
+y `mock_mixer` en las tres paletas de LARGE (`LARGE_GREY`, `LARGE_MONO`, `LARGE-LINE_GREY`). El resto queda
+byte-idéntico, que es lo que dice que el cambio no tocó ninguna otra pantalla. El barrido completo vuelve a
+pasar con el baseline nuevo: 3 056 frames idénticos.

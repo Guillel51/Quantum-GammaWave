@@ -3129,6 +3129,20 @@ static void trk_short_name(uint32_t c, char *b)      /* the track's sound, b hol
         str_cpy(b, e->name, 13);
 }
 
+/* (v1.7.0) The sound's name cut to px, the way both mixers print it: its first word, as many letters as fit,
+ * no "...". The six columns explained the rule; the LARGE strip ellipsised instead, so a 57 px card said
+ * "PULSE..." where a 38 px column said four letters -- the wider card showing less of the same name. One rule,
+ * one spelling, in either size. */
+static void trk_cut_name(const char *b, char *out, int32_t px)
+{
+    uint32_t n;
+    for (n = 0; b[n] && b[n] != ' ' && n < 12u; n++)
+        out[n] = b[n];
+    out[n] = 0;
+    while (n > 1u && text_w(&AF_S, out) > px)
+        out[--n] = 0;
+}
+
 /* MENU > LARGE: the four tracks in the strip under the tall cards (57 x LG_H_GRAPH each): the cushion (the selected
  * one the accent), REC / ARM / MUTE as on the full mixer, the sound's name, LEVEL as a gauge (THEME: the cards'),
  * the output meter under it (MID); a muted track DIM */
@@ -3153,8 +3167,11 @@ static void track_strip(uint32_t c, uint32_t sel, uint32_t st, uint32_t mute, ui
         GFX_HOOK_ALIGN(0, 22 + AF_S_CAP_Y, 0, 22 + AF_S_CAP_Y + AF_S_CAP_H, AL_V, "mixer MUTE badge on the name's line");
     if (mute && arm)
         cv_keycap(5, 22 + AF_S_CAP_Y + HALF_UP(AF_S_CAP_H - KC_H), KC_MUTE, hot == 4u ? T_ACCENT : T_KEY, T_INK, T_SURF);
-    else
-        cv_free_text(5, 22, &AF_S, b, mute ? T_DIM : sel ? T_TEXT : T_MID, T_SURF, CARD_W - 10);
+    else {
+        char sn[13];
+        trk_cut_name(b, sn, CARD_W - 10);
+        cv_text_on(5, 22, &AF_S, sn, mute ? T_DIM : sel ? T_TEXT : T_MID, T_SURF);
+    }
     cv_rrect(5, TSS_GY, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);
     cv_rrect(5, TSS_GY, fx < 3 ? 3 : fx, 3, 1, hot == 1u ? T_ACCENT : vc, T_BG);
     cv_rrect(5, TSS_MY, gw, 3, 1, T_RAISE, T_SURF);
@@ -3184,16 +3201,10 @@ static void track_col6(uint32_t c, uint32_t sel, uint32_t st, uint32_t mute, uin
         cv_rrect(T6_W - 11, 10, 6, 6, 3, st == 1u ? T_REC : T_ACCENT, T_SURF);
     if (mute == 2u)                                  /* asleep (TRACKS 4) */
         cv_text_in(2, 22, T6_W - 4, &AF_S, "OFF", T_DIM, T_SURF);
-    else {                                           /* (0.6.24) the sound's name cut to the column (its first word, as
-                                                      * many letters as fit, no "..."); muted: in MUTE's colour, still
-                                                      * there (it said MUTE instead: which sound, gone) */
+    else {                                           /* (0.6.24) the sound's name cut to the column; muted: in MUTE's
+                                                      * colour, still there (it said MUTE instead: which sound, gone) */
         char sn[13];
-        uint32_t n;
-        for (n = 0; b[n] && b[n] != ' ' && n < 12u; n++)
-            sn[n] = b[n];
-        sn[n] = 0;
-        while (n > 1u && text_w(&AF_S, sn) > T6_W - 7)
-            sn[--n] = 0;
+        trk_cut_name(b, sn, T6_W - 7);
         cv_text_on(4, 22, &AF_S, sn, mute ? T_ACCENT : sel ? T_TEXT : T_MID, T_SURF);
     }
     for (k = 0; k < 14; k++) {                       /* LEVEL: cold at the bottom, hot at the top */
