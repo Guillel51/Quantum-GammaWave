@@ -107,7 +107,7 @@ prohíbe.
   `backup_tool_test`, `fmhub_card_test`, `release_gate_test`: verdes.
 - `make_release --check`, `sha256sum -c`, `emu: all ok`, `release gate: passed`.
 
-## 7. Lo que sigue rojo, y por qué la release se detiene aquí
+## 7. Lo que estaba rojo, y cómo se cerró (fase 2)
 
 `midi_control_test` — "CCs outside the map change nothing" falla: con el mapa actual, CC20/76/95 sobre la pista 0
 modifican algún parámetro de `trk[0].p`. O el mapa creció y el test sigue diciendo que esos CC están fuera, o hay
@@ -117,6 +117,21 @@ la evidencia; no se ha hecho en esta pasada.
 `morph_six_test` — "MORPH under load" falla en su condición de renders bit-idénticos antes del giro. Puede ser
 consecuencia del cambio de layout de §1 (los presets que toca) o una expectativa vieja.
 
-**No se publicó v1.12.13.** El número está reservado en `CHANGELOG.md` y la matriz §59 describe los cambios, pero
-la release no se sella mientras `run_tests.sh` esté rojo: sellar con la suite en rojo sería exactamente lo que
-`AGENTS.md` §4 prohíbe. El trabajo está commiteado y pusheado (`f6202477`) para que la fase 2 arranque desde aquí.
+**Cerrado en la fase 2, con la causa real de cada uno:**
+
+- `midi_control`: el test mandaba CC76 como "fuera del mapa", y 76 es TILT desde v1.12.4 (77 es LFO CURVE). La
+  lista es 20, 95 y 102. Verde.
+- `morph_six`: **nunca se ejecutó**. `run_tests.sh` compilaba `morph_six_test` en la misma línea que el `run` de
+  `morph_test`, así que el paso reportaba "not found" siempre. Separada la línea, el binario pasa (6
+  transiciones, 0 fallidas).
+- `etapa7_audit`: clavaba `N_MDST` en 30; la tabla es 32 desde que HARM/TILT/LSHP se añadieron después de REL
+  (los números guardados no cambian, sólo el conteo). Verde.
+- `ui_pixels`: los 48 frames de versión (ABOUT/SPLASH) se actualizaron con el barrido de v1.12.13.
+
+**Optimización medida y descartada.** En `mix_block`, el bucle que ponía a cero siete buses escribía 7 palabras por
+muestra en una línea de C; reescrito como siete `memset` el resultado fue **idéntico en tiempo** (idle 77.6 / 77.0
+/ 78.9 ns por muestra frente a 76.2 / 106.9 de la referencia, misma dispersión). El compilador ya lo vectorizaba:
+el cambio se revirtió en vez de presentarlo como mejora. Es el primer dato para la fase 3, que debe atacar el
+coste fijo (buses y retornos) con un antes/después, no micro-reescrituras.
+
+**Publicado.** `v1.12.13` sellada y pusheada; suite completa en verde antes de sellar.
