@@ -3368,3 +3368,13 @@ regenerados con `--update`; el resto idénticos. `--idle` 0 cambiados, `--viz` y
 
 Sin unidad física en este entorno: nada de lo anterior es una medida del AC791N ni del panel, y la confirmación en
 el cristal de los dos defectos visuales queda para la unidad. Tag y GitHub Release: bloqueados, sin credencial `gh`.
+
+## 46. v1.12.1: los bipolares leen 100 % en su tope
+
+`F_BIPCT` mide ahora cada lado contra su propio extremo (`-64..63`): `v * 100 / 63` arriba y `v * 100 / 64` abajo.
+Verificación `[HOST]`: escenario `lfo_dest` en los dos extremos, texto auditado `PITCH +100 %` y `FILTER -100 %`;
+barrido 191 × 22 con 0 lint y 0 desalineaciones (3 806 950 medidas); `ui_pixels` regenerado para las escenas
+afectadas y la cadena de versión. Clase: host x86 (render), no es una medida del AC791N ni del panel.
+
+**Limitaciones:** sin unidad física en este entorno; tag `v1.12.1` y GitHub Release bloqueados (sin credencial `gh`),
+el paquete sellado queda en `release/` y `site/`.

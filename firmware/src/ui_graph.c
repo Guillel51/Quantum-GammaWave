@@ -35,7 +35,7 @@ static uint16_t step_heat(const step_t *st, int acc, uint16_t c)
  * (env += (target - env) * k each tick, ~99 % after the set time). Time
  * axis is the parameter value (the times themselves are exponential). */
 #define ENV_K(n) (32768 - 150733 / (n))            /* the exp(-4.6 / n) step: the curve's own factor, one place */
-/* (2.1) WHERE THE VOICE IS ON A DRAWN EXPONENTIAL, IN THE CURVE'S OWN TERMS. The playhead used to place itself by
+/* (v1.12) WHERE THE VOICE IS ON A DRAWN EXPONENTIAL, IN THE CURVE'S OWN TERMS. The playhead used to place itself by
  * inverting a straight line -- (1000 - lvl) * n / (from - to) -- while the curve it sits on decays by ENV_K every
  * sample: with the default decay the dot ran up to thirteen pixels ahead of the ink, and on a release the same.
  * This walks the same recurrence the drawing loop walks, sample by sample, and interpolates between the two samples
@@ -888,7 +888,7 @@ static void graph_scale(const track_t *t, uint16_t c)
 static void panel_note(const char *a, const char *b, const char *c);
 static void panel_alert(uint32_t id, const char *a);
 /* (QG-1) FX: four send channels and the three master modules that act on them, each in its own box.
- * (2.1) What changed and why:
+ * (v1.12) What changed and why:
  *   - the channel names are whole ("CHORUS", "DELAY", "REVERB", not the CHOR/REV the 53 px card could
  *     not hold next to a 12 px icon): the name is its own line now, the icon sits over the value, and
  *     the slim meter keeps the right-hand column, so nothing is abbreviated and nothing is clipped;
@@ -2720,7 +2720,7 @@ static void graph_browse(void)
             panel_note("NO FAVORITES", "LIST ALL TO ADD SOUNDS", 0);
         return;
     }
-    {   /* (2.0) the pop-up's five rows are the pop-up's: painted by its band, not here (see graph_preset_pop) */
+    {   /* (v1.11) the pop-up's five rows are the pop-up's: painted by its band, not here (see graph_preset_pop) */
         int32_t pop = ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u;
     for (row = -3; row <= 3; row++) {
         int32_t y = LIST_Y(row + 3), x1 = 212;
@@ -2778,7 +2778,7 @@ static void graph_preset_pop(void)
 {
     uint32_t total, cur = preset_pos(&total), e, k;
     int32_t r, y0 = 18, w = 208, h = 86;
-    /* (2.0) FULL WIDTH ONLY WHERE THE BAND IS THE PAGE'S OWN. On PRESETS the pop-up covers five of the seven list
+    /* (v1.11) FULL WIDTH ONLY WHERE THE BAND IS THE PAGE'S OWN. On PRESETS the pop-up covers five of the seven list
      * rows and graph_browse leaves them to it; there the canvas is the whole 240-wide band and every one of those
      * rows is written once. On any other page (the MIXER's columns, HOME's trace) the plate still rides its own
      * 208 x 86 box: a full-width band there would blank the page's content in its margins, and --regions case A
@@ -2794,7 +2794,7 @@ static void graph_preset_pop(void)
      * a previous draw -- with this plate composited on top, which is the "preset names drawn over the mixer" of the
      * report. Now the pop-up is a canvas of exactly its plate (208 x 86) drawn at (16, Y_GRAPH + 18): nothing under
      * it is reused and nothing outside it is touched. */
-    /* (2.0) THE BAND IS THE LIST'S, AND IT IS PAINTED ONCE. lcd_blit sends the rows a blit changed, so a row
+    /* (v1.11) THE BAND IS THE LIST'S, AND IT IS PAINTED ONCE. lcd_blit sends the rows a blit changed, so a row
      * painted twice in one frame is a row SENT twice, first as the list row and then as the plate over it: on the
      * glass that is a flash across the middle of the screen on every step of the preset knob, which is exactly
      * what the report calls the preset menu flickering. The canvas is the pop-up's whole band now (full width, the
@@ -2832,7 +2832,7 @@ static void graph_preset_pop(void)
 
         row_bg = sel ? T_THEME : T_SURF;
         if (favorite_has(e, k)) x1 -= 14;
-        /* (2.1) no pattern number here. `preset_pat_hint` was drawn as four bare characters at the right
+        /* (v1.12) no pattern number here. `preset_pat_hint` was drawn as four bare characters at the right
          * of the name, and on a popup that is up for 1.5 s they read as a random number stuck to the
          * preset. The hint belongs to the pattern list, where the row is labelled and the number means
          * something; the popup keeps the name and the favourite's star. */
@@ -3410,7 +3410,7 @@ static int16_t scope_snap[SCOPE_N];
  * in the well. 60 %: the field is legible and the trace still leads. (A MENU row for it was written and
  * measured; with 1.4.7's panel work there are not 90 B of XIP left for a setting, so the share is fixed.) */
 #define VIZ_VEIL 60
-#define Y_LABEL_GAP_H (26 - Y_LABEL)   /* (2.0) rows Y_LABEL..25: the only rows above the panel's 26 that the
+#define Y_LABEL_GAP_H (26 - Y_LABEL)   /* (v1.11) rows Y_LABEL..25: the only rows above the panel's 26 that the
                                         * visualizer has to cover -- 26 and up are the two passes' own */
 static void graph_home_viz(uint16_t c)
 {
@@ -3454,7 +3454,7 @@ static void graph_home_viz(uint16_t c)
      * Y_LABEL (20) .. 25 were painted by nobody: draw_frame() only fills the gaps BETWEEN the strips, so the top of
      * the four knob cards HOME had just drawn stayed on screen -- the squares that showed in the visualizer. A cap
      * of the page's own tone, blitted at Y_LABEL, covers them; the passes then draw over 26..202.
-     * (2.0) THE CAP IS THE SIX ROWS IT IS FOR. It was 26 rows tall, so it painted -- and the panel was made to
+     * (v1.11) THE CAP IS THE SIX ROWS IT IS FOR. It was 26 rows tall, so it painted -- and the panel was made to
      * send -- rows 20..45: the panel's own top 20 rows, twice a frame, first as the cap's flat page tone and then
      * as the panel and its title. A band sent twice with different content between the two sends is a flicker on
      * the glass, and it was in the one place the report named: the top of the visualizer. Six rows here; 26..202

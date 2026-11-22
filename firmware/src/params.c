@@ -456,10 +456,14 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         *unit = "%";
         break;
     case F_BIPCT:
-        fmt_int(val, v * 100 / 64);
+        /* (v1.12.1) BOTH ENDS READ 100 %. The range is -64..63, so one denominator cannot serve both: v * 100 / 64
+         * gave 98 % at the knob's top (v = 63) and -100 % at its foot, which is what PITCH, FILTER and SHAPE of
+         * LFO DEST showed -- and PAN, AMT and every other bipolar with them. Each side is measured against its own
+         * end, so the top reads +100 % and the bottom -100 %. */
+        fmt_int(val, v < 0 ? v * 100 / 64 : v * 100 / 63);
         if (v > 0) {
             char t[8];
-            fmt_int(t, v * 100 / 64);
+            fmt_int(t, v * 100 / 63);
             val[0] = '+';
             str_cpy(val + 1, t, 6);
         }

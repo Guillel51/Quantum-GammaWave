@@ -1,3 +1,23 @@
+## v1.12.1 — los bipolares llegan a 100 %
+
+**Corregido: PITCH, FILTER y SHAPE de LFO DEST se quedaban en 98 %**
+
+- El rango de un parámetro bipolar es **-64..63** (128 valores), y el formateador medía los dos lados con el mismo
+  denominador: `v * 100 / 64`. En el tope (v = 63) eso da **+98 %**, no +100 % — exactamente lo que se veía en
+  KNOB 1..3 de LFO DEST. Cada lado se mide ahora contra su propio extremo (`v * 100 / 63` arriba, `v * 100 / 64`
+  abajo): el tope lee **+100 %** y el fondo **-100 %**.
+- Arregla de una vez la misma lectura en todos los bipolares que usan el mismo formateador: PAN, AMT de los macros,
+  ENV DEST, el TONE del drum bus, el FILT del reverb, el STEREO del chorus y el GAIN del EQ (este último con su
+  propio rango simétrico, que no cambia).
+- Verificado `[HOST]`: el escenario `lfo_dest` del barrido se fija ahora en los dos extremos y el texto auditado da
+  `PITCH +100 %` / `FILTER -100 %`; 191 pantallas × 22 paletas siguen con **0 lint** y **0 desalineaciones**, y
+  "+100 %" no desborda ninguna tarjeta.
+
+**Limpieza**
+
+- Las etiquetas de comentario de las dos últimas fases pasan de `(2.0)` / `(2.1)` a `(v1.11)` / `(v1.12)`, para que
+  no se confundan con una versión que no existe.
+
 ## v1.12.0 — el punto de la envolvente sobre su curva, y la línea que sobraba en REVERB
 
 **Corregido: ENV (las dos pistas) — el punto de la envolvente se salía de la curva**

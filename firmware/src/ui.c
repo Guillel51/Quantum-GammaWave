@@ -258,7 +258,7 @@ static struct {
                                   * visualizer keeps home_viz, so everything that asks "is the visualizer up?"
                                   * still reads one flag; the two screens added in 3.0 are read by ui_draw.c and
                                   * ui_graph.c from this one */
-    uint32_t home_pulse;         /* (2.0) the frame of the last HOME gesture: HOME's system answers with a ring and a burst */
+    uint32_t home_pulse;         /* (v1.11) the frame of the last HOME gesture: HOME's system answers with a ring and a burst */
     uint32_t bay_wave;           /* (FASE 2/8) the frame of the last TAP on HOME: the bay's own wave. A knob turn
                                   * pulses the system (home_pulse) and must never send this one -- it used to share
                                   * home_pulse, so turning CUT, RES, ATK or REL swept a second trace across the
@@ -878,7 +878,7 @@ static void open_global(void)
 static void go_home(void)
 {
     if (ui.home) {
-        ui.home_pulse = ui.frame;                /* (2.0) HOME tapped on HOME: the system pulses */
+        ui.home_pulse = ui.frame;                /* (v1.11) HOME tapped on HOME: the system pulses */
         ui.bay_wave = ui.frame | 1u;             /* (FASE 2/8) and the bay's wave answers the TAP, nothing else */
         ui.home_view = (uint8_t)((ui.home_view + 1u) % HV_COUNT);
         ui.home_viz = ui.home_view == HV_VIZ;
@@ -1270,7 +1270,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
     }
     load_begin(t, LOAD_SOUND);
     panic_req |= (uint8_t)(1u << trk_index(t));       /* MONO/POLY may change: release what sounds */
-    /* (2.1) a new sound starts clean: the punch-in latches and macros, the buses' short state and the
+    /* (v1.12) a new sound starts clean: the punch-in latches and macros, the buses' short state and the
      * reverb/chorus lines are the old preset's, not this one's (delay: see fx_preset_flush) */
     fm1_irq_off();
     {   /* (FASE 2, issue #106) THE BUSES ARE EVERY TRACK'S. Flushing them for a track with nothing sounding cut
@@ -1329,7 +1329,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
                 t->p[pr->x[i].id - 1u] = (int16_t)clamp(pr->x[i].v, TP[pr->x[i].id - 1u].min, TP[pr->x[i].id - 1u].max);
     }
     fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT) */
-    /* (2.1) THE SOUND'S OWN LEVEL. Until now a preset left P_LEVEL as the track had it, so the same
+    /* (v1.12) THE SOUND'S OWN LEVEL. Until now a preset left P_LEVEL as the track had it, so the same
      * fader gave -11 dBFS on SCREAM LEAD and -38.6 on STATIC HAZE: changing sound jumped by up to
      * 27.6 dB, which is what "the presets are not levelled" meant. The value comes from a measured
      * render of the preset itself (tools/gen_preset_levels.py writes preset_level.c), so it is a
@@ -1409,7 +1409,7 @@ static void select_engine(uint32_t e)
 {
     set_engine(e);
     ui_say("ENGINE ", ENGINES[TSEL->eng_req]->name);
-    ui.force = 1;                                      /* (2.0) the cards' labels are the engine's: those, whole */
+    ui.force = 1;                                      /* (v1.11) the cards' labels are the engine's: those, whole */
 }
 
 /* the presets of every engine (in ENGINE_ORDER), then the used user presets, as one list (the PRESETS knob and the
@@ -1524,7 +1524,7 @@ static void preset_hinted(void)                     /* after a sound load: SEQ >
     int32_t h;
     if ((h = preset_pat_hint()) >= 0)
         ui.ppick = (uint8_t)h;
-    /* (2.0) A SOUND IS TWO BANDS, NOT THE WHOLE FRAME. ui.force = 1 here repainted the header, the cards, the graph
+    /* (v1.11) A SOUND IS TWO BANDS, NOT THE WHOLE FRAME. ui.force = 1 here repainted the header, the cards, the graph
      * and the footer on EVERY step of the preset knob: one step wrote 62 096 px to change 14 161, and the header and
      * the footer did not change at all. What a load can leave stale is the header (the engine's name) and the graph
      * (the sound: its name, its parameters, the list, the pop-up over it). Those two are invalidated by signature;
@@ -1532,7 +1532,7 @@ static void preset_hinted(void)                     /* after a sound load: SEQ >
      * whole frame when the load crosses into another engine, which is the one case the cards' labels change. */
     ui.head_sig = 0;
     ui.graph_sig = 0;
-    ui.force = 1;          /* (2.0) measured: without it the cards and the footer keep 103 rows stale on PRESETS */
+    ui.force = 1;          /* (v1.11) measured: without it the cards and the footer keep 103 rows stale on PRESETS */
 }
 
 static void preset_go(uint32_t n)                    /* load list index n into the selected track (the sound only) */

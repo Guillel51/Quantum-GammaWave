@@ -185,7 +185,7 @@ static void graph_fx_buses(const track_t *t)
                         continue;
                     cv_rect(dx + 2 + k, dy + dh - h, 1, h, ux_mix(T_THEME, T_ACCENT, h * 160 / (dh ? dh : 1)));
                 }
-                /* (2.1) NO RULE UNDER THE TAIL. This block was the only one of the six that laid a full-width T_LINE
+                /* (v1.12) NO RULE UNDER THE TAIL. This block was the only one of the six that laid a full-width T_LINE
                  * across its floor, one row under the tail's own baseline: nothing else on the page draws one, and as
                  * the tail's height followed the bus it read as a line sliding up and down behind the drawing. The
                  * reverb itself -- SIZE for the length, the wet peak for the height -- is untouched. */

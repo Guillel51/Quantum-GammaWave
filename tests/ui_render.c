@@ -1023,7 +1023,7 @@ static void setup(int s)
         set_engine_of(TSEL, ENGI_LOFI); TSEL->engine = TSEL->eng_req;
         TSEL->p[P_E1] = RW_BYTE; TSEL->p[P_E2] = 4; TSEL->p[P_LRTRG] = s == S_RETRIG_FREE;
         go_title("RETRIG"); break;
-    case S_LFO_DEST: TSEL->p[P_LD_PIT] = 20; TSEL->p[P_LD_FLT] = -40; TSEL->p[P_LD_AMP] = 60; go_title("LFO DEST"); break;
+    case S_LFO_DEST: TSEL->p[P_LD_PIT] = 63; TSEL->p[P_LD_FLT] = -64; TSEL->p[P_LD_AMP] = 60;   /* (v1.12.1) los dos extremos: el tope tiene que leer +100 % */ go_title("LFO DEST"); break;
     case S_MACRO_LAYER:                              /* M1: T1 CUT and T4's MRPH; M2: CLIP; M3 at 0, M4 none */
         go_home(); ui.layer = LAYER_MACRO;
         macro_v[0] = 90; macro_v[1] = 40; macro_v[3] = 127;
@@ -2351,10 +2351,10 @@ static int viz_main(void)
         memcpy(prev, host_screen, sizeof prev);
         ui.frame += 1u;                                /* one frame of the ambient layer, same audio */
         fm1_ms += 16u;
-        bb_on = 1;                                     /* (2.0) what the panel is made to write, row by row */
+        bb_on = 1;                                     /* (v1.11) what the panel is made to write, row by row */
         wrote = rnext();
         bb_on = 0;
-        for (y = 0; y <= 25u; y++) {   /* (2.0) the header and the six-row cap: nothing here moves, ever */
+        for (y = 0; y <= 25u; y++) {   /* (v1.11) the header and the six-row cap: nothing here moves, ever */
             uint32_t row = 0;
             for (x = 0; x < 240u; x++)
                 if (prev[y * 240u + x] != host_screen[y * 240u + x]) {
@@ -2382,7 +2382,7 @@ static int viz_main(void)
 
 static int bands_main(void)
 {
-    /* (2.0) A STEP OF THE AMBIENT LAYER AND A SOUND LOAD ARE NOT THE SAME EVENT, so they do not share a ceiling.
+    /* (v1.11) A STEP OF THE AMBIENT LAYER AND A SOUND LOAD ARE NOT THE SAME EVENT, so they do not share a ceiling.
      * BANDS_LIMIT is "one animation step costs the rows that change"; the PRESETS scene loads a whole sound -- the
      * header's engine, the four cards' parameter labels and values, the list and the pop-up all change -- and its
      * budget is its own MEASUREMENT plus 10 %, not a number that fits the others. What the scene holds it to is
@@ -2412,7 +2412,7 @@ static int bands_main(void)
         rsnap();
         if (k == 3u)                                   /* the MIXER: a meter of T1 moves, nothing else */
             trk[0].vu = (int32_t)((uint32_t)trk[0].vu + 9000u) > 30000 ? 9000 : trk[0].vu + 9000;
-        if (k == 4u)                                   /* (2.0) the PRESETS knob: one step of the list, and the
+        if (k == 4u)                                   /* (v1.11) the PRESETS knob: one step of the list, and the
                                                         * popup it puts over the graph -- the report's flicker */
             presets_turn(1);
         ui.frame += 8u;                                /* one step of hv_air's field and the strip's pulse */
@@ -2441,7 +2441,7 @@ static int bands_main(void)
     return bad ? 1 : 0;
 }
 
-/* (2.1) THE ENVELOPE'S PLAYHEAD MUST SIT ON THE DRAWN CURVE, AND THIS MEASURES IT. Both tracks (ENV 1 and ENV 2),
+/* (v1.12) THE ENVELOPE'S PLAYHEAD MUST SIT ON THE DRAWN CURVE, AND THIS MEASURES IT. Both tracks (ENV 1 and ENV 2),
  * three ADSR settings and the three live stages: the page is drawn with a voice at a known level and then again with
  * that voice gone. The difference between the two frames is the dot and its drop line; on the dot's centre row the
  * reference frame says where the curve's ink is, and the dot's column must be within 2 px of it. The two frames are
