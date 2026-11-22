@@ -143,12 +143,18 @@ static void recognise_tests(void)
     }
 }
 
-/* the keybed: the picture and the hit test are one geometry, so every drawn key must answer with its note */
+/* the keybed: the picture and the hit test are one geometry, so every drawn key must answer with its note.
+ * (FASE 8) the rectangle is the one the PAGES draw -- scl_bed_rect() -- and not a bed of this test's own: the
+ * numbers here were 8/94/224/22 while the page drew 8/92/224/26, so this test was passing a bed that nothing on
+ * the screen had. */
 static void keybed_tests(void)
 {
     scl_bed_t b;
     int32_t i;
-    scl_bed(8, 94, 224, 22, &b);
+    {
+        scl_rect_t r = scl_bed_rect(GR_SCL_SCALE);
+        scl_bed(r.x0, r.y0, r.w, r.h, &b);
+    }
     ok("the bed's black key is 0.6 of a white one wide (integer division, a pixel at most)",
        b.bw * 18 <= b.kw * 11 && b.bw * 18 > b.kw * 11 - 18);
     ok("and 0.6 of its length (the same tolerance)", b.bh * 5 <= b.h * 3 && b.bh * 5 > b.h * 3 - 5);
@@ -179,7 +185,164 @@ static void keybed_tests(void)
         }
         ok("every black key answers its note (5 of 5)", misses == 0);
     }
-    ok("a point outside the bed is no note", scl_bed_at(&b, 4, 96) < 0 && scl_bed_at(&b, 100, 60) < 0);
+    ok("a point outside the bed is no note", scl_bed_at(&b, b.x0 - 1, b.y0 + 3) < 0 && scl_bed_at(&b, 100, 60) < 0);
+}
+
+/* (FASE 8) THE TWO EDGES OF THE BED THE PAGE DRAWS. The strip was drawn 2 px above the rectangle the hit test
+ * measured and 4 px short of it on the right, so the top row of keys and the last four pixels of the last key
+ * were part of the picture and not of the control. Every tap here goes through ui_tap(), the emulator's own
+ * route: the first and the last column of the bed, the top row of both, and the two edges of a black key. */
+static void keybed_edge_tests(void)
+{
+    static const int32_t graphs[2] = {GR_SCL_SCALE, GR_SCL_CHORD};
+    static const uint16_t screens[2] = {S_SCL_SCALE, S_SCL_CHORD};
+    static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};
+    uint32_t ti = trk_index(TSEL) % NTRK, g;
+    for (g = 0; g < 2u; g++) {
+        uint32_t k, pg = 0xFFu;
+        scl_rect_t r = scl_bed_rect(graphs[g]);
+        scl_bed_t b;
+        int32_t ytap, misses = 0;
+        char what[80];
+        for (k = 0; k < sizeof PAGES / sizeof PAGES[0]; k++)
+            if (PAGES[k].graph == graphs[g]) {
+                pg = k;
+                break;
+            }
+        if (pg == 0xFFu)
+            continue;
+        /* (FASE 8) AND THE NUMBERS THEMSELVES: the taps below prove the drawing and the hit test agree, but two
+         * places that moved together would still agree. This is the page's geometry as it stands, written down:
+         * moving the keybed means changing this line on purpose. */
+        snprintf(what, sizeof what, "%s: the keybed is drawn at %d,%d %dx%d", g ? "CHORD" : "SCALE",
+                 (int)r.x0, (int)r.y0, (int)r.w, (int)r.h);
+        ok(what, g ? (r.x0 == 12 && r.y0 == 90 && r.w == 216 && r.h == 26)
+                   : (r.x0 == 8 && r.y0 == 92 && r.w == 224 && r.h == 26));
+        scl_bed(r.x0, r.y0, r.w, r.h, &b);
+        setup(screens[g]);
+        pal(UI_QUANTUM_INDEX);
+        ui.page = (uint8_t)pg;
+        TSEL->p[P_ROOT] = 0;                             /* C */
+        TSEL->p[P_SCALE] = 1;
+        scl_sel_clear(ti);
+        draw(screens[g]);
+        ytap = b.y0 + b.h - 3 + (int32_t)graph_y();       /* the foot of the naturals */
+        ui_tap(b.x0, ytap);                               /* the bed's first column */
+        snprintf(what, sizeof what, "%s: a tap on the bed's left edge is C", g ? "CHORD" : "SCALE");
+        ok(what, scl_selm[ti] == (1u << 0));
+        scl_sel_clear(ti);
+        ui_tap(b.x0 + b.w - 1, ytap);                     /* and its last column */
+        snprintf(what, sizeof what, "%s: a tap on the bed's right edge is B", g ? "CHORD" : "SCALE");
+        ok(what, scl_selm[ti] == (1u << 11));
+        /* the top row, which the old hit box did not reach: every natural still answers its own note there */
+        scl_sel_clear(ti);
+        for (k = 0; k < 7u; k++) {
+            scl_sel_clear(ti);
+            ui_tap(b.x0 + (int32_t)k * (b.kw + b.gap) + b.kw / 2, b.y0 + 1 + (int32_t)graph_y());
+            if (scl_selm[ti] != (1u << W_NOTE[k]))
+                misses++;
+        }
+        snprintf(what, sizeof what, "%s: the top row of the bed is a key (7 of 7 naturals)", g ? "CHORD" : "SCALE");
+        ok(what, misses == 0);
+        {   /* a black key's own two edges, on that same top row */
+            int32_t kx = b.x0 + SCL_WKEY[1] * (b.kw + b.gap) + b.kw + b.gap / 2 - b.bw / 2;
+            scl_sel_clear(ti);
+            ui_tap(kx, b.y0 + 1 + (int32_t)graph_y());
+            misses = scl_selm[ti] != (1u << 1);
+            scl_sel_clear(ti);
+            ui_tap(kx + b.bw - 1, b.y0 + 1 + (int32_t)graph_y());
+            misses += scl_selm[ti] != (1u << 1);
+            snprintf(what, sizeof what, "%s: C#'s left and right edges are both C#", g ? "CHORD" : "SCALE");
+            ok(what, misses == 0);
+        }
+        scl_sel_clear(ti);
+    }
+}
+
+/* (FASE 8) THE RING A TAP HITS IS THE RING THE PAGE DRAWS. The hit test aimed at a circle 4 px right and 4 px below
+ * the drawn one, at a 24 px radius instead of 20: a finger on the rim the page drew answered the neighbouring note.
+ * The test taps the centre of all twelve drawn nodes, from the same scl_ring_geo() the drawing uses. */
+static void ring_tests(void)
+{
+    uint32_t ti = trk_index(TSEL) % NTRK, k, pg = 0xFFu, misses = 0;
+    int32_t cx, cy, rn, i;
+    for (k = 0; k < sizeof PAGES / sizeof PAGES[0]; k++)
+        if (PAGES[k].graph == GR_SCL_SCALE) {
+            pg = k;
+            break;
+        }
+    if (pg == 0xFFu)
+        return;
+    setup(S_SCL_SCALE);
+    pal(UI_QUANTUM_INDEX);
+    ui.page = (uint8_t)pg;
+    TSEL->p[P_ROOT] = 0;
+    TSEL->p[P_SCALE] = 1;
+    scl_ring_geo(&cx, &cy, &rn);
+    ok("the ring is drawn at 46,54 with a 20 px radius", cx == 46 && cy == 54 && rn == 20);
+    draw(S_SCL_SCALE);
+    for (i = 0; i < 12; i++) {
+        int32_t nx = cx + SCL_COS[i] * rn / 256, ny = cy + SCL_SIN[i] * rn / 256;
+        scl_sel_clear(ti);
+        ui_tap(nx, ny + (int32_t)graph_y());
+        if (scl_selm[ti] != (uint16_t)(1u << i))
+            misses++;
+    }
+    ok("a tap on each of the twelve drawn nodes picks its note (12 of 12)", misses == 0);
+    scl_sel_clear(ti);
+}
+
+/* (FASE 8) EVERY CHIP ON THE SEMITONE OF ITS INTERVAL. The ruler's chips are placed from scl_ruler_x(); this reads
+ * the framebuffer where that function puts each semitone's chip, with the hand empty (no shape drawn) and with
+ * Cmaj7 picked -- C E G B, the intervals P1 M3 P5 M7 -- and demands the picture changed on exactly those four
+ * semitones. A chip drawn one step off its interval, or a drawing that stopped following its own mapping, fails. */
+static void ruler_tests(void)
+{
+    uint32_t ti = trk_index(TSEL) % NTRK, k, pg = 0xFFu;
+    int32_t ax0, ax1, ay, hh, iv, wrong = 0, extra = 0;
+    static uint16_t before[12];
+    for (k = 0; k < sizeof PAGES / sizeof PAGES[0]; k++)
+        if (PAGES[k].graph == GR_SCL_CHORD) {
+            pg = k;
+            break;
+        }
+    if (pg == 0xFFu)
+        return;
+    scl_ruler_geo(&ax0, &ax1, &ay, &hh);
+    ok("the ruler is drawn from x 14 to 226, its axis at 72, its chips 13 px tall",
+       ax0 == 14 && ax1 == 226 && ay == 72 && hh == 13);
+    setup(S_SCL_CHORD);
+    pal(UI_QUANTUM_INDEX);
+    ui.page = (uint8_t)pg;
+    TSEL->p[P_ROOT] = 0;
+    TSEL->p[P_SCALE] = 1;
+    TSEL->p[P_CHRD] = 0;                                 /* no KEY shape: the ruler shows only the hand */
+    ti = trk_index(TSEL) % NTRK;
+    scl_sel_clear(ti);
+    draw(S_SCL_CHORD);
+    for (iv = 0; iv < 12; iv++)
+        before[iv] = host_screen[((int32_t)graph_y() + ay - 1 - hh + 7) * 240 + scl_ruler_x(iv)];
+    scl_toggle(ti, 0);
+    scl_toggle(ti, 4);
+    scl_toggle(ti, 7);
+    scl_toggle(ti, 11);                                  /* Cmaj7: P1 M3 P5 M7 */
+    draw(S_SCL_CHORD);
+    for (iv = 0; iv < 12; iv++) {
+        int want = iv == 0 || iv == 4 || iv == 7 || iv == 11;
+        uint16_t now = host_screen[((int32_t)graph_y() + ay - 1 - hh + 7) * 240 + scl_ruler_x(iv)];
+        if (want && now == before[iv])
+            wrong++;                                     /* a chord tone with no chip on its semitone */
+        if (!want && now != before[iv])
+            extra++;                                     /* a chip on a semitone the chord does not have */
+    }
+    if (wrong || extra)
+        printf("scl: the ruler lost %d of its four chips, and put %d on a semitone the chord has not\n", (int)wrong,
+               (int)extra);
+    ok("Cmaj7 puts a chip on P1 M3 P5 M7 and on no other semitone", wrong == 0 && extra == 0);
+    /* and the four chips sit on the ruler's own semitones, in pitch order, left to right */
+    ok("the ruler's chip of a semitone is monotonic in its interval",
+       scl_ruler_x(0) < scl_ruler_x(1) && scl_ruler_x(1) < scl_ruler_x(4) && scl_ruler_x(11) < ax1);
+    scl_sel_clear(ti);
 }
 
 /* the selection: toggling, and the bass that follows it (an inversion is read from the lowest key) */
@@ -275,7 +438,10 @@ static void page_tests(void)
         scl_bed_t b;
         int32_t k;
         static const int32_t px[4] = {0, 4, 7, 11};
-        scl_bed(8, 94, 224, 22, &b);
+        {
+            scl_rect_t r = scl_bed_rect(GR_SCL_SCALE);   /* (FASE 8) the drawn bed, not this test's own */
+            scl_bed(r.x0, r.y0, r.w, r.h, &b);
+        }
         for (k = 0; k < 4; k++) {
             int32_t note = px[k], x, y;
             if (SCL_BLACK[note]) {
@@ -311,6 +477,9 @@ int main(void)
     aud = sink;
     recognise_tests();
     keybed_tests();
+    keybed_edge_tests();
+    ring_tests();
+    ruler_tests();
     selection_tests();
     page_tests();
     printf("scl: %s\n", bad ? "FAILED" : "all passed");
