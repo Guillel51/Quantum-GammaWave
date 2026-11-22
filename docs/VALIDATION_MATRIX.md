@@ -3621,3 +3621,20 @@ LOFI asentado es 1.38x. El test ahora usa el mayor de los dos y sigue fallando p
 **Sigue abierto.** Optimización de los buses en reposo y de ANALOG/NOISE (fase 2, con la tabla de §2 como
 antes/después); pantalla propia de PHASE; MORPH A/B persistente; animaciones de Reverb por modelo; instalación
 V16 = GO CONDITIONAL; `P_COUNT` en 127, sin ids libres.
+
+## 60. v1.12.14: los tipos de filtro por voz
+
+**Bug corregido.** `eng_analog.c` (3 sitios) y `eng_lofi.c` (3 sitios) tomaban `P_FTYPE % 6u` para su filtro por
+voz, mientras `voice.c` tomaba `% 8u`: NOTCH (6) sonaba como LP y SHELF (7) como HP en ANALOG y LOFI. Los seis
+sitios usan `% 8u`. Nuevo bloque de `tests/filter_types_test.c`: una nota de SAW por el mix real, brillo =
+escalones por unidad de nivel; exige HP > LP (sonda), NOTCH ≠ LP y SHELF ≠ HP. Verde. `regress` 307 renders, 0
+cambiados.
+
+**Restricción medida para la fase siguiente.** `P_COUNT` = 127 = techo de 7 bits: no hay ids libres. Una función
+nueva o bien reutiliza el dominio de valores de un parámetro existente (un tipo de filtro, una forma de LFO, un
+modo de engine), o bien exige un formato de almacenamiento nuevo con migración probada. Añadir voces al pool no es
+posible: 9 248 B de spare con suelo de 8 KiB.
+
+**Sigue abierto.** Tipos nuevos (p. ej. un 24 dB/oct exige un segundo par de estados por voz y por pista, +576 B
+de `.bss` a medir); pantalla propia de PHASE; MORPH A/B persistente; animaciones de Reverb por modelo; instalación
+V16 = GO CONDITIONAL.

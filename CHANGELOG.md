@@ -1,3 +1,22 @@
+## v1.12.14 — Dos tipos de filtro que sonaban a otro
+
+**NOTCH sonaba a LP y SHELF a HP en ANALOG y LOFI.** El filtro de parte (`voice.c`) siempre tomó los ocho tipos
+(`P_FTYPE % 8u`); los motores que filtran sus propias notas —ANALOG y LOFI— tomaban **seis** (`% 6u`), así que el
+tipo 6 (NOTCH) envolvía a 0 (LP) y el 7 (SHELF) a 1 (HP): el panel ofrecía ocho tipos y en esos dos motores dos
+de ellos tocaban otro, en silencio. Los seis sitios corregidos a `% 8u`, y `tests/filter_types_test.c` ahora
+renderiza una nota de SAW por el mix real y mide su brillo (escalones por unidad de nivel): con el módulo viejo
+NOTCH daba exactamente LP y SHELF exactamente HP; el test exige que cada uno sea su propio sonido.
+
+**Nada más cambia.** `regress`: **307 renders, 0 cambiados** — ningún preset de fábrica usa NOTCH ni SHELF en
+ANALOG/LOFI, así que el arreglo no toca ningún sonido existente, sólo devuelve los dos tipos que el panel ya
+ofrecía. Imagen y `.data+.bss` idénticas: el arreglo es de una constante por sitio de uso.
+
+**Qué encontró esta fase, y qué no.** Con `P_COUNT` en **127** (el techo de 7 bits de los motion records) no
+queda ningún id de parámetro libre: una función nueva tiene que vivir en los valores de un parámetro existente
+(como esta, un tipo de filtro más) o exigir un formato de almacenamiento nuevo. Los seis tipos que quedaban
+funcionando se comprobaron uno por uno en ANALOG y en LOFI; la lista de pendientes de motores/parámetros está en
+la matriz §60.
+
 ## v1.12.13 — El id que se movió, el perfil que no medía, y el clic que era el sonido
 
 **Un bug de compatibilidad de datos, y es serio.** `P_HARM` (TILT, v1.12.4) y `P_LSHP` (LFO CURVE, v1.12.5) se

@@ -19,6 +19,45 @@
 
 #define NF 12
 static int bad;
+/* the brightness of one ANALOG SAW note through the real mix, filtered by the engine's own filter of type ft */
+static double voice_brightness(uint32_t ft)
+{
+    int32_t o[2 * CTL];
+    double d = 0, lvl = 0;
+    uint32_t i, b;
+    track_t *t = &trk[0];
+    static int booted;
+    if (!booted) {                                       /* the mix needs its song and pool before a voice runs */
+        host_tracks_init();
+        booted = 1;
+    }
+    host_preset(t, ENGI_ANALOG, 0);                     /* a whole track: p[] at a preset's, not at zeros */
+    t->p[P_VOICE] = V_POLY;
+    t->p[P_E0] = 0;                                     /* SAW, the engine's plain wave */
+    t->p[P_FTYPE] = (int16_t)ft;
+    t->p[P_FCUT] = 72;
+    t->p[P_FRES] = 40;
+    t->p[P_LD_FLT] = t->p[P_ED_FLT] = 0;
+    t->lfo_val = 0;
+    t->lfo_fade = 32767;
+    tf_on[0] = tf_cmb[0] = tf_xb[0] = 0;
+    tf_ic1[0] = tf_ic2[0] = 0;
+    trk_note_on(t, 60, 100);
+    for (b = 0; b < 40u; b++) {
+        mix_block(o, CTL);
+        if (b >= 32u)
+            for (i = 0; i < CTL; i++) {
+                int32_t dd = o[2 * i] - (i ? o[2 * (i - 1)] : o[2 * i]), yy = o[2 * i];
+                d += (double)(dd < 0 ? -dd : dd);
+                lvl += (double)(yy < 0 ? -yy : yy);
+            }
+    }
+    trk_note_off(t, 60);
+    for (b = 0; b < 8u; b++)                            /* the release, before the next probe's note */
+        mix_block(o, CTL);
+    return d / (lvl > 1.0 ? lvl : 1.0);                 /* steps per unit of level: brightness, not loudness */
+}
+
 static void check(const char *what, int ok)
 {
     printf("ftype: %-72s %s\n", what, ok ? "ok" : "FAIL");
@@ -122,6 +161,18 @@ int main(void)
             if (g > worst) worst = g;
         }
         check("SHELF at full resonance stays finite and under 40 dB", worst < 40.0 && worst > -200.0);
+    }
+    /* (v1.12.14) THE PER-VOICE FILTER KNOWS ALL EIGHT TYPES. voice.c's part filter always took P_FTYPE % 8u; the
+     * engines that filter their own notes -- ANALOG and LOFI -- took % 6u, so NOTCH came out as LP and SHELF as
+     * HP. Two of the eight types the panel offers played as another one, silently. The probe plays one SAW note
+     * through the real mix and reads its brightness (mean |y[i] - y[i-1]|, the first thing a low-pass and a
+     * high-pass differ in); with the modulo in place NOTCH read exactly as LP and SHELF exactly as HP. */
+    {
+        double lp_b = voice_brightness(FT_LP), hp_b = voice_brightness(FT_HP);
+        double nt_b = voice_brightness(FT_NOTCH), sh_b = voice_brightness(FT_SHELF);
+        check("voice path: HP is brighter than LP (the probe measures the right thing)", hp_b > lp_b * 1.2);
+        check("voice path: NOTCH is its own sound, not LP", fabs(nt_b - lp_b) > lp_b * 0.05);
+        check("voice path: SHELF is its own sound, not HP", fabs(sh_b - hp_b) > hp_b * 0.05);
     }
     printf("%s\n", bad ? "FILTER TYPES TEST FAILED" : "filter types test passed");
     return bad != 0;

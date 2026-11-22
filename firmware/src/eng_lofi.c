@@ -255,7 +255,7 @@ static __attribute__((noinline)) void lofi_byte_render(track_t *t, voice_t *v, i
                                                          * SHAPE move VAR (SHAPE did nothing on BYTE) */
     uint32_t f = (uint32_t)p[P_E2] >> 2, a = 1u + (vr >> 3), tt = (uint32_t)v->s[2], tf = v->ph[0], i;
     uint32_t ti = (inc >> 8) * 31u;                     /* t a sample, Q24: C4 (inc ~2.55e7) ~0.18 = 8 kHz */
-    uint32_t ft = (uint32_t)p[P_FTYPE] % 6u;            /* (JIANT 0.5) the FILTER's type (COMB: open, voice.c combs) */
+    uint32_t ft = (uint32_t)p[P_FTYPE] % 8u;            /* (JIANT 0.5) the FILTER's type (COMB: open, voice.c combs) */
     int32_t kd = 8192 - (p[P_FRES] > 50 ? p[P_FRES] : 50) * 7600 / 127;   /* (0.5.4: the FILTER page's RES alone) */
     uint32_t bs = p[P_E6] ? 13u - (uint32_t)p[P_E6] / 11u : 0u;   /* BEND: the fold's shift, 13 .. 2 (0: none) */
     int32_t held = v->s[0], cnt = v->s[1], ic1 = v->s[4], ic2 = v->s[5], l1 = v->s[3], l2 = (int32_t)v->ph[2];
@@ -306,7 +306,7 @@ static __attribute__((noinline)) void lofi_float_render(track_t *t, voice_t *v, 
                                                          * (0.6.81: SHAPE moves VAR, as BYTE's) */
     uint32_t bs = p[P_E6] ? 13u - (uint32_t)p[P_E6] / 11u : 0u;   /* BEND: t ^ t >> 13 .. 2 */
     uint32_t lm = p[P_E7] ? (1u << (17u - (uint32_t)p[P_E7] * 12u / 127u)) - 1u : 0xFFFFFFFFu;   /* LOOP: t's window */
-    uint32_t ft = (uint32_t)p[P_FTYPE] % 6u;
+    uint32_t ft = (uint32_t)p[P_FTYPE] % 8u;
     int32_t rs = p[P_FRES] > 50 ? p[P_FRES] : 50, kd = 8192 - rs * 7600 / 127, y1 = v->s[4], y2 = v->s[5];
     int32_t aux = v->s[3], fb = v->s[0], fbk = p[P_E5];
     uint32_t chip = (uint32_t)p[P_E0], qs = chip == CHIP_8BIT ? 0u : chip == CHIP_1BIT ? 15u : 12u;   /* (CHIP: the bits) */
@@ -454,7 +454,7 @@ static void lofi_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     static const uint8_t STEP_DUTY[4] = {1, 2, 4, 6};   /* eighths: 12.5 / 25 / 50 / 75 % */
     const int16_t *p = t->p;
     uint32_t chip = (uint32_t)p[P_E0], wave = (uint32_t)p[P_E1], i;
-    uint32_t stepc = chip == CHIP_STEP, ft = (uint32_t)p[P_FTYPE] % 6u;   /* (JIANT 0.5) the FILTER's type */
+    uint32_t stepc = chip == CHIP_STEP, ft = (uint32_t)p[P_FTYPE] % 8u;   /* (JIANT 0.5) the FILTER's type */
     int32_t kd;
     uint32_t duty = stepc ? 0x20000000u * STEP_DUTY[(p[P_E2] / 32) & 3]
                           : 0x20000000u * (1u + (uint32_t)p[P_E2] / 32u);   /* 12.5 / 25 / 37.5 / 50 % */

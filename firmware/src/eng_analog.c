@@ -105,7 +105,7 @@ static __attribute__((noinline)) void analog_morph(track_t *t, voice_t *v, int32
                                                    int32_t mpos0, int32_t mpos1)   /* (0.6.50: ramped mpos0 -> mpos1) */
 {
     const int16_t *p = t->p;
-    uint32_t i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ft = (uint32_t)p[P_FTYPE] % 6u;
+    uint32_t i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ft = (uint32_t)p[P_FTYPE] % 8u;
     uint32_t inc2 = p[P_E1] || p[P_E7] ? cents_inc(m->pitch16 + p[P_E7] * 16, p[P_E1], 0) : inc1;
     int32_t m2 = p[P_E2] * 258, m1 = 32767 - m2, nz = p[P_E3] * 200, drv = p[P_E6], kd = 8192 - p[P_E5] * 7600 / 127;
     int32_t drive = 32768 + drv * 512, cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) * 4);
@@ -144,7 +144,7 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
 {
     const int16_t *p = t->p;
     uint32_t wave = (uint32_t)p[P_E0], i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2], r, inc2, inc3;
-    uint32_t ft = (uint32_t)p[P_FTYPE] % 6u, pw = an_pw(t, m);
+    uint32_t ft = (uint32_t)p[P_FTYPE] % 8u, pw = an_pw(t, m);
     int32_t mx = wave >= AW_SYNC ? an_mext(t->mo_cur, m) : 0;   /* (0.6.81) MORPH, SHAPE on SYNC RING SAW3 */
     /* (FASE 2) PM's index, Q0 phase units per sample of osc 2: 0.78 rad with MORPH at 0 up to ~4 rad, the MORPH
      * knob and SHAPE together (an_mext). The oscillator ratio is SYNC / RING's r, so INT and DTUNE retune it */
@@ -277,7 +277,7 @@ static __attribute__((noinline)) void analog_render(track_t *t, voice_t *v, int3
 static __attribute__((noinline)) void analog_dirty(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
-    uint32_t wave = (uint32_t)p[P_E0], i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ft = (uint32_t)p[P_FTYPE] % 6u;
+    uint32_t wave = (uint32_t)p[P_E0], i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ft = (uint32_t)p[P_FTYPE] % 8u;
     uint32_t inc2 = p[P_E1] || p[P_E7] ? cents_inc(m->pitch16 + p[P_E7] * 16, p[P_E1], 0) : inc1;
     int32_t m2 = p[P_E2] * 258, m1 = 32767 - m2, nz = p[P_E3] * 200, drv = p[P_E6], kd = 8192 - p[P_E5] * 7600 / 127;
     int32_t drive = 32768 + drv * 512, cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) * 4);
