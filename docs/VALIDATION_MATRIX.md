@@ -3536,3 +3536,21 @@ con `-O2` (línea 510) contra una línea base `-O2`.
 
 **No cambia el firmware.** Solo `tests/regress.c`; la imagen, el paquete y el WASM son los de v1.12.9 y no se
 re-selló nada.
+
+## 56. v1.12.10: la suite vuelve a mirar lo que v1.12.4 añadió
+
+**Hallazgo.** `tests/ui_test.c` recompilado desde cero fallaba **3 checks** (ciclo de EDIT de ANALOG, FM6 y DRUM): TILT
+entró en el ciclo en v1.12.4 y las secuencias esperadas no se actualizaron. El binario de `build/` era anterior a la
+página y la suite venía reportando verde desde un objeto viejo.
+
+**Corrección.** `CYC_A`, `CYC_F`, `CYC_D` y `CYC_K` llevan TILT donde el firmware lo pone (tras el FILTER de ANALOG,
+antes del FILTER de parte de FM6/DIGITAL, entre X-MOD y FILTER en DRUM); `engine_cycle` imprime la secuencia recorrida
+al fallar. `ui_test` verde en el build por defecto y en `FELUCCA_FM4=1`.
+
+**Re-verificación de este árbol (clase host x86_64).** Barrido **193 × 22**, **0 lint**, **0 desalineaciones**
+(3 830 618 medidas), **3 088 frames idénticos** a `tests/ui_pixels.txt`; `regress` **307 renders, 0 cambiados**, 0
+fallos de CPU (mediana 1,06–1,09 en cuatro corridas); `make_release --check`, `sha256sum -c`, emulador y
+`release_gate_test` verdes.
+
+**Sigue abierto.** Presets de fábrica sin TILT/CURVE/ONE; ids de parámetro 127/127; instalación V16 = GO CONDITIONAL
+(sin medida de `USR`/`BTIF`/`NVS`); tag y GitHub Release sin credencial `gh` en este entorno.

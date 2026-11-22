@@ -1,3 +1,24 @@
+## v1.12.10 — la suite vuelve a mirar lo que v1.12.4 añadió
+
+**Un fallo de verdad, encontrado al recompilar.** `tests/ui_test.c` compilado desde cero **fallaba tres checks** —el
+ciclo de EDIT de ANALOG, de FM6 y de DRUM—: TILT entró en el ciclo en v1.12.4 y las secuencias esperadas nunca se
+actualizaron. El binario que había en `build/` era más viejo que la página, así que la suite llevaba cuatro versiones
+diciendo "verde" desde un objeto viejo. Ahora los ciclos llevan TILT donde el firmware lo pone (después del FILTER de
+ANALOG, antes del FILTER de parte de FM6 y DIGITAL, entre X-MOD y FILTER en DRUM), `ui_test` pasa en los dos builds
+(por defecto y `FELUCCA_FM4=1`) y `engine_cycle` imprime **las páginas que recorrió** cuando falla, para que el próximo
+desajuste nombre la página y no sólo la expectativa.
+
+**El chequeo de CPU, ya sin ruido.** Ver [`Tooling`](#tooling--el-chequeo-de-cpu-deja-de-depender-del-ruido-del-host):
+la resumen separa fallos de notas, una nota se mide cinco veces (mediana impresa, la ventana más tranquila decide), la
+puerta se remide si cae dentro del 15 % de la línea y la línea base tiene que ser la de esta máquina. Cuatro corridas
+del árbol real: PASS con mediana 1,06–1,09, 0 fallos, 0 notas; líneas base escaladas a +28 % y +53 %: FAIL, exit 1.
+
+**Barrido re-verificado desde cero** en este árbol: **193 pantallas × 22 paletas**, **0 lint**, **0 desalineaciones**
+sobre **3 830 618** medidas y **3 088 frames idénticos** a la línea base (`tests/ui_pixels.txt`).
+
+**Sitio y capturas** a 1.12.10; el resto del paquete (instalador, emulador, Web Studio, `versions.json`, ambos
+`SHA256SUMS`) sincronizado con `make_release --sync`.
+
 ## Tooling — el chequeo de CPU deja de depender del ruido del host
 
 **El síntoma.** El mismo binario, sin recompilar nada, imprimía `1 CPU entries over budget` en una corrida y `0` en
