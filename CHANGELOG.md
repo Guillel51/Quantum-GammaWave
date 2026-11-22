@@ -1,3 +1,31 @@
+## v1.12.6 — ENV: el modo ONE y los segmentos, medidos
+
+**Qué es.** El knob `LOOP` (página ENV DEST) era OFF / ON, y ON volvía al ataque en el sustain mientras la tecla
+estuviera apretada. Ahora dice **OFF / LOOP / ONE**: `ONE` deja que la envolvente siga **al release por sí sola**
+al llegar al sustain, con la tecla apretada o no. El resultado musical es la articulación que faltaba: una tecla
+da la nota **entera** (ataque, decaimiento, release) y la voz se libera sola — pads pulsados, bajos con cola fija,
+cualquier sonido que no deba quedarse sostenido por más que aprietes.
+
+**Por qué sin parámetro nuevo.** El espacio de ids está **lleno** (`P_COUNT` = 127 desde v1.12.5): el modo entra en
+el **rango del enum existente**, y los dos valores que un proyecto podía guardar (0 y 1) siguen significando
+exactamente lo mismo. Ningún proyecto ni preset cambia de sonido.
+
+**Coste.** Un `else if` y una comparación dentro de la rama que ya se ejecutaba: **0 B** de RAM, 0 estado nuevo.
+La comparación de LOOP pasó de `> 0` a `== 1` para no capturar el modo nuevo.
+
+**Medido (`tests/env_test.c`, host x86-64).**
+
+| comprobación | resultado |
+|---|---|
+| OFF: tecla apretada → la voz sigue viva | **1 voz** |
+| ONE: la misma tecla → la voz se libera sola | **0 voces** |
+| LOOP: el ataque vuelve a entrar mientras la tecla está apretada | **15 vueltas** en 200 bloques |
+| Nota corta (tecla arriba dentro del ataque) | salto máximo de muestra **15** (de 32 767): sin click |
+| ENV 1 / ENV 2 (dos partes, ataques 10 y 100) | env 16 495 415 vs 51 756: **cada uno el suyo** |
+| Dos voces de la misma parte | la nota nueva no reinicia la que suena |
+| Fade de robo de voz | **nunca sube** (0 alzas) |
+| `regress` | **307 renders, 0 cambiados** |
+
 ## v1.12.5 — LFO CURVE: la fase del LFO, doblada (y el último id)
 
 **Qué es.** El LFO elegía forma, RATE, sincronización, PHASE, FADE, SLEW e INVERT, y ninguno de ellos cambiaba la

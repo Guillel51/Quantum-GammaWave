@@ -1331,9 +1331,16 @@ static int32_t env_tick(track_t *t, voice_t *v)
         break;
     case 2:
         v->env += mulq16(sus - v->env, ENV_EXP[p[P_DEC] & 127]);
-        if (p[P_ELOOP] > 0 && v->gate && v->env - sus < (1 << 18))   /* (JIANT 0.4) LOOP: at the sustain (within
+        if (p[P_ELOOP] == 1 && v->gate && v->env - sus < (1 << 18))   /* (JIANT 0.4) LOOP: at the sustain (within
                                                          * 1/64), held: the attack again from here (an ADSR-shaped LFO) */
             v->stage = 1;
+        else if (p[P_ELOOP] == 2 && v->env >= sus && v->env - sus < (1 << 18))   /* (v1.12.6) ONE: the same point,
+                                                         * but it goes on to the release instead of round: a key
+                                                         * gives its note the whole shape and the voice frees itself
+                                                         * while the key is still down. Held or not, the same shape:
+                                                         * ENV DEST's LOOP knob reads OFF / LOOP / ONE and the two
+                                                         * values a project could already hold mean what they did */
+            v->stage = 3;
         break;
     case 3:
         v->env -= mulq16(v->env, ENV_EXP[p[P_REL] & 127]);

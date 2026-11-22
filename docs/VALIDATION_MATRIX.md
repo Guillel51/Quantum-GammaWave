@@ -3441,3 +3441,20 @@ necesita un formato de almacenamiento nuevo. Página EDIT > LFO CURVE (con el gr
 `MD_LSHP` (31), CC 77. Sin RAM nueva: no hay estado, se calcula de la fase que ya existe.
 
 **No medido.** La unidad y el AC791N. El coste es de host x86-64.
+
+## 51. v1.12.6: ENV ONE y la independencia de ENV 1 / ENV 2
+
+**Feature (`[HOST]`, `tests/env_test.c`).** `LOOP` pasa a OFF / LOOP / ONE sin id nuevo (el espacio está lleno en
+127): ONE lleva la envolvente al release desde el sustain aunque la tecla siga apretada. Con la tecla apretada, OFF
+mantiene **1 voz** viva y ONE la deja en **0**; LOOP sigue ciclando (**15 vueltas** en 200 bloques).
+
+**Sin artefactos.** Una nota corta (tecla arriba dentro del ataque, 90) da un salto máximo de muestra de **15** sobre
+32 767; el fade de robo de voz nunca sube; `regress` **307 renders, 0 cambiados** (los valores 0 y 1 del enum
+significan lo mismo que antes).
+
+**Independencia.** Dos partes con ataques 10 y 100 llegan a envolventes distintas (16 495 415 / 51 756) y una nota
+nueva no reinicia la que está sonando: ENV 1 y ENV 2 no comparten estado.
+
+**Coste.** Un `else if` en una rama ya existente; **0 B** de RAM, sin estado nuevo.
+
+**No medido.** La unidad y el AC791N.

@@ -401,6 +401,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     # under the chord with the FX on, and three saturation/recovery cycles.
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_phase2_test" tests/poly_phase2_test.c -lm
     run "POLY FASE 2: a twelve-note chord re-struck whole on the new engine after a load, twelve keys in a LEGATO stack with PRIO LOW still playing the low one, a 24-note burst with every steal counted and no stuck note, twelve accumulated tails paying for a new chord, six parts competing without starving, a preset change under the chord with the FX on, and three saturation/recovery cycles leaving the pool whole" "$OUT/poly_phase2_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/env_test" tests/env_test.c -lm
+    run "ENV: OFF / LOOP / ONE differ (ONE frees a held voice, LOOP still cycles), a short note does not jump, two parts and two voices keep their own envelopes, and the steal fade only goes down" "$OUT/env_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/lfo_test" tests/lfo_test.c -lm
     run "LFO CURVE: the bent phase never runs backwards, every wave keeps its range, 0 is the identity, +60 arrives earlier and -60 later, a smooth wave under it has no step of its own" "$OUT/lfo_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/tilt_test" tests/tilt_test.c -lm

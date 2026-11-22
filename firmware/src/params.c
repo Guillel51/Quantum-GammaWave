@@ -35,6 +35,11 @@ static const char *const N_SCLFAM[] = {"ATONAL", "MAJOR", "MINOR", "MODAL", "MOD
                                        "MODAL", "MINOR"};   /* (ETAPA 5) HIJAZ is modal (it is Phrygian with a major
                                                              * third), HUNG MINOR is a minor key */
 static const char *const N_ONOFF[] = {"OFF", "ON"};
+static const char *const N_ELOOP[] = {"OFF", "LOOP", "ONE"};   /* (v1.12.6) the envelope's behaviour while a key is
+                                                                * held: OFF the plain ADSR, LOOP back to the attack at
+                                                                * the sustain (an ADSR-shaped LFO), ONE the release
+                                                                * from the sustain by itself -- a key gives the note its
+                                                                * full shape whether it is held or not */
 static const char *const N_NRATE[] = {"1/1", "1/2", "1/4", "1/8", "1/16", "46ms"};   /* (3.5) mod.c MS_NOISE's hold:
                                      * the tempo's grid, then the free 46 ms it always was (the default, last so the
                                      * editor's list order is the knob's) */
@@ -97,7 +102,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_ED_FLT] = PD("FILTER", F_BIPCT, -64, 63, 0),
     [P_ED_PIT] = PD("PITCH", F_BIPCT, -64, 63, 0),
     [P_ED_SHP] = PD("SHAPE", F_BIPCT, -64, 63, 0),
-    [P_ED_FX] = PE("LOOP", N_ONOFF, 0),          /* (JIANT 0.4, P_ELOOP) ON: held, the ENV starts again at the sustain */
+    [P_ED_FX] = PE("LOOP", N_ELOOP, 0),          /* (JIANT 0.4, P_ELOOP) ON: held, the ENV starts again at the sustain;
+                                                  * (v1.12.6) ONE: the release from the sustain, gated or not. Stored
+                                                  * values 0 and 1 mean exactly what they did: no new id was needed */
     [P_LRATE] = PD("RATE", F_LFOHZ, -14, 127, 60),  /* (JIANT 0.6.51) below 0 in time: 4BAR .. 1/32 (N_LSYNC) */
     [P_LWAVE] = PE("WAVE", N_LWAVE, 0),
     [P_LPHASE] = PD("PHASE", F_INT, -1, 127, 0),   /* (JIANT 0.6.51) -1: FREE, never restarted by a note */
