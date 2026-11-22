@@ -3205,5 +3205,16 @@ failures, 0 voice/routing, **0 entradas de CPU sobre presupuesto** (antes 1). Ba
 
 ### 41.5 Memory and flash
 
-`[AC791N]` XIP 558 148 B (5 312 B libres en el slot de la app, +36 B por el split), RAM `.data+.bss`
-93 504/98 304, imagen 578 300/583 612. El split no agrega RAM (ningún estado nuevo) y cuesta 36 B de código.
+`[AC791N]` XIP 563 796 B (434 584 de código + 129 212 de constantes), RAM `.data+.bss` 93 504/98 304
+(4 800 B libres), imagen 578 300/583 612 (5 312 B libres en el slot de la app). El split no agrega RAM
+(ningún estado nuevo) y cuesta 36 B de código respecto de la versión anterior de esta fase.
+
+### 41.6 Build and seal `[AC791N]`
+
+`FELUCCA_VERSION` `v1.8.0` (identidad `FM-1_965`), README, CHANGELOG y este documento lo dicen; el paquete, los
+dos `SHA256SUMS`, el emulador y el portal describen esa misma versión. `./build.sh --release 1.8.0` desde el
+árbol limpio en `45e6edf`: 610 933 B. `sh web/emu/build.sh` y `make_release.py --sync`: sha256 del paquete
+**`58cc26471d0c1ec0`**, build **45e6edf**, emulador **45e6edf**. `make_release.py --check` ok, `sha256sum -c` en
+`site/firmware/` ok, `emu_test.mjs` verde. Publicación en GitHub (`v1.8.0` tag + Release) **bloqueada en este
+entorno**: no hay credencial `gh` ni token de GitHub disponible; queda el paquete sellado en `release/` y en
+`site/`, y el push a `main` hecho.
