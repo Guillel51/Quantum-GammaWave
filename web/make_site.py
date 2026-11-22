@@ -170,7 +170,8 @@ def signed_release(directory):
     publishes and what the installer is allowed to write. `main` keeps moving (the emulator, the page),
     so the site serves this package for the install while it shows the build it is serving it with.
     When release/ holds several signed packages -- the previous one stays published while a new one is
-    cut -- the newest version wins, and it wins by version, not by file name."""
+    cut -- the newest one wins by the date it was cut (`created`), not by file name and not by the version
+    tuple: v1.7.19 is newer than v1.12.18 although the digits say otherwise."""
     try:
         manifests = list(Path(directory).glob("*.manifest.json"))
     except OSError:
@@ -187,7 +188,12 @@ def signed_release(directory):
                 and str(man.get("sha256", "")).lower() == hashlib.sha256(raw).hexdigest()
                 and int(man.get("size", -1)) == len(raw)):
             continue
-        key = version_key(man.get("version"))
+        # (v1.7.19) WHICH PACKAGE IS NEWEST: THE ONE CUT LAST, NOT THE ONE WITH THE BIGGEST NUMBER. Ordering by
+        # version_key put the 1.7.x series below every 1.12.x package, so publishing 1.7.19 served 1.12.18's
+        # bytes under a label built from both of them ("v1.12.18-9675915"). The series changed; the count did
+        # not. A manifest's `created` is the order things were published in, which is the only order the site
+        # promises (docs/VERSIONING.md); a missing stamp falls back to the version tuple as before.
+        key = (str(man.get("created") or ""), version_key(man.get("version")))
         if best is None or key > best[0]:
             best = (key, pkg_path, man)
     return (best[1], best[2]) if best else None

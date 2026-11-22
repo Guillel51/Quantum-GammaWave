@@ -3,7 +3,7 @@
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments -->
 <!-- Felucca web editor. One file, no libraries. Protocol: EDITOR_PROTOCOL.md.
      Add ?mock=1 to the URL to use a built-in simulated device. -->
-<html lang="ja" data-version="1.12.18">
+<html lang="ja" data-version="1.7.19">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2234,12 +2234,12 @@ function makeMockDevice(opt = {}) {
   const D = (label, fmt, min, max, def, names = null, unit = "") => ({ label, fmt, min, max, def, names, unit });
   const E = (label, names, def) => D(label, F.ENUM, 0, names.length - 1, def, names);
   const MSRC = ["OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT", "BAR"];   /* (1.2.1-GW NOISE; PAT 1.6; FASE 5 BAR: the bar's phase) */
-  const MDST = ["OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE", "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES", "ATK", "DEC", "REL"];   /* (FASE 2) X1..X4: the engine CHARACTER bank; (FASE 3) RES: the part filter's resonance; (FASE 5) the envelope's three times */
+  const MDST = ["OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE", "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES", "ATK", "DEC", "REL", "HARM", "LSHP"];   /* (FASE 2) X1..X4: the engine CHARACTER bank; (FASE 3) RES: the part filter's resonance; (FASE 5) the envelope's three times */
   const TP = [
     D("LEVEL", F.DB, 0, 127, 104),
     D("ATK", F.TIME, 0, 127, 10), D("DEC", F.TIME, 0, 127, 70), D("SUS", F.PCT, 0, 127, 90), D("REL", F.TIME, 0, 127, 60),
-    D("FILTER", F.BIPCT, -64, 63, 0), D("PITCH", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), E("LOOP", ["OFF", "ON"], 0),   /* (JIANT 0.4: P_ED_FX is the ENV LOOP) */
-    D("RATE", F.LFOHZ, -14, 127, 60), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE", "PLUK"], 0), D("PHASE", F.INT, -1, 127, 0), D("FADE", F.TIME, 0, 127, 0),   /* (0.6.51) RATE < 0 in time, PHASE -1 FREE */
+    D("FILTER", F.BIPCT, -64, 63, 0), D("PITCH", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), E("LOOP", ["OFF", "LOOP", "ONE"], 0),   /* (JIANT 0.4: P_ED_FX is the ENV LOOP) */
+    D("RATE", F.LFOHZ, -14, 127, 60), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE", "PLUK", "TRAP", "STEP"], 0), D("PHASE", F.INT, -1, 127, 0), D("FADE", F.TIME, 0, 127, 0),   /* (0.6.51) RATE < 0 in time, PHASE -1 FREE */
     D("PITCH", F.BIPCT, -64, 63, 0), D("FILTER", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), D("AMP", F.PCT, 0, 127, 0),
     E("MODE", ["OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT", "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD", "TRNS", "PEDAL", "ALBT"], 0), E("RATE", NDIV, 2), D("OCT", F.INT, 1, 4, 1), D("GATE", F.PCT, 1, 127, 64),
     D("SWING", F.PCT, 0, 100, 0), D("PROB", F.PCT, 0, 127, 127), E("HOLD", NONOFF, 0), E("ORDER", ["NOTE", "PLAY"], 0),
@@ -2358,7 +2358,11 @@ function makeMockDevice(opt = {}) {
         P("CLOCKWORK", [1,  6,  52,  0,  72,  44,  10,  12], [0,  72,  20,  44], 0, 8),
         P("PUENTE DE LUZ", [0,  16,  66,  0,  80,  30,  18,  7], [10,  76,  94,  58], 1, 4),
         P("SIESTA DORADA", [6,  8,  96,  6,  52,  40,  28,  -12], [58,  90,  108,  92], 0, 5),
-        P("AURORA DRIFT", [7,  38,  64,  6,  58,  20,  8,  12], [44,  96,  118,  104], 0, 5)] },
+        P("AURORA DRIFT", [7,  38,  64,  6,  58,  20,  8,  12], [44,  96,  118,  104], 0, 5),
+        P("NOTCH PAD", [7,  22,  64,  6,  74,  26,  0,  12], [80,  90,  112,  95], 0, 5),
+        P("PUMP PAD", [0,  18,  64,  4,  58,  14,  0,  0], [70,  88,  112,  100], 0, 5),
+        P("STAIR LEAD", [0,  16,  70,  0,  70,  40,  20,  0], [2,  68,  100,  45], 1, 4),
+        P("CRUSH BASS", [1,  0,  0,  0,  46,  62,  30,  -12], [0,  62,  45,  30], 1, 2)] },
     /* 1: reserved (DIGITAL, retired: src/fm4_convert.c ENG_FM4_GONE; its sounds load as FM6, FM4 above) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 7, 0), D("-", F.INT, 0, 14, 1), D("-", F.INT, 0, 14, 1),
         D("-", F.INT, 0, 14, 1), D("-", F.PCT, 0, 127, 60), D("-", F.INT, 0, 127, 60), D("-", F.PCT, 0, 127, 0), NONE],
@@ -2660,13 +2664,14 @@ function makeMockDevice(opt = {}) {
   for (let op = 0; op < 4; op++) TP.push(D("ATK", F.TIME, 0, 127, 0), D("DEC", F.TIME, 0, 127, 0), D("SUS", F.PCT, 0, 127, 127), D("REL", F.TIME, 0, 127, 0), D("LEVEL", F.PCT, 0, 127, 127));
   TP.push(D("OFFSET", F.INT, -32, 32, 0), D("PITCH", F.SEMI, -24, 24, 0));   /* 81, 82: SHIFT (JIANT; the chord keys before) */
   for (const l of ["KICK", "SNARE", "CLAP", "HATCL", "HATOP", "TOM", "RIM", "BELL"]) TP.push(D(l, F.PCT, 0, 127, 127));   /* 83..90: DRUM lane levels */
-  TP.push(E("TYPE", ["SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"], 0), D("TONE", F.BIPCT, -64, 63, 0), /* 91, 92: DIST (GAMMAWAVE) */
+  TP.push(E("TYPE", ["SOFT", "TAPE", "HEARTH", "FLUX", "FOLD", "CRUSH"], 0), D("TONE", F.BIPCT, -64, 63, 0), /* 91, 92: DIST (GAMMAWAVE) */
     D("LEN", F.STEPS, 1, 16, 16), E("DIV", NDIV, 2), D("SLEW", F.PCT, 0, 127, 0));   /* 93..95: the modulation sequence */
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM", "NOTCH", "SHELF"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  TP.push(D("M.STRT", F.PCT, 0, 127, 0), E("N.RATE", ["1/1", "1/2", "1/4", "1/8", "1/16", "46ms"], 5));   /* 115, 116: params.c P_MSTART, P_NRATE */
-  const P_COUNT = 125, G_COUNT = 75, NSTEP = 64, P_E0 = 117, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("M.STRT", F.PCT, 0, 127, 0), E("N.RATE", ["1/1", "1/2", "1/4", "1/8", "1/16", "46ms"], 5),
+    D("TILT", F.BIPCT, -64, 63, 0), D("CURVE", F.BIPCT, -64, 63, 0));   /* 115..118: params.c P_MSTART, P_NRATE, P_HARM, P_LSHP */
+  const P_COUNT = 127, G_COUNT = 75, NSTEP = 64, P_E0 = 119, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* tracks (firmware v3): four synth parts (1.0), six (JIANT 0.6); engine / preset / p / step below are the selected track's */
@@ -6348,7 +6353,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("1.12.18", 120, 194);
+      ctx.fillText("1.7.19", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
