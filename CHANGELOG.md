@@ -1,3 +1,33 @@
+## v1.12.0 — el punto de la envolvente sobre su curva, y la línea que sobraba en REVERB
+
+**Corregido: ENV (las dos pistas) — el punto de la envolvente se salía de la curva**
+
+- Causa: el punto se colocaba invirtiendo una **recta** (`(1000 - lvl) * n / (1000 - sus)`), mientras la curva
+  que tiene debajo decae **exponencialmente** (`ENV_K`). Con `DECAY` normal el punto iba hasta **13 px** por delante
+  de la tinta; en `RELEASE`, lo mismo. Ahora recorre **la misma recurrencia** que dibuja la curva, muestra por
+  muestra, e interpola entre las dos que el nivel cruza.
+- Una sola constante (`ENV_K`) da el paso de la exponencial al trazado y al punto: no pueden volver a separarse.
+- **Test nuevo `ui_render --env`**: pinta la página con una voz a un nivel conocido y otra vez sin ella; la
+  diferencia es el punto, y en la fila de su centro se busca la tinta de la curva. ENV 1 y ENV 2 × 3 juegos de ADSR
+  (rápido, normal, lento) × 3 etapas (ataque, decay, release) + una vuelta por HOME: **19 medidas, 0 px** de
+  desvío. Con la fórmula anterior el mismo test da **16 px** y falla: el defecto está reproducido y cerrado.
+
+**Corregido: FX BUSES página 1 — la línea bajo el REVERB**
+
+- El bloque REVERB era el único de los seis que tendía una regla `T_LINE` de ancho completo por su suelo, una fila
+  debajo de la base de la cola: al cambiar la altura de la cola con el bus, se leía como una línea que sube y baja
+  detrás del dibujo. Eliminada; el control, `SIZE`, la cola y el medidor de retorno no cambian.
+- Verificado: el bloque queda como DELAY / CHORUS / PUNCH / MASTER (ninguno lleva regla de suelo), y el resto de la
+  página no se mueve (0 hallazgos de lint, 0 desalineaciones).
+
+**Barrido completo**
+
+- 191 pantallas × 22 paletas: **0 lint**, **0 desalineaciones** en 3 806 950 medidas, 0 tintas sobre su color.
+- `--idle` 29 952 px escritos y **0 cambiados**; `--viz` (cabecera del visualizador quieta) verde; `--bands` 5/5
+  escenas en tope y 0 filas sin enviar; `--regions` 0 px fuera de la caja del pop-up.
+- `tests/regress` 307 renders de audio, 0 cambiados; `target_budget` BLOCK_PATH 45 704 en tope; `resources` 13/13;
+  `ui_pixels` regenerado a propósito: **61 frames** (la regla del REVERB y el punto de ENV), el resto idéntico.
+
 ## v1.11.0 — Fase 4/4: el parpadeo del menú de presets, cerrado con su causa
 
 **Corregido: el parpadeo del menú de presets al mover el knob**

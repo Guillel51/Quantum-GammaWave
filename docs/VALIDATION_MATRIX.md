@@ -3341,3 +3341,30 @@ en verde; `ui_render --idle` 29 952 px escritos, 0 cambiados; `--viz` estable.
 No hay unidad física en este entorno: nada de lo anterior es una medida del AC791N ni del panel. El parpadeo se
 corrige por construcción (una fila, un envío) y se verifica por igualdad de cuadros en el harness; la confirmación
 en el cristal queda para la unidad. Tag y GitHub Release: bloqueados, sin credencial `gh`.
+
+## 45. Fase 2.1: el punto de ENV y la línea del REVERB (v1.12.0)
+
+### 45.1 ENV's playhead (fixed, measured)
+
+El punto se situaba invirtiendo una recta mientras la curva decae exponencialmente: con DECAY normal erraba hasta
+13 px. Ahora `env_x_of()` recorre la misma recurrencia que el trazado (una sola `ENV_K`), muestra por muestra, con
+interpolación entre las dos que el nivel cruza. Test `[HOST]` nuevo, `ui_render --env`: ENV 1 y ENV 2 × 3 ADSR × 3
+etapas + una vuelta por HOME = **19 medidas, 0 px** de desvío; con la fórmula vieja el mismo test mide **16 px** y
+falla. Clase: host x86, render por píxeles; no es una medida del AC791N ni del panel.
+
+### 45.2 FX BUSES: the rule under REVERB (fixed, verified)
+
+El bloque REVERB tendía una regla `T_LINE` de ancho completo por su suelo, una fila bajo la base de la cola; ningún
+otro de los seis bloques lo hace. Eliminada (`ui_fxb.c`), sin tocar `SIZE`, la cola ni el medidor. Verificación: el
+bloque se ve como el resto (recorte revisado) y el barrido completo queda en 0 lint / 0 desalineaciones.
+
+### 45.3 Regression
+
+`ui_pixels` 3 056 frames: 61 cambiados a propósito (la regla del REVERB en sus 16 paletas y el punto de ENV),
+regenerados con `--update`; el resto idénticos. `--idle` 0 cambiados, `--viz` y `--bands` verdes, `--regions` 0 px.
+`regress` 307 renders de audio sin cambios, `target_budget` BLOCK_PATH 45 704, `resources` 13/13, web tests verdes.
+
+### 45.4 Limits
+
+Sin unidad física en este entorno: nada de lo anterior es una medida del AC791N ni del panel, y la confirmación en
+el cristal de los dos defectos visuales queda para la unidad. Tag y GitHub Release: bloqueados, sin credencial `gh`.

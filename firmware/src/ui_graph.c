@@ -34,6 +34,36 @@ static uint16_t step_heat(const step_t *st, int acc, uint16_t c)
 /* Matches voice.c: attack is linear, decay and release are exponential
  * (env += (target - env) * k each tick, ~99 % after the set time). Time
  * axis is the parameter value (the times themselves are exponential). */
+#define ENV_K(n) (32768 - 150733 / (n))            /* the exp(-4.6 / n) step: the curve's own factor, one place */
+/* (2.1) WHERE THE VOICE IS ON A DRAWN EXPONENTIAL, IN THE CURVE'S OWN TERMS. The playhead used to place itself by
+ * inverting a straight line -- (1000 - lvl) * n / (from - to) -- while the curve it sits on decays by ENV_K every
+ * sample: with the default decay the dot ran up to thirteen pixels ahead of the ink, and on a release the same.
+ * This walks the same recurrence the drawing loop walks, sample by sample, and interpolates between the two samples
+ * the level falls between, so the dot is on the curve by construction. `from` > `to`, both 0..1000, n >= 1. */
+static int32_t env_x_of(int32_t lvl, int32_t n, int32_t from, int32_t to)
+{
+    int32_t i, e = 32768, k = ENV_K(n), prev = from, px = 0, ok = 0;
+    if (lvl >= from)
+        return 0;                                  /* still at the section's first sample */
+    if (lvl <= to)
+        return n;                                  /* past its last */
+    for (i = 1; i <= n; i++) {
+        int32_t lv;
+        e = (e * k) >> 15;
+        lv = to + ((from - to) * e >> 15);
+        if (lv <= lvl) {                           /* between sample i-1 (prev) and i (lv) */
+            int32_t d = prev - lv;
+            px = (i - 1) * 100 + (d > 0 ? (prev - lvl) * 100 / d : 0);   /* samples and hundredths, one unit */
+            ok = 1;
+            break;
+        }
+        prev = lv;
+    }
+    if (!ok)
+        px = n * 100;
+    return px < 0 ? 0 : (px > n * 100 ? n * 100 : px);   /* hundredths of a sample: the caller divides */
+}
+
 static void graph_adsr(const track_t *t, uint16_t c)
 {
     const page_t *pg = cur_page();
@@ -48,7 +78,7 @@ static void graph_adsr(const track_t *t, uint16_t c)
     py = top;
     for (i = 1; i <= d; i++) {                                          /* decay: exponential to SUS */
         int32_t lvl;
-        e = (e * (32768 - 150733 / d)) >> 15;           /* k^d = exp(-4.6) */
+        e = (e * ENV_K(d)) >> 15;                       /* k^d = exp(-4.6) */
         lvl = sus + ((1000 - sus) * e >> 15);
         cv_line_t(px, py, x1 + i, EGY(lvl), heat_y(py, top, bot, c), 2);
         px = x1 + i;
@@ -59,7 +89,7 @@ static void graph_adsr(const track_t *t, uint16_t c)
     py = EGY(sus);
     e = 32768;
     for (i = 1; i <= r; i++) {                                          /* release: exponential to 0 */
-        e = (e * (32768 - 150733 / r)) >> 15;
+        e = (e * ENV_K(r)) >> 15;
         cv_line_t(px, py, x3 + i, EGY(sus * e >> 15), heat_y(py, top, bot, c), 2);
         px = x3 + i;
         py = EGY(sus * e >> 15);
@@ -72,12 +102,12 @@ static void graph_adsr(const track_t *t, uint16_t c)
                 bv = &V(t, i);
         if (bv) {
             lvl = (int32_t)(((int64_t)bv->env * 1000) >> 24);
-            if (bv->stage == 1u)
+            if (bv->stage == 1u)                       /* the attack is drawn straight: level over its length */
                 x = x0 + a * lvl / 1000;
-            else if (bv->stage == 2u)
-                x = x1 + (sus < 1000 ? clamp((1000 - lvl) * d / (1000 - sus), 0, d) : 0);
+            else if (bv->stage == 2u)                  /* the decay and the release are the curve's own, not a line */
+                x = x1 + (sus < 1000 ? env_x_of(lvl, d, 1000, sus) / 100 : 0);
             else
-                x = x3 + (sus > 0 ? clamp((sus - lvl) * r / sus, 0, r) : r);
+                x = x3 + (sus > 0 ? env_x_of(lvl, r, sus, 0) / 100 : r);
             cv_rect(x, EGY(lvl), 1, bot + 2 - EGY(lvl), T_MID);
             cv_rrect(x - 3, EGY(lvl) - 3, 7, 7, 3, T_TEXT, T_SURF);
         }

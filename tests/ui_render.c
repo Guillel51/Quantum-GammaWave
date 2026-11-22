@@ -2441,6 +2441,120 @@ static int bands_main(void)
     return bad ? 1 : 0;
 }
 
+/* (2.1) THE ENVELOPE'S PLAYHEAD MUST SIT ON THE DRAWN CURVE, AND THIS MEASURES IT. Both tracks (ENV 1 and ENV 2),
+ * three ADSR settings and the three live stages: the page is drawn with a voice at a known level and then again with
+ * that voice gone. The difference between the two frames is the dot and its drop line; on the dot's centre row the
+ * reference frame says where the curve's ink is, and the dot's column must be within 2 px of it. The two frames are
+ * the same page in the same state, so nothing else can account for the pixels that differ. */
+static int env_main(void)
+{
+    static const struct { const char *nm; int a, d, s, r; } CFG[] = {
+        {"rapido", 6, 20, 40, 14}, {"normal", 64, 64, 71, 64}, {"lento", 120, 104, 88, 120}};
+    static const struct { const char *nm; uint8_t st; } STG[] = {{"ataque", 1u}, {"decay", 2u}, {"release", 3u}};
+    static uint16_t A[240 * 240], B[240 * 240];
+    uint32_t n, k, j, v, worst = 0;
+    int bad = 0;
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    printf("env: el punto de la envolvente sobre la curva dibujada (ENV 1 y ENV 2 x 3 ADSR x 3 etapas)\n");
+    for (n = 0; n < 2u; n++)
+        for (k = 0; k < 3u; k++)
+            for (j = 0; j < 3u; j++) {
+                uint32_t x, y, bx0 = 240u, bx1 = 0u, by0 = 240u, cx, cy, bg, ink = 900u, d;
+                int32_t sus, lvl;
+                state();
+                song.sel = (uint8_t)n;
+                TSEL->p[P_ATK] = CFG[k].a;
+                TSEL->p[P_DEC] = CFG[k].d;
+                TSEL->p[P_SUS] = CFG[k].s;
+                TSEL->p[P_REL] = CFG[k].r;
+                go_title("ENV");
+                for (v = 0; v < NVOICE; v++) {          /* one voice alive: the one this test places */
+                    V(TSEL, v).stage = 0;
+                    V(TSEL, v).env = 0;
+                }
+                sus = TSEL->p[P_SUS] * 1000 / 127;
+                lvl = STG[j].st == 1u ? 450 : STG[j].st == 2u ? (1000 + sus) / 2 : sus / 2;
+                if (lvl < 1)
+                    lvl = 1;
+                V(TSEL, 0).stage = STG[j].st;
+                V(TSEL, 0).env = (int32_t)(((int64_t)lvl * (1 << 24)) / 1000);
+                rframe();                               /* the page, with the dot */
+                memcpy(A, host_screen, sizeof A);
+                V(TSEL, 0).stage = 0;
+                V(TSEL, 0).env = 0;
+                rframe();                               /* the same page, without it */
+                memcpy(B, host_screen, sizeof B);
+                for (y = 0; y < 240u; y++)
+                    for (x = 0; x < 240u; x++)
+                        if (A[y * 240u + x] != B[y * 240u + x]) {
+                            if (x < bx0) bx0 = x;
+                            if (x > bx1) bx1 = x;
+                            if (y < by0) by0 = y;
+                        }
+                if (bx0 > bx1) {
+                    printf("  ENV %u %s %s: FALLA, no hay punto que medir\n", n + 1u, CFG[k].nm, STG[j].nm);
+                    bad++;
+                    continue;
+                }
+                cx = (bx0 + bx1) / 2u;
+                cy = by0 + 3u;                          /* the box is 7 px tall: its centre row */
+                bg = B[cy * 240u + 6u];                 /* the page's tone, left of the panel */
+                for (x = 4; x < 236u; x++)
+                    if (B[cy * 240u + x] != bg) {
+                        d = x > cx ? x - cx : cx - x;
+                        if (d < ink)
+                            ink = d;
+                    }
+                if (ink > worst)
+                    worst = ink;
+                printf("  ENV %u %-7s %-8s desvio %2u px%s\n", n + 1u, CFG[k].nm, STG[j].nm, ink,
+                       ink > 2u ? "   <-- FUERA DE LA CURVA" : "");
+                if (ink > 2u)
+                    bad++;
+            }
+    /* (y despues de navegar: HOME y de vuelta, el punto otra vez sobre su curva) */
+    {
+        uint32_t x, y, bx0 = 240u, bx1 = 0u, by0 = 240u, cx, cy, bg, ink = 900u, d;
+        int32_t sus, lvl;
+        state();
+        song.sel = 0;
+        TSEL->p[P_ATK] = 40; TSEL->p[P_DEC] = 90; TSEL->p[P_SUS] = 60; TSEL->p[P_REL] = 60;
+        go_title("ENV");
+        go_home();
+        go_title("ENV");
+        for (v = 0; v < NVOICE; v++) { V(TSEL, v).stage = 0; V(TSEL, v).env = 0; }
+        sus = TSEL->p[P_SUS] * 1000 / 127;
+        lvl = (1000 + sus) / 2;
+        V(TSEL, 0).stage = 2u;
+        V(TSEL, 0).env = (int32_t)(((int64_t)lvl * (1 << 24)) / 1000);
+        rframe();
+        memcpy(A, host_screen, sizeof A);
+        V(TSEL, 0).stage = 0; V(TSEL, 0).env = 0;
+        rframe();
+        for (y = 0; y < 240u; y++)
+            for (x = 0; x < 240u; x++)
+                if (A[y * 240u + x] != host_screen[y * 240u + x]) {
+                    if (x < bx0) bx0 = x;
+                    if (x > bx1) bx1 = x;
+                    if (y < by0) by0 = y;
+                }
+        cx = (bx0 + bx1) / 2u;
+        cy = by0 + 3u;
+        bg = host_screen[cy * 240u + 6u];
+        for (x = 4; x < 236u; x++)
+            if (host_screen[cy * 240u + x] != bg) {
+                d = x > cx ? x - cx : cx - x;
+                if (d < ink) ink = d;
+            }
+        printf("  ENV 1 tras HOME y vuelta: desvio %u px%s\n", ink, ink > 2u ? "   <-- FUERA DE LA CURVA" : "");
+        if (ink > 2u)
+            bad++;
+        if (ink > worst) worst = ink;
+    }
+    printf("env: %s (peor desvio %u px)\n", bad ? "FAILED" : "el punto cae sobre la curva en las 19 medidas", worst);
+    return bad ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *out = argc > 1 ? argv[1] : "build/ui_new";
@@ -2452,6 +2566,8 @@ int main(int argc, char **argv)
         return idle_main();
     if (argc > 1 && !strcmp(argv[1], "--bands"))
         return bands_main();
+    if (argc > 1 && !strcmp(argv[1], "--env"))
+        return env_main();
     if (argc > 1 && !strcmp(argv[1], "--viz"))
         return viz_main();
     if (argc > 1 && !strcmp(argv[1], "--headers"))
