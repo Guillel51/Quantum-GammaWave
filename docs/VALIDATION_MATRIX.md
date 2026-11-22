@@ -3394,3 +3394,18 @@ generada (~160 B de XIP) sin uso.
 **Instalación desde stock V16.** `docs/FM1_V16.md` §7. El gate **no** se relaja: la vía corta (backup de la ventana
 `0x4000–0x93000` + archivo oficial V16 con hashes fijados) reconstruye lo que el instalador toca, pero no `USR`/
 `BTIF`/NVS, regiones sin una sola medida en V16 en este árbol. Estado de instalación: **GO CONDITIONAL**, sin cambio.
+
+## 48. v1.12.3: polifonía y CPU, con las optimizaciones descartadas por medición
+
+**Polifonía (`[HOST]`, `fx_bench` escena 4, mejor de 5, 3 corridas).** 12 voces: 137,8 · 139,8 · 138,3 ns/muestra.
+16 voces (`-DNVOICE=16`): 155,8 · 164,8 · 158,7 ns/muestra — **+13 %** en la escena más densa. Con 16 voces el
+`.bss` deja 3 440 B libres contra el piso de 4 096 (medición de fase 2), así que no entra en RAM. **Máximo real
+comprobado: 12 voces compartidas**, con `poly_stress_test` 12/12 y `poly_budget_test` verdes.
+
+**Optimización descartada.** `rev_room`: sacar `32767 - damp` del bucle (aritmética idéntica, bit a bit) no movió
+la aguja (137,8–145,9 frente a 138,0–139,8 del original; con `unroll 4`, 139,5–143,9). Revertida: el árbol conserva
+el código original. Documentado en `docs/VOICE_POOL.md` §1.12.3.
+
+**Estabilidad.** `poly_stress_test`: acordes densos, note-on/off rápido, sustain, releases largos y robo de voces,
+12/12, pico dentro del presupuesto. `regress` 307 renders 0 cambiados, `target_budget` BLOCK_PATH 45 704 en tope.
+Sin unidad física: nada de esto es una medida del AC791N.

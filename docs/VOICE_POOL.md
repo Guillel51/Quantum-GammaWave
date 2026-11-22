@@ -195,3 +195,32 @@ vigor** (`voice_budget()`), no el tamaño del storage: el día que la RAM alcanc
 En el camino quedó arreglado el escenario que faltaba: `tests/fx_bench` escena 4 mide polifonía de verdad
 (notas pedidas > tope), y `tests/poly_budget_test` / `poly_stress_test` / `poly_voices_test` /
 `poly_phase2_test` dejaron de confundir "12" con la capacidad del pool.
+
+## 1.12.3 — la polifonía, medida otra vez (host x86)
+
+Escena 4 de `fx_bench` (seis partes, cuatro notas cada una: 24 pedidas, el tope del pool manda), mejor de 5, tres
+corridas intercaladas:
+
+| voces | ns/muestra (mejor de 5, 3 corridas) | contra 12 |
+|---|---|---|
+| **12 (actual)** | 137,8 · 139,8 · 138,3 | — |
+| **16 (`-DNVOICE=16`)** | 155,8 · 164,8 · 158,7 | **+13 %** en la escena más densa (≈ +4,5 ns/muestra por voz) |
+
+**Decisión: no se sube.** Con 16 voces el `.bss` medido en la fase anterior queda en 94 864 B y deja **3 440 B**
+libres contra el piso de 4 096: no entra. Y aunque entrase, el +13 % de CPU tendría que sostenerse en la unidad
+física, que no está aquí. La polifonía comprobada sigue siendo **12 voces compartidas** (`voice_budget()`), con
+`tests/poly_stress_test.c` y `tests/poly_budget_test.c` en verde.
+
+### Optimización intentada y descartada con medición
+
+`rev_room` (22 % del bloque) recalculaba `32767 - damp` cuatro veces por muestra para devolverle a `mulq15` el valor
+de la tabla que ya tenía. Se sacó del bucle — aritmética idéntica, cola idéntica bit a bit, `regress` 307 renders 0
+cambiados — y se midió con y sin `#pragma GCC unroll 4` en el bucle de los cuatro combs:
+
+| variante | ns/muestra (3 corridas) |
+|---|---|
+| original | 138,0 · 139,8 · 138,3 |
+| sin el `32767 - damp` del bucle | 137,8 · 145,9 · 141,8 |
+| ídem + unroll 4 | 140,0 · 139,5 · 143,9 |
+
+Dentro del ruido del host (±5 %). **No se quedó**: el árbol conserva el código original y esta tabla es el motivo.

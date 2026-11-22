@@ -1,3 +1,27 @@
+## v1.12.3 — polifonía y CPU medidos otra vez; dos optimizaciones descartadas con números
+
+**Polifonía: 12 voces, comprobada; 16 medidas y no**
+
+- Escena 4 de `fx_bench` (seis partes × cuatro notas), mejor de 5, tres corridas: **12 voces 137,8–139,8 ns/muestra**
+  frente a **16 voces 155,8–164,8** (`-DNVOICE=16`): **+13 %** de CPU en la escena más densa, ≈ 4,5 ns/muestra por
+  voz. Con 16 el `.bss` deja **3 440 B** libres contra el piso de 4 096 (medición de la fase anterior), así que no
+  entra en RAM. **No se sube la polifonía**: 12 voces compartidas siguen siendo el máximo real, con
+  `poly_stress_test` y `poly_budget_test` en verde.
+
+**Optimización de `rev_room`: intentada, medida, descartada**
+
+- Se sacó del bucle interior un `32767 - damp` que devolvía a `mulq15` el valor de la tabla que ya tenía (aritmética
+  idéntica: `regress` 307 renders, 0 cambiados), con y sin `#pragma GCC unroll 4` en los cuatro combs.
+- Medición: original 138,0/139,8/138,3 · sin el cálculo 137,8/145,9/141,8 · con unroll 140,0/139,5/143,9 ns/muestra.
+  **Dentro del ruido del host**: no se quedó. El árbol conserva el código original y el intento queda documentado en
+  `docs/VOICE_POOL.md` §1.12.3 — optimizar sin ganancia medida es cómo se degrada el sonido.
+
+**Estabilidad bajo carga**
+
+- `poly_stress_test` (acordes densos, note-on/off rápido, sustain, releases largos, robo de voces): **12/12 checks**,
+  el pico nunca excedió el presupuesto de bloque. `regress` **307 renders, 0 cambiados**, 0 CPU fuera de
+  presupuesto. `target_budget` BLOCK_PATH 45 704 en tope.
+
 ## v1.12.2 — auditoría de HOME con un instrumento, código muerto y la vía de retorno a stock
 
 **HOME: las cinco pantallas, medidas al recorrerlas (test nuevo `ui_render --home`)**
