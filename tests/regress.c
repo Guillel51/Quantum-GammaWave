@@ -1388,8 +1388,8 @@ static uint32_t load_ns_base(const char *path, const char *fp, kv_t *kv, uint32_
         if (c == 1) {
             n = ns_rows(f, cand, kv, max);
             if (n) {
-                printf("regress: CPU ns: the exact key '%s' has no block; using the only block for this "
-                       "architecture and compiler: '%s'\n", fp, cand);
+                printf("regress: CPU ns: the exact key '%.*s' has no block; using the only block for this "
+                       "architecture and compiler: '%.*s'\n", 180, fp, 180, cand);
                 if (used && usedn)
                     snprintf(used, usedn, "%s", cand);
             }
