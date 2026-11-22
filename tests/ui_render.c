@@ -2328,12 +2328,65 @@ static int announce_main(void)
     return bad ? 1 : 0;
 }
 
+/* ------------------------------------------------------------------ the visualizer's top --- */
+/* The visualizer's top section -- the cap over rows 20..45 and the panel's first rows, where the title, the
+ * engine's name, the rule and the tracks' seven blocks are -- holds nothing that moves: the field, the trace
+ * and the bars below it do. If any of those pixels move between two frames with the same signal, the section
+ * is being cleared and repainted (a flicker on the panel) and this says how many and where.
+ * It also checks the one thing a repaint can lose: that the title is ink in every frame, never a blank. */
+static int viz_main(void)
+{
+    static uint16_t prev[240 * 240];
+    uint32_t f, y, x, bad = 0;
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    if (!rep)
+        return 1;
+    printf("viz: la cabecera y el cap del visualizador (filas 0..25) entre cuadros seguidos\n");
+    state();
+    setup(S_HOME_VIZ);
+    pal(UI_QUANTUM_INDEX);
+    rframe();
+    for (f = 0; f < 6u; f++) {
+        uint32_t moved = 0, rows = 0, first = 999u, ink = 0, wrote = 0;
+        memcpy(prev, host_screen, sizeof prev);
+        ui.frame += 1u;                                /* one frame of the ambient layer, same audio */
+        fm1_ms += 16u;
+        bb_on = 1;                                     /* (2.0) what the panel is made to write, row by row */
+        wrote = rnext();
+        bb_on = 0;
+        for (y = 0; y <= 25u; y++) {   /* (2.0) the header and the six-row cap: nothing here moves, ever */
+            uint32_t row = 0;
+            for (x = 0; x < 240u; x++)
+                if (prev[y * 240u + x] != host_screen[y * 240u + x]) {
+                    row++;
+                    if (y < first) first = y;
+                }
+            if (row) rows++;
+            moved += row;
+        }
+        for (x = 0; x < 240u; x++)                     /* the title's own row: ink, in every frame */
+            if (host_screen[30u * 240u + x] != host_screen[26u * 240u + x]) ink++;
+        printf("  cuadro %u: %4u px movidos en %2u filas%s%s, tinta del titulo %u px, escritos %u px\n", f + 1u,
+               moved, rows, rows ? ", la primera " : "", rows ? "" : " (quieta)", ink, wrote);
+        if (rows)
+            printf("  FALLA: la cabecera o el cap se repintan con el mismo sonido (fila %u)\n", first);
+        if (!ink) {
+            printf("  FALLA: el titulo no tiene tinta\n");
+            bad++;
+        }
+        bad += rows ? 1u : 0u;
+    }
+    printf("viz: %s\n", bad ? "FAILED" : "la seccion superior queda quieta entre cuadros, y el titulo siempre esta");
+    return bad ? 1 : 0;
+}
+
 static int bands_main(void)
 {
     static const struct { const char *nm; int s; } SC[] = {{"HOME 2/5 OVERVIEW", S_HOME_OVERVIEW},
                                                           {"HOME 3/5 MIXER", S_HOME_MIX},
                                                           {"HOME 4/5 PERFORM", S_HOME_PERF},
-                                                          {"GLO MIXER (meters)", S_MIXER}};
+                                                          {"GLO MIXER (meters)", S_MIXER},
+                                                          {"PRESETS (knob)", S_PRESETS}};
     static uint16_t got[240 * 240];
     reg_t all = rrect("frame", 0, 0, 240, 240);
     uint32_t k, bad = 0;
@@ -2352,6 +2405,9 @@ static int bands_main(void)
         rsnap();
         if (k == 3u)                                   /* the MIXER: a meter of T1 moves, nothing else */
             trk[0].vu = (int32_t)((uint32_t)trk[0].vu + 9000u) > 30000 ? 9000 : trk[0].vu + 9000;
+        if (k == 4u)                                   /* (2.0) the PRESETS knob: one step of the list, and the
+                                                        * popup it puts over the graph -- the report's flicker */
+            presets_turn(1);
         ui.frame += 8u;                                /* one step of hv_air's field and the strip's pulse */
         fm1_ms += 16u;
         bb_on = 1;
@@ -2389,6 +2445,8 @@ int main(int argc, char **argv)
         return idle_main();
     if (argc > 1 && !strcmp(argv[1], "--bands"))
         return bands_main();
+    if (argc > 1 && !strcmp(argv[1], "--viz"))
+        return viz_main();
     if (argc > 1 && !strcmp(argv[1], "--headers"))
         return headers_main();
     if (argc > 1 && !strcmp(argv[1], "--announce"))

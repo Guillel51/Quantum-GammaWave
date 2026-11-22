@@ -1,3 +1,39 @@
+## v1.10.0 — Fase 3/4: el parpadeo del visualizador, la batería y lo que el menú de presets cuesta
+
+**Corregido: la sección superior del visualizador**
+
+- El *cap* que tapa las seis filas entre la cabecera y el panel (20..25) se dibujaba **26 filas de alto**:
+  pintaba y hacía enviar las filas 20..45, o sea **las 20 filas de arriba del panel dos veces por cuadro**,
+  primero con el tono plano de la página y después con el panel y su título. Una banda enviada dos veces con
+  contenido distinto entre los dos envíos es un parpadeo en el cristal, y estaba justo donde el reporte lo
+  nombra. Ahora el cap mide las seis filas que le tocan (`Y_LABEL_GAP_H`).
+- Medido `[HOST]` con el modo nuevo `ui_render --viz` (cuadros consecutivos con la misma señal): **16 080–18 960
+  px escritos por cuadro antes, 8 400–10 800 después** — entre un 45 % y un 55 % menos de escrituras por cuadro
+  en la pantalla, y esas filas ya no se envían dos veces.
+
+**Corregido: el icono de batería**
+
+- Era un glifo Fukiai de 16 px que a distancia de brazo se leía como un borrón: el nivel no se distinguía del
+  contorno. Ahora se **dibuja**: cuerpo de 18 × 11, terminal de 2 px y tres celdas altas, centrado en la barra
+  como el resto de sus elementos (filas 3..13, x 214..235). Cinco estados como antes: vacía (contorno MID), una
+  celda ACENTO, dos y tres celdas en THEME, y USB con su rayo recortado dentro del cuerpo.
+- Verificado con el barrido: 0 hallazgos de lint, 0 desalineaciones en 3 806 950 medidas, y los seis estados
+  renderizados en `batt_0/1/2/3`, `batt_usb` y `home`.
+
+**Medido, y NO cerrado: el parpadeo del menú de presets**
+
+- Se agregó el escenario al barrido (`ui_render --bands`, "PRESETS (knob)"). Un paso del knob escribe
+  **62 096 px** para cambiar **14 161**: 4,4 veces las escrituras que necesita, la mayor parte bajo el popup,
+  que se pinta encima acto seguido. Las filas que no se envían son correctas (0 obsoletas).
+- Se probó y **no** era la causa el `ui.graph_sig = 0` que forzaba el repintado del grafo: sacarlo no cambió el
+  número. El parpadeo del panel no se pudo reproducir en el harness y **queda pendiente** con su medición y su
+  escenario listos; no se declara corregido.
+
+**Barrido**
+
+- 191 pantallas × 22 paletas, 0 lint, 0 alineación, 3 056 frames de píxeles regenerados a propósito (la batería
+  está en todas las cabeceras), idle 29 952 px escritos y 0 cambiados.
+
 ## v1.9.0 — Fase 2/4: cuántas voces aguanta de verdad
 
 **Medido, no supuesto**

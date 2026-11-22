@@ -3363,6 +3363,8 @@ static int16_t scope_snap[SCOPE_N];
  * in the well. 60 %: the field is legible and the trace still leads. (A MENU row for it was written and
  * measured; with 1.4.7's panel work there are not 90 B of XIP left for a setting, so the share is fixed.) */
 #define VIZ_VEIL 60
+#define Y_LABEL_GAP_H (26 - Y_LABEL)   /* (2.0) rows Y_LABEL..25: the only rows above the panel's 26 that the
+                                        * visualizer has to cover -- 26 and up are the two passes' own */
 static void graph_home_viz(uint16_t c)
 {
     static uint8_t peak_decay[16];
@@ -3403,10 +3405,15 @@ static void graph_home_viz(uint16_t c)
 
     /* (1.3.9) THE SIX ROWS ABOVE THE PANEL ARE THE VISUALIZER'S TOO. Its two 88-row passes start at 26, and rows
      * Y_LABEL (20) .. 25 were painted by nobody: draw_frame() only fills the gaps BETWEEN the strips, so the top of
-     * the four knob cards HOME had just drawn stayed on screen -- the squares that showed in the visualizer. A
-     * 26-row cap of the page's own tone, blitted at Y_LABEL, covers them; the passes then draw over 26..202. */
+     * the four knob cards HOME had just drawn stayed on screen -- the squares that showed in the visualizer. A cap
+     * of the page's own tone, blitted at Y_LABEL, covers them; the passes then draw over 26..202.
+     * (2.0) THE CAP IS THE SIX ROWS IT IS FOR. It was 26 rows tall, so it painted -- and the panel was made to
+     * send -- rows 20..45: the panel's own top 20 rows, twice a frame, first as the cap's flat page tone and then
+     * as the panel and its title. A band sent twice with different content between the two sends is a flicker on
+     * the glass, and it was in the one place the report named: the top of the visualizer. Six rows here; 26..202
+     * belong to the two passes alone. */
     cv_oy = 0;
-    cv_begin(240, 26, vbg);
+    cv_begin(240, Y_LABEL_GAP_H, vbg);
     cv_blit(0, Y_LABEL);
 
     for (pass = 0; pass < 2u; pass++) {

@@ -70,12 +70,24 @@ static void draw_load(int32_t x)
 }
 static void draw_battery(int32_t bx)
 {
-    int32_t lvl = batt_shown();
-    /* (3.9) 16 px, the header's own cell: at 24 a cell in a 22 px bar painted a row above the screen and a row
-     * under the bar (ui_render's lint: off the screen, cut by its canvas), and the 24 px glyph has no cell at
-     * any other size (the alignment audit declared it and found nothing drawn). The glyph is wide and short, so
-     * it still reads at 16, on the bar's own middle. */
-    cv_icon_mid(bx, H_HEAD / 2, 16, batt_icon(lvl), lvl == 1 ? T_ACCENT : lvl == 0 ? T_MID : T_THEME, T_BG);
+    int32_t lvl = batt_shown(), y = (H_HEAD - 11) / 2, k;
+    uint16_t ink = lvl == 1 ? T_ACCENT : lvl == 0 ? T_MID : T_THEME;
+    int32_t lit = lvl >= 4 ? 3 : (lvl * 3 + 1) / 3;     /* 0, 1 (1/3), 2 (2/3), 3: three cells, not four bars */
+    /* (2.0) DRAWN, NOT A GLYPH. The 16 px Fukiai battery was a smudge at arm's length: the level could not be
+     * told from the outline, and an empty one read as a dot. This is the header's own cell (x 214..235, rows
+     * 3..13, centred on H_HEAD / 2 like every other element of the bar) with an 18 x 11 body, a 2 px tip and
+     * three cells as wide as the body allows -- the same states the glyphs had: empty (MID outline), one cell
+     * ACCENT, THEME above, and USB power keeps its bolt inside the body. */
+    cv_rect(bx, y, 18, 11, ink);                        /* the body's outline, 1 px */
+    cv_rect(bx + 1, y + 1, 16, 9, T_BG);                /* its inside, so the outline reads as a frame */
+    for (k = 0; k < lit; k++)                           /* the cells, from the left as the bars were */
+        cv_rect(bx + 2 + k * 5, y + 3, 4, 6, ink);
+    cv_rect(bx + 18, y + 3, 2, 5, ink);                 /* the tip */
+    if (lvl == 4) {                                     /* USB power: the bolt, cut out of the cells */
+        cv_rect(bx + 8, y + 2, 2, 3, T_BG);
+        cv_rect(bx + 7, y + 5, 2, 2, T_BG);
+        cv_rect(bx + 9, y + 4, 2, 2, T_BG);
+    }
 }
 
 /* ---------------------------------------------------- rolling digits --- */

@@ -3264,3 +3264,35 @@ suite del emulador verdes. Los cinco tests de polifonía, verdes.
 **1e5b1692**, emulador **1e5b1692**. `--check` ok, `sha256sum -c` en `site/firmware/` ok, `emu_test.mjs` verde,
 `tests/regress` 307 renders 0 cambiados. Tag `v1.9.0` y Release de GitHub: **bloqueados en este entorno** (sin
 credencial `gh`, `gh auth status` = not logged in); el paquete sellado queda en `release/` y `site/`.
+
+## 43. Fase 3/4: gráficos, FPS y los bugs visuales obligatorios (v1.10.0)
+
+### 43.1 The visualizer's top section (fixed, measured)
+
+El *cap* sobre las filas 20..25 medía **26 filas**: cubría 20..45 y hacía que el panel escribiera y enviara sus
+20 filas de arriba dos veces por cuadro (tono plano del cap, después panel y título). `[HOST]` con el modo nuevo
+`ui_render --viz`, cuadros consecutivos con la misma señal: **16 080–18 960 px escritos/cuadro antes, 8 400–10 800
+después (−45 % a −55 %)**, y esas filas ya no se envían dos veces. El modo queda en el repo como guarda: falla si
+la cabecera o el cap cambian un píxel con la señal quieta, o si el título pierde su tinta.
+
+### 43.2 The battery icon (fixed, verified)
+
+Glifo de 16 px reemplazado por una batería **dibujada**: 18 × 11 de cuerpo, terminal de 2 px, tres celdas,
+centrada en la barra (filas 3..13, x 214..235), cinco estados (vacía MID, 1 celda ACENTO, 2 y 3 THEME, USB con
+rayo). `[HOST]` barrido: 0 lint, 0 desalineaciones en 3 806 950 medidas. Los estados se renderizaron y revisaron
+(`batt_0`, `batt_1`, `batt_2`, `batt_3`, `batt_usb`, `home`).
+
+### 43.3 The preset menu (measured, NOT closed)
+
+Escenario nuevo en `ui_render --bands` ("PRESETS (knob)"): un paso del knob escribe **62 096 px** y cambia
+**14 161** (4,4×), con 0 filas obsoletas. Se descartó con medición la hipótesis `ui.graph_sig = 0` (sacarlo no
+mueve el número). **El parpadeo no se reprodujo en el harness y no se declara corregido**: queda la medición, el
+escenario y la pista (el popup sobre el grafo repintado) para la fase siguiente. Cualquier afirmación de que está
+arreglado sería una validación que no se corrió.
+
+### 43.4 Regression
+
+`tests/regress` 307 renders de audio sin cambios; barrido 191 pantallas × 22 paletas, 0 lint, 0 alineación,
+`--idle` 29 952 px escritos y 0 cambiados, `--viz` verde, `--bands` 4/5 escenas dentro de tope (la de presets
+falla a propósito: es la que documenta el pendiente). `ui_pixels.txt` regenerado a propósito: **2 656 de 3 056
+frames** cambian porque la batería está en todas las cabeceras. `tests/resources_test.py` sin cambios de RAM.
