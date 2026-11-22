@@ -64,7 +64,7 @@ static void draw_load(int32_t x)
 }
 static void draw_battery(int32_t bx)
 {
-    int32_t lvl = batt_shown(), y = (H_HEAD - 11) / 2, k;
+    int32_t lvl = batt_shown(), y = (H_HEAD - 13) / 2, k;
     uint16_t ink = lvl == 1 ? T_ACCENT : lvl == 0 ? T_MID : T_THEME;
     int32_t lit = lvl >= 4 ? 3 : (lvl * 3 + 1) / 3;     /* 0, 1 (1/3), 2 (2/3), 3: three cells, not four bars */
     /* (2.0) DRAWN, NOT A GLYPH. The 16 px Fukiai battery was a smudge at arm's length: the level could not be
@@ -72,15 +72,19 @@ static void draw_battery(int32_t bx)
      * 3..13, centred on H_HEAD / 2 like every other element of the bar) with an 18 x 11 body, a 2 px tip and
      * three cells as wide as the body allows -- the same states the glyphs had: empty (MID outline), one cell
      * ACCENT, THEME above, and USB power keeps its bolt inside the body. */
-    cv_rect(bx, y, 18, 11, ink);                        /* the body's outline, 1 px */
-    cv_rect(bx + 1, y + 1, 16, 9, T_BG);                /* its inside, so the outline reads as a frame */
+    /* (v1.12.18) ONE ROW TALLER AND TWO WIDER: 20 x 13 in the 16 px bar instead of 18 x 11. At arm's length the
+     * 11 px one read as a smudge -- the cells were 4 x 6 and the level could not be counted while playing (the
+     * report says the icon is too small). 13 rows is what the bar holds with a row of air above and below, and
+     * the cells grow with it (5 x 7, 6 px apart): the same three states, readable from the front panel. */
+    cv_rect(bx, y, 20, 13, ink);                        /* the body's outline, 1 px */
+    cv_rect(bx + 1, y + 1, 18, 11, T_BG);               /* its inside, so the outline reads as a frame */
     for (k = 0; k < lit; k++)                           /* the cells, from the left as the bars were */
-        cv_rect(bx + 2 + k * 5, y + 3, 4, 6, ink);
-    cv_rect(bx + 18, y + 3, 2, 5, ink);                 /* the tip */
+        cv_rect(bx + 2 + k * 6, y + 3, 5, 7, ink);
+    cv_rect(bx + 20, y + 4, 2, 5, ink);                 /* the tip */
     if (lvl == 4) {                                     /* USB power: the bolt, cut out of the cells */
-        cv_rect(bx + 8, y + 2, 2, 3, T_BG);
-        cv_rect(bx + 7, y + 5, 2, 2, T_BG);
-        cv_rect(bx + 9, y + 4, 2, 2, T_BG);
+        cv_rect(bx + 9, y + 2, 2, 4, T_BG);
+        cv_rect(bx + 8, y + 6, 2, 2, T_BG);
+        cv_rect(bx + 10, y + 5, 2, 3, T_BG);
     }
 }
 

@@ -105,6 +105,62 @@ int main(void)
             bad++;
         }
     }
+    /* (v1.12.18) EVERY SCREEN, NOT ONLY THE FIVE VIEWS. The header is the one strip every page shares, and the
+     * owner's first report is exactly this: "HOME: boxes, BPM and battery disappear while scrolling the screens".
+     * HOME is the reference; walk the sweep's whole scene list, draw each with the same clock and force a full
+     * repaint, and demand the bar still holds its ink. A page that paints over the strip while ui.head_sig stays
+     * put shows up here: draw_head would early-return and leave what the page left behind. */
+    {
+        int32_t sc, worst = 99, worst_sc = -1, low = 0;
+        setup(S_HOME);
+        fm1_ms = 4000u; host_ticks = 6000000u; ui.frame = 90u; ui.force = 1;
+        draw(S_HOME);
+        for (sc = 0; sc < S_COUNT; sc++) {
+            int32_t n;
+            setup(sc);
+            fm1_ms = 4000u; host_ticks = 6000000u; ui.frame = 90u; ui.force = 1;
+            draw(sc);
+            n = strip_colours(host_screen, 0, H_HEAD - 1);
+            if (n < worst) {
+                worst = n;
+                worst_sc = sc;
+            }
+            if (n < 4 && sc != S_SPLASH) {          /* the boot art owns the screen: no header, by design */
+                if (low < 8)
+                    fprintf(stderr, "rt: %-18s header holds %d colours: the bar collapsed\n", S_NAME[sc], (int)n);
+                low++;
+            }
+        }
+        fprintf(stderr, "rt: %d screens walked; the thinnest header is %d colours (%s)\n", (int)S_COUNT,
+                (int)worst, worst_sc >= 0 ? S_NAME[worst_sc] : "?");
+        if (low) {
+            fprintf(stderr, "rt: %d screens lose the header\n", low);
+            bad++;
+        }
+        /* AND AGAIN WITHOUT ui.force: a page change that does not bump the header's signature must still leave
+         * the bar whole. draw_head early-returns when the stamp has not moved, so this pass is the mechanism the
+         * report describes -- a page that painted over the strip and left the stamp alone. */
+        low = 0;
+        for (sc = 0; sc < S_COUNT; sc++) {
+            int32_t n;
+            setup(S_HOME);
+            fm1_ms = 4000u; host_ticks = 6000000u; ui.frame = 90u; ui.force = 1;
+            draw(S_HOME);
+            setup(sc);
+            fm1_ms = 4000u; host_ticks = 6000000u; ui.frame = 90u;
+            ui.force = 0;                           /* the page change arrives with nothing else changed */
+            draw(sc);
+            n = strip_colours(host_screen, 0, H_HEAD - 1);
+            if (n < 4 && sc != S_SPLASH) {
+                if (low < 8)
+                    fprintf(stderr, "rt: %-18s header holds %d colours without force\n", S_NAME[sc], (int)n);
+                low++;
+            }
+        }
+        fprintf(stderr, "rt: %d screens without force: %d lose the header\n", (int)S_COUNT, low);
+        if (low)
+            bad++;
+    }
     fprintf(stderr, "rt: %s\n", bad ? "FAILED" : "ok: five views reproduce exactly across two passes");
     return bad ? 1 : 0;
 }

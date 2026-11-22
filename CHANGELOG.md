@@ -1,3 +1,31 @@
+## v1.12.18 — La batería se lee, y el header queda bajo test en las 203 pantallas
+
+**El icono de batería, más grande** (el defecto que el reporte llama *demasiado pequeño*). Era 18 x 11 en una
+barra de 16 px, con celdas de 4 x 6: a un brazo de distancia el nivel no se podía contar. Ahora es **20 x 13**
+(filas 1..13, con una de aire arriba y otra abajo) con celdas de **5 x 7** cada 6 px, el mismo cuerpo, la misma
+punta de 2 px y el mismo rayo de USB recortado dentro. Cabo en su celda: 214..236.
+
+**El bug del header, bajo test en TODAS las pantallas.** El reporte dice que los boxes, el BPM y la batería
+desaparecen al recorrer las pantallas. Extendí `tests/home_roundtrip_test.c`, que hasta ahora sólo miraba las
+cinco vistas de HOME y una página de ida y vuelta, a un barrido de **las 203 escenas del banco de capturas**:
+HOME es la referencia, se dibuja cada escena con el mismo reloj y se exige que la barra conserve su tinta. Dos
+pasadas: una con `ui.force` (un repintado completo) y otra **sin** forzar, que es el mecanismo que el reporte
+describe —`draw_head` sale temprano cuando el sello no se movió—. Resultado: **203/203 conservan el header en
+las dos pasadas**; la única escena sin barra es la splash, que por diseño ocupa la pantalla entera. El bug no se
+reproduce en el arnés: queda el test como red para la próxima vez que alguien toque el dibujo de la barra.
+
+**Lo que revisé y no cambié.** La línea del Reverb en FX BUSES ya no existe: `ui_fxb.c` documenta que era la
+única de los seis bloques que ponía un `T_LINE` a todo lo ancho bajo la cola, y se quitó en v1.12 (la cola y su
+altura siguen intactas). No la reintroduje.
+
+**Lo que queda abierto, dicho como está.** No pude reproducir con las herramientas de este entorno el
+*flickering* del visualizer ni el del menú de presets al girar el encoder, la desincronización de la línea
+interactiva de ENV 1/2 contra el ADSR dibujado, ni la superposición de notas del teclado inferior en SCL: los
+leí en el código (el ADSR dibuja ataque recto, decay y release exponenciales, y el punto se coloca con
+`env_x_of`, que recorre la misma recurrencia) y todos los tests de UI pasan, pero **sin unidad física ni
+captura animada no tengo una medición que los muestre**. Queda anotado en la matriz §64 como pendiente con su
+clase de evidencia.
+
 ## v1.12.17 — Cuatro sonidos que demuestran lo construido, y el banco medido
 
 **Cuatro presets nuevos en ANALOG** (append al final de la tabla: ningún sonido existente cambia de índice),

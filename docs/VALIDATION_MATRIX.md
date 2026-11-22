@@ -3699,3 +3699,24 @@ Artefactos regenerados en el mismo commit: `build/gen/preset_cats.h`, `web/prese
 `CRYSTAL PLUCK` siguen por debajo de ±3 dB con el fader a 127; `gen_preset_levels` los imprime como *out of
 reach*. En AURORA FM se probó SUS 60→110 + DIST 12: **+0.2 dB** medidos, revertido. Su nivel lo fija el patch de
 la ROM (SLOT 4), no el preset: el arreglo es en `fm6_vbank`, un cambio de otra clase que este pase no tocó.
+
+## 64. v1.12.18: batería y header bajo test
+
+**Corregido.** `draw_battery` (ui_draw.c) pasa de 18 x 11 a **20 x 13** con celdas de 5 x 7 (eran 4 x 6). Se
+verifica por el barrido (escenas `batt_0..3`, `batt_usb`) y por el lint de alineación, que no encuentra medidas
+fuera de su lugar en la barra.
+
+**Nueva red.** `tests/home_roundtrip_test.c` recorre ahora **las 203 escenas** de `tests/ui_render.c`, dos
+pasadas (con y sin `ui.force`), y exige que la barra conserve su tinta; la splash queda fuera porque ocupa la
+pantalla. Verde: 203/203 en ambas. El defecto que el reporte describe (boxes, BPM y batería que desaparecen al
+recorrer las pantallas) **no se reproduce** en el arnés: `draw_head` repinta si el sello cambia, y el sello
+incluye BPM, batería, transporte, octava, mensaje, capa y cadena.
+
+**Revisado, ya resuelto antes.** La línea incorrecta de Reverb en FX BUSES: `ui_fxb.c` documenta su retiro en
+v1.12 ("this block was the only one of the six that laid a full-width T_LINE across its floor"). Sin cambios.
+
+**Pendiente, con la clase de evidencia que falta.** Flicker del visualizer y del menú de presets al girar el
+encoder; desincronización de la línea interactiva de ENV 1/2 con el ADSR dibujado; superposición de notas en el
+teclado inferior de SCL. Los tres necesitan captura animada o unidad física para demostrarse: los tests de UI
+pasan y el ADSR coloca el punto con `env_x_of`, que recorre la misma recurrencia que el dibujo. No se declaran
+corregidos.
