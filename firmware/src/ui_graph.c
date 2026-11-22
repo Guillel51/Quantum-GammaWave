@@ -117,6 +117,34 @@ static void graph_adsr(const track_t *t, uint16_t c)
 
 /* LFO: the wave as it runs (JIANT 0.5): the phase now at the playhead (a quarter in), two cycles across, scrolling
  * at the LFO's own rate; behind the playhead dimmer (what it played), the level now a dot, its depth after FADE */
+/* (v1.12.7) TILT: THE KNOB AS A PICTURE. The page had one knob and an empty card: a tilt is a shelf, and a shelf is
+ * the one response that can be drawn honestly without an FFT -- flat at the bottom, flat at the top, a smooth bend
+ * at the pivot, and the top's own height is 20 log10(k/64) of what the DSP does. Left of the pivot the line IS the
+ * 0 dB axis (DC gain is exactly 1 by construction, not by approximation), right of it the plateau the knob sets, and
+ * the bend is drawn as the straight chord between them: an asymptotic sketch, labelled as such by its shape, not a
+ * measured response. The dot is where the top sits; the knob moves it. Cheap: one rectangle a column, a few
+ * multiplies, nothing per sample. */
+static void graph_tilt(const track_t *t, uint16_t c)
+{
+    int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100;
+    int32_t amt = t->p[P_HARM], k = 64 + (clamp(amt, -64, 63) * 3) / 4;   /* 16..111: the same gain the DSP uses */
+    int32_t xp = PANEL_X0 + PANEL_W / 2, band = PANEL_W / 6;
+    int32_t right = cy - ((k - 64) * a) / 64;         /* the plateau, in the graph's own px */
+    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);       /* 0 dB */
+    cv_rect(xp, cy - a - 4, 1, 2 * a + 8, T_MID);     /* the pivot: ~880 Hz, where the bend sits */
+    for (x = 0; x < PANEL_W; x++) {
+        int32_t d = x - (xp - PANEL_X0), y;
+        if (d <= -band)
+            y = cy;                                   /* the body: untouched, exactly */
+        else if (d >= band)
+            y = right;                                /* the top: the knob's own plateau */
+        else
+            y = cy + ((right - cy) * (d + band)) / (2 * band);
+        cv_rect(PANEL_X0 + x, y, 1, 1, heat_y(y, cy - a, cy + a, c));
+    }
+    cv_rrect(xp - band + 2, right - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the top's level, where the knob puts it */
+}
+
 static void graph_lfo(const track_t *t, uint16_t c)
 {
     int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, xp = PANEL_W / 4;
@@ -3938,6 +3966,9 @@ static void draw_graph(void)
             break;
         case GR_LFO:
             graph_lfo(t, c);
+            break;
+        case GR_TILT:
+            graph_tilt(t, c);
             break;
         case GR_STEPS:
             graph_steps(t, c);

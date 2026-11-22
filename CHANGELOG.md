@@ -1,3 +1,23 @@
+## v1.12.7 — TILT se ve: la respuesta del mando, dibujada
+
+**Qué es.** La página TILT (v1.12.4) tenía un mando y una tarjeta vacía: el único recurso sonoro nuevo del árbol sin
+representación visual. Ahora dibuja su propia respuesta, con los mismos números que usa el DSP: plano sobre el eje de
+0 dB a la izquierda del pivote (el cuerpo **no** se toca: DC = 1 por construcción), plano a la altura que fija el
+mando a la derecha, el codo en el pivote (~880 Hz) y un punto en la meseta que sube y baja mientras giras.
+
+**Honestidad del dibujo.** Es la **asíntota** de un estante de primer orden, no una FFT: la meseta es la ganancia
+real (`k = 64 + amt·3/4`), el cuerpo es exactamente 0 dB, y el codo se dibuja como la cuerda entre ambas. Lo dice su
+forma, y lo dice la documentación.
+
+**Coste.** Una página que no dibujaba nada ahora dibuja **una fila de píxeles por columna** y un punto: unos miles de
+operaciones por cuadro, sin estado, sin RAM nueva, sin tocar el audio — el muestreo por voz no cambia ni una línea.
+
+**UI, y su límite.** Barrido completo: **191 pantallas × 22 paletas, 0 lint, 0 desalineaciones** (3 828 645 medidas).
+`ui_pixels` con **48 frames** regenerados (la cadena de versión). **Pero la página TILT no entra en el barrido**:
+`sweep_columns()` recorre `NPAGES` por motor y descarta con `page_visible(i)`, y TILT —como LFO CURVE— no pasa ese
+filtro en ningún motor. El dibujo **compila, está integrado y no lo ha mirado nadie**: ni el lint ni yo. Queda como
+el defecto de cobertura a arreglar en la Fase 7, y así se declara en vez de contarlo como verificado.
+
 ## v1.12.6 — ENV: el modo ONE y los segmentos, medidos
 
 **Qué es.** El knob `LOOP` (página ENV DEST) era OFF / ON, y ON volvía al ataque en el sustain mientras la tecla

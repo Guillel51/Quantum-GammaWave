@@ -3458,3 +3458,17 @@ nueva no reinicia la que está sonando: ENV 1 y ENV 2 no comparten estado.
 **Coste.** Un `else if` en una rama ya existente; **0 B** de RAM, sin estado nuevo.
 
 **No medido.** La unidad y el AC791N.
+
+## 52. v1.12.7: la página TILT dibuja su respuesta
+
+**UI (`[HOST]`, barrido `ui_render`).** La página TILT pasa de `GR_NONE` a `GR_TILT`: dibuja el eje de 0 dB, el
+pivote, la meseta que fija el mando (`k = 64 + amt·3/4`, la misma ganancia que el DSP) y un punto en ella. Es la
+asíntota del estante, no una medición: el cuerpo es 0 dB exacto por construcción y el codo se dibuja como la cuerda.
+Barrido: **191 pantallas × 22 paletas, 0 lint, 0 desalineaciones**. **Cobertura: la página TILT no se barre** —
+`page_visible()` la descarta en todos los motores, igual que a LFO CURVE — así que su dibujo está compilado e
+integrado pero **no verificado visualmente**. Defecto de cobertura declarado para la fase siguiente.
+
+**Coste.** Sin RAM ni estado nuevos; una fila de píxeles por columna en una página que antes estaba vacía. El camino
+de audio no cambia: `regress` **307 renders, 0 cambiados**.
+
+**No medido.** La unidad, el AC791N y los FPS reales del panel (el barrido mide píxeles, no tiempo de panel).

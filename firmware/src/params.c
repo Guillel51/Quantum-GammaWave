@@ -578,7 +578,9 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP};   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT};   /* (v1.12.7)
+                                     * GR_TILT: the response TILT draws on its own page, appended so every stored /
+                                     * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
                                      * scale's notes and intervals, the chords the key has, their voicings, the
                                      * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
@@ -709,7 +711,7 @@ static const page_t PAGES[] = {
     {"OP ENV", FAM_EDIT, SC_TRACK, GR_FMENV, {0xFF, 0xFF, 0xFF, 0xFF}},     /* bytes of the track's patch (ui_fm6op.c): */
     {"OPERATOR 2", FAM_EDIT, SC_TRACK, GR_FMOP2, {0xFF, 0xFF, 0xFF, 0xFF}}, /* CRS FINE LEVEL / STG RATE LEVEL / MODE DTUN VEL */
     {"FILTER", FAM_EDIT, SC_TRACK, GR_NONE, {P_FTYPE, P_E4, P_E5, P_E6}},   /* (JIANT 0.5) ANALOG: TYPE CUT RES DRV */
-    {"TILT", FAM_EDIT, SC_TRACK, GR_NONE, {P_HARM, 0xFF, 0xFF, 0xFF}},   /* (v1.12.4) the voice's own spectral tilt:
+    {"TILT", FAM_EDIT, SC_TRACK, GR_TILT, {P_HARM, 0xFF, 0xFF, 0xFF}},   /* (v1.12.4) the voice's own spectral tilt:
                                      * below 0 leans the voice dark (the top goes away), above 0 bright (the top comes
                                      * forward): every engine, including the drums and FM6, whose parts do not own the
                                      * filter above. It is not the FILTER: the pole is fixed, DC stays at unity and
