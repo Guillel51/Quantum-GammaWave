@@ -1,3 +1,38 @@
+## v1.11.0 — Fase 4/4: el parpadeo del menú de presets, cerrado con su causa
+
+**Corregido: el parpadeo del menú de presets al mover el knob**
+
+- La causa no era el volumen de trabajo sino **el mismo error del visualizador, en otro sitio**: `lcd_blit` envía las
+  filas que un blit cambió, así que una fila pintada **dos veces en el mismo cuadro se envía dos veces**, primero con
+  el contenido del listado y después con el pop-up encima. En cada paso del knob eran cinco filas (las del pop-up)
+  enviadas dos veces con contenido distinto entre los dos envíos: el destello del reporte.
+- Ahora el pop-up de PRESETS se compone en una banda de **ancho completo (240 × 86)** y el listado **deja sus cinco
+  filas** a esa banda: cada fila se escribe y se envía **una vez**. El plato sigue siendo de 208 px y las páginas que
+  no son el listado (el MIXER, HOME) conservan su caja de 208 × 86 exacta: `--regions` mide **0 px** escritos fuera
+  de la caja del pop-up sobre el MIXER, como antes.
+- Las filas que window se quedan sin enviar son **0** en el escenario nuevo `ui_render --bands` ("PRESETS (knob)"):
+  el cuadro incremental es **píxel a píxel** el de un repintado completo forzado. Un paso del knob cuesta
+  **64 848 px escritos** (tope 71 400 = lo medido +10 %; antes 62 096 con las cinco filas escritas dos veces).
+
+**La otra mitad, medida y descartada**
+
+- `preset_hinted()` hacía `ui.force = 1` en **cada** carga de sonido: probado, sin él quedan **103 filas viejas** en
+  las tarjetas y el pie de PRESETS. Se mantiene (las tarjetas muestran los parámetros del sonido cargado); lo que se
+  arregla es la doble escritura del pop-up, que es la que produce el destello.
+
+**Fase 4/4: perfilado y estabilidad**
+
+- **CPU/DSP `[HOST x86]`**: bloque de 32 muestras `fx_bench` **167,7 ns/muestra** (mejor de 5) = 0,01 del
+  presupuesto de 725 µs; `eng_bench` 10 motores (FM6 12,0 ns/muestra, WTABLE 13,7); `isr_bench` `fm1__frame`
+  **16,7 µs** para las 11 marcas, `fm1__rows` 2,9 µs, `fm1__keys` 2,9 µs, `fm1__breath_frame` 8,6 µs.
+- **Render**: 8 400–10 800 px escritos por cuadro en el visualizador (antes de la fase 3: 16 080–18 960, −45 %);
+  `--idle` 29 952 px escritos y **0 cambiados**; `--viz` verde; `--bands` 5/5 escenas en tope con 0 filas viejas.
+- **RAM/flash**: sin cambios de presupuesto esta fase (`.data+.bss` 93 504 / 98 304, POOL 9 248 libres); el
+  firmware crece sólo con el código del pop-up y su comentario.
+- **Estabilidad**: `tests/stress_run.sh 3` (ASan + UBSan, `project_test`, `persistence_test`, `robust_test`,
+  `midi_control_test` × 3 ejecuciones y 2 pasadas completas de `regress`) **todo ok**; 15 binarios de test nativos
+  en verde; 16 suites Python de seguridad/instalación/flash en verde; `regress` 307 renders de audio, 0 cambiados.
+
 ## v1.10.0 — Fase 3/4: el parpadeo del visualizador, la batería y lo que el menú de presets cuesta
 
 **Corregido: la sección superior del visualizador**

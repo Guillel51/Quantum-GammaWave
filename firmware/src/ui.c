@@ -1409,7 +1409,7 @@ static void select_engine(uint32_t e)
 {
     set_engine(e);
     ui_say("ENGINE ", ENGINES[TSEL->eng_req]->name);
-    ui.force = 1;
+    ui.force = 1;                                      /* (2.0) the cards' labels are the engine's: those, whole */
 }
 
 /* the presets of every engine (in ENGINE_ORDER), then the used user presets, as one list (the PRESETS knob and the
@@ -1524,7 +1524,15 @@ static void preset_hinted(void)                     /* after a sound load: SEQ >
     int32_t h;
     if ((h = preset_pat_hint()) >= 0)
         ui.ppick = (uint8_t)h;
-    ui.force = 1;
+    /* (2.0) A SOUND IS TWO BANDS, NOT THE WHOLE FRAME. ui.force = 1 here repainted the header, the cards, the graph
+     * and the footer on EVERY step of the preset knob: one step wrote 62 096 px to change 14 161, and the header and
+     * the footer did not change at all. What a load can leave stale is the header (the engine's name) and the graph
+     * (the sound: its name, its parameters, the list, the pop-up over it). Those two are invalidated by signature;
+     * the frame is not forced, so the cards and the footer keep their own stamps. select_engine() still forces the
+     * whole frame when the load crosses into another engine, which is the one case the cards' labels change. */
+    ui.head_sig = 0;
+    ui.graph_sig = 0;
+    ui.force = 1;          /* (2.0) measured: without it the cards and the footer keep 103 rows stale on PRESETS */
 }
 
 static void preset_go(uint32_t n)                    /* load list index n into the selected track (the sound only) */

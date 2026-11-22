@@ -3304,3 +3304,40 @@ frames** cambian porque la batería está en todas las cabeceras. `tests/resourc
 emulador `7ca394e8`. `--check` ok, `sha256sum -c` ok, `emu_test.mjs` verde, `tests/regress` 307 renders 0
 cambiados. Tag `v1.10.0` y Release de GitHub: **bloqueados** (sin credencial `gh` en este entorno); el paquete
 sellado queda en `release/` y `site/`.
+
+## 44. Fase 4/4: el parpadeo del menú de presets, perfilado y estabilidad (v1.11.0)
+
+### 44.1 The preset menu's flicker (fixed)
+
+Causa: `lcd_blit` envía las filas que el blit cambió, así que una fila pintada dos veces en el mismo cuadro se envía
+dos veces con contenido distinto entre los envíos. En PRESETS el listado pintaba cinco filas y el pop-up las pintaba
+encima: cinco filas enviadas dos veces por paso del knob. Arreglo: el pop-up se compone en una banda de ancho
+completo (240 × 86) en el listado y `graph_browse` deja esas cinco filas a la banda; en las demás páginas la caja
+sigue siendo de 208 × 86 y se blitea en x = 16. Verificación `[HOST]`: `--bands` "PRESETS (knob)" **0 filas sin
+enviar** (el cuadro incremental es píxel a píxel el de un repintado forzado) y 64 848 px escritos con tope 71 400;
+`--regions` caso A **0 px** fuera de la caja sobre el MIXER; `ui_pixels` 3 056 frames idénticos salvo los 48 del
+cambio de versión en ABOUT/SPLASH. Hipótesis descartada con medición: `preset_hinted()` sin `ui.force = 1` deja 103
+filas viejas (se mantiene). Clase: host x86. **No verificado en la unidad física**: no hay unidad en este entorno.
+
+### 44.2 Perfilado de la fase 4 `[HOST x86]`
+
+`fx_bench` 167,7 ns/muestra (0,01 del presupuesto de 725 µs por bloque); `eng_bench` 10 motores (FM6 12,0,
+WTABLE 13,7 ns/muestra); `isr_bench` `fm1__frame` 16,7 µs / 11 marcas, `fm1__rows` 2,9, `fm1__keys` 2,9,
+`fm1__breath_frame` 8,6; `target_budget` BLOCK_PATH 45 704 (tope +10 %), DRUM_PATH 1 153, rev_spring 126 — los tres
+en verde; `ui_render --idle` 29 952 px escritos, 0 cambiados; `--viz` estable.
+
+### 44.3 Estabilidad `[HOST x86]`
+
+`tests/stress_run.sh 3`: ASan+UBSan sobre `project_test`, `persistence_test`, `robust_test`, `midi_control_test`
+(3 ejecuciones cada uno) y 2 pasadas completas de `regress` — todo ok. 15 binarios nativos en verde
+(`poly_stress_test`, `poly_budget_test`, `morph_*`, `control_map_test` 24 103 comprobaciones, `engine_param_test`
+240 knobs, `etapa7_audit_test`). 16 suites Python: `gate`, `release_gate`, `resources`, `panel_table`, `install`,
+`mflasher`, `manifest`, `backup_audit`, `restore`, `flash_evidence`, `negative_write`, `preflight`, `readme_nav`,
+`font_charset`, `text_spacing`, `ui_pixels` — todas en verde. Web: `test_web.mjs`, `test_backup.mjs`,
+`test_pkg_bounds.mjs`.
+
+### 44.4 Limits
+
+No hay unidad física en este entorno: nada de lo anterior es una medida del AC791N ni del panel. El parpadeo se
+corrige por construcción (una fila, un envío) y se verifica por igualdad de cuadros en el harness; la confirmación
+en el cristal queda para la unidad. Tag y GitHub Release: bloqueados, sin credencial `gh`.

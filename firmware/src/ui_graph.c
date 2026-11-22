@@ -2690,8 +2690,11 @@ static void graph_browse(void)
             panel_note("NO FAVORITES", "LIST ALL TO ADD SOUNDS", 0);
         return;
     }
+    {   /* (2.0) the pop-up's five rows are the pop-up's: painted by its band, not here (see graph_preset_pop) */
+        int32_t pop = ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u;
     for (row = -3; row <= 3; row++) {
         int32_t y = LIST_Y(row + 3), x1 = 212;
+        if (pop && row >= -2 && row <= 2) continue;
         char tag[6], nm[13], pt[4], pn[13];
         uint32_t index = preset_visible(cur, total, (uint32_t)(row + 3));
         int sel = index == cur;
@@ -2737,13 +2740,22 @@ static void graph_browse(void)
             cv_icon_in(214, y, 0, 16, 12, ICON_X_STAR, sel ? T_INK : T_ACCENT, sel ? T_THEME : T_SURF);
         }
     }
+    }
 }
 
 /* Compact semi-translucent 1.5s HUD popup centered on screen when changing presets via knob */
 static void graph_preset_pop(void)
 {
     uint32_t total, cur = preset_pos(&total), e, k;
-    int32_t r, x0 = 0, y0 = 18, w = 208, h = 86;      /* (v1.5.15) the box's own origin: the blit places it at x = 16 */
+    int32_t r, y0 = 18, w = 208, h = 86;
+    /* (2.0) FULL WIDTH ONLY WHERE THE BAND IS THE PAGE'S OWN. On PRESETS the pop-up covers five of the seven list
+     * rows and graph_browse leaves them to it; there the canvas is the whole 240-wide band and every one of those
+     * rows is written once. On any other page (the MIXER's columns, HOME's trace) the plate still rides its own
+     * 208 x 86 box: a full-width band there would blank the page's content in its margins, and --regions case A
+     * measures exactly that. */
+    int32_t full = cur_page()->graph == GR_BROWSE;
+    int32_t x0 = full ? 16 : 0;                        /* the box's origin inside the canvas: 16 in the band,
+                                                        * 0 when the plate IS the canvas (blitted at x = 16) */
 
     if (!total) return;
     /* (v1.5.15) ITS OWN CANVAS, THE SIZE OF ITS BOX, AND ONLY ITS BOX IS SENT. This used to paint into whatever
@@ -2752,7 +2764,12 @@ static void graph_preset_pop(void)
      * a previous draw -- with this plate composited on top, which is the "preset names drawn over the mixer" of the
      * report. Now the pop-up is a canvas of exactly its plate (208 x 86) drawn at (16, Y_GRAPH + 18): nothing under
      * it is reused and nothing outside it is touched. */
-    cv_begin((uint32_t)w, (uint32_t)h, T_SURF);
+    /* (2.0) THE BAND IS THE LIST'S, AND IT IS PAINTED ONCE. lcd_blit sends the rows a blit changed, so a row
+     * painted twice in one frame is a row SENT twice, first as the list row and then as the plate over it: on the
+     * glass that is a flash across the middle of the screen on every step of the preset knob, which is exactly
+     * what the report calls the preset menu flickering. The canvas is the pop-up's whole band now (full width, the
+     * page's tone in its margins) and graph_browse leaves those rows to it, so each row is written and sent once. */
+    cv_begin(full ? 240u : (uint32_t)w, (uint32_t)h, full ? T_BG : T_SURF);
     cv_oy = -y0;
     cv_bg = T_SURF;
 
@@ -2804,7 +2821,7 @@ static void graph_preset_pop(void)
             cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
         }
     }
-    cv_blit(16, Y_GRAPH + 18);                        /* exactly where the plate was drawn */
+    cv_blit(full ? 0 : 16, Y_GRAPH + 18);             /* the band (or the box) in one send */
 }
 /* the EDIT layer (ui_layer.c): the sound loaded, as the browser's selected row: "03" (its place in KNOB 2's list,
  * the engine's sounds) or "U07", the name, the star of a favourite */
