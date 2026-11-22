@@ -76,17 +76,33 @@ static void check(const char *what, int ok, const char *fmt, ...)
  * gain at that position. Freezing it is what lets a narrow notch be seen at all -- smearing the moving
  * sweep into one measurement misses a notch that is sharp and brief, which is how the first version of
  * this file came to call the phaser 1.7 dB deep. */
-static double phaser_gain_at(double hz, uint32_t p)
+static double phaser_gain_at(double hz, uint32_t p, int32_t dep)
 {
     int i;
     double acc = 0;
     memset(&fx, 0, sizeof fx);
     for (i = 0; i < 8192; i++) {                   /* 4096 to settle, 4096 measured */
         int32_t x = (int32_t)(sin(PI2 * hz * i / FS) * 8000.0), y, sd = 0;
-        y = cho_phaser(x, p, 12192, &sd);
+        y = cho_phaser(x, p, dep, &sd);
         if (i >= 4096) acc += (double)y * y;
     }
     return sqrt(acc / 4096.0);
+}
+/* One frozen sweep position, one DEPTH: the comb depth there over the 32 tones, and the gains it
+ * spans (the peak is the chain's own level, the floor is the notch). */
+static double phaser_comb_at(uint32_t ph, int32_t dep, double *lo_out, double *hi_out)
+{
+    double lo = 1e9, hi = 0;
+    int f;
+    for (f = 0; f < 32; f++) {
+        double hz = 200.0 * pow(30.0, f / 31.0);   /* 200 Hz .. 6 kHz, log spaced */
+        double g = phaser_gain_at(hz, ph, dep);
+        if (g < lo) lo = g;
+        if (g > hi) hi = g;
+    }
+    *lo_out = lo;
+    *hi_out = hi;
+    return lo > 1e-9 ? 20.0 * log10(hi / lo) : 200.0;
 }
 
 /* The sweep is frozen at 16 positions and the tone is swept instead: the deepest point of the comb
@@ -95,26 +111,38 @@ static double phaser_gain_at(double hz, uint32_t p)
  * this is the notch depth the ear actually hears on material with harmonics. */
 static void probe_phaser(void)
 {
-    double lo_all = 1e9, hi_all = 0, deepest = 0, at = 0;
+    /* DEPTH as the knob delivers it: pdep = G_CDEPTH * 96, 0..127 -> 0..12192, and the coefficient the
+     * sweep moves is a = 0.20 .. 0.95 at the top. The mix is dry + the full chain, so a notch cancels; a
+     * half-dry mix could never beat 6 dB however the filter is built, which is why the depth is checked
+     * over the whole knob and not at one point. */
+    static const int KNOB[] = {13, 26, 38, 51, 64, 76, 89, 101, 114, 127};
+    double lo_all = 1e9, hi_all = 0, deepest_worst = 200.0, deepest_best = 0, at_worst = 0;
     int32_t peak_delta = 0, prev = 0;
-    int p, f, i;
+    int q, p, i;
 
-    for (p = 0; p < 16; p++) {
-        uint32_t ph = (uint32_t)((uint64_t)p << 28);   /* a turn is 2^32: 16 positions */
-        double lo = 1e9, hi = 0;
-        for (f = 0; f < 32; f++) {
-            double hz = 200.0 * pow(30.0, f / 31.0);   /* 200 Hz .. 6 kHz, log spaced */
-            double g = phaser_gain_at(hz, ph);
-            if (g < lo) lo = g;
-            if (g > hi) hi = g;
+    for (q = 0; q < (int)(sizeof KNOB / sizeof KNOB[0]); q++) {
+        int32_t dep = KNOB[q] * 96;
+        double deepest = 0, lo = 1e9, hi = 0;
+        for (p = 0; p < 16; p++) {
+            uint32_t ph = (uint32_t)((uint64_t)p << 28);   /* a turn is 2^32: 16 positions */
+            double pl, pg, d = phaser_comb_at(ph, dep, &pl, &pg);
+            if (d > deepest) deepest = d;
+            if (pl < lo) lo = pl;
+            if (pg > hi) hi = pg;
+            if (pl < lo_all) lo_all = pl;
+            if (pg > hi_all) hi_all = pg;
         }
-        if (20.0 * log10(hi / lo) > deepest) { deepest = 20.0 * log10(hi / lo); at = (double)p; }
-        if (lo < lo_all) lo_all = lo;
-        if (hi > hi_all) hi_all = hi;
+        printf("       DEPTH %3d: deepest comb %5.1f dB, peak gain %.0f (Q15)\n", KNOB[q], deepest, hi);
+        if (deepest < deepest_worst) { deepest_worst = deepest; at_worst = KNOB[q]; }
+        if (deepest > deepest_best) deepest_best = deepest;
     }
-    printf("       deepest comb %.1f dB at LFO position %d; overall gain %.0f .. %.0f (Q15)\n",
-           deepest, (int)at, lo_all, hi_all);
-    check("PHASER: the comb has depth somewhere in 200 Hz..6 kHz (>= 20 dB)", deepest >= 20.0, " %.1f dB", deepest);
+    printf("       the comb runs %.1f .. %.1f dB over the DEPTH knob; gain %.0f .. %.0f (Q15)\n",
+           deepest_worst, deepest_best, lo_all, hi_all);
+    /* 20 dB is the gate: a phaser reads as "little intensity" at 6 dB -- which is also the most a half-dry
+     * mix can reach, since a notch that cancels completely still leaves half the dry signal -- and it reads
+     * as the effect from ~15 dB up. Checked at every DEPTH, not only at the top. */
+    check("PHASER: the comb is >= 20 dB deep at every DEPTH (a 0.20..0.95)", deepest_worst >= 20.0,
+          " %.1f dB (worst: DEPTH %d)", deepest_worst, (int)at_worst);
     check("PHASER: the chain stays bounded (no runaway feedback)", hi_all < 40000, " %.0f", hi_all);
     /* and a step in DEPTH must not step the output: the mix ramps per sample */
     memset(&fx, 0, sizeof fx);

@@ -3039,3 +3039,35 @@ EQ es el modo que el usuario eligió y el perfil **añade** su voicing en vez de
 - Paquete re-sellado desde `f6a7b28`: `release/felucca-v1.7.0.fwsc` 610 933 B, sha256
   `f50865733ce76419`, emulador `f6a7b28`; `make_release.py --check` **ok**, `sha256sum -c` en la raíz, en
   `release/` y en `site/firmware/` **ok**, y `web/emu/emu_test.mjs` verde (1 s de canción pesada en 26.5 ms).
+
+## 38. El barrido de DEPTH del phaser, medido en todo el knob (2026-11-22)
+
+### 38.1 What was measured, and why it was not enough
+
+`fx_probe` movía el phaser a DEPTH 127 (`pdep = 12192`) y en ningún otro punto: "el peine tiene profundidad"
+era un solo punto de un knob cuyo **barrido** es el efecto. Ahora se barren diez posiciones, DEPTH 13..127
+—el coeficiente que mueven los seis all-pass va de `a = 0.20` a `0.95` en ese tramo; DEPTH 0 es un bypass
+bit-exacto—, con 16 posiciones de LFO congeladas × 32 tonos logarítmicos por profundidad.
+
+### 38.2 What it says `[HOST]`
+
+| DEPTH | 13 | 26 | 38 | 51 | 64 | 76 | 89 | 101 | 114 | 127 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| peine | 23.9 | 23.9 | 24.0 | 23.9 | 23.8 | 23.6 | 23.6 | 23.6 | 23.6 | 23.6 |
+
+El peine recorre **23.6 .. 24.0 dB** (el peor en DEPTH 89), el pico de la cadena se queda en 14 602 Q15 (acotado
+en todo el barrido) y el salto de DEPTH sigue sin click (2 898: la mezcla y la profundidad rampan por muestra).
+La puerta es `>= 20 dB at every DEPTH`.
+
+**No hizo falta tocar el DSP**: con el LFO corriendo la cadena ya supera los 20 dB en todo el knob, y el
+feedback (0.366) no desborda. Lo que faltaba era que la puerta mirara el knob entero.
+
+### 38.3 Two mutations, to know the gate can fail
+
+- **Tabla de seno sin decodificar** (el LFO congelado, el fallo de instrumento de §35.1): el peine lee
+  **6.6 dB en DEPTH 127** y la comprobación **falla** con ese número — la cifra reportada, reproducida, y la
+  prueba de que lo que la separa de 23.6 dB es el LFO, no el filtro.
+- **Mezcla escalada por 1/2**: la profundidad no cambia (23.6 dB; una cancelación sigue siendo una
+  cancelación) y sólo baja el nivel (458 .. 7301). El techo de ~6 dB que se atribuye a "media señal seca" sale
+  de mezclar wet **normalizado**, no de atenuar la suma: el código devuelve `x + cadena`, que es lo que el
+  notch necesita para cancelar.
