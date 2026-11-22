@@ -75,7 +75,7 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
                                      "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES",
-                                     "ATK", "DEC", "REL", "HARM"};   /* (FASE 5) the envelope's three times: a source can
+                                     "ATK", "DEC", "REL", "HARM", "LSHP"};   /* (FASE 5) the envelope's three times: a source can
                                      * stretch or shorten them per block (mod.c); appended after RES, so every
                                      * stored destination number keeps its meaning */   /* (JIANT: the master, FX > MASTER);
                                      * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored
@@ -171,6 +171,7 @@ static const param_desc_t TP[P_COUNT] = {
     MSTEP(8), MSTEP(9), MSTEP(10), MSTEP(11), MSTEP(12), MSTEP(13), MSTEP(14), MSTEP(15),
 #undef MSTEP
     [P_FTYPE] = PE("TYPE", N_FTYPE, 0),         /* (JIANT 0.5) the filter: LP (as before) HP BP COMB */
+    [P_LSHP] = PD("CURVE", F_BIPCT, -64, 63, 0),  /* (v1.12.5) the LFO's phase bend: quicker off the line .. slower */
     [P_HARM] = PD("TILT", F_BIPCT, -64, 63, 0),   /* (v1.12.4) the per-voice spectral tilt: dark .. bright, 0 OFF */
     [P_FCUT] = PD("CUT", F_CUTOFF, 0, 127, 127),  /* .. the other engines' (on the part): open, */
     [P_FRES] = PD("RES", F_PCT, 0, 127, 0),       /* no resonance: out of the chain (its drive: DIST, the part's) */
@@ -644,6 +645,12 @@ static const page_t PAGES[] = {
     {"ENV DEST", FAM_ENV, SC_TRACK, GR_NONE, {P_ED_FLT, P_ED_PIT, P_ED_SHP, P_ELOOP}},   /* JIANT 0.4: LOOP */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LRATE, P_LWAVE, P_LPHASE, P_LFADE}},
     {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
+    {"LFO CURVE", FAM_LFO, SC_TRACK, GR_LFO, {P_LSHP, 0xFF, 0xFF, 0xFF}},   /* (v1.12.5) the LFO's phase bent: the
+                                     * graph is the LFO's own, so turning the knob bends the drawn wave as it bends
+                                     * the sound -- the same lfo_wave draws both. Below 0 the cycle sits longer at
+                                     * its start, above 0 it leaves at once and lingers at the end: SAW becomes an
+                                     * exponential ramp, TRI leans, a square starts to breathe. 0 draws and sounds
+                                     * exactly as before */
     {"LFO SHAPE", FAM_LFO, SC_TRACK, GR_NONE, {P_X2, P_X3, 0xFF, 0xFF}},   /* (FASE 2) SLEW, INVERT (the CHARACTER
                                      * bank's two remaining slots: a track's LFO, not an engine's) */
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */

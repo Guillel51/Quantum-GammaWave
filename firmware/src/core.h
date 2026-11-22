@@ -209,6 +209,10 @@ enum {                          /* per-track parameters */
     P_MS0, P_MS15 = P_MS0 + 15,                /* rate and slew, its 16 levels */
     P_FTYPE,                                   /* (JIANT 0.5) the filter's type: LP HP BP COMB (eng_analog.c, voice.c) */
     P_FCUT, P_FRES,                            /* .. every other engine's: a filter on the part's sum (voice.c track_filter) */
+    P_LSHP,                                    /* (v1.12.5) LFO CURVE: the phase's own bend (voice.c lfo_skew).
+                                                * With it P_COUNT reaches 127, the last id the 7-bit motion records
+                                                * can name: the parameter space is FULL, and the next one needs a
+                                                * new store format rather than a slot */
     P_HARM,                                    /* (v1.12.4) TILT: the per-voice spectral tilt (voice.c tilt_voice). It takes
                                                 * the last free id before P_E0, which is where the count map wants a new
                                                 * common one: P_COUNT goes 125 -> 126 of the 127 the 7-bit motion
@@ -493,8 +497,8 @@ typedef struct {
 #define QG_DST_VIB 11            /* MD_VIB */
 #define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
 #define QG_SRC_N 17              /* MS_N: the matrix's sources (mod.c checks the count); (FASE 5) +1: BAR */
-#define QG_DST_N 31              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL;
-                                  * v1.12.4 +1: HARM, TILT) */
+#define QG_DST_N 32              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL;
+                                  * v1.12.4 +1: HARM, TILT; v1.12.5 +1: LSHP, the LFO's curve) */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */

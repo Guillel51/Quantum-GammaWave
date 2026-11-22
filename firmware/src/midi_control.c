@@ -188,7 +188,7 @@ static int midi_track_held(uint32_t track)
 #define MCC_CUT 0xFEu
 #define MCC_RES 0xFFu
 static const uint8_t MIDI_CC_MAP[][2] = {
-    {5, P_GLIDE}, {7, P_LEVEL}, {10, P_PAN}, {71, MCC_RES}, {72, P_REL}, {73, P_ATK}, {74, MCC_CUT}, {75, P_DEC}, {76, P_HARM},
+    {5, P_GLIDE}, {7, P_LEVEL}, {10, P_PAN}, {71, MCC_RES}, {72, P_REL}, {73, P_ATK}, {74, MCC_CUT}, {75, P_DEC}, {76, P_HARM}, {77, P_LSHP},
     {91, P_REV}, {93, P_CHOR}, {94, P_DLY},
 };
 /* per engine (ENGINES[] order): CC74's E index + 1 in the high nibble, CC71's in the low one, 0 = none */

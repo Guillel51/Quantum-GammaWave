@@ -123,8 +123,31 @@ static void voice_grow_to(track_t *t, uint32_t want)
         ;
 }
 static uint32_t vage;                                   /* voice ages: one clock for every part */
+/* (v1.12.5) LFO CURVE: THE PHASE, BENT -- ONE PLACE FOR EVERY WAVE.
+ * The LFO could already choose a wave, a rate, a sync, a phase, a fade, a slew and an invert, and none of them
+ * changed the SHAPE of the motion: a triangle always leaned the same way, a saw always fell straight. CURVE bends
+ * the phase itself, before the switch below, so every wave inherits it: SAW's straight fall becomes an exponential
+ * drop, TRI's lean moves, a square's duty starts to breathe -- and the LFO page's graph, which draws with this same
+ * function, shows the bend while it is being turned.
+ * x' = x + c x (1 - x) is monotone for |c| < 1 (its slope is 1 + c (1 - 2x), never zero or negative at |c| max
+ * 0.586 here), so the cycle never runs backwards and no wave can fold on itself. amt 0 returns ph untouched: every
+ * render of this tree before the knob existed is bit-identical, and the check at the call site skips it entirely. */
+static uint32_t lfo_skew(uint32_t ph, int32_t amt)
+{
+    int32_t c = clamp(amt, -64, 63) * 600;             /* Q16: 0.586 at the ends */
+    uint32_t x, y;
+    if (!c)
+        return ph;
+    x = ph >> 16;                                      /* 0 .. 65535 */
+    y = x + (uint32_t)(((int64_t)c * (int64_t)x * (int64_t)(65536u - x)) >> 32);
+    if (y > 65535u)
+        y = 65535u;
+    return (y << 16) | (ph & 0xFFFFu);
+}
+
 static int32_t lfo_wave(track_t *t, uint32_t ph)
 {
+    ph = lfo_skew(ph, t->p[P_LSHP]);                   /* (v1.12.5) the curve, before the wave sees the phase */
     switch (t->p[P_LWAVE]) {
     case 1:
         return osc_tri(ph);
@@ -146,7 +169,11 @@ static int32_t lfo_wave(track_t *t, uint32_t ph)
                                                      * none of its line: SAW falls straight, this one curves. */
         int32_t x = (int32_t)(ph >> 16);            /* 0 .. 65535 */
         uint32_t y = (uint32_t)(65536 - x) >> 8;    /* the headroom left, 0..256 */
-        return (int32_t)(((uint64_t)y * y * y * y) >> 17);   /* (1 - x)^4: 32767 down to 0 */
+        {   /* (v1.12.5) the head was 32768 (256^4 >> 17), one count past full scale: clamped, so every wave
+             * stays inside its range with the curve at either end (tests/lfo_test.c found it) */
+            int32_t v = (int32_t)(((uint64_t)y * y * y * y) >> 17);
+            return v > 32767 ? 32767 : v;
+        }
     }
     case 6: {                                       /* (QG-1 1.6) EVO: a smooth random walk, one new point a cycle:
                                                      * it eases from this cycle's value to the next (smoothstep), so

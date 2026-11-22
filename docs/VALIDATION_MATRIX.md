@@ -3425,3 +3425,19 @@ añadido al final), CC 76 por parte. `+72 B` de `.bss` (un polo por slot del poo
 
 **Pendiente declarado.** Los presets de fábrica no se retocaron (su tabla de niveles y los 307 renders son medidas
 generadas). El cuerpo bajo el limitador de MASTER no se mide aquí. Nada de esto es el AC791N.
+
+## 50. v1.12.5: LFO CURVE y el último id de parámetro
+
+**Feature (`[HOST]`, `tests/lfo_test.c`).** La fase doblada por `lfo_skew` es monótona (4 096 fases × 10 ondas ×
+los dos extremos, **0 retrocesos**); las diez ondas conservan su rango; con CURVE 0 la fase es la identidad bit a
+bit (`regress` **307 renders, 0 cambiados**); +60 llega antes que la recta y −60 después; una onda suave bajo la
+curva no introduce ningún paso propio; coste **2,4 → 3,1 ns por onda**, evaluada una vez por bloque y parte.
+
+**Bug corregido.** `PLUK` devolvía 32768 (un cuento sobre fondo de escala) en su primer sample; ahora 32767. Lo
+encontró el test nuevo, no el ojo.
+
+**Integración.** `P_LSHP` id 126 → `P_COUNT` **127, el máximo**: el espacio de parámetros queda lleno y el próximo
+necesita un formato de almacenamiento nuevo. Página EDIT > LFO CURVE (con el gráfico del LFO), destino de matriz
+`MD_LSHP` (31), CC 77. Sin RAM nueva: no hay estado, se calcula de la fase que ya existe.
+
+**No medido.** La unidad y el AC791N. El coste es de host x86-64.

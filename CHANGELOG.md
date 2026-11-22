@@ -1,3 +1,28 @@
+## v1.12.5 — LFO CURVE: la fase del LFO, doblada (y el último id)
+
+**Qué es.** El LFO elegía forma, RATE, sincronización, PHASE, FADE, SLEW e INVERT, y ninguno de ellos cambiaba la
+**forma del movimiento**: un triángulo siempre se inclinaba igual, un saw siempre caía recto. CURVE dobla la **fase**
+antes de que la vea la onda (`voice.c: lfo_skew`), así que **todas** heredan el doblez: el saw recto se vuelve una
+caída exponencial, el triángulo se inclina, un cuadrado empieza a respirar. Y el gráfico de la página dibuja con la
+misma función, así que la onda se dobla en pantalla mientras se gira el mando.
+
+**Dónde.** `P_LSHP` (id 126 — con él `P_COUNT` llega a **127, el último id** que los registros de 7 bits pueden
+nombrar: el espacio de parámetros queda **lleno**); página **EDIT > LFO CURVE** con el gráfico del LFO; destino de
+matriz **LSHP** (31, añadido al final); **CC 77**.
+
+**Rangos.** −64..+63 → `x' = x + c·x·(1−x)` con `|c| ≤ 0,586`, monótona por construcción (pendiente `1 + c(1−2x)`,
+nunca ≤ 0): el ciclo **no puede ir hacia atrás** ni doblarse sobre sí mismo. En 0 la fase vuelve intacta.
+
+**Medido (`tests/lfo_test.c`, host x86-64).** La fase doblada nunca retrocede (4 096 fases × 10 ondas × los dos
+extremos); cada onda conserva su rango; 0 es la identidad bit a bit; +60 llega antes que la recta y −60 después
+(180 192 / 262 144 / 397 760 de ciclo); una onda suave bajo la curva no da un solo paso propio; coste **2,4 → 3,1 ns
+por onda**, y la onda se calcula **una vez por bloque y parte** (a 44,1 kHz, ~0,7 ns por bloque y parte).
+
+**Bug encontrado y corregido por el test nuevo.** `PLUK` devolvía **32768** en su primer sample (`256^4 >> 17`), un
+cuento por encima de fondo de escala: ahora devuelve 32767. Estaba ahí desde FASE 3.
+
+**No degrada.** `regress`: **307 renders, 0 cambiados** — con `P_LSHP` en 0 la fase no se toca.
+
 ## v1.12.4 — TILT: la inclinación espectral de cada voz
 
 **Qué es.** Un estante agudo de primer orden **por voz**, con el polo fijo (~880 Hz) y DC exactamente en 1: mueve
