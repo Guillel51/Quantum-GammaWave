@@ -3655,3 +3655,29 @@ tempo; curva LSHP; suavizado; destinos PIT, FLT, SHP, AMP.
 id de parámetro y `P_COUNT` = 127 = techo de 7 bits de los motion records. Cualquier destino nuevo exige o bien
 cambio de formato de store con migración probada, o bien tomar el valor de un parámetro existente (como se hizo
 con los tipos de filtro en §60). Fase de modulación avanzada = pendiente, con esa decisión por delante.
+
+## 62. v1.12.16: DIST CRUSH y los dos gráficos que mentían
+
+**Añadido.** `DT_CRUSH` al final de `enum { DT_SOFT .. FOLD }` (fx.c), `"CRUSH"` al final de `N_DTYPE`, rama
+propia en `dist_shape` (contador + desplazamiento + máscara, sin división) y en `tk_dist_y` (la escalera).
+`track_t` ya tenía los campos (`dist_hold`, `dist_hc`, documentados como "CRUSH's held sample" y "CRUSH's hold
+count" en core.h), así que **no hay RAM nueva**: `.data+.bss` no se movió.
+
+**Defectos de UI corregidos.** `tech_dist` forzaba `type > DT_FLUX ? DT_SOFT`: el gráfico del EDIT dibujaba
+SOFT mientras el motor tocaba FOLD desde 1.5.17. `graph_fx` indexaba `DIST_TYPES[... % 5u]`, así que cualquier
+tipo ≥ 5 se rotulaba "SOFT". Los dos cubren ahora los seis modelos.
+
+**Medido (host x86-64, `tests/dist_models_test.c`).** Cuantización: 0 salidas fuera de múltiplo del escalón en
+1 082 muestras. Retención: 100 cambios en 600 llamadas con DRIVE 90 (esperado 600 / (1 + 90/16) = 100).
+Profundidad: 16 384 valores en DRIVE 20 frente a 1 024 en DRIVE 90. Seis modelos, seis renders distintos; DRIVE
+0 transparente. `regress` 307 renders, 0 cambiados.
+
+**Lo que se revisó y no se tocó, con su razón.** Los buses (chorus con tres tipos —CHORUS, PHASER, FLANGER—,
+delay con tipo, ping-pong, granos y drift, reverb con cinco modelos incluido CLOUD granular con FREEZE a SIZE
+127, EQ paramétrico de master, ancho M/S, slicer con secuencia de pitch, punch y duck, clipper y limitador)
+están completos y con test propio. `G_DHPF` sigue guardado y sin leer: su función la cumple `tone_set` del
+delay, que hace el low cut en DLY's TONE (comentario en params.c:682).
+
+**Sigue abierto.** Un modelo de reverb nuevo (GATE, un *freeze* con control propio) o un destino de LFO nuevo
+exigen un id de parámetro y `P_COUNT` = 127 = techo de 7 bits de los motion records: o formato de store nuevo
+con migración probada, o un valor más de un enum existente (lo que hizo esta versión con `P_DTYPE`).

@@ -112,7 +112,7 @@ _Static_assert(sizeof rev_comb / 2u >= SP_LEN && sizeof rev_u.sp / 4u >= 4u * (S
  * sparks and weight; FLUX the thermal drift; (FASE 2) FOLD the triangle wavefolder -- the wave folds back on
  * itself instead of clipping, so DRIVE adds partials all the way up, where the other four saturate. Then the
  * two-pole low-pass, TONE (P_DTONE) moving it darker / brighter, and the make-up. DRIVE 0: out of the chain */
-enum { DT_SOFT, DT_TAPE, DT_HEARTH, DT_FLUX, DT_FOLD };
+enum { DT_SOFT, DT_TAPE, DT_HEARTH, DT_FLUX, DT_FOLD, DT_CRUSH };   /* (FASE 5) CRUSH appended: the store's value stays */
 static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, int32_t x, int32_t g, int32_t d)
 {
     int32_t v = ((x >> 2) * g) >> 10, a;
@@ -154,6 +154,20 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         a <<= 2 + ((uint32_t)d >> 5);                    /* the peak back to 32768: DRIVE is loudness-neutral */
         return v < 0 ? -a : a;
     }
+    case DT_CRUSH: {                                     /* (FASE 5) CRUSH: the one degradation the other five cannot
+                                                          * make -- resolution taken away, not harmonics added. A
+                                                          * sample-and-hold decimates in time (DRIVE up: 1..8 samples
+                                                          * held) and the low bits go (15..8 bits), so what is left
+                                                          * is a stair that also aliases. No divide, as the chip has
+                                                          * none: a countdown, a shift and a mask. */
+        int32_t q = clamp(v, -28000, 28000), step = 1 << (15 - (d >> 4));
+        if (!t->dist_hc) {
+            t->dist_hc = 1u + (uint32_t)(d >> 4);        /* 1 .. 8 samples held */
+            t->dist_hold = q & -step;                    /* the low bits gone */
+        }
+        t->dist_hc--;
+        return t->dist_hold;
+    }
     case DT_SOFT:                                        /* SOFT: musical asymmetric soft clip (even harmonics) */
     default: {
         int32_t b0 = softclip(2400);
@@ -183,7 +197,7 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
     g = 4096 + d * d * 2;                                /* Q12: 1x .. ~9x, gentle at first */
     k = clamp(32000 - d * 95 + t->p[P_DTONE] * 300, 2500, 32767);   /* tone: transparent at low drive .. ~3 kHz, Q15 */
     mk = 30000 - d * 100;                               /* make-up gain */
-    if (type > DT_FOLD)
+    if (type > DT_CRUSH)
         type = DT_SOFT;
     for (i = 0; i < (int32_t)n; i++) {
         int32_t x = b[i], y;

@@ -1,3 +1,24 @@
+## v1.12.16 — CRUSH: el insert de DIST aprende a quitar resolución
+
+**CRUSH**, sexto modelo de DIST (append en `P_DTYPE`: cada valor guardado conserva el suyo). Los cinco que
+había —SOFT, TAPE, HEARTH, FLUX, FOLD— **añaden armónicos**: saturan, pliegan, sesgan. Ninguno quita
+resolución. CRUSH sí: un *sample-and-hold* que sostiene la muestra de 1 a 8 veces según DRIVE (la tasa baja
+hasta 1/8) y se lleva los bits bajos (de 15 a 8 bits), así que lo que queda es un escalón que además *alíase* —
+la única degradación lo-fi de la caja. Sin división en el camino de audio, como el resto del insert: un
+contador, un desplazamiento y una máscara. Los controles que DIST ya tenía (DRIVE, TONE, mezcla y make-up) se
+aplican igual.
+
+**Dos gráficos que mentían, corregidos.** El *transfer* del EDIT dibujaba la curva de SOFT mientras el motor
+tocaba **FOLD** (`type > DT_FLUX ? DT_SOFT`), y la etiqueta de la tarjeta DIST en la página FX decía "SOFT"
+para cualquier tipo ≥ 5 (`DIST_TYPES[... % 5u]`). Ahora FOLD tiene su propia curva (el pliegue real del DSP),
+CRUSH dibuja su escalera y la etiqueta recorre los seis nombres (la tarjeta muestra "CRSH").
+
+**Medido (`tests/dist_models_test.c`, host x86-64).** CRUSH: toda salida múltiplo de su escalón (0 violaciones
+en 1 082 muestras); con DRIVE 90 sostiene exactamente **100** cambios en 600 llamadas, que es 600 / (1 + 90/16);
+y conserva más bits con DRIVE 20 que con 90 (16 384 vs 1 024). Sigue siendo un insert usable: el pico queda
+dentro de 16 bits y con DRIVE 0 el tipo sale de la cadena byte a byte. `regress`: 307 renders, **0 cambiados**
+— ningún preset usa el valor nuevo.
+
 ## v1.12.15 — Dos formas de LFO nuevas: TRAP y STEP
 
 **TRAP** sube, se queda arriba 1/16 de ciclo, baja y se queda abajo el resto. Es lo que pide un *gate* que

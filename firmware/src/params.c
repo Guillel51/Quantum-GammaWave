@@ -49,7 +49,7 @@ static const char *const N_CHOTYPE[] = {"CHORUS", "PHASER", "FLANGER", 0};   /* 
 /* seq.c kb_map; 1 = SNAP (stored projects: the former ON); 3 = SEQ: SNAP, and the sequencer's notes snap too as
  * they play (seq.c seq_step; the steps keep what was written). Append-only: older projects hold 0..2 */
 static const char *const N_QUANT[] = {"OFF", "SNAP", "WHITE", "SEQ"};
-static const char *const N_DTYPE[] = {"SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"};   /* (QUANTUM) fx.c DT_SOFT..DT_FLUX; (FASE 2) FOLD appended */
+static const char *const N_DTYPE[] = {"SOFT", "TAPE", "HEARTH", "FLUX", "FOLD", "CRUSH"};   /* (FASE 5) CRUSH appended */   /* (QUANTUM) fx.c DT_SOFT..DT_FLUX; (FASE 2) FOLD appended */
 static const char *const N_FTYPE[] = {"LP", "HP", "BP", "COMB", "VOWEL", "SCREAM", "NOTCH", "SHELF"};   /* (GAMMAWAVE) P_FTYPE: eng_analog.c FT_*;
                                                                         * (FASE 3) NOTCH, SHELF appended */
 static const char *const N_VOICE[] = {"POLY", "MONO", "LEG", "UNI"};   /* V_POLY .. V_UNISON */

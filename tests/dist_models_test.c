@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* (FASE 2) DIST's five models (src/fx.c dist_shape, DT_SOFT .. DT_FOLD): every one of them has to be a
+/* (FASE 2) DIST's models (src/fx.c dist_shape, DT_SOFT .. DT_FOLD; FASE 5 adds DT_CRUSH): every one has to be a
  * usable insert at a high DRIVE, not just the four that were there before FOLD arrived.
  *   1. each model sounds (a peak well over the noise floor) and stays inside 16 bits
  *   2. FOLD is loudness-neutral: its peak is the same as SOFT's, not a whisper and not a scream
@@ -20,7 +20,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define NMODEL 5
+#define NMODEL 6
 
 static int bad;
 static void check(const char *what, int ok, long a, long b)
@@ -29,7 +29,9 @@ static void check(const char *what, int ok, long a, long b)
     bad += !ok;
 }
 
-typedef struct { int32_t peak; int32_t dc; uint64_t hash; } res_t;
+/* lev: how many of the 2 048 buckets of 32 values each the render touched. A quantiser that takes bits away
+ * cannot help but touch fewer of them, and that is what makes CRUSH measurable after its low-pass. */
+typedef struct { int32_t peak; int32_t dc; uint64_t hash; int32_t lev; } res_t;
 
 /* one note through the insert, DRIVE 90 (the blend is fully in at 8), the sends off so only DIST is heard */
 static res_t render(int type, int drive)
@@ -39,6 +41,9 @@ static res_t render(int type, int drive)
     int64_t sum = 0, n = 0;
     uint64_t h = 1469598103934665603ull;
     uint32_t k;
+    static uint32_t seen[2048];
+    int32_t lev = 0;
+    memset(seen, 0, sizeof seen);
 
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < NVOICE; i++)
@@ -67,12 +72,16 @@ static res_t render(int type, int drive)
             sum += v;
             n++;
             h = (h ^ (uint64_t)(uint32_t)v) * 1099511628211ull;
+            seen[(uint16_t)(int16_t)clamp(v, -32768, 32767) >> 5] |= 1u;
         }
     }
     res_t r;
     r.peak = pk;
     r.dc = (int32_t)(sum / n);
     r.hash = h;
+    for (i = 0; i < 2048; i++)
+        lev += seen[i] != 0;
+    r.lev = lev;
     return r;
 }
 
@@ -103,8 +112,8 @@ int main(void)
 
     for (i = 0; i < NMODEL; i++)
         m[i] = render_at(i, 90);
-    check("SOFT, TAPE, HEARTH, FLUX and FOLD all sound at DRIVE 90", m[0].peak > 1500 && m[1].peak > 1500 &&
-          m[2].peak > 1500 && m[3].peak > 1500 && m[4].peak > 1500, m[4].peak, 1500);
+    check("every model sounds at DRIVE 90 (SOFT .. CRUSH)", m[0].peak > 1500 && m[1].peak > 1500 &&
+          m[2].peak > 1500 && m[3].peak > 1500 && m[4].peak > 1500 && m[5].peak > 1500, m[5].peak, 1500);
     {
         int in16 = 1;
         for (i = 0; i < NMODEL; i++)
@@ -117,7 +126,43 @@ int main(void)
     for (i = 0; i < NMODEL; i++)
         for (j = i + 1; j < NMODEL; j++)
             distinct &= m[i].hash != m[j].hash;
-    check("the five models are five different renders", distinct, NMODEL, NMODEL);
+    check("the six models are six different renders", distinct, NMODEL, NMODEL);
+    /* (FASE 5) CRUSH, measured where it happens. The mix cannot show a quantiser: its own two-pole low-pass and its
+     * make-up gain smear every stair back into a continuum, and a count of the values it touches rises with level
+     * rather than falling with resolution. So the probe calls dist_shape itself -- the transfer, before the filter --
+     * and asks it what it promises: every output a multiple of its step (the low bits are gone) and a held sample for
+     * 1 + DRIVE/16 calls (the rate comes down). */
+    {
+        track_t *t = &trk[0];
+        int32_t i, d = 90, g = 4096 + d * d * 2, step = 1 << (15 - (d >> 4)), hold = 1 + (d >> 4);
+        int32_t notmul = 0, changed = 0, last;
+        t->dist_hc = 0;
+        t->dist_hold = 0;
+        for (i = -20000; i <= 20000; i += 37)
+            if (dist_shape(t, DT_CRUSH, i, g, d) % step) {
+                notmul++;
+            }
+        check("CRUSH's output is always a multiple of its step: the low bits are gone",
+              notmul == 0, notmul, step);
+        t->dist_hc = 0;
+        t->dist_hold = 0;
+        last = dist_shape(t, DT_CRUSH, 0, g, d);
+        for (i = 1; i <= 600; i++) {
+            int32_t x = (i * 300) % 11000 - 5500;   /* a ramp inside the clamp, its steps past the quantiser's */
+            int32_t y = dist_shape(t, DT_CRUSH, x, g, d);
+            if (y != last)
+                changed++;
+            last = y;
+        }
+        check("CRUSH holds a sample for 1 + DRIVE/16 calls (the rate comes down)",
+              changed <= 600 / hold && changed >= 600 / hold - 3, changed, 600 / hold);
+        {
+            int32_t d2 = 20, g2 = 4096 + d2 * d2 * 2, fine = 1 << (15 - (d2 >> 4));
+            check("CRUSH at a low DRIVE keeps more bits than at a high one",
+                  fine > step, fine, step);
+            (void)g2;
+        }
+    }
     {
         int same = 1;
         res_t z0 = render_at(0, 0);

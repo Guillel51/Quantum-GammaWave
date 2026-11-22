@@ -66,6 +66,17 @@ static int32_t tk_dist_y(uint32_t type, int32_t x, int32_t g, int32_t d)
         int32_t x3 = (int32_t)(((int64_t)v * (((int64_t)v * v) >> 15)) >> 15);
         return softclip(v - (x3 / 3));
     }
+    case DT_FOLD: {                                     /* (FASE 5) FOLD's own curve, as fx.c folds it: until now the
+                                                         * graph drew SOFT's while the engine played this one */
+        int32_t T = 8192 >> ((uint32_t)d >> 5), a = v < 0 ? -v : v;
+        a &= 2 * T - 1;
+        a = a > T ? 2 * T - a : a;
+        a <<= 2 + ((uint32_t)d >> 5);
+        return clamp(v < 0 ? -a : a, -32767, 32767);
+    }
+    case DT_CRUSH:                                      /* (FASE 5) CRUSH is a stair, not a curve: the levels the
+                                                         * bit depth leaves, drawn as the DSP quantises them */
+        return clamp(v & -(1 << (15 - (d >> 4))), -32767, 32767);
     case DT_SOFT:
     default: {
         int32_t b0 = softclip(2400);
@@ -77,7 +88,7 @@ static void tech_dist(const track_t *t)
 {
     int32_t d = t->p[P_DIST], g = 4096 + d * d * 2, i, py = 0, x0 = 22, y0 = TK_Y0, s = 100, cx = x0 + s / 2;
     int32_t cy = y0 + s / 2, en = bg_energy(), tone = t->p[P_DTONE];
-    uint32_t type = (uint32_t)t->p[P_DTYPE] > DT_FLUX ? DT_SOFT : (uint32_t)t->p[P_DTYPE];
+    uint32_t type = (uint32_t)t->p[P_DTYPE] > DT_CRUSH ? DT_SOFT : (uint32_t)t->p[P_DTYPE];
     tk_axes(x0, y0, x0 + s, y0 + s);
     cv_rect(x0, cy, s, 1, T_LINE);
     cv_rect(cx, y0, 1, s, T_LINE);
