@@ -39,8 +39,6 @@ check("with neither, the label is the last resort (still without its 'v')",
       make_site.package_filename("v1.6.0-11b9b9e", None, None), "felucca-1.6.0-11b9b9e.fwsc")
 check("the alias keeps the 'v' the live URL had",
       make_site.label_filename("v1.6.0-11b9b9e"), "felucca-v1.6.0-11b9b9e.fwsc")
-check("the previous site's name is what the alias keeps",
-      make_site.label_filename("v1.6.0-11b9b9e"), "felucca-v1.6.0-11b9b9e.fwsc")
 check("a version already without 'v' is not changed",
       make_site.package_filename("1.6.0", None, None), "felucca-1.6.0.fwsc")
 check("no version can escape firmware/ in the name",
