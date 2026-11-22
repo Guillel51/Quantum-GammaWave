@@ -42,7 +42,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.12.18" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+#define FELUCCA_VERSION "v1.7.19" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
                                     * editor. 1.0.0 is the clean public numbering of the whole instrument: the six tracks,
                                     * twelve voices and nine engines, the eight-slot modulation matrix with its MACROS
                                     * page, the ARP page drawn against its own clock and the Web Studio's preset
@@ -52,7 +52,15 @@
                                     * HUNG MINOR scales, dotted and fast LFO divisions, CHANCE's pattern graph, the MOD
                                     * MAP destination band, and the audit's four fixes. */ /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v3.1.2: HOME redrawn from the frame instead of a private counter, so a page comes back the same. */
 
-/* (v1.9.0: the integrated tree. v1.8.8 was the AC791N-build line, v1.8.9 the EQ/restore line; this
+/* (v1.7.19, FASE 8) THE 1.7.x SERIES RESUMED, AND WHAT THE NUMBER MEANS. The owner asked for the public
+ * numbering to return to 1.7.x without losing anything: this tree is the accumulated 1.12.18 one -- ten engines,
+ * three FX buses, five reverb models, CRUSH, the twelve LFO shapes, the 293-sound bank -- with every feature and
+ * every optimisation kept, and only the number changed. The patch continues where the last release stopped
+ * (1.12.18 -> 1.7.19) so the two lines share one count: 1.7.19 is newer than 1.12.18 by content and by
+ * publication, not by string comparison, and docs/VERSIONING.md says so with the whole mapping. History is not
+ * rewritten: the tags v1.7.0 .. v1.12.18 and their releases stay exactly as they were published.
+ *
+ * (v1.9.0: the integrated tree. v1.8.8 was the AC791N-build line, v1.8.9 the EQ/restore line; this
  * tree contains both, so it is neither -- the number states which code it is, and
  * tools/build_manifest.py ties it to the commit that produced the artefact. */
 #endif

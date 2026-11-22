@@ -3720,3 +3720,17 @@ encoder; desincronización de la línea interactiva de ENV 1/2 con el ADSR dibuj
 teclado inferior de SCL. Los tres necesitan captura animada o unidad física para demostrarse: los tests de UI
 pasan y el ADSR coloca el punto con `env_x_of`, que recorre la misma recurrencia que el dibujo. No se declaran
 corregidos.
+
+## 65. v1.7.19: la serie 1.7.x, sin perder nada
+
+**Cambio de numeración, no de contenido.** `FELUCCA_VERSION` pasa de `v1.12.18` a `v1.7.19` (única fuente:
+splash, menú, consola, editor, `make_release`, nombres de paquete). El árbol es el de 1.12.18 más las
+correcciones de la fase 8: ningún motor, preset, optimización ni commit se quitó. El patch continúa la cuenta
+anterior (18 → 19). `docs/VERSIONING.md` fija el esquema; `site/index.html` (8 menciones) queda alineado y
+`make_release --check` verifica que firmware, emulador, instalador, editor y ambos `SHA256SUMS` describan el
+mismo paquete.
+
+**Por qué no hay ambigüedad.** `versions.json` ordena por publicación (entrada 0 = actual) y cada paquete lleva
+su manifiesto con commit, tamaño y SHA-256; el único rechazo por "downgrade" del toolchain
+(`tools/fm1_sign.py`) es sobre el firmware mínimo requerido por un paquete, no sobre su versión. Historial: los
+tags anteriores quedan como están.

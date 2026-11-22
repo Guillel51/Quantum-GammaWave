@@ -1,3 +1,20 @@
+## v1.7.19 — La serie 1.7.x vuelve, con todo lo construido
+
+**El número cambia; ni una función se va.** Esta entrega es el árbol de v1.12.18 -- diez motores, tres buses de
+FX, cinco modelos de reverb, los seis modelos de DIST (CRUSH incluido), las doce formas de LFO, el banco de 293
+sonidos, las 203 pantallas -- con sus optimizaciones y sus commits, publicado bajo la numeración que pediste.
+El *patch* continúa donde terminó la línea anterior: **1.12.18 → 1.7.19**, así que las dos series comparten una
+sola cuenta y la próxima de ésta es la 1.7.20.
+
+**Sin ambigüedad de orden, porque el orden no es la cadena.** Nada del *toolchain* compara versiones como texto
+para decidir qué es más nuevo: `site/firmware/versions.json` va **ordenado por publicación** (la entrada 0 es la
+que el instalador y la web ofrecen), cada paquete lleva su SHA-256, su tamaño, su commit y su manifiesto
+(`qg1-build-1`), y el rechazo por *downgrade* de `tools/fm1_sign.py` es sobre el **firmware mínimo** que exige un
+paquete, no sobre su propia versión. Queda escrito en `docs/VERSIONING.md`, con el mapeo completo.
+
+**Historial intacto.** Los tags v1.7.0, v1.8.x, v1.9.0, v1.10.x y v1.12.x y sus releases no se renombran, no se
+retaguean y no se republican: se agrega una nota de serie y una versión nueva.
+
 ## v1.12.18 — La batería se lee, y el header queda bajo test en las 203 pantallas
 
 **El icono de batería, más grande** (el defecto que el reporte llama *demasiado pequeño*). Era 18 x 11 en una
