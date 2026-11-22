@@ -138,7 +138,7 @@ async function editorMock() {
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
   ok(info.nengines === 16 && info.engines[15] === "ADDTV" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "-"
- && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "WHEEL" && info.engines[8] === "-" && info.engines[9] === "-" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.engines[14] === "WTABLE" && info.pcount === 125 && info.pe0 === 117 && info.engines[4] === "-",
+ && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "WHEEL" && info.engines[8] === "-" && info.engines[9] === "-" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.engines[14] === "WTABLE" && info.pcount === 127 && info.pe0 === 119 && info.engines[4] === "-",
     "editor: INFO");
   let descs = 0;
   for (let i = 0; i < info.pcount; i++) if (E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))).label) descs++;
@@ -165,11 +165,11 @@ async function editorMock() {
     const md = [];
     for (let i = 49; i < 61; i++) md.push(E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))));
     ok(md.map((d) => d.label).join() === "SRC1,DEST1,AMT1,SRC2,DEST2,AMT2,SRC3,DEST3,AMT3,SRC4,DEST4,AMT4"
-      && md[0].names.join() === "OFF,LFO,ENV,VEL,KEY,RAND,MODW,AT,EXPR,M1,M2,M3,M4,STEP,NOISE,PAT,BAR" && md[1].names.length === 30
+      && md[0].names.join() === "OFF,LFO,ENV,VEL,KEY,RAND,MODW,AT,EXPR,M1,M2,M3,M4,STEP,NOISE,PAT,BAR" && md[1].names.length === 32
       && md[1].names[11] === "VIB" && md[1].names[19] === "E8" && md[1].names[21] === "PNCH" && md[1].names[25] === "X4" && md[1].names[26] === "RES"
       && md[1].names[27] === "ATK" && md[1].names[28] === "DEC" && md[1].names[29] === "REL"
       && md[2].min === -64 && md[2].max === 63 && md.every((d) => d.def === 0),
-      "editor: matrix parameters 49..60 over DESC (17 SRC names: 1.2.1-GW NOISE, PAT, FASE 5 BAR; 30 DST names: the macros M1..M4, the master CLIP PNCH, the CHARACTER bank X1..X4, FASE 3 RES, FASE 5 ATK DEC REL)");
+      "editor: matrix parameters 49..60 over DESC (17 SRC names: 1.2.1-GW NOISE, PAT, FASE 5 BAR; 32 DST names: the macros M1..M4, the master CLIP PNCH, the CHARACTER bank X1..X4, FASE 3 RES, FASE 5 ATK DEC REL, FASE 4 HARM and LSHP)");
     await rq(E.req.set(0, 52, 1));
     await rq(E.req.set(0, 53, 12));
     await rq(E.req.set(0, 54, -30));
