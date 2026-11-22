@@ -97,10 +97,26 @@ prohíbe.
 
 ## 6. Verificación de esta fase (clase host x86_64 / WASM / AC791N build)
 
-- `tests/run_tests.sh` completo (sin paquete): verde, incluidos ASan/UBSan, lint, goldens y el barrido. (Antes de
-  esta fase estaba **rojo**: `upreset_test` fallaba desde v1.12.4 por el punto 1 y `tracks` por el punto 3.)
+- `tests/run_tests.sh` (sin paquete): **NO está verde del todo** — ver §7. Arreglados y verdes:
+  `upreset_test` (fallaba desde v1.12.4, punto 1), `tracks` (punto 3), `project_test` y `phase2` / `phase5`
+  (literales del layout viejo: ahora afirman el invariante). **Siguen rojos**: `midi_control_test`
+  ("CCs outside the map change nothing") y `morph_six_test`.
 - `regress`: 307 renders, 0 cambiados, 0 fallos de salud / voz / CPU / crashes.
 - `ui_render`: barrido 193 × 22, 0 lint, 0 desalineaciones; `ui_pixels` 3 088 frames idénticos.
 - `preset_slots_test`, `preset_library_test` (287 sonidos), `install_test`, `stock_profile_test`,
   `backup_tool_test`, `fmhub_card_test`, `release_gate_test`: verdes.
 - `make_release --check`, `sha256sum -c`, `emu: all ok`, `release gate: passed`.
+
+## 7. Lo que sigue rojo, y por qué la release se detiene aquí
+
+`midi_control_test` — "CCs outside the map change nothing" falla: con el mapa actual, CC20/76/95 sobre la pista 0
+modifican algún parámetro de `trk[0].p`. O el mapa creció y el test sigue diciendo que esos CC están fuera, o hay
+una escritura fuera de mapa (lo segundo sería un bug de MIDI). Hay que leer la tabla de asignación y decidir con
+la evidencia; no se ha hecho en esta pasada.
+
+`morph_six_test` — "MORPH under load" falla en su condición de renders bit-idénticos antes del giro. Puede ser
+consecuencia del cambio de layout de §1 (los presets que toca) o una expectativa vieja.
+
+**No se publicó v1.12.13.** El número está reservado en `CHANGELOG.md` y la matriz §59 describe los cambios, pero
+la release no se sella mientras `run_tests.sh` esté rojo: sellar con la suite en rojo sería exactamente lo que
+`AGENTS.md` §4 prohíbe. El trabajo está commiteado y pusheado (`f6202477`) para que la fase 2 arranque desde aquí.

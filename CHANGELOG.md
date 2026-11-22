@@ -31,10 +31,12 @@ dos — el motor anterior y el mismo sonido ya asentado — y el umbral de 1.5x 
 registro de pendientes con estado y evidencia, y los bugs reportados (HOME, visualizer, flicker del browser, FX
 buses/reverb, ENV 1/2, instalación V16) con la comprobación concreta que se corrió para cada uno.
 
-**Verificación (host x86_64 / WASM / AC791N build).** `tests/run_tests.sh` completo en verde (incluye el test de
-presets de usuario que estaba fallando desde v1.12.4); `regress` 307 renders 0 cambiados; barrido 193 × 22, 0
-lint, 0 desalineaciones; 3 088 frames idénticos; `make_release --check`, `sha256sum -c`, emulador y
-`release_gate_test` verdes.
+**Verificación (host x86_64).** `regress`: 307 renders, 0 cambiados, 0 fallos de salud / voz / CPU / crashes.
+`upreset_test`, `tracks`, `project_test`, `phase2`, `phase5`, `ui_test`, `scl_test` y `preset_slots_test` verdes.
+**La suite completa NO está verde todavía**: `midi_control_test` ("CCs outside the map change nothing") y
+`morph_six_test` siguen fallando, y por eso **esta versión no se ha sellado ni publicado** — sellar con la suite
+en rojo es lo que `AGENTS.md` §4 prohíbe. El detalle y la dirección de cada uno están en
+`docs/AUDIT_PHASE1_v1.12.13.md` §7.
 
 ## v1.12.12 — Los presets de fábrica se ponen al día
 
