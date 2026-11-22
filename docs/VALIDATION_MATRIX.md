@@ -3744,3 +3744,21 @@ archivo oficial V16 contra los hashes fijados y registrar ambos— y por qué no
 restauración al manifiesto exige la medida física de `USR`/`BTIF`/NVS en una unidad V16, y este árbol no la
 tiene. `docs/FASE5_BACKUP_V16.md` deja la misma frontera con las tres afirmaciones `[HW]` sin medir. Estado:
 **V16 = GO CONDITIONAL**, documentado, no desactivado.
+
+## 66. v1.7.20: parpadeo de HOME y del menú de presets
+
+**Medido, no mirado.** `tests/ui_flicker_test.c` (en `tests/run_tests.sh`) conduce el encoder un detente por cuadro
+en el visualizer de HOME, en las tarjetas de HOME y en el navegador de presets, y compara cuadros consecutivos:
+un píxel idéntico en *i-1* y *i+1* pero distinto en *i* es un elemento que se borró y volvió. Cuenta como parpadeo
+solo si es una forma (va con un vecino) o si toma el fondo y regresa; un píxel aislado que cambia de tono es el
+polvo del campo animándose y se informa aparte. Además mide `host_flash` (píxeles escritos dos veces en un cuadro
+que terminan como empezaron): la definición de "banda enviada dos veces" que el vidrio sí muestra.
+
+**Causas corregidas.** (1) `graph_home_viz`: la retención del pico usaba `>` y oscilaba entre dos filas cada cuadro
+(30 Hz); ahora `>=`. (2) `graph_preset_pop`: la placa se bliteaba *después* del panel, escribiendo dos veces las
+filas 96..181 en cada detente; ahora se compone en el canvas del panel antes de su único envío. (3) `card_edge()`:
+el borde acento del knob caliente solo lo pintaba el repintado completo y la franja siguiente lo borraba; ahora lo
+pinta la misma función en los dos caminos.
+
+**Verificación inversa.** Repuesta cada una de las tres causas por separado, la prueba falla (exit 1); con las tres
+corregidas, pasa. Clase: host, `-O1`, `UI_NO_DRIFT`, reloj fijo — determinista. Nada de esto se midió en la unidad.

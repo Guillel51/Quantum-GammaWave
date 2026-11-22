@@ -1,3 +1,27 @@
+## v1.7.20 — Los dos parpadeos del informe, medidos y corregidos
+
+**Una prueba que mira cuadros consecutivos en vez de un cuadro quieto.** `tests/ui_flicker_test.c` gira el encoder
+un detente por cuadro sobre las tres pantallas que el informe señala y falla si algo se borra y vuelve en un solo
+cuadro, si una banda pierde su tinta, o si una fila se escribe dos veces dentro del mismo cuadro (lo que el panel,
+que muestra cada escritura, dibuja como un destello). Un píxel aislado que cambia de tono y vuelve no cuenta: el
+polvo del visualizador respira por diseño, y se informa aparte.
+
+**Tres causas, las tres reales.**
+
+1. **Visualizer de HOME: las marcas de pico del espectro parpadeaban a 30 Hz.** La retención comparaba con `>`: con
+   el nivel exactamente igual al pico, el cuadro lo bajaba un escalón y el siguiente lo subía, así que la marca
+   alternaba entre dos filas cada cuadro. Con `>=` el pico igual se sostiene y solo baja cuando el nivel de verdad
+   cae.
+2. **Menú de presets: la misma banda se enviaba dos veces por cuadro.** El panel dibujaba las filas del listado y,
+   justo después, la placa del pop-up sobre esas mismas filas: en el vidrio, cada detente del PRESETS era un
+   destello en el medio de la pantalla. La placa se compone ahora en el *canvas* del panel antes de su único envío;
+   solo un cuadro con el panel cacheado necesita su propio envío (y entonces es uno, no dos).
+3. **Tarjetas de HOME: el borde acento del knob recién girado vivía un cuadro.** Lo pintaba el repintado completo y
+   el repintado de la franja siguiente lo tapaba con el color de borde normal. `card_edge()` recibe ahora el estado
+   *hot* y lo pinta igual en los dos caminos.
+
+Los tres se comprobaron al revés: repuesta cada causa, la prueba falla; corregida, pasa. `regress`: 311 renders,
+0 cambiados — el audio no se tocó.
 ## v1.7.19 — La serie 1.7.x vuelve, con todo lo construido
 
 **El número cambia; ni una función se va.** Esta entrega es el árbol de v1.12.18 -- diez motores, tres buses de

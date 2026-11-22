@@ -42,7 +42,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.7.19" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+#define FELUCCA_VERSION "v1.7.20" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
                                     * editor. 1.0.0 is the clean public numbering of the whole instrument: the six tracks,
                                     * twelve voices and nine engines, the eight-slot modulation matrix with its MACROS
                                     * page, the ARP page drawn against its own clock and the Web Studio's preset
@@ -52,7 +52,12 @@
                                     * HUNG MINOR scales, dotted and fast LFO divisions, CHANCE's pattern graph, the MOD
                                     * MAP destination band, and the audit's four fixes. */ /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v3.1.2: HOME redrawn from the frame instead of a private counter, so a page comes back the same. */
 
-/* (v1.7.19, FASE 8) THE 1.7.x SERIES RESUMED, AND WHAT THE NUMBER MEANS. The owner asked for the public
+/* (v1.7.20) THE TWO FLICKERS OF THE REPORT -- HOME's visualizer and the preset menu -- and the third one the test
+ * found on the way (a card's knob highlight living a single frame). v1.7.19 shipped them; this release is the fix,
+ * measured by tests/ui_flicker_test.c, which compares consecutive frames and the writes inside one frame instead of
+ * trusting the pixels a still frame ends with. No sound, no preset and no screen changed its content.
+ *
+ * (v1.7.19, FASE 8) THE 1.7.x SERIES RESUMED, AND WHAT THE NUMBER MEANS. The owner asked for the public
  * numbering to return to 1.7.x without losing anything: this tree is the accumulated 1.12.18 one -- ten engines,
  * three FX buses, five reverb models, CRUSH, the twelve LFO shapes, the 293-sound bank -- with every feature and
  * every optimisation kept, and only the number changed. The patch continues where the last release stopped

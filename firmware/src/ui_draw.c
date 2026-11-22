@@ -488,11 +488,17 @@ static uint16_t value_col(uint16_t vc, int32_t ratio)
  * corner), one darker along its bottom and right. Every knob card on every page is drawn by
  * draw_column / draw_column_tall, so the chamfer reaches all 173 screens from here instead of
  * from a per-page copy -- and it is two colours, not a shadow: no extra state, no cost. */
-static void card_edge(int32_t w, int32_t h)
+/* (v1.7.20) THE HOT KNOB'S EDGES ARE THE EDGE'S BUSINESS, BOTH TIMES IT IS DRAWN. A card whose knob just turned
+ * gets two accent edges, and they were painted only by the FULL redraw: the frame after it repaints the strip -- the
+ * card's own rows, the left edge with them -- in the plain edge colour and the accent vanished, so the highlight
+ * lived exactly one frame and read as a flash. Same function now, strip and full, so the two frames agree. */
+static void card_edge(int32_t w, int32_t h, int hot)
 {
     uint16_t hi = ux_mix(T_SURF, T_TEXT, 16);
-    cv_rect(3, 0, w - 6, 1, hi);
-    cv_rect(0, 3, 1, h - 6, hi);
+    int acc = hot && ux.chamfer && !ux.style;
+    uint16_t ec = acc ? T_ACCENT : hi;
+    cv_rect(acc ? 4 : 3, 0, acc ? w - 8 : w - 6, 1, ec);
+    cv_rect(0, acc ? 4 : 3, 1, acc ? h - 8 : h - 6, ec);
     cv_rect(3, h - 1, w - 6, 1, T_BG);
     cv_rect(w - 1, 3, 1, h - 6, T_BG);
 }
@@ -506,7 +512,7 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
     uint32_t ic = mot ? ICON_X_MOTION : icon, isz = 16u;
     cv_begin(COL_W, LG_CARD_H, T_BG);
     cv_rrect(0, 0, COL_W, LG_CARD_H, 4, T_SURF, T_BG);
-    card_edge(COL_W, LG_CARD_H);
+    card_edge(COL_W, LG_CARD_H, hot);
     if (!label[0] && !val[0]) {                         /* a knob that does nothing on this page: the empty
                                                          * card, and no "K1" pill either -- a label for a
                                                          * control that is not there (FASE 4, §13) */
@@ -654,7 +660,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
          * it crosses is drawn again and what lies outside is clipped, so a rolled frame is the forced redraw's
          * pixels (ui_test: the roll and the 150 000-frame soak). */
         cv_plate_rows(0, ROLL_Y, ROLL_Y + ROLL_H, COL_W, COL_H, T_SURF);
-        card_edge(COL_W, COL_H);
+        card_edge(COL_W, COL_H, hot);
     } else {
         char ov[16];                                    /* the value drawn before (in the cache key) */
         const char *k = ui.col[c];
@@ -676,11 +682,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         }
         cv_begin(COL_W, COL_H, T_BG);
         cv_rrect(0, 0, COL_W, COL_H, 4, T_SURF, T_BG);
-        card_edge(COL_W, COL_H);
-        if (ux.chamfer && !ux.style && hot) {
-            cv_rect(4, 0, COL_W - 8, 1, T_ACCENT);
-            cv_rect(0, 4, 1, COL_H - 8, T_ACCENT);
-        }
+        card_edge(COL_W, COL_H, hot);
     }
     if (label[0] || val[0]) {
         /* (3.5) FOUR PIXELS CLEAR OF THE DIAL. The row reserved for the round knob was COL_W - 22, which is
@@ -2234,8 +2236,10 @@ static void ui_draw_page(uint32_t counting)
         felucca_dbg.stage = 5;
         draw_graph();
         if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u) {
-            /* Transient 1.5s compact translucent HUD preset popup over current page */
-            graph_preset_pop();
+            /* Transient 1.5s compact translucent HUD preset popup over current page. It rode the panel's canvas
+             * when draw_graph drew it this frame (v1.7.20: one send per row); a cached panel needs its own. */
+            if (graph_pop_frame != ui.frame)
+                graph_preset_pop();
         } else if (ui.preset_pop_ms) {                 /* (v1.5.5) the end is handled at the top of this function */
             ui.preset_pop_ms = 0;
             graph_invalidate();

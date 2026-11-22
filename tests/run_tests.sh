@@ -358,6 +358,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_nav" tests/ui_nav_test.c -lm
     run "Navigation across HOME, VISUALIZER and the sections (UI_NO_DRIFT=1): 14 states walked twice, each compared with a full repaint of the same state -- a cached header, card or strip left stale fails" \
         "$OUT/ui_nav"
+    $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_flicker" tests/ui_flicker_test.c -lm
+    run "Flicker (v1.7.20): HOME's visualizer, HOME's cards and the preset browser over eight detents each -- an element or band erased for one frame and back, or a row written twice inside a frame, fails" \
+        "$OUT/ui_flicker"
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/viz_worlds" tests/viz_worlds_test.c -lm
     run "VISUALIZER's two deep worlds: the giant reads tracks 1-3 and the rock 4-6 -- a loud half moves its own world only, and both carry a surface" \
         "$OUT/viz_worlds"

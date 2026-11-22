@@ -2811,19 +2811,15 @@ static void graph_browse(void)
 }
 
 /* Compact semi-translucent 1.5s HUD popup centered on screen when changing presets via knob */
-static void graph_preset_pop(void)
+static void graph_pop_plate(int32_t x0, int32_t oy)
 {
     uint32_t total, cur = preset_pos(&total), e, k;
-    int32_t r, y0 = 18, w = 208, h = 86;
+    int32_t r, y0 = oy, w = 208, h = 86;
     /* (v1.11) FULL WIDTH ONLY WHERE THE BAND IS THE PAGE'S OWN. On PRESETS the pop-up covers five of the seven list
      * rows and graph_browse leaves them to it; there the canvas is the whole 240-wide band and every one of those
      * rows is written once. On any other page (the MIXER's columns, HOME's trace) the plate still rides its own
      * 208 x 86 box: a full-width band there would blank the page's content in its margins, and --regions case A
      * measures exactly that. */
-    int32_t full = cur_page()->graph == GR_BROWSE;
-    int32_t x0 = full ? 16 : 0;                        /* the box's origin inside the canvas: 16 in the band,
-                                                        * 0 when the plate IS the canvas (blitted at x = 16) */
-
     if (!total) return;
     /* (v1.5.15) ITS OWN CANVAS, THE SIZE OF ITS BOX, AND ONLY ITS BOX IS SENT. This used to paint into whatever
      * canvas the page had left and blit it as the whole 240 x graph_h band: on the MIXER, whose columns are drawn
@@ -2836,8 +2832,6 @@ static void graph_preset_pop(void)
      * glass that is a flash across the middle of the screen on every step of the preset knob, which is exactly
      * what the report calls the preset menu flickering. The canvas is the pop-up's whole band now (full width, the
      * page's tone in its margins) and graph_browse leaves those rows to it, so each row is written and sent once. */
-    cv_begin(full ? 240u : (uint32_t)w, (uint32_t)h, full ? T_BG : T_SURF);
-    cv_oy = -y0;
     cv_bg = T_SURF;
 
     /* (1.4.1) opaque plate: the dithered rows this used to paint were covered by the panel a line later */
@@ -2888,8 +2882,41 @@ static void graph_preset_pop(void)
             cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
         }
     }
-    cv_blit(full ? 0 : 16, Y_GRAPH + 18);             /* the band (or the box) in one send */
 }
+/* (v1.7.20) THE PLATE RIDES THE PANEL, OR IT IS A SEND OF ITS OWN. It used to blit the 240 x 86 band AFTER
+ * draw_graph had already sent the panel that contains those rows: on every step of the PRESETS knob the same rows
+ * went to the panel twice, first as the list (its five middle rows blanked) and then as the plate over them -- the
+ * by-the-book definition of the preset menu's flicker, and the third attempt at it (v1.11 made the browser leave
+ * those rows alone, which stopped the *stale* list but not the second send). The plate is drawn into the panel's
+ * canvas before the one blit now; only a frame where the panel was cached still needs its own send. */
+static uint32_t graph_pop_frame = 1u << 31;        /* ui.frame of the last frame the plate rode a panel blit */
+
+static void graph_preset_pop_in_panel(void)
+{
+    uint32_t total;
+    int32_t full = cur_page()->graph == GR_BROWSE;
+    if (!preset_pos(&total))
+        return;
+    if (full)                                       /* the band's margins, as the standalone canvas paints them */
+        cv_rect(0, 18, 240, 86, T_BG);
+    graph_pop_plate(16, 18);
+    graph_pop_frame = ui.frame;
+}
+
+/* the plate alone, for a frame whose panel was not drawn (its signature did not move): one send, not two */
+static void graph_preset_pop(void)
+{
+    uint32_t total;
+    int32_t full = cur_page()->graph == GR_BROWSE;
+    if (!preset_pos(&total))
+        return;
+    cv_begin(full ? 240u : 208u, 86u, full ? T_BG : T_SURF);
+    cv_oy = 0;
+    graph_pop_plate(full ? 16 : 0, 0);
+    cv_blit(full ? 0 : 16, Y_GRAPH + 18);
+    graph_pop_frame = ui.frame;
+}
+
 /* the EDIT layer (ui_layer.c): the sound loaded, as the browser's selected row: "03" (its place in KNOB 2's list,
  * the engine's sounds) or "U07", the name, the star of a favourite */
 static void engine_sound_row(int32_t y)
@@ -3483,7 +3510,10 @@ static void graph_home_viz(uint16_t c)
         bsum = (bsum * 44) / (peak ? peak * 8 : 1);
         if (bsum > 34) bsum = 34;
         bars[i] = bsum;
-        if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
+        /* (v1.7.20) `>` made an EQUAL level decay the cap and the next frame raise it back: the peak mark
+         * alternated between two rows every frame -- a 30 Hz blink across the spectrum floor, which is the
+         * visualizer flicker of the report. Equal holds; only a level below the cap lets it fall. */
+        if (bsum >= peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
         else if (peak_decay[i]) peak_decay[i]--;
     }
 
@@ -4141,5 +4171,7 @@ static void draw_graph(void)
         }
     }
     cv_oy = 0;
+    if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u)
+        graph_preset_pop_in_panel();                /* (v1.7.20) into the panel: one send per row */
     cv_blit(0, graph_y());
 }
