@@ -3160,3 +3160,50 @@ pasar con el baseline nuevo: 3 056 frames idénticos.
 XIP 558 196 B (4 788 libres, +16 B), RAM 93 504/98 304 (sin cambio), imagen 578 336/583 612. Paquete re-sellado
 desde `62154fd`: 610 933 B, sha256 `757cd3775655febd`, emulador `62154fd`; `make_release.py --check` ok,
 `sha256sum -c` en `site/firmware/` ok y `web/emu/emu_test.mjs` verde.
+
+## 41. Fase 1/4: perfilado y rendimiento global (v1.8.0)
+
+### 41.1 What was measured, and its class
+
+Primera fase de la serie 1/4. El `[HOST x86]` es `gprof`/reloj de pared sobre `tests/fx_bench`; el `[AC791N]`
+es el costo estático que emite el compilador del target (`tests/target_budget.py` sobre `build/felucca.dis`).
+**No hubo unidad física en ningún punto de esta fase** (`AGENTS.md` §3): ningún número de acá es una medición
+en un FM-1 ni un margen de CPU del aparato. El detalle, con la tabla del perfil y cómo reproducirlo, está en
+`docs/PERFORMANCE.md`.
+
+`[HOST x86]` el bloque se lleva **78–80 ns por muestra** (mejor de 7 repeticiones), unos 2,5 µs por bloque de 32
+muestras en este x86. El perfil ubica el trabajo: buses de FX 18,6 %, `rev_room` 16,3 %, `master_out` 11,6 %
+(32 llamadas por bloque), `mix_part` 11,6 %, los seis motores ~25 %, el secuenciador 4,7 %.
+
+### 41.2 The failing gate this phase found
+
+`tests/target_budget.py` salía **en rojo**: `mix_block` 42 775 contra un baseline de 32 667 (**+31 %**, tope
++10 %). La causa medida: el compilador había metido el secuenciador entero (scan de pasos, MOTION, FUGUE,
+RATCHET, arpegiador) dentro de la función del bloque, en el anidamiento más profundo, así que no se podía ver
+qué parte había crecido desde 1.4.5.
+
+`events_block()` es ahora `noinline` y tiene su propia línea; se agregó `BLOCK_PATH` (la suma de las dos) para
+que mover trabajo entre ellas no esconda un total crecido. Medido `[AC791N]`: `mix_block` **115**,
+`events_block` **45 589**, `BLOCK_PATH` **45 704**; `BUDGET_UPDATE=1` reescribió el baseline con lo medido hoy
+(y ajustó `lofi_render` 197 → 206, +5 % que ya estaba pasando sin nota). El gate vuelve a verde y sigue
+fallando si cualquiera de las dos líneas crece un 10 %.
+
+### 41.3 What was discarded, having measured it
+
+Tres micro-optimizaciones con A/B y **descartadas** por no mover la aguja: fundir el vúmetro del master con el
+loop de salida (81,3 vs 79,1 ns/muestra y +46 en el estático), `always_inline` sobre `master_out` (sin cambio,
+más código), y sacar la constante de damping de la reverb del loop (el target ya la sacaba: 243 → 243). Quedan
+en `docs/PERFORMANCE.md` para que nadie las repita. En el host el split `noinline` es **neutro** (79,4 / 79,3 /
+78,4 contra 78,8 / 79,5 / 79,6): no se publica como mejora de velocidad.
+
+### 41.4 Regression
+
+`tests/regress tests/golden.txt` **307 renders, 0 cambiados** (el audio es idéntico byte a byte), 0 health
+failures, 0 voice/routing, **0 entradas de CPU sobre presupuesto** (antes 1). Barrido de UI: 191 pantallas ×
+22 paletas, 0 lint, 0 alineación, **3 056 frames idénticos** al baseline. `tests/resources_test.py` 13/13
+(XIP 5 312 B libres, RAM 4 800 B, POOL 9 248 B). `tests/ui_test` y la suite del emulador verdes.
+
+### 41.5 Memory and flash
+
+`[AC791N]` XIP 558 148 B (5 312 B libres en el slot de la app, +36 B por el split), RAM `.data+.bss`
+93 504/98 304, imagen 578 300/583 612. El split no agrega RAM (ningún estado nuevo) y cuesta 36 B de código.

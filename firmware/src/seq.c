@@ -2076,8 +2076,13 @@ static int32_t click_beat_now(void)
     return clk_pos == CLK_START ? 0 : (int32_t)(clk_step >> 2);
 }
 
-/* everything that happens between two rendered blocks */
-static void events_block(uint32_t n)
+/* everything that happens between two rendered blocks.
+ * (1.8) Its own function, not folded into mix_block: the compiler was inlining the whole sequencer -- the step
+ * scan, MOTION, FUGUE, RATCHET, the arpeggiator -- into the audio block, where it sat deepest in the nesting and
+ * was measured as part of that one number (tests/target_budget.py: mix_block grew 31 % over the line written at
+ * 1.4.5, with no way to see which part had grown). It runs once a block per track, never per sample: separate, it
+ * is measured on its own line and the block's line means the mixer again. */
+static __attribute__((noinline)) void events_block(uint32_t n)
 {
     uint32_t i, pr, fo, seq_n = n;
     voice_defer_flush();                            /* (FASE 1) the notes the key scan kept while core 1 was working */

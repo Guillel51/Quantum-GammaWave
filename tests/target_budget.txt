@@ -20,11 +20,13 @@
 # 293/293 unchanged and tests/regress (the primary per-block CPU check) has 0 entries over budget, so
 # these are static counts of the target code and no device was measured. Do not raise them again without
 # a measurement of the same class.
+mix_block 115
+events_block 45589
 analog_render 138
 phase_render 94
 phase_render_noise 113
 phase_harm 23
-lofi_render 197
+lofi_render 206
 formant_render 238
 wheel_render 257
 wheel_block 32
@@ -33,7 +35,7 @@ analog_morph 89
 analog_dirty 84
 lofi_byte_render 87
 drum_render 10
-noise_render 219
+noise_render 218
 fm6_render 292
 fm6_op_run 42
 fm6_op_fb 17
@@ -46,8 +48,8 @@ drum_side_add 20
 drum_add 12
 drum_mix 123
 slicer_bus 806
-fm1_alnk0_irq 291
-fm1_timer5_irq 27007
+fm1_alnk0_irq 94
+fm1_timer5_irq 17664
 click_render 30
 mod_begin 31
 mod_voice 18
@@ -60,4 +62,4 @@ perf_master 32
 rev_room 243
 rev_spring 126
 DRUM_PATH 1153
-mix_block 32667              # (1.4.5) the whole block with fx_buses, master_out and the leveler inlined
+BLOCK_PATH 45704

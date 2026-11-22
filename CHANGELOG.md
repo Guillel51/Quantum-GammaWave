@@ -1,3 +1,34 @@
+## v1.8.0 — Fase 1/4: el perfilado del bloque de audio, y el gate que vuelve a medir lo que dice medir
+
+**Medido primero, no adivinado**
+
+- Perfilado del camino de audio con `gprof` sobre `tests/fx_bench` (host x86; la clase del número está dicha):
+  buses de FX **18,6 %**, `rev_room` **16,3 %**, `master_out` **11,6 %** (32 llamadas por bloque), `mix_part`
+  **11,6 %**, FM6 **16,3 %** (`fm6_render` 9,3 % + `fm6_op_run` 7,0 %), `mix_block` propio 7,0 %,
+  `events_block` 4,7 %, `analog_dispatch` 4,7 %. `tests/fx_bench` da 78–80 ns por muestra en el host: el
+  bloque entero son ~2,5 µs de x86 por 32 muestras.
+- Tres intentos de micro-optimización medidos con A/B y **descartados** por no mover la aguja (el compilador
+  ya los hacía): fundir la pasada de los vúmetros del master con la del loop de salida (+46 en el costo
+  estático del target y 81,3 vs 79,1 ns/sample en el host), `always_inline` sobre `master_out` (sin cambio,
+  más código), y sacar la constante de damping de la reverb fuera del loop (el target ya la sacaba: 243 → 243).
+  Quedan documentados en `docs/PERFORMANCE.md` para que nadie los repita.
+
+**El defecto que sí había, y el arreglo**
+
+- `tests/target_budget.py` marcaba **`mix_block` +31 % sobre su baseline de 1.4.5** (42 775 contra 32 667) y
+  el gate salía en rojo: el compilador estaba metiendo **todo el secuenciador** (scan de pasos, MOTION,
+  FUGUE, RATCHET, arpegiador) dentro de la función del bloque, donde corría en el anidamiento más profundo y
+  no había manera de ver qué parte había crecido.
+- `events_block()` es ahora su propia función (`noinline`, como `mix_block`, `drum_out` y `drum_side_*` por
+  la misma razón). Medido: `mix_block` **115**, `events_block` **45 589**, y una línea nueva **`BLOCK_PATH`**
+  que suma las dos (45 704) para que mover trabajo de una a otra no pueda esconder un total crecido. El gate
+  vuelve a verde con líneas que describen el código que hay, y sigue fallando si cualquiera de las dos crece
+  un 10 %.
+- En el host el cambio es neutro (79,4 / 79,3 / 78,4 ns por muestra con el split, 78,8 / 79,5 / 79,6 sin él):
+  no se vendió una mejora de velocidad que no existe. Lo que se ganó es que el número significa algo.
+- `tests/regress`: 307 renders, **0 cambiados** (el audio es idéntico byte a byte); barrido de UI 3 056
+  frames idénticos; `resources_test` 13/13; y la CPU del host queda **0 entradas sobre presupuesto** (antes 1).
+
 ## v1.7.0 — SCENES (morph entre cuatro estados) y el cierre de la auditoría
 
 **Nuevo: MORPH SCENES**

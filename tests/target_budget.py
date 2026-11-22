@@ -22,6 +22,9 @@ import sys
 
 FUNCS = ["mix_block",                     # (1.4.5) the whole block: fx_buses, master_out, the leveler and the
          # power-on fade, all inlined into it -- the audio ISR's cost minus the engines
+         "events_block",                   # (1.8) the sequencer's block (seq.c): its own function now, so the
+         # step scan / MOTION / FUGUE / RATCHET / arp are measured here and not folded into mix_block. It is
+         # checked together with the block: BLOCK_PATH below
          "analog_render", "digital_render", "digital_render_legacy", "digital_render_custom", "phase_render", "phase_render_noise", "phase_harm", "lofi_render", "formant_render",
          "wheel_render", "wheel_block", "analog_ext", "analog_morph", "analog_dirty", "lofi_byte_render",   # (JIANT 0.4: SYNC RING SAW3,
          # BYTE; 1.0-GW: TUBE FOLD)
@@ -48,6 +51,13 @@ OPTIONAL = {"digital_render": 12, "digital_render_legacy": 333, "digital_render_
 # missing already fails the FUNCS check above.
 DRUM_PATH = ["dx_run", "dx_layer", "dx_run_sn", "drum_render", "drum_out", "drum_side_ramp",
              "drum_side_add", "drum_add", "drum_mix"]
+# (1.8) The audio block as a whole: what the ISR spends between two buffers, whichever function the compiler
+# chose to inline into which. The two lines are checked on their own AND as this sum, so work moved from one to
+# the other (an inline decision, a helper split out) cannot hide a grown total.
+BLOCK_PATH = ["mix_block", "events_block"]
+# the sums that are printed and checked: (the line's name, its members, what it adds up)
+PATHS = [("DRUM_PATH", DRUM_PATH, "(hit, out, IMAGE / SEND, bus)"),
+         ("BLOCK_PATH", BLOCK_PATH, "(the mix block and the events it runs)")]
 TOL = 0.10                      # exact (no noise): small edits pass, a grown render loop does not
 DIV_W = 8                       # a divide weighs 1 + 8 instructions
 NEST = 4                        # an instruction in a loop inside a loop weighs 4, two deep 16, ...
@@ -139,9 +149,10 @@ def main():
             for n, r in res.items():
                 if n not in OPTIONAL:
                     f.write(f"{n} {r['cost']}\n")
-            path = [n for n in DRUM_PATH if n in res]
-            if path:
-                f.write(f"DRUM_PATH {sum(res[n]['cost'] for n in path)}\n")
+            for pname, plist, _what in PATHS:
+                path = [n for n in plist if n in res]
+                if path:
+                    f.write(f"{pname} {sum(res[n]['cost'] for n in path)}\n")
         print(f"target: budget {budget} rewritten ({len(res)} functions)")
     fail = 0
     for n in missing:
@@ -175,31 +186,32 @@ def main():
                 state += ", AT THE CEILING)" if left < 2 else ")"
         print(f"target: {n:15s} {r['insns']:5d} instructions, {r['loop']:4d} in loops, {r['div']} divides, "
               f"{r['call']:2d} calls there: cost {r['cost']:5d} (budget {b if b is not None else '-'}) {state}")
-    path = [n for n in DRUM_PATH if n in res]
-    if path:
-        total = sum(res[n]["cost"] for n in path)
-        b = base.get("DRUM_PATH")
-        state = "ok"
-        if b is None:
-            if os.environ.get("BUDGET_UPDATE"):
-                state = "no budget (written by BUDGET_UPDATE=1)"
-            else:                               # (QG-1 stage 2) the path as a whole must be watched too
-                state = "FAIL no DRUM_PATH line (measure it, then BUDGET_UPDATE=1)"
-                fail += 1
-        elif not os.environ.get("BUDGET_UPDATE"):
-            if total > b * (1 + TOL):
-                over = "any cost" if b == 0 else f"+{(total / b - 1) * 100:.0f} %"
-                state = f"OVER BUDGET ({over}, limit +{TOL * 100:.0f} %)"
-                fail += 1
-            elif b and total < b * (1 - TOL):
-                state = f"note: {(total / b - 1) * 100:.0f} % (BUDGET_UPDATE=1 to keep it)"
-            elif b:
-                d = (total / b - 1) * 100
-                left = (b * (1 + TOL) - total) / (b * (1 + TOL)) * 100
-                state = f"ok ({d:+.0f} % of the baseline, limit +{TOL * 100:.0f} %"
-                state += ", AT THE CEILING)" if left < 2 else ")"
-        print(f"target: DRUM path        (hit, out, IMAGE / SEND, bus): cost {total:5d} "
-              f"(budget {b if b is not None else '-'}) {state}")
+    for pname, plist, what in PATHS:
+        path = [n for n in plist if n in res]
+        if path:
+            total = sum(res[n]["cost"] for n in path)
+            b = base.get(pname)
+            state = "ok"
+            if b is None:
+                if os.environ.get("BUDGET_UPDATE"):
+                    state = "no budget (written by BUDGET_UPDATE=1)"
+                else:                           # (QG-1 stage 2) the path as a whole must be watched too
+                    state = f"FAIL no {pname} line (measure it, then BUDGET_UPDATE=1)"
+                    fail += 1
+            elif not os.environ.get("BUDGET_UPDATE"):
+                if total > b * (1 + TOL):
+                    over = "any cost" if b == 0 else f"+{(total / b - 1) * 100:.0f} %"
+                    state = f"OVER BUDGET ({over}, limit +{TOL * 100:.0f} %)"
+                    fail += 1
+                elif b and total < b * (1 - TOL):
+                    state = f"note: {(total / b - 1) * 100:.0f} % (BUDGET_UPDATE=1 to keep it)"
+                elif b:
+                    d = (total / b - 1) * 100
+                    left = (b * (1 + TOL) - total) / (b * (1 + TOL)) * 100
+                    state = f"ok ({d:+.0f} % of the baseline, limit +{TOL * 100:.0f} %"
+                    state += ", AT THE CEILING)" if left < 2 else ")"
+            print(f"target: {pname:15s} {what}: cost {total:5d} "
+                  f"(budget {b if b is not None else '-'}) {state}")
     return 1 if fail else 0
 
 
