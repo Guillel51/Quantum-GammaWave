@@ -166,6 +166,24 @@ def main(site_dir=None):
                                f"({a.get('commit')} != {b.get('commit')}) in {emu}")
                 if a.get("commit") and f'<code id="build-commit">{a["commit"]}</code>' not in (emu / "index.html").read_text(encoding="utf-8"):
                     bad.append("emulator page does not name its manifest's commit")
+        # (FASE 8) `sha256sum -c` IS THE CONTRACT OF THAT FILE, so a line is two fields and nothing else.
+        # An annotated entry -- "…  felucca.bin  (577572 B, from the build record)" -- reads as a file name,
+        # cannot be opened, and fails the whole file, taking the package's own check down with it.
+        sums = out / "firmware" / "SHA256SUMS"
+        if sums.is_file():
+            import re as _re                       # (hashlib is the module's own: a local import would shadow it)
+            for no, line in enumerate(sums.read_text(encoding="utf-8").splitlines(), 1):
+                if not line.strip():
+                    continue
+                h, sep, name = line.partition("  ")
+                if not sep or not _re.fullmatch(r"[0-9a-f]{64}", h) or not name or " " in name:
+                    bad.append(f"firmware/SHA256SUMS:{no} is not a `sha256sum -c` line: {line[:60]!r}")
+                    continue
+                f = out / "firmware" / name
+                if not f.is_file():
+                    bad.append(f"firmware/SHA256SUMS names {name}, which is not on the site")
+                elif hashlib.sha256(f.read_bytes()).hexdigest() != h:
+                    bad.append(f"firmware/SHA256SUMS says {h[:16]}… for {name}, the file hashes differently")
 
     # the access grid: WEB SITE is the dominant box and fills it, Web Studio shares the editor's,
     # USB INSTALLER is the only way in (the FLASH FM-1 entry is gone) and takes both cells it

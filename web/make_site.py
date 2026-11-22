@@ -377,16 +377,25 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
             (fw / (e["file"] + ".manifest.json")).write_text(json.dumps(m, indent=1, sort_keys=True) + "\n",
                                                              encoding="utf-8")
     (fw / "versions.json").write_text(json.dumps(versions, indent=1) + "\n", encoding="utf-8")
-    # the same facts in `sha256sum -c` form, beside the bytes: the package, and -- when the package
-    # carries its build record -- the app image and the loader it was made from, so a download can be
-    # checked against the build it says it is without trusting the page that served it.
+    # `sha256sum -c` form, beside the bytes: the package, and the alias when this run published one, so a
+    # download can be checked against what the site promised without trusting the page that served it.
+    # (FASE 8, 2026-11-21) EVERY LINE IS `<hex>  <file>` AND NOTHING ELSE. The build record's entries used
+    # to be appended as `…  felucca.bin  (577572 B, from the build record)`: `sha256sum -c` reads that as a
+    # file name, cannot open `felucca.bin  (577572 B,…`, and fails the whole file -- one annotation cost the
+    # verification of the package too. The sizes and the app/loader hashes are in the package's own build
+    # record and in the `.manifest.json` beside it; a line is listed here only if the file is here to check.
     sums = [f"{hashlib.sha256(raw).hexdigest()}  {name}"]
     if alias != name:
         sums.append(f"{hashlib.sha256(raw).hexdigest()}  {alias}")     # same bytes, plain line: `sha256sum -c` clean
     for art, meta in sorted(((build or {}).get("artifacts") or {}).items()):
-        if isinstance(meta, dict) and meta.get("sha256"):
-            sums.append(f"{meta['sha256']}  {art}  ({meta.get('bytes', '?')} B, from the build record)")
-    (fw / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
+        if isinstance(meta, dict) and meta.get("sha256") and (fw / art).is_file():
+            sums.append(f"{meta['sha256']}  {art}")
+    seen, lines = set(), []                     # the build record lists the package too: one line per file
+    for s in sums:
+        if s.partition("  ")[2] not in seen:
+            seen.add(s.partition("  ")[2])
+            lines.append(s)
+    (fw / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
     lic = HERE.parent / "LICENSES"                  # the package holds JieLi SDK files (Apache-2.0): their
     (fw / "LICENSES").mkdir(exist_ok=True)          # licence travels next to it, with Felucca's own
     names = sorted(f.name for f in lic.glob("*.txt"))
