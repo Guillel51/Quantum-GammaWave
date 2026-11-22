@@ -557,11 +557,12 @@ static int keys_test(void)
             }
         }
     }
-    /* 172, not 169: v1.5.19 appended three sounds past the 6.0 remaster's (AURORA DRIFT, ROTOR GLASS, TIDAL
-     * MIRROR). It is a guard, not a spec: the per-preset checks above (extra values, the FM6 voice, the peak in
-     * range) cover every one of them, and this only catches a sound arriving or leaving without anyone looking. */
-    if (n12 != 172u) printf("  %u presets past the generator's\n", n12);
-    bad += check("the 1.2, QG-1, 6.0 and 19 presets (172, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 172u);
+    /* 176, not 172: v1.12.17 appended four ANALOG sounds past the 6.0 remaster's (NOTCH PAD, PUMP PAD, STAIR
+     * LEAD, CRUSH BASS), and the guard below was never told -- it failed from that release on. It is a guard,
+     * not a spec: the per-preset checks above (extra values, the FM6 voice, the peak in range) cover every one
+     * of them, and this only catches a sound arriving or leaving without anyone looking. */
+    if (n12 != 176u) printf("  %u presets past the generator's\n", n12);
+    bad += check("the 1.2, QG-1, 6.0 and 19 presets (176, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 176u);
     return bad;
 }
 

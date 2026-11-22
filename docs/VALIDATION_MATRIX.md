@@ -3734,3 +3734,13 @@ mismo paquete.
 su manifiesto con commit, tamaño y SHA-256; el único rechazo por "downgrade" del toolchain
 (`tools/fm1_sign.py`) es sobre el firmware mínimo requerido por un paquete, no sobre su versión. Historial: los
 tags anteriores quedan como están.
+
+**Seguridad e instalación desde V16 (§2 de la fase 8), sin cambios de gate.** La auditoría de esta fase no
+encontró una vía segura nueva y **no relajó nada**: el gate sigue exigiendo el full-flash de M-Flasher porque es
+la única copia que cubre *todo* el chip con evidencia de esta unidad. Lo que queda demostrado y documentado en
+`docs/FM1_V16.md` es la ruta corta y host-verificable que el instalador **podría** ofrecer sin inventar
+evidencia —leer la ventana `0x4000–0x93000` que el loader va a borrar, verificarla por sha256, verificar el
+archivo oficial V16 contra los hashes fijados y registrar ambos— y por qué no se aplicó: el paso que ata la
+restauración al manifiesto exige la medida física de `USR`/`BTIF`/NVS en una unidad V16, y este árbol no la
+tiene. `docs/FASE5_BACKUP_V16.md` deja la misma frontera con las tres afirmaciones `[HW]` sin medir. Estado:
+**V16 = GO CONDITIONAL**, documentado, no desactivado.
