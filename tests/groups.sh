@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Split the long Quantum GammaWave suite into reproducible groups.
-# Usage: tests/groups.sh ui|presets|web|emu|sync|target|security|stress|browser|all
+# Usage: tests/groups.sh live|ui|presets|web|emu|sync|target|security|stress|browser|all
+# (`live` reads the published site over HTTPS and holds it to this build's commit and SHA-256; it is not
+#  part of `all`, and exits 2 when there is no route, which is "not run here" and never a pass.)
 # Each group keeps its own exit status; no assertion or budget is changed.
 set -eu
 cd "$(dirname "$0")/.."
@@ -149,7 +151,48 @@ run_target() {
     python3 tests/memory_map_test.py
 }
 
+# (FASE 8) THE PUBLISHED SITE, FROM OUTSIDE THE TREE. Every other group reads the checkout; a Pages
+# deploy that failed, a cache serving the previous artefact or a versions.json from another run all look
+# fine from inside it. This reads the live origin and holds it to THIS build: the commit the package was
+# built from, the package's SHA-256, and the emulator record the site ships -- a 404 on the package, or a
+# hash that is not this release's, is a failure here.
+# Offline is exit 2 ("not run here"), never a pass; once the origin answers, site_check.py's own rule
+# applies unchanged: a site whose files cannot be read is not a site that can be trusted.
+run_live() {
+    ver=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)
+    rec="release/build-manifest-${ver}.json"
+    pkg="release/felucca-${ver}.fwsc"
+    if [ ! -f "$rec" ] || [ ! -f "$pkg" ]; then
+        echo "live: ${rec} or ${pkg} is missing: run tools/make_release.py --sync first" >&2
+        exit 2
+    fi
+    commit=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["commit"])' "$rec")
+    sha=$(sha256sum "$pkg" | cut -d' ' -f1)
+    emu=$(python3 -c 'import json,sys; print((json.load(open(sys.argv[1])) or {}).get("commit", ""))' \
+        site/emulator/manifest.json 2>/dev/null || true)
+    url=${SITE_URL:-https://guillel51.github.io/Quantum-GammaWave/}
+    if ! python3 - "$url" <<'PY'
+import sys, urllib.error, urllib.request
+url = sys.argv[1]
+try:
+    urllib.request.urlopen(url, timeout=15).read(1)
+except urllib.error.HTTPError:
+    sys.exit(0)                      # it answered (a 404 included): site_check.py has to judge that
+except Exception:
+    sys.exit(3)                      # no DNS, no route, no TLS: not this machine's failure to prove
+PY
+    then
+        echo "live: no route to $url (exit 2: not run here)" >&2
+        exit 2
+    fi
+    echo "live: $url held to build $commit, package $sha ($ver)"
+    # shellcheck disable=SC2086
+    python3 tools/site_check.py --url "$url" --expect-commit "$commit" --expect-sha256 "$sha" \
+        ${emu:+--expect-emu-commit "$emu"}
+}
+
 case "$group" in
+    live) run_live ;;
     ui) run_ui ;;
     six) run_six ;;
     presets) run_presets ;;
@@ -172,7 +215,7 @@ case "$group" in
         run_browser
         ;;
     *)
-        echo "usage: $0 ui|presets|web|emu|sync|eq|security|stress|target|browser|all" >&2
+        echo "usage: $0 live|ui|presets|web|emu|sync|eq|security|stress|target|browser|all" >&2
         exit 2
         ;;
 esac

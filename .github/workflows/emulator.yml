@@ -341,25 +341,49 @@ jobs:
         run: |
           # the root installs the signed release, so what it must serve is that release's commit, not this
           # run's: main moves, the signature does not.
+          # (FASE 8) THE COMMIT IS THE BUILD's, NOT THE PACKAGE MANIFEST's. The signed .fwsc carries the
+          # record it was cut at, and a byte-identical rebuild keeps that record while every other file
+          # in release/ moves to the new build; versions.json -- which is what site_check reads -- names
+          # the build that produced the site and its emulator. Reading the package manifest here compared
+          # those two different facts and called a correct site stale.
           REL=$(python3 - <<'EOF'
           import glob, json
           def key(v):
               try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))
               except (TypeError, ValueError): return (0,)
           best = None
-          for m in glob.glob("release/*.manifest.json"):
+          for m in glob.glob("release/build-manifest-*.json"):
               try: d = json.load(open(m))
               except (OSError, ValueError): continue
               k = key(d.get("version"))
               if best is None or k > best[0]: best = (k, d)
-          print(((best[1].get("build") or {}).get("commit", "")) if best else "")
+          print((best[1].get("commit") or (best[1].get("build") or {}).get("commit", "")) if best else "")
           EOF
           )
           echo "the signed release was built from '${REL:-nothing}'"
           [ -n "$REL" ] || { echo "::error::no signed release manifest in the tree: the root would serve an unsigned build"; exit 1; }
+          # (FASE 8) AND THE BYTES, NOT ONLY THE COMMIT. A commit is a claim about a build; the SHA-256 is
+          # the artefact. The site served a package whose record named one build while the bytes were
+          # another run's, and a commit-only check cannot see that: this session's own SHA256SUMS line was
+          # carrying an annotation that made `sha256sum -c` fail for the package as well.
+          SHA=$(python3 - <<'EOF'
+          import glob, json
+          def key(v):
+              try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))
+              except (TypeError, ValueError): return (0,)
+          best = None
+          for m in glob.glob("release/*.fwsc.manifest.json"):
+              try: d = json.load(open(m))
+              except (OSError, ValueError): continue
+              k = key(d.get("version"))
+              if best is None or k > best[0]: best = (k, d)
+          print(str((best[1].get("sha256") or "")).lower()) if best else print("")
+          EOF
+          )
+          echo "the signed package is ${SHA:-unsigned in this tree}"
           sleep 20                                   # Pages switches after the deploy reports, not during it
           for i in $(seq 1 20); do
-            if python3 tools/site_check.py --expect-emu-commit "$REL" --expect-commit "$REL"; then
+            if python3 tools/site_check.py --expect-emu-commit "$REL" --expect-commit "$REL" ${SHA:+--expect-sha256 "$SHA"}; then
               exit 0
             fi
             echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"
