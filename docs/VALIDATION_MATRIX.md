@@ -3296,3 +3296,11 @@ arreglado sería una validación que no se corrió.
 `--idle` 29 952 px escritos y 0 cambiados, `--viz` verde, `--bands` 4/5 escenas dentro de tope (la de presets
 falla a propósito: es la que documenta el pendiente). `ui_pixels.txt` regenerado a propósito: **2 656 de 3 056
 frames** cambian porque la batería está en todas las cabeceras. `tests/resources_test.py` sin cambios de RAM.
+
+### 43.5 Build and seal `[AC791N]`
+
+`FELUCCA_VERSION` `v1.10.0`. `./build.sh --release 1.10.0` desde árbol limpio en `7ca394e8`; `sh web/emu/build.sh`
++ `make_release.py --sync`: paquete **`7d471e0f80210e8d5c4b14ea207ae968dfae46d60440184b126dc357f1fc58a1`**, build y
+emulador `7ca394e8`. `--check` ok, `sha256sum -c` ok, `emu_test.mjs` verde, `tests/regress` 307 renders 0
+cambiados. Tag `v1.10.0` y Release de GitHub: **bloqueados** (sin credencial `gh` en este entorno); el paquete
+sellado queda en `release/` y `site/`.
