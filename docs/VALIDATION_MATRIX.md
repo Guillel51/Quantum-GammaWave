@@ -3554,3 +3554,24 @@ fallos de CPU (mediana 1,06–1,09 en cuatro corridas); `make_release --check`, 
 
 **Sigue abierto.** Presets de fábrica sin TILT/CURVE/ONE; ids de parámetro 127/127; instalación V16 = GO CONDITIONAL
 (sin medida de `USR`/`BTIF`/`NVS`); tag y GitHub Release sin credencial `gh` en este entorno.
+
+## 57. v1.12.11: la UI de SCL y el teclado de ARP
+
+**SCL > SCALE.** La rueda de doce etiquetas no cabía: dos radios alternos, un nombre cortado por el borde izquierdo y
+otro sobre la columna derecha. Sustituida por una **escalera de doce celdas de 18 px** (nota + grado, grado de la
+escala en el borde, acento en las notas de la mano, barra de unión en los pies), con tres filas debajo (nombre y
+notas / grados o semitonos / intervalos). Geometría única en `scl_cell_geo()`, compartida por dibujo, hit test y
+`scl_test` (12 de 12 celdas responden su propia nota).
+
+**SCL > PROG.** Píldoras con 14 px entre grado y nota y nota ajustada al ancho; la tabla lleva dos reglas tenues que
+separan raíz / notas / calidad.
+
+**ARP.** Teclado con degradado de tres bandas por tecla (el mismo de SCL), sostenidos de 11 px con letra y "`#`"
+pegados a los bordes y 4 px más cortos que la fila de nombres de las naturales. Cian = mantenida, ámbar = suena.
+
+**Verificación (host x86_64).** `scl_test` y `ui_test` verdes; barrido **193 × 22**, **0 lint**, **0
+desalineaciones**; `regress` **307 renders, 0 cambiados**; `make_release --check`, `sha256sum -c`, emulador y
+`release_gate_test` verdes.
+
+**Sigue abierto.** Presets de fábrica sin TILT/CURVE/ONE; ids de parámetro 127/127; instalación V16 = GO CONDITIONAL;
+tag y GitHub Release sin credencial `gh` en este entorno.

@@ -259,13 +259,13 @@ static void keybed_edge_tests(void)
     }
 }
 
-/* (FASE 8) THE RING A TAP HITS IS THE RING THE PAGE DRAWS. The hit test aimed at a circle 4 px right and 4 px below
- * the drawn one, at a 24 px radius instead of 20: a finger on the rim the page drew answered the neighbouring note.
- * The test taps the centre of all twelve drawn nodes, from the same scl_ring_geo() the drawing uses. */
+/* (v1.12.11) THE CELL A TAP HITS IS THE CELL THE PAGE DRAWS. The twelve notes are a ladder now -- twelve cells of
+ * 18 px from the tonic -- so the test taps the centre of each one, from the same scl_cell_geo() the drawing uses,
+ * and demands its own note: a cell drawn one place and read in another fails here. */
 static void ring_tests(void)
 {
     uint32_t ti = trk_index(TSEL) % NTRK, k, pg = 0xFFu, misses = 0;
-    int32_t cx, cy, rn, i;
+    int32_t i;
     for (k = 0; k < sizeof PAGES / sizeof PAGES[0]; k++)
         if (PAGES[k].graph == GR_SCL_SCALE) {
             pg = k;
@@ -278,17 +278,16 @@ static void ring_tests(void)
     ui.page = (uint8_t)pg;
     TSEL->p[P_ROOT] = 0;
     TSEL->p[P_SCALE] = 1;
-    scl_ring_geo(&cx, &cy, &rn);
-    ok("the ring is drawn at 46,54 with a 20 px radius", cx == 46 && cy == 54 && rn == 20);
     draw(S_SCL_SCALE);
     for (i = 0; i < 12; i++) {
-        int32_t nx = cx + SCL_COS[i] * rn / 256, ny = cy + SCL_SIN[i] * rn / 256;
+        int32_t x, y, w, h;
+        scl_cell_geo((uint32_t)i, &x, &y, &w, &h);
         scl_sel_clear(ti);
-        ui_tap(nx, ny + (int32_t)graph_y());
+        ui_tap(x + w / 2, y + h / 2 + (int32_t)graph_y());
         if (scl_selm[ti] != (uint16_t)(1u << i))
             misses++;
     }
-    ok("a tap on each of the twelve drawn nodes picks its note (12 of 12)", misses == 0);
+    ok("a tap on each of the twelve ladder cells picks its own note (12 of 12)", misses == 0);
     scl_sel_clear(ti);
 }
 

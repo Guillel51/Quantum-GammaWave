@@ -26,6 +26,11 @@ static const int16_t SCL_SIN[12] = {-256, -222, -128, 0, 128, 222, 256, 222, 128
 static const uint8_t SCL_BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
 static const uint8_t SCL_WKEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
 static const uint8_t SCL_WNOTE[7] = {0, 2, 4, 5, 7, 9, 11};
+#define SCL_CELLS 12
+#define SCL_CELL_W 18
+#define SCL_CELL_X 12
+#define SCL_CELL_Y 20
+#define SCL_CELL_H 34
 
 /* ============================================================================================
  * (FASE 3) THE SELECTION AND THE CHORD IT MAKES.
@@ -386,12 +391,8 @@ static scl_rect_t scl_bed_rect(int32_t graph)
     else { r.x0 = 12; r.y0 = 90; r.w = 216; r.h = 26; }
     return r;
 }
-static void scl_ring_geo(int32_t *cx, int32_t *cy, int32_t *rn)
-{
-    *cx = 46;
-    *cy = 54;
-    *rn = 20;
-}
+
+
 /* the CHORD page's interval ruler: the axis the twelve semitones sit on, and the x of a semitone's chip */
 static void scl_ruler_geo(int32_t *ax0, int32_t *ax1, int32_t *ay, int32_t *hh)
 {
@@ -443,7 +444,11 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         if (names) {   /* (FASE 7) the name sat at b.h - 11 with a 22 px key, so its last row landed on the
                         * key's own edge and read as a label under the keyboard; centred in the key it reads as
                         * part of it, equally airy above and below at every key height */
-            int32_t ny = b.y0 + CAP_IN(S, b.h);   /* a pen is a line top: CAP_IN centres AF_S's caps band */
+            /* (v1.12.11) THE NATURALS ARE NAMED BELOW THE ACCIDENTALS. Centring the name in the key put its rows
+             * at 9..17 of a 26 px bed while the black keys own 0..15, so "C" and the "C#" above it shared the
+             * middle band and the keybed read as a jumble: the name is centred in the white part that is left,
+             * and only when that part can hold it. */
+            int32_t ny = (b.h - b.bh) >= 11 ? b.y0 + b.bh + (b.h - b.bh - 11) / 2 + 1 : b.y0 + CAP_IN(S, b.h);
             GFX_HOOK_ALIGN(kx, ny, kx + b.kw, ny + 12, AL_H, "SCL natural name in its key");
             cv_text_in(kx, ny, b.kw, &AF_S, N_NOTE[note], T_INK, face);
         }
@@ -531,19 +536,10 @@ int scl_tap(int32_t graph, int32_t x, int32_t y)
         scl_rect_t r = scl_bed_rect(graph);   /* (FASE 8) the rectangle the page draws, from the one place */
         scl_bed(r.x0, r.y0, r.w, r.h, &b);
         n = scl_bed_at(&b, x, y);
-        if (n < 0 && graph == GR_SCL_SCALE) {              /* the circle: the nearest node within 7 px */
-            int32_t best = -1, bd = 100;   /* 10 px of slack around a 20 px ring */
-            int32_t cx, cy, rn;
-            scl_ring_geo(&cx, &cy, &rn);   /* (FASE 8) the drawing's own centre and radius, from the one place */
-            for (i = 0; i < 12u; i++) {
-                int32_t nx = cx + SCL_COS[i] * rn / 256, ny = cy + SCL_SIN[i] * rn / 256;
-                int32_t dx = x - nx, dy = y - ny, d = dx * dx + dy * dy;
-                if (d < bd) {
-                    bd = d;
-                    best = (int32_t)((i + root) % 12u);
-                }
-            }
-            n = best;
+        if (n < 0 && graph == GR_SCL_SCALE && y >= SCL_CELL_Y && y < SCL_CELL_Y + SCL_CELL_H &&
+            x >= SCL_CELL_X && x < SCL_CELL_X + SCL_CELLS * SCL_CELL_W) {
+            /* (v1.12.11) a cell of the ladder, from the numbers the ladder is drawn with */
+            n = (int32_t)((root + (uint32_t)((x - SCL_CELL_X) / SCL_CELL_W)) % 12u);
         }
         if (n < 0)
             return 0;
@@ -592,32 +588,34 @@ static int32_t scl_degree(uint8_t note, uint32_t root, const uint8_t *off, uint3
             return (int32_t)i;
     return -1;
 }
-/* SCL > SCALE: the twelve notes on a circle -- the tonic at the top, the scale's degrees joined by the ring in
- * the theme's colour, the notes outside it on a dim stub -- and the keyboard under it with the same notes lit.
- * The right column says the key, its family, whether it quantizes and how many notes the scale has. */
+    /* (v1.12.11) THE TWELVE NOTES ARE A LADDER, NOT A RING. Twelve names around a 40 px circle in a 240 px panel
+ * needed two alternating radii to keep them from touching, one of them was still clipped by the left edge, and the
+ * right-hand column ran into another: a circle cannot hold twelve labels at this size, and the page read as a stamp
+ * with a table bolted on. Twelve cells in a row can -- 18 px each, a name and its degree, every note the same
+ * distance from its neighbour -- and the chord the hand picks becomes a lit run of cells, with its name, its
+ * degrees and its intervals under it. Same hit test: a tap lands on a cell, from the same geometry. */
+static void scl_cell_geo(uint32_t i, int32_t *x, int32_t *y, int32_t *w, int32_t *h)
+{
+    *x = SCL_CELL_X + (int32_t)(i % SCL_CELLS) * SCL_CELL_W;
+    *y = SCL_CELL_Y;
+    *w = SCL_CELL_W - 2;
+    *h = SCL_CELL_H;
+}
+/* SCL > SCALE: the octave as twelve steps from the tonic -- the scale's degrees lit and numbered, the hand's
+ * notes raised in the accent, the note sounding right now marked at its foot -- and the keyboard under it with
+ * the same notes. Under the ladder: the chord's name with its tones, their degrees in the key (a dash where a
+ * note is outside it, never an invented degree) and the intervals over the root, or the key's own semitone steps
+ * when the hand holds nothing. */
 static void graph_scl_scale(const track_t *t, uint16_t c)
 {
-    uint32_t i, mask = scale_mask(t), n = 0, root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
+    uint32_t i, mask = scale_mask(t), root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
     uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 17), ti = trk_index(t) % NTRK;
     uint32_t sel = scl_selm[ti], live = scl_live_mask(t), sn, tn, ln = 0;
     uint8_t off[12], nt[12];
-    int32_t cx, cy, rn;                                 /* (FASE 8) from scl_ring_geo(), where the hit test reads
-                                                         * the same three numbers */
-    /* (FASE 3/8) THE LABELS NO LONGER TOUCH. On one 30 px
-                                                        * ring the twelve names sit 15.7 px apart while a two
-                                                        * character name and its box need 16: "A#" and "B" met,
-                                                        * and at the top and bottom the ring pressed on the
-                                                        * header and on the keys. The names alternate between
-                                                        * a 29 px ring and a 35 px one, which puts every pair
-                                                        * 17.5 px apart (x 46 +- 35 = 11..81 inside the panel,
-                                                        * y 18..90 clear of the header and the keybed). */
     int32_t bass = scl_selb[ti] == 0xFFu ? -1 : (int32_t)scl_selb[ti];
     scl_rec_t rec;
-    char l[28], nm[16], b[20];
+    char l[28], nm[16], row[44];
     (void)c;
-    scl_ring_geo(&cx, &cy, &rn);
-    for (i = 0; i < 12u; i++)
-        n += (mask >> i) & 1u;
     sn = scale_offsets(t, off);
     tn = scl_sel_notes(ti, nt, 12);
     scl_recognise(sel, bass, (int32_t)root, &rec);
@@ -627,139 +625,110 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
     str_cpy(l + str_len(l), N_SCALELONG[sc], sizeof l - str_len(l));
     scl_head(l, t->p[P_QUANT] ? "QUANT" : "FREE", t->p[P_QUANT] ? T_ACCENT : T_DIM);
 
-    /* --- the chromatic circle: the twelve notes, the scale joined round the ring, the picked ones ringed --- */
-    for (i = 0; i < 12u; i++) {
-        uint32_t j = (i + 1u) % 12u;
-        uint32_t deg = (i + 12u - root) % 12u, deg2 = (j + 12u - root) % 12u;
-        int both = ((mask >> deg) & 1u) && ((mask >> deg2) & 1u);
-        int32_t x0 = cx + SCL_COS[i] * rn / 256, y0 = cy + SCL_SIN[i] * rn / 256;
-        int32_t x1 = cx + SCL_COS[j] * rn / 256, y1 = cy + SCL_SIN[j] * rn / 256;
-        cv_line_t(x0, y0, x1, y1, both ? T_THEME : T_LINE, both ? 2 : 1);
+    /* --- the ladder --- */
+    for (i = 0; i < (uint32_t)SCL_CELLS; i++) {
+        uint32_t deg = i, pc = (root + i) % 12u;
+        int in = (mask >> deg) & 1u, is_root = (i == 0) && in;
+        int picked = (sel >> pc) & 1u, sound = (live >> pc) & 1u;
+        int32_t x, y, w, h;
+        uint16_t face, ink, edge;
+        char dg[4];
+        scl_cell_geo(i, &x, &y, &w, &h);
+        face = picked ? ux_mix(T_RAISE, T_ACCENT, 52) : in ? T_RAISE : ux_mix(T_SURF, T_BG, 46);
+        ink = in ? T_TEXT : T_DIM;
+        edge = picked ? T_ACCENT : ux_mix(face, T_BG, 52);
+        cv_rrect(x, y, w, h, 3, face, edge);
+        if (in)                                        /* the scale, on the cell's top edge */
+            cv_rect(x + 3, y + 1, w - 6, 2, is_root ? T_ACCENT : T_THEME);
+        cv_text_in(x, y + 6, w, &AF_S, N_NOTE[pc], is_root ? T_ACCENT : ink, face);
+        if (in) {
+            fmt_int(dg, (int32_t)(deg + 1));
+        } else {
+            dg[0] = '-';
+            dg[1] = 0;
+        }
+        cv_text_in(x, y + 20, w, &AF_S, dg, in ? T_MID : T_DIM, face);
+        if (sound)                                     /* the note sounding right now */
+            cv_rect(x + 3, y + h - 3, w - 6, 2, picked ? T_INK : T_TEXT);
     }
-    /* (FASE 8) THE CHORD IS A FIGURE. A picked note used to get a 9 px bracket of its own, and two neighbouring
-     * picks ("C" and "C#") put one bracket on the other with nothing saying they were the same chord. The picked
-     * notes are joined round the ring instead, in pitch order and closed from three up: a triad reads as a
-     * triangle, a 7th as a quadrilateral, a cluster as a wedge -- the shape a player hears -- with a faint fan
-     * inside it so the figure has an area and not only an outline. Drawn over the scale's ring and under the
-     * names, from the same twelve directions the nodes use. */
+    /* the picked notes as one run: a 2 px accent line along the feet of the cells, so a triad reads as a chord
+     * and not as three unrelated lights */
     {
-        int32_t px[12], py[12], np = 0, k;
-        for (i = 0; i < 12u; i++)
-            if ((sel >> ((i + root) % 12u)) & 1u) {
-                px[np] = cx + SCL_COS[i] * rn / 256;
-                py[np] = cy + SCL_SIN[i] * rn / 256;
-                np++;
+        int32_t run0 = -1, run1 = -1;
+        for (i = 0; i <= (uint32_t)SCL_CELLS; i++) {
+            int on = i < (uint32_t)SCL_CELLS && ((sel >> ((root + i) % 12u)) & 1u);
+            int32_t x, y, w, h;
+            if (on) {
+                scl_cell_geo(i, &x, &y, &w, &h);
+                if (run0 < 0)
+                    run0 = x + 3;
+                run1 = x + w - 3;
+            } else if (run0 >= 0) {
+                cv_rect(run0, SCL_CELL_Y + SCL_CELL_H + 1, run1 - run0, 2, T_ACCENT);
+                run0 = run1 = -1;
             }
-        for (k = 0; k + 1 < np; k++)
-            cv_line(px[k], py[k], px[k + 1], py[k + 1], T_ACCENT);
-        if (np > 2) {
-            cv_line(px[np - 1], py[np - 1], px[0], py[0], T_ACCENT);
-            for (k = 0; k < np; k++)
-                cv_line_a(px[k], py[k], cx, cy, T_ACCENT, 26, 1);
         }
     }
-    for (i = 0; i < 12u; i++) {
-        uint32_t pc = (i + root) % 12u, deg = (pc + 12u - root) % 12u;
-        int in = (mask >> deg) & 1u, is_root = (pc == root) && in;
-        int picked = (sel >> pc) & 1u, sound = (live >> pc) & 1u;
-        int32_t nx = cx + SCL_COS[i] * rn / 256, ny = cy + SCL_SIN[i] * rn / 256;
-        int32_t rl = (i & 1u) ? 35 : 29;               /* the alternated ring: see the comment above */
-        int32_t lx = cx + SCL_COS[i] * rl / 256, ly = cy + SCL_SIN[i] * rl / 256;
-        if (in)
-            cv_line(cx + SCL_COS[i] * 6 / 256, cy + SCL_SIN[i] * 6 / 256, nx, ny,
-                    is_root ? T_ACCENT : ux_mix(T_THEME, T_SURF, 30));
-        if (picked)                                     /* (FASE 8) a 9 px frame round the node, 1 px clear of its
-                                                         * neighbour: two adjacent picks no longer share pixels */
-            cv_frame(nx - 4, ny - 4, 9, 9, T_ACCENT);
-        if (in) {
-            if (is_root)
-                cv_rect(nx - 3, ny - 3, 7, 7, T_ACCENT);
-            else
-                cv_rect(nx - 2, ny - 2, 5, 5, T_THEME);
-        } else
-            cv_pset(nx, ny, T_RAISE);
-        if (sound)                                      /* a note sounding right now: a dot over it */
-            cv_pset(nx, ny - 6, T_TEXT);
-        cv_text_in(lx - 8, ly - 6, 16, &AF_S, N_NOTE[pc],
-                   picked ? T_ACCENT : is_root ? T_ACCENT : in ? T_TEXT : T_DIM, T_SURF);
-    }
-    cv_text_in(cx - 4, cy - 6, 9, &AF_S, N_NOTE[root], T_ACCENT, T_SURF);
 
-    /* --- the right column: the set as music, in four labelled rows --- */
-    /* (FASE 3/8) WHAT THE COLUMN SAYS NOW. It printed "0 SEL 5 SCALE" and "0 LIVE" -- numbers a player had to
-     * decode -- a chord name with no label, a row of degree digits with no caption, and an interval row that
-     * only existed once the hand held something. Four rows with their own captions: the tones the hand holds,
-     * their degrees in the key (a dash where a note is outside it, never an invented degree), their intervals
-     * over the root, and the key's own semitone steps. Each row starts at the same x, so the four read as one
-     * table, and the chord's name is the headline above them. Nothing here is stored: every row is a function
-     * of (selection, key, scale). */
-    cv_text_on(96, 0, &AF_L, tn ? nm : "-", tn ? T_ACCENT : T_DIM, T_SURF);
-    if (rec.amb > 1u)
-        cv_text_on(96 + text_w(&AF_L, tn ? nm : "-") + 3, 8, &AF_S, "AMB", T_MID, T_SURF);
+    /* --- the three rows under the ladder --- */
+    cv_text_on(12, 60 + CAP_IN(S, 16), &AF_S, tn ? nm : "CHORD", tn ? T_ACCENT : T_DIM, T_SURF);
     {
-        char row[44];
-        uint32_t k;
+        int32_t x = 12 + text_w(&AF_S, tn ? nm : "CHORD") + 8;
         scl_notes(nt, tn, row, sizeof row);
-        scl_field(96, 24, "NOTES", T_DIM, T_SURF);
-        cv_text_fit(140, 24, &AF_S, tn ? row : "TAP A KEY", tn ? T_TEXT : T_DIM, T_SURF, 92);
-        row[0] = 0;
+        cv_text_fit(x, 60 + CAP_IN(S, 16), &AF_S, tn ? row : "TAP A NOTE", tn ? T_TEXT : T_DIM, T_SURF,
+                    232 - x);
+        if (rec.amb > 1u)
+            cv_text_r(228, 60 + CAP_IN(S, 16), &AF_S, "AMB", T_MID, T_SURF);
+    }
+    row[0] = 0;
+    if (tn) {
+        uint32_t k;
         for (k = 0; k < tn && str_len(row) + 5u < sizeof row; k++) {
             int32_t d = scl_degree(nt[k], root, off, sn);
+            char dg[4];
             if (k)
                 str_cpy(row + str_len(row), " ", 2);
             if (d >= 0) {
-                char dg[4];
                 fmt_int(dg, d + 1);
                 str_cpy(row + str_len(row), dg, sizeof row - str_len(row));
             } else
                 str_cpy(row + str_len(row), "-", sizeof row - str_len(row));
         }
-        scl_field(96, 36, "DEG", T_DIM, T_SURF);
-        cv_text_fit(140, 36, &AF_S, tn ? row : "-", tn ? T_THEME : T_DIM, T_SURF, 92);
-        row[0] = 0;
-        if (rec.kind != SC_NONE && rec.n > 1u) {
-            for (k = 0; k < tn && str_len(row) + 5u < sizeof row; k++) {
-                int32_t iv = ((int32_t)nt[k] - (int32_t)nt[0]) % 12;
-                if (iv < 0)
-                    iv += 12;
-                if (k)
-                    str_cpy(row + str_len(row), " ", 2);
-                str_cpy(row + str_len(row), N_ITVN[iv], sizeof row - str_len(row));
-            }
-        } else
-            str_cpy(row, rec.n ? "ONE NOTE" : "-", sizeof row);
-        scl_field(96, 48, "IVL", T_DIM, T_SURF);
-        cv_text_fit(140, 48, &AF_S, row, rec.kind != SC_NONE ? T_ACCENT : T_DIM, T_SURF, 92);
-        /* (FASE 4/8) AND WHAT FITS. A twelve-tone scale has twelve numbers here and the row holds about
-         * seventeen characters: CHROMATIC printed "0 1 2 3 4 5 6 7 8..." into an ellipsis on every engine's
-         * SCALE page (the render lint caught it). The list stops where the row ends and the rest is counted
-         * ("+6"), which says the same thing without a cut. */
-        row[0] = 0;
+        scl_field(12, 72, "DEG", T_DIM, T_SURF);
+        cv_text_fit(52, 72 + CAP_IN(S, 16), &AF_S, row, T_THEME, T_SURF, 176);
+    } else {
+        /* nothing held: the key's own semitone steps, the thing the ladder is drawn from */
+        uint32_t k;
         for (k = 0; k < sn; k++) {
             char sb[4];
-            uint32_t n2;
-            fmt_int(sb, (int32_t)off[k]);
-            n2 = str_len(row) + (k ? 1u : 0u) + str_len(sb);
-            if (n2 > 12u) {   /* and the count that follows (" +6") still has to fit the row */
-                char rest[8];
-                rest[0] = ' ';
-                rest[1] = '+';
-                fmt_int(rest + 2, (int32_t)(sn - k));
-                str_cpy(row + str_len(row), rest, sizeof row - str_len(row));
-                break;
-            }
             if (k)
                 str_cpy(row + str_len(row), " ", 2);
+            fmt_int(sb, (int32_t)off[k]);
             str_cpy(row + str_len(row), sb, sizeof row - str_len(row));
         }
-        scl_field(96, 60, "STEPS", T_DIM, T_SURF);
-        cv_text_fit(140, 60, &AF_S, row, T_MID, T_SURF, 92);
-        for (k = 0; k < 12u; k++)
-            ln += (live >> k) & 1u;
-        if (ln) {                                      /* what is sounding now, only while it sounds */
+        scl_field(12, 72, "STEPS", T_DIM, T_SURF);
+        cv_text_fit(52, 72 + CAP_IN(S, 16), &AF_S, row, T_MID, T_SURF, 176);
+    }
+    row[0] = 0;
+    if (tn && rec.n > 1u) {
+        uint32_t k;
+        for (k = 0; k < tn && str_len(row) + 5u < sizeof row; k++) {
+            int32_t iv = ((int32_t)nt[k] - (int32_t)nt[0]) % 12;
+            if (iv < 0)
+                iv += 12;
+            if (k)
+                str_cpy(row + str_len(row), " ", 2);
+            str_cpy(row + str_len(row), N_ITVN[iv], sizeof row - str_len(row));
+        }
+        scl_field(12, 84, "IVL", T_DIM, T_SURF);
+        cv_text_fit(52, 84 + CAP_IN(S, 16), &AF_S, row, T_ACCENT, T_SURF, 176);
+    } else {
+        for (i = 0; i < 12u; i++)
+            ln += (live >> i) & 1u;
+        if (ln) {
             fmt_int(row, (int32_t)ln);
             str_cpy(row + str_len(row), " LIVE", sizeof row - str_len(row));
-            scl_field(96, 72, row, T_TEXT, T_SURF);
+            scl_field(12, 84, row, T_TEXT, T_SURF);
         }
     }
     {
@@ -915,7 +884,8 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
             ink = !hand ? T_MID : !in ? T_MID : iv == 0 ? T_INK : T_TEXT;
             lk = !hand ? T_DIM : !in ? T_DIM : iv == 0 ? T_ACCENT : T_THEME;
             tx[nt2] = x;
-            ty[nt2] = ay - 16 - iv * 10 / 12;          /* the ridge: higher the wider the interval */
+            ty[nt2] = ay - 22 - iv * 20 / 12;          /* (v1.12.11) the ridge: higher the wider the interval, and
+                                                        * tall enough to fill the band under the tones */
             nt2++;
             cv_rrect(x - 8, ay - 1 - hh, 16, hh, 3, face, T_SURF);     /* the chip sits ON the axis */
             cv_rect(x, ay - 2, 1, 5, bass ? T_TEXT : T_LINE);          /* the tone's tick, the bass bright */
@@ -943,6 +913,7 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
         }
         if (!cnt)                                      /* nothing picked and no shape: the ruler alone, and */
             cv_text_fit(ax0, ay - 19, &AF_S, "TAP THE KEYS OR A PROG STEP", T_DIM, T_SURF, 200);
+
     }
     /* the strip keeps BOTH readings: the key's scale as the context (so an out-of-key note is still marked as
      * one) and the picked set as the accent. Handing the selection over as the scale -- which this page did
@@ -973,9 +944,11 @@ static void graph_scl_prog(const track_t *t, uint16_t c)
         int32_t y = 18;
         cv_rrect(x, y, w - 4, 14, 3, T_RAISE, T_SURF);
         scl_field(x + 4, y + 1, scl_degname(o, n, 0, b), T_ACCENT, T_RAISE);
-        scl_field(x + 4 + 12, y + 1, N_NOTE[pc], T_TEXT, T_RAISE);
+        cv_text_fit(x + 18, y + 1 + CAP_IN(S, 16), &AF_S, N_NOTE[pc], T_TEXT, T_RAISE, w - 22);
         cv_rect(x + 2, y + 13, w - 8, 2, T_THEME);
     }
+    cv_rect(90, 34, 1, 12 * (int32_t)cnt + 2, ux_mix(T_SURF, T_LINE, 40));   /* the notes column, bounded so */
+    cv_rect(172, 34, 1, 12 * (int32_t)cnt + 2, ux_mix(T_SURF, T_LINE, 40));  /* the four never run together */
     for (k = 0; k < cnt; k++) {
         uint32_t d = PROG_SEQ[pi][k], o = d % n;
         int32_t y = 36 + 12 * (int32_t)k, pc = ((int32_t)root + off[o]) % 12;
@@ -986,9 +959,9 @@ static void graph_scl_prog(const track_t *t, uint16_t c)
         fmt_int(b, (int32_t)k + 1);
         scl_field(14, y, b, T_DIM, T_SURF);
         scl_field(30, y, scl_degname(o, n, lower, b), wrap ? T_DIM : T_ACCENT, T_SURF);
-        scl_field(58, y, N_NOTE[pc], T_TEXT, T_SURF);
-        scl_field(80, y, nts, wrap ? T_DIM : T_TEXT, T_SURF);
-        scl_field(170, y, scl_quality(out, tn, 0), wrap ? T_DIM : T_MID, T_SURF);
+        scl_field(56, y, N_NOTE[pc], T_TEXT, T_SURF);
+        scl_field(96, y, nts, wrap ? T_DIM : T_TEXT, T_SURF);
+        scl_field(176, y, scl_quality(out, tn, 0), wrap ? T_DIM : T_MID, T_SURF);
     }
     fmt_int(pg, (int32_t)pi + 1);
     str_cpy(pg + str_len(pg), "/8", 4);

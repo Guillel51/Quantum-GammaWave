@@ -1,3 +1,27 @@
+## v1.12.11 — SCL y ARP: el diagrama que no cabía, y un teclado con luz
+
+**SCL > SCALE: la rueda no cabía y se veía.** Doce nombres alrededor de un círculo de 40 px en un panel de 240
+necesitaban dos radios alternos para no tocarse, uno se salía por el borde izquierdo y otro chocaba con la columna de
+la derecha: un círculo no sostiene doce etiquetas a este tamaño. Ahora son **doce celdas de 18 px en una fila**, una
+por semitono desde la tónica, cada una con su nota y su grado en la tonalidad, el grado de la escala marcado en el
+borde superior, las notas de la mano levantadas en el acento y la que suena marcada al pie. Las notas elegidas se unen
+con una barra de acento en los pies: un acorde se lee como un tramo, no como tres luces sueltas. Debajo, tres filas:
+nombre y notas, grados en la tonalidad (o los semitonos de la escala si no hay nada elegido) e intervalos sobre la
+raíz. El hit test tapa la celda que dibuja, desde la misma geometría (`scl_cell_geo`), y `scl_test` lo comprueba
+celda por celda.
+
+**SCL > PROG: las columnas ya no se pisan.** Las píldoras separan grado y nota 14 px (antes 12, y "VI" medía 10), la
+nota se ajusta al ancho de su píldora, y la tabla tiene dos reglas tenues que separan raíz / notas / calidad.
+
+**ARP: el teclado en pantalla.** Las teclas eran rectángulos planos con dos líneas y los sostenidos cinco fichas
+sueltas de 9 px donde la letra y el "#" flotaban en filas separadas. Ahora cada tecla lleva el mismo degradado de tres
+bandas que usa el teclado de SCL (luz arriba, cuerpo abajo), los sostenidos son de 11 px con letra y sostenido pegados
+a los bordes, y son 4 px más cortos que la fila de nombres de las teclas naturales: los dos niveles ya no comparten
+banda. El estado se lee de un vistazo: cian la tecla mantenida, ámbar la que suena.
+
+**Mismo motor, misma música.** `regress` **307 renders, 0 cambiados**; `ui_test` y `scl_test` verdes; barrido
+**193 pantallas × 22 paletas, 0 lint, 0 desalineaciones**.
+
 ## v1.12.10 — la suite vuelve a mirar lo que v1.12.4 añadió
 
 **Un fallo de verdad, encontrado al recompilar.** `tests/ui_test.c` compilado desde cero **fallaba tres checks** —el

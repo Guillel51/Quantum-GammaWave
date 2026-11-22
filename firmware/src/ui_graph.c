@@ -1225,7 +1225,13 @@ static void graph_slicer(uint16_t c)
  * A page with the arp off says so and draws no route. */
 static void arp_key(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t brd)
 {
-    cv_rect(x, y, w, h, face);
+    /* (v1.12.11) A KEY WITH A LIGHT ON IT. The face was one flat colour and a two-line contour, so the fourteen
+     * naturals read as grey rectangles and the accidentals as five loose chips. Three bands from the lit top to
+     * the shaded body give each key the same ramp SCL's keybed uses, and the bottom and right edges keep the
+     * contour: the keybed now reads as one instrument instead of fourteen buttons. */
+    int32_t k, n = h >= 12 ? 3 : 2, bh = h / n;
+    for (k = 0; k < n; k++)
+        cv_rect(x, y + k * bh, w, k == n - 1 ? h - bh * (n - 1) : bh, ux_mix(face, brd, 30 - k * 15));
     cv_rect(x, y + h - 1, w, 1, brd);
     cv_rect(x + w - 1, y, 1, h, brd);
 }
@@ -1322,21 +1328,21 @@ static void graph_arp(const track_t *t, uint16_t c)
                     snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 58));
             /* (FASE 3) the name on the key's foot, in the ink the face takes: T_DIM on a light key left the
              * letters as grey on grey. Every one of the fourteen white keys is named, held or not. */
-            cv_text_in(x, 42, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
+            cv_text_in(x, 45, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
                        snd ? T_INK : ux_mix(T_KEYW, T_BG, down ? 96 : 88),
                        snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20));
         }
     for (o = 0; o < 2u; o++)
         for (i = 0; i < 5u; i++) {
             int32_t note = base + (int32_t)(12u * o) + BK[i];
-            int32_t x = 14 + (int32_t)(7u * o + BW[i] + 1u) * 15 - 4;
+            int32_t x = 14 + (int32_t)(7u * o + BW[i] + 1u) * 15 - 5;
             uint32_t k;
             int down = 0, snd = note == (int32_t)t->arp_note;
             for (k = 0; k < nh; k++)
                 if (t->held[k] == note) down = 1;
             for (k = 0; k < 3u; k++)
                 if (t->arp_ch[k] && t->arp_ch[k] == note) snd = 1;
-            arp_key(x, 20, 9, 25, snd ? T_ACCENT : down ? T_THEME : T_KEYB,
+            arp_key(x, 20, 11, 22, snd ? T_ACCENT : down ? T_THEME : T_KEYB,
                     snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYB, T_TEXT, 26));
             /* (FASE 3) AND THE FIVE ACCIDENTALS ARE NAMED. A 9 px key has no room for "C#" on one line, so the
              * letter sits on the key's head and its sharp under it: the two rows of the small face fit the 25 px
@@ -1344,8 +1350,11 @@ static void graph_arp(const track_t *t, uint16_t c)
             {
                 uint16_t kc = snd ? T_INK : down ? T_THEME : ux_mix(T_KEYB, T_TEXT, 78);
                 char nn[2] = {N_NOTE[(uint32_t)note % 12u][0], 0};
-                cv_text_in(x, 22, 9, &AF_S, nn, kc, snd ? T_ACCENT : down ? T_THEME : T_KEYB);
-                cv_text_in(x, 32, 9, &AF_S, "#", kc, snd ? T_ACCENT : down ? T_THEME : T_KEYB);
+                /* (v1.12.11) 11 px wide and two rows 1 px apart from the key's edges: the letter and its sharp
+                 * used to sit 10 px below it on a 9 px face with a blank row in between, which read as two
+                 * unrelated glyphs floating over the naturals. */
+                cv_text_in(x, 20, 11, &AF_S, nn, kc, snd ? T_ACCENT : down ? T_THEME : T_KEYB);
+                cv_text_in(x, 30, 11, &AF_S, "#", kc, snd ? T_ACCENT : down ? T_THEME : T_KEYB);   /* 1 px clear of the letter's last row */
             }
         }
 
