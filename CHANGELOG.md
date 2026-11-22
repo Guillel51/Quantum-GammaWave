@@ -1,3 +1,24 @@
+## v1.12.15 — Dos formas de LFO nuevas: TRAP y STEP
+
+**TRAP** sube, se queda arriba 1/16 de ciclo, baja y se queda abajo el resto. Es lo que pide un *gate* que
+bombea y un TRI no puede dar: el triángulo sólo **pasa** por sus extremos, así que el duck nunca llega a
+asentarse ni la apertura a sostenerse. Medido en `tests/lfo_test.c`: 257 muestras de 4 096 en el extremo alto y
+1 793 en el bajo, frente a las ~2 de un TRI.
+
+**STEP** es el ciclo en ocho escalones ordenados, de abajo arriba. No es S&H: el S&H tira un dado por ciclo y
+el patrón cambia cada vez; STEP repite la misma escalera, así que el ritmo cae siempre igual y el tamaño del
+escalón (1/8 del rango) es lo que lo coloca contra un filtro o un pitch. Medido: exactamente 8 niveles y nunca
+un descenso dentro del ciclo. Ambas son sin estado (aritmética de fase), ~4 operaciones por muestra de control.
+
+`N_LWAVE` pasa de 10 a **12** por **append**: cada valor guardado en un preset conserva el suyo, y el gráfico
+del LFO (`ui_graph.c` dibuja `lfo_wave`, no una tabla) muestra las dos sin código nuevo. El test ahora recorre
+**todas** las formas desde el propio descriptor (`TP[P_LWAVE].max`) en vez de un 10 escrito a mano.
+
+**Lo que ya existía y se verificó, no se añadió**: PHASE (−1 = FREE/free-running, 0..127 = offset y retrigger
+por nota), FADE de entrada, 14 divisiones sincronizadas al tempo (4BAR…1/64, incluidas 1/4T y 1/32T), la curva
+LSHP (bend de fase), el suavizado, y los cuatro destinos PIT/FLT/SHP/AMP. La lista de lo que **no** cabe hoy
+está en la matriz §61: un destino nuevo (PAN, FX) exige un id de parámetro y `P_COUNT` sigue en **127**.
+
 ## v1.12.14 — Dos tipos de filtro que sonaban a otro
 
 **NOTCH sonaba a LP y SHELF a HP en ANALOG y LOFI.** El filtro de parte (`voice.c`) siempre tomó los ocho tipos

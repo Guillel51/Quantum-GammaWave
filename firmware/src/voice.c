@@ -175,6 +175,24 @@ static int32_t lfo_wave(track_t *t, uint32_t ph)
             return v > 32767 ? 32767 : v;
         }
     }
+    case 10: {                                      /* (FASE 4) TRAP: up, a plateau at the top, down, a plateau at
+                                                     * the bottom. What a pumping gate wants and a TRI cannot give:
+                                                     * the wave spends nearly half its cycle AT an end, not a moment
+                                                     * passing through it, so the duck and the open both land. */
+        int32_t x = (int32_t)(ph >> 16);            /* 0 .. 65535 */
+        if (x < 16384)
+            return x * 4 - 32767;                   /* up: -32767 .. 32765 */
+        if (x < 20480)
+            return 32767;                           /* the top: 1/16 of the cycle */
+        if (x < 36864)
+            return 32767 - (x - 20480) * 4;         /* down: 32767 .. -32765 */
+        return -32767;                              /* the bottom: the rest of the cycle, held */
+    }
+    case 11:                                        /* (FASE 4) STEP: the cycle as eight ordered steps, low to high.
+                                                     * Not S&H's dice -- the staircase is the same every cycle, so a
+                                                     * rhythm lands -- and the size of a step (1/8 of the range) is
+                                                     * what places it against a filter or a pitch. 8 adds, no state. */
+        return (int32_t)((ph >> 29) * 8192u) - 28672;   /* -28672 .. 28672 */
     case 6: {                                       /* (QG-1 1.6) EVO: a smooth random walk, one new point a cycle:
                                                      * it eases from this cycle's value to the next (smoothstep), so
                                                      * the wander has no steps and costs a few multiplies */

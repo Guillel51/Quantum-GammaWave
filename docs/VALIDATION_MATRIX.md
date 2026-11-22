@@ -3638,3 +3638,20 @@ posible: 9 248 B de spare con suelo de 8 KiB.
 **Sigue abierto.** Tipos nuevos (p. ej. un 24 dB/oct exige un segundo par de estados por voz y por pista, +576 B
 de `.bss` a medir); pantalla propia de PHASE; MORPH A/B persistente; animaciones de Reverb por modelo; instalación
 V16 = GO CONDITIONAL.
+
+## 61. v1.12.15: formas de LFO TRAP y STEP
+
+**Añadido por append.** `N_LWAVE` 10 → 12 (`TRAP`, `STEP`) en `params.c`; dos `case` en `voice.c lfo_wave`.
+Sin estado nuevo, sin RAM nueva, sin ids nuevos. Compatibilidad: todo preset guardado conserva su `P_LWAVE`.
+
+**Medido (`tests/lfo_test.c`, host x86-64, clase host).** TRAP: extremos exactos ±32767, 257/4096 muestras en
+el plateau alto y 1793 en el bajo. STEP: 8 niveles distintos, 0 descensos en el ciclo. El barrido de rango y el
+de monotonía de la curva ahora recorren las 12 formas leídas del descriptor, no un número escrito a mano.
+
+**Lo que ya estaba y no se tocó.** PHASE −1 = FREE; 0..127 = offset/retrigger por nota; FADE; 14 divisiones de
+tempo; curva LSHP; suavizado; destinos PIT, FLT, SHP, AMP.
+
+**Sigue bloqueado el resto de la fase 4.** Un destino nuevo (PAN, envío a FX, parámetro de engine) necesita un
+id de parámetro y `P_COUNT` = 127 = techo de 7 bits de los motion records. Cualquier destino nuevo exige o bien
+cambio de formato de store con migración probada, o bien tomar el valor de un parámetro existente (como se hizo
+con los tipos de filtro en §60). Fase de modulación avanzada = pendiente, con esa decisión por delante.

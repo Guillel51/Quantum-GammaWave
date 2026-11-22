@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Parameter descriptors, formatting and the page table. */
-static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE", "PLUK"};   /* (QG-1 1.6) EVO: appended; (FASE 2) HSIN, PULSE;
+static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE", "PLUK", "TRAP", "STEP"};   /* (FASE 4) TRAP, STEP: appended, so every stored WAVE keeps its value */   /* (QG-1 1.6) EVO: appended; (FASE 2) HSIN, PULSE;
                                                                                         * (FASE 3) PLUK: a decay a cycle */
 /* (QG-1 1.6) TOUCH > VEL CURVE: how a key's / MIDI note's velocity reaches the engines (voice.c vel_curve) */
 /* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest, -14 the fastest (ETAPA 5: 1/2D, 1/16D) */
