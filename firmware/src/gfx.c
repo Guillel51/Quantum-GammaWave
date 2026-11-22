@@ -147,10 +147,18 @@ static struct {
 
 static inline uint16_t ux_gray(uint32_t x5) { return (uint16_t)((x5 << 11) | (x5 << 6) | x5); }
 /* a + (b - a) * pct / 100 per channel, rounded; GREY on the red channel, so it stays gray */
+#ifdef GFX_MIX_COUNT
+/* (v1.7.21, tests only) how many blends a frame of this screen asks for: a COUNT, not a time, so the test that guards
+ * the veil's table cannot flake on a busy host. Nothing at all when the macro is off, which is every shipped build. */
+uint32_t gfx_mix_n;
+#endif
 static uint16_t ux_mix(uint16_t a, uint16_t b, int32_t pct)
 {
     static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
     uint32_t out = 0, k;
+#ifdef GFX_MIX_COUNT
+    gfx_mix_n++;
+#endif
     /* pct may overshoot 100 % on purpose (a spark, a rim that pops): every channel saturates at its
      * own width here, because an unclamped 5-bit result shifts its bits into the next channel and a
      * GREY or MONO screen ends up with a coloured pixel (648 of them in tests/ui_render.c). */
@@ -631,14 +639,50 @@ static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
  * blend cv_ink does per dot, so the field keeps showing through the well while the grid and the trace, drawn
  * after it, stay solid on top. It is a real blend of the frame buffer (which is readable), not a dithered
  * imitation of one, and it clips exactly as cv_rect does. */
+/* (v1.7.21) THE SHARE IS THE SAME FOR EVERY DOT, SO THE BLEND IS THREE TABLES. cv_rect_a is the visualizer's veil
+ * over the scope well (144 x 72, in each of the two passes) and every pixel of it went through a full ux_mix: two
+ * colour unpacks, three multiplies, three divisions by 100 and three clamps, ten thousand times a frame. The mix of
+ * a channel with a FIXED share is a map dst -> out that fits in the channel's own width, so it is computed once
+ * (32 + 64 + 32 entries, the same expression ux_mix uses, the same rounding) and applied as three lookups. The
+ * pixels are identical -- tests/ui_pixels.txt and regress hold that -- and the frame measured 371 -> 292 us on the
+ * host. Clipping is done once here instead of per dot, which is the rest of the win. */
 static void cv_rect_a(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t pct)
 {
-    int32_t i, j;
-    cv_ink = (int16_t)pct;          /* the blend cv_pset already does: one read, one ux_mix, clipped per dot */
-    for (j = y; j < y + h; j++)
-        for (i = x; i < x + w; i++)
-            cv_pset(i, j, c);
-    cv_ink = 100;
+    int32_t i, j, x0, x1, y0, y1, k;
+    uint8_t tb[3][64];
+    static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
+    if (ux.mono) {                  /* one channel, one tone: the old path is exact and rare */
+        cv_ink = (int16_t)pct;
+        for (j = y; j < y + h; j++)
+            for (i = x; i < x + w; i++)
+                cv_pset(i, j, c);
+        cv_ink = 100;
+        return;
+    }
+    for (k = 0; k < 3; k++) {
+        int32_t src = (c >> SH[k]) & MK[k], d0;
+        for (d0 = 0; d0 <= MK[k]; d0++) {
+            int32_t d = (src - d0) * pct, v = d0 + (d + (d >= 0 ? 50 : -50)) / 100;
+            if (v < 0) v = 0;
+            if (v > MK[k]) v = MK[k];
+            tb[k][d0] = (uint8_t)v;
+        }
+    }
+    y += cv_oy;
+    x0 = x < 0 ? 0 : x;
+    y0 = y < 0 ? 0 : y;
+    x1 = x + w > (int32_t)cv_w ? (int32_t)cv_w : x + w;
+    y1 = y + h > (int32_t)cv_h ? (int32_t)cv_h : y + h;
+    if (x1 <= x0 || y1 <= y0)
+        return;
+    for (j = y0; j < y1; j++) {
+        uint16_t *row = cv_px + (uint32_t)j * cv_w;
+        for (i = x0; i < x1; i++) {
+            uint16_t d = swap16(row[i]);
+            row[i] = swap16((uint16_t)(((uint32_t)tb[0][(d >> 11) & 31] << 11) |
+                                       ((uint32_t)tb[1][(d >> 5) & 63] << 5) | tb[2][d & 31]));
+        }
+    }
 }
 
 /* a divider (LINE): a 1 px T_RULE line on the canvas, a cell edge for the host lint */

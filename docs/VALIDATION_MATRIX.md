@@ -3715,11 +3715,12 @@ incluye BPM, batería, transporte, octava, mensaje, capa y cadena.
 **Revisado, ya resuelto antes.** La línea incorrecta de Reverb en FX BUSES: `ui_fxb.c` documenta su retiro en
 v1.12 ("this block was the only one of the six that laid a full-width T_LINE across its floor"). Sin cambios.
 
-**Pendiente, con la clase de evidencia que falta.** Flicker del visualizer y del menú de presets al girar el
-encoder; desincronización de la línea interactiva de ENV 1/2 con el ADSR dibujado; superposición de notas en el
-teclado inferior de SCL. Los tres necesitan captura animada o unidad física para demostrarse: los tests de UI
-pasan y el ADSR coloca el punto con `env_x_of`, que recorre la misma recurrencia que el dibujo. No se declaran
-corregidos.
+**Pendiente, con la clase de evidencia que falta.** ~~Flicker del visualizer y del menú de presets al girar el
+encoder~~ -- **resuelto en v1.7.20** (§66), con `tests/ui_flicker_test.c` mirando cuadros consecutivos y las tres
+causas corregidas y verificadas al revés. Siguen abiertos: la desincronización de la línea interactiva de ENV 1/2
+con el ADSR dibujado y la superposición de notas en el teclado inferior de SCL; los dos necesitan una captura que
+el host todavía no toma (los tests de UI pasan, y el ADSR coloca el punto con `env_x_of`, que recorre la misma
+recurrencia que el dibujo). No se declaran corregidos.
 
 ## 65. v1.7.19: la serie 1.7.x, sin perder nada
 
@@ -3762,3 +3763,26 @@ pinta la misma función en los dos caminos.
 
 **Verificación inversa.** Repuesta cada una de las tres causas por separado, la prueba falla (exit 1); con las tres
 corregidas, pasa. Clase: host, `-O1`, `UI_NO_DRIFT`, reloj fijo — determinista. Nada de esto se midió en la unidad.
+
+## 67. v1.7.21: el cuadro del visualizer a la mitad, medido
+
+**Dónde estaba el costo.** Banco en el host, `-O1`, `UI_NO_DRIFT`, reloj fijo, 300 cuadros por pantalla, mediana de
+7 corridas: visualizer de HOME **371,5 µs**, HOME/eco 88, MIXER 19, navegador de presets 3. Desglose por partes
+(apagando una y midiendo el cuadro): el velo translúcido del pozo del osciloscopio (`cv_rect_a`, 144x72 y 64x67,
+14 656 px por cuadro) costaba 117 µs, `gw_viz_deep` 35, el polvo (`gw_embers`) y las barras quedaban dentro del
+ruido del banco.
+
+**Qué se cambió.** `cv_rect_a` (gfx.c) mezcla con share fijo: tres tablas por canal (32/64/32) construidas con la
+misma expresión y el mismo redondeo que `ux_mix`, y el recorte del rectángulo una vez en lugar de por punto. El
+camino MONO sigue usando `ux_mix` (un canal, un tono).
+
+**Después.** Visualizer **187,6 µs/cuadro (-49 %)**, mezclas **19 052 -> 4 396 (-77 %)**. Sin cambio de píxeles:
+`ui_pixels` 3 088 cuadros idénticos, `--idle` 29 952/0, `--bands` exacto, `regress` 311 renders 0 cambiados.
+
+**La prueba.** `tests/blend_budget_test.c`: un conteo de mezclas por cuadro (contador en `gfx.c` bajo
+`-DGFX_MIX_COUNT`, cero costo fuera de los tests). Tope 6 000 en el visualizer, 200 en las demás. Repuesta la
+implementación anterior, falla con 19 052; con las tablas, pasa.
+
+**Clase de evidencia.** Host x86-64: ratios y conteos, no tiempos de la unidad. El conteo de mezclas es una
+propiedad del código y no depende de la máquina; los µs sí, y por eso el test gatea el conteo. Nada medido en la
+FM-1 física.

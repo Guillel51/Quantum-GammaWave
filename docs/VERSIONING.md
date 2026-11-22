@@ -15,7 +15,8 @@ without losing anything, so v1.7.19 is:
   among them), the twelve LFO shapes, the 293-sound bank, the 203-screen UI -- plus this release's fixes. No
   feature, preset, optimisation or commit was removed to change the number;
 - **the patch continues** where the old line stopped: 1.12.18 -> 1.7.19. Both lines share one count, so the
-  next release of this series is 1.7.20, and it will be newer than 1.7.19 in the same way.
+  series has gone on 1.7.19 -> 1.7.20 (the flickers) -> 1.7.21 (the visualizer's frame), each newer than
+the last in the same way.
 
 ### How ordering works, given that "1.7.19" < "1.12.18" as a string
 

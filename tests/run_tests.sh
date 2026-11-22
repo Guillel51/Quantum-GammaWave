@@ -361,6 +361,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_flicker" tests/ui_flicker_test.c -lm
     run "Flicker (v1.7.20): HOME's visualizer, HOME's cards and the preset browser over eight detents each -- an element or band erased for one frame and back, or a row written twice inside a frame, fails" \
         "$OUT/ui_flicker"
+    $CC -O1 -w -DGFX_MIX_COUNT=1 -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/blend_budget" tests/blend_budget_test.c -lm
+    run "Blend budget (v1.7.21): blends a frame, counted -- the visualizer's veil is a table, not a mix a pixel (19 052 -> 4 396), and no screen may come back to mixing a big area dot by dot" \
+        "$OUT/blend_budget"
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/viz_worlds" tests/viz_worlds_test.c -lm
     run "VISUALIZER's two deep worlds: the giant reads tracks 1-3 and the rock 4-6 -- a loud half moves its own world only, and both carry a surface" \
         "$OUT/viz_worlds"
