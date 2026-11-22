@@ -2936,9 +2936,10 @@ commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of
   (`site/firmware/felucca-1.7.0.fwsc`, `versions.json`, installer meta, editor label). `--check` - the suite's
   release-set gate - says **ok**.
 - **Re-sealed twice afterwards**: the fixes to `SHA256SUMS` and the UI audit rebuilt the release from
-  `70ea12f` (610 933 B, sha256 `0a021e511c321603`), and the master EQ fix (§37) rebuilt it again from
-  `f6a7b28` (610 933 B, sha256 `f50865733ce76419`, emulator `f6a7b28`). The artefact in `release/` today is
-  the second one; `--check` is **ok**, the package and both `SHA256SUMS` pass `sha256sum -c`, and the
+  `70ea12f` (610 933 B, sha256 `0a021e511c321603`), the master EQ fix (§37) rebuilt it from `f6a7b28`
+  (610 933 B, sha256 `f50865733ce76419`, emulator `f6a7b28`), and the flanger fix (§39) once more from
+  `e137b99` (610 933 B, sha256 `28552f81e96cf8d2`, emulator `e137b99`). The artefact in `release/` today is
+  the third one; `--check` is **ok**, the package and both `SHA256SUMS` pass `sha256sum -c`, and the
   emulator's own suite is green. The `8abaddbe` above is the first seal of the same size at `84745ad`, kept
   as the record of that run.
 - Pushed to `main` (`454e026e`). **The GitHub Release and the tag are not published**: this sandbox has no
@@ -3109,3 +3110,6 @@ números separados pasaba el 20 %.
 - `tests/regress`: **307 golden renders, 0 cambiados**, 0 fallos de salud ni de voces; la entrada de CPU del
   host sigue fuera de presupuesto como estaba (agregado del host, 0 notas). `audio_stress` y `master_test`
   verdes.
+- Build AC791N `[AC791N]` desde `e137b99`: XIP 558 180 B (4 804 libres, +16 B), RAM 93 504/98 304 (sin
+  cambio), imagen 578 320/583 612. Paquete re-sellado: 610 933 B, sha256 `28552f81e96cf8d2`, emulador
+  `e137b99`; `make_release.py --check` ok, `sha256sum -c` en `site/firmware/` ok y `emu_test.mjs` verde.
