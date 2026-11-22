@@ -362,25 +362,25 @@ static const preset_t ANALOG_PRESETS[] = {
     {"RAVE", {4, 30, 64, 0, 85, 20, 30, 7}, {20, 80, 110, 60}, 10, 1, FX(32, 34, 26, 22), PAT(13),
      {XP(P_LRATE, 34), XP(P_LWAVE, 3), XP(P_LD_FLT, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
     {"SUB BASS", {3, 0, 0, 0, 40, 0, 20, 0}, {0, 60, 100, 20}, 0, 1, FX(18, 0, 0, 0), PAT(8),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14), XP(P_HARM, -18)}},
     {"PLUCK", {0, 8, 50, 0, 30, 40, 0, 0}, {0, 88, 0, 60}, 55, 0, FX(0, 22, 52, 34), PAT(3),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
     {"BRASS", {0, 10, 64, 0, 45, 20, 10, 0}, {35, 70, 90, 45}, 40, 0, FX(10, 24, 18, 36), PAT(6),
      {XP(P_LRATE, 24), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     {"WIND", {0, 0, 0, 90, 30, 90, 0, 0}, {60, 90, 60, 80}, 50, 0, FX(0, 36, 42, 72), PAT(5),
-     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 24), XP(P_LD_AMP, 8), XP(P_LEVEL, 85)}},
+     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 24), XP(P_LD_AMP, 8), XP(P_LEVEL, 85), XP(P_LSHP, 26)}},
     {"STRINGS", {0, 25, 64, 0, 70, 10, 0, 0}, {70, 90, 115, 90}, 5, 0, FX(0, 66, 24, 74), PAT(5),
-     {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LEVEL, 86)}},
+     {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LEVEL, 86), XP(P_LSHP, 22)}},
     /* (JIANT 0.4: TRIO's, folded in) SYNC (ratio 1 + 11/16), RING (1 + 18/16), SAW3 (9 ct a side) */
     {"SYNC LEAD", {5, 11, 90, 0, 82, 30, 10, 0}, {2, 70, 100, 40}, 18, 1, FX(14, 12, 44, 28), PAT(4),
      {XP(P_LRATE, 38), XP(P_LWAVE, 2), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 14)}},
     {"RING BELL", {6, 18, 100, 0, 110, 20, 0, 0}, {0, 92, 0, 80}, 0, 0, FX(0, 18, 38, 58), PAT(7),
      {XP(P_LRATE, 28), XP(P_LWAVE, 1), XP(P_LD_AMP, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
     {"FAT BASS", {7, 9, 64, 0, 62, 45, 20, -12}, {0, 62, 60, 25}, 40, 1, FX(26, 0, 0, 8), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, -14)}},
     /* (GAMMAWAVE / WRAITH) industrial & darksynth signature patches */
     {"INGOT SUB", {3, 4, 48, 8, 44, 38, 65, -12}, {0, 64, 95, 28}, 26, 1, FX(30, 0, 0, 6), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_HARM, -20)}},
     {"WORM REESE", {7, 18, 64, 12, 56, 62, 75, -12}, {8, 85, 110, 48}, 34, 1, FX(48, 26, 12, 18), PAT(8),
      {XP(P_LRATE, 26), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
     {"GRAVE GROWL", {5, 22, 96, 16, 48, 84, 90, -12}, {2, 68, 80, 35}, 52, 1, FX(58, 12, 22, 16), PAT(1),
@@ -401,7 +401,7 @@ static const preset_t ANALOG_PRESETS[] = {
     {"SINGULARITY", {5, 24, 96, 18, 52, 88, 95, -12}, {4, 78, 92, 46}, 48, 1, FX(56, 22, 32, 26), PAT(16),
      {XP(P_LRATE, 24), XP(P_LWAVE, 6), XP(P_LD_FLT, 20), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
     {"PHOTOSPHERE", {4, 22, 64, 14, 78, 40, 28, 7}, {48, 92, 110, 94}, 22, 0, FX(10, 62, 44, 86), PAT(17),
-     {XP(P_LRATE, 18), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
+     {XP(P_LRATE, 18), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LSHP, -20), XP(P_HARM, 16)}},
     {"ANALOG DRFT", {0, 19, 64, 6, 72, 32, 18, 0}, {18, 84, 96, 76}, 24, 0, FX(8, 52, 42, 70), PAT(15),
      {XP(P_LRATE, 22), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
     /* (1.2-GW, issue #17: ambient and expressive) a pad that drifts by itself (a slow LFO on the filter, each note its own
@@ -409,46 +409,46 @@ static const preset_t ANALOG_PRESETS[] = {
     {"EVOLVE PAD", {AW_SAW3, 46, 64, 4, 58, 22, 0, 0}, {92, 90, 112, 100}, 8, 0, FX(0, 64, 22, 82), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 1), XP(P_LFADE, 70), XP(P_LD_FLT, 16), XP(P_M1SRC, 5), XP(P_M1DST, 14)}},
     {"SOLINA", {AW_SAW3, 30, 70, 0, 88, 8, 0, 0}, {50, 90, 118, 82}, 0, 0, FX(0, 115, 10, 70), PAT(5),
-     {XP(P_LRATE, 52), XP(P_LD_PIT, 2), XP(P_LEVEL, 88)}},
+     {XP(P_LRATE, 52), XP(P_LD_PIT, 2), XP(P_LEVEL, 88), XP(P_LSHP, 24)}},
     {"DEEP DRONE", {0, 20, 50, 10, 42, 70, 20, 7}, {100, 90, 127, 110}, 0, 0, FX(10, 40, 30, 95), PAT(5),
-     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 20), XP(P_LD_AMP, 18), XP(P_LEVEL, 114)}},
+     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 20), XP(P_LD_AMP, 18), XP(P_LEVEL, 114), XP(P_LSHP, 28)}},
     /* (QUANTUM // QG-1) 808 and drill slides (LEGATO glide), reese, the dirty waves, the filter types as sounds of their own, and
      * pads that move by themselves (the NOISE wander on the cutoff) */
     {"808 BOOM", {3, 0, 0, 0, 60, 0, 40, 0}, {0, 80, 60, 40}, 0, 1, FX(25, 0, 0, 5), PAT(2),
-     {XP(P_VOICE, V_LEGATO), XP(P_GLIDE, 36)}},
+     {XP(P_GLIDE, 36), XP(P_ELOOP, 2)}},
     {"DRILL SLIDE", {3, 4, 30, 0, 64, 10, 55, -12}, {0, 90, 80, 45}, 0, 1, FX(35, 0, 0, 8), PAT(14),
-     {XP(P_VOICE, V_LEGATO), XP(P_GLIDE, 58)}},
+     {XP(P_GLIDE, 58), XP(P_ELOOP, 2)}},
     {"REESE QUAKE", {AW_SAW3, 24, 64, 4, 50, 50, 70, -12}, {4, 80, 110, 40}, 30, 1, FX(40, 30, 10, 15), PAT(8),
-     {XP(P_LRATE, 20), XP(P_LD_FLT, 14)}},
+     {XP(P_LRATE, 20), XP(P_LD_FLT, 14), XP(P_HARM, -12), XP(P_LSHP, -18)}},
     {"TUBE KEYS", {AW_TUBE, 8, 50, 0, 80, 20, 30, 12}, {0, 82, 40, 60}, 20, 0, FX(12, 32, 28, 42), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_M2SRC, 7), XP(P_M2DST, 11), XP(P_M2AMT, 8)}},
     {"FOLD LEAD", {AW_FOLD, 10, 64, 0, 92, 28, 40, 7}, {2, 72, 100, 45}, 22, 1, FX(20, 10, 45, 30), PAT(4),
-     {XP(P_LRATE, 60), XP(P_LFADE, 50), XP(P_LD_PIT, 3)}},
+     {XP(P_LFADE, 50), XP(P_LD_PIT, 3), XP(P_HARM, 26), XP(P_LSHP, -16)}},
     {"HYPER SAW", {AW_SAW3, 70, 64, 0, 96, 20, 15, 12}, {6, 80, 110, 55}, 10, 0, FX(0, 74, 42, 58), PAT(13),
      {XP(P_LRATE, 26), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
     {"COMB PLUCK", {0, 6, 50, 10, 70, 80, 0, 0}, {0, 70, 0, 55}, 40, 0, FX(0, 14, 44, 42), PAT(15),
      {XP(P_LRATE, 24), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
     {"VOWEL BASS", {0, 12, 64, 0, 60, 70, 50, -12}, {0, 70, 90, 30}, 36, 1, FX(30, 0, 10, 10), PAT(8),
-     {XP(P_FTYPE, 4), XP(P_LRATE, 40), XP(P_LD_FLT, 24)}},
+     {XP(P_FTYPE, 4), XP(P_LRATE, 40), XP(P_LD_FLT, 24), XP(P_HARM, 10)}},
     {"SCREAM LEAD", {AW_SYNC, 14, 90, 4, 76, 90, 70, 0}, {2, 70, 95, 40}, 40, 1, FX(45, 10, 40, 25), PAT(4),
-     {XP(P_FTYPE, 5)}},
+     {XP(P_FTYPE, 5), XP(P_HARM, 30)}},
     {"QUANTUM PAD", {AW_SAW3, 36, 64, 6, 62, 30, 10, 7}, {85, 92, 115, 100}, 12, 0, FX(0, 80, 35, 90), PAT(17),
      {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_FLT, 18), XP(P_M1SRC, 14), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
     {"TRAP PLUCK", {0, 10, 50, 0, 40, 30, 10, 12}, {0, 76, 0, 50}, 50, 0, FX(0, 22, 58, 38), PAT(15),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     {"CHERENKOV LD", {AW_RING, 20, 80, 0, 90, 30, 20, 0}, {2, 74, 90, 50}, 16, 1, FX(10, 20, 50, 40), PAT(4),
-     {XP(P_LRATE, 58), XP(P_LFADE, 60), XP(P_LD_PIT, 2)}},
+     {XP(P_LRATE, 58), XP(P_LFADE, 60), XP(P_LD_PIT, 2), XP(P_HARM, 24)}},
     /* (QG-1 EXPANSION: Ambient, Drones, Evolving Pads, Organic Plucks) */
     {"BOREALIS PAD", {AW_SAW3, 32, 64, 8, 68, 24, 0, 12}, {90, 92, 118, 105}, 10, 0, FX(0, 85, 30, 92), PAT(5),
-     {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_FLT, 22), XP(P_LEVEL, 119)}},
+     {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_FLT, 22), XP(P_LEVEL, 119), XP(P_LSHP, 30), XP(P_HARM, -14)}},
     {"NEBULA DRONE", {AW_TUBE, 18, 55, 6, 48, 62, 18, 7}, {110, 90, 125, 115}, 0, 0, FX(12, 45, 35, 95), PAT(5),
-     {XP(P_LRATE, 6), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_LD_AMP, 14), XP(P_LEVEL, 124)}},
+     {XP(P_LRATE, 6), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_LD_AMP, 14), XP(P_LEVEL, 124), XP(P_LSHP, 26)}},
     {"AURA STRINGS", {4, 26, 70, 0, 78, 16, 0, 7}, {65, 88, 112, 90}, 5, 0, FX(0, 68, 28, 72), PAT(5),
-     {XP(P_LRATE, 15), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 8)}},
+     {XP(P_LRATE, 15), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 8), XP(P_LSHP, 20)}},
     {"SOLARIS GLOW", {AW_FOLD, 14, 60, 4, 72, 35, 30, 0}, {80, 90, 115, 95}, 14, 0, FX(6, 72, 42, 86), PAT(5),
      {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
     {"WOOD PLUCK", {0, 6, 50, 0, 42, 28, 0, 0}, {0, 72, 0, 45}, 45, 0, FX(0, 18, 46, 32), PAT(15),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_ELOOP, 2)}},
     {"BAMBOO FLUTE", {3, 10, 40, 30, 68, 20, 0, 12}, {18, 75, 40, 55}, 15, 0, FX(0, 38, 34, 66), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14), XP(P_M2SRC, 7), XP(P_M2DST, 11), XP(P_M2AMT, 12)}},
     {"HARP PLUCK", {3, 8, 60, 0, 74, 58, 0, 12}, {0, 72, 0, 45}, 62, 0, FX(0, 26, 46, 52), PAT(15),
@@ -460,21 +460,17 @@ static const preset_t ANALOG_PRESETS[] = {
     {"ABYSSAL DRONE", {AW_TUBE, 20, 58, 10, 44, 58, 14, -12}, {112, 90, 126, 118}, 0, 0, FX(10, 50, 32, 72), PAT(5),
      {XP(P_LRATE, 5), XP(P_LWAVE, 6), XP(P_LD_FLT, 30), XP(P_LD_SHP, 18), XP(P_LD_AMP, 8), XP(P_LEVEL, 125)}},
     {"PRISM KEYS", {4, 12, 70, 0, 66, 18, 0, 12}, {0, 84, 40, 60}, 30, 0, FX(0, 40, 35, 55), PAT(6),
-     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 46),
-      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_CUT), XP(P_M2AMT, 30)}},
+     {XP(P_M1AMT, 46), XP(P_M2AMT, 30), XP(P_HARM, 14)}},
     {"GLASS BELL", {AW_RING, 18, 80, 0, 84, 24, 0, 12}, {0, 92, 0, 88}, 42, 0, FX(0, 30, 40, 78), PAT(7),
-     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 50),
-      XP(P_M2SRC, QG_SRC_PAT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 34)}},
+     {XP(P_M1AMT, 50), XP(P_M2AMT, 34), XP(P_HARM, 20)}},
     {"AURORA PLUCK", {AW_FOLD, 8, 58, 2, 48, 30, 12, 0}, {0, 74, 0, 52}, 46, 0, FX(0, 25, 52, 45), PAT(15),
-     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 52),
-      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_REV), XP(P_M2AMT, 26)}},
+     {XP(P_M1AMT, 52), XP(P_M2AMT, 26), XP(P_ELOOP, 2), XP(P_HARM, 10)}},
 
 
     {"OCEANIC PAD", {AW_SAW3, 34, 68, 12, 54, 32, 0, 7}, {104, 94, 122, 112}, 6, 0, FX(0, 78, 34, 90), PAT(5),
-     {XP(P_LRATE, 7), XP(P_LWAVE, 6), XP(P_LD_FLT, 26), XP(P_LD_AMP, 10), XP(P_LEVEL, 119)}},
+     {XP(P_LRATE, 7), XP(P_LWAVE, 6), XP(P_LD_FLT, 26), XP(P_LD_AMP, 10), XP(P_LEVEL, 119), XP(P_LSHP, 30)}},
     {"EMBER LEAD", {AW_TUBE, 16, 74, 0, 70, 40, 34, 12}, {4, 72, 92, 48}, 24, 1, FX(28, 20, 42, 30), PAT(4),
-     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 34),
-      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 18)}},
+     {XP(P_M1AMT, 34), XP(P_M2AMT, 18), XP(P_HARM, 22)}},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
     {"NEON RIDER", {0, 14, 64, 0, 88, 34, 22, 7}, {2, 72, 98, 46}, 26, 1, FX(18, 16, 46, 30), PAT(4),
      {XP(P_LRATE, 44), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},  /* A: lead */
@@ -483,15 +479,15 @@ static const preset_t ANALOG_PRESETS[] = {
     {"GLASS BLADE", {5, 24, 80, 0, 86, 26, 14, 0}, {1, 68, 90, 40}, 18, 1, FX(10, 20, 50, 34), PAT(3),
      {XP(P_LRATE, 48), XP(P_LWAVE, 2), XP(P_LD_FLT, 8), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* A: sync lead */
     {"NIGHT SHIFT", {1, 0, 50, 0, 54, 58, 34, -12}, {0, 58, 70, 24}, 32, 1, FX(30, 0, 6, 4), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* E: analog bass */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, -16)}},  /* E: analog bass */
     {"MOLTEN CORE", {9, 16, 64, 0, 52, 72, 68, -12}, {0, 64, 86, 30}, 44, 1, FX(44, 0, 0, 6), PAT(2),
      {XP(P_LRATE, 28), XP(P_LWAVE, 4), XP(P_LD_SHP, 14), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* E: folded bass */
     {"PAPER LANTERN", {4, 18, 60, 2, 64, 18, 6, 7}, {72, 92, 110, 96}, 10, 0, FX(0, 58, 28, 72), PAT(5),
-     {XP(P_LRATE, 19), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8)}},  /* B: pad */
+     {XP(P_LRATE, 19), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8), XP(P_LSHP, 18)}},  /* B: pad */
     {"SLOW TIDE", {7, 38, 64, 6, 58, 26, 8, 12}, {84, 94, 116, 102}, 14, 0, FX(0, 64, 30, 80), PAT(5),
      {XP(P_LRATE, 21), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},  /* B: SAW3 pad */
     {"AMBER GLASS", {2, 8, 56, 0, 96, 14, 0, 12}, {0, 86, 34, 64}, 24, 0, FX(0, 30, 34, 50), PAT(6),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},  /* C: keys */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_HARM, 16)}},  /* C: keys */
     {"TIN ROOF", {6, 14, 80, 0, 102, 22, 0, 12}, {0, 84, 0, 70}, 30, 0, FX(0, 22, 42, 44), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},  /* C: RING pluck */
     {"CLOCKWORK", {1, 6, 52, 0, 72, 44, 10, 12}, {0, 72, 20, 44}, 34, 0, FX(0, 26, 52, 30), PAT(8),
@@ -499,9 +495,9 @@ static const preset_t ANALOG_PRESETS[] = {
     {"PUENTE DE LUZ", {0, 16, 66, 0, 80, 30, 18, 7}, {10, 76, 94, 58}, 20, 1, FX(12, 30, 48, 36), PAT(4),
      {XP(P_LRATE, 34), XP(P_LWAVE, 1), XP(P_LD_PIT, 5), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},  /* G: lead */
     {"SIESTA DORADA", {6, 8, 96, 6, 52, 40, 28, -12}, {58, 90, 108, 92}, 12, 0, FX(0, 62, 30, 76), PAT(5),
-     {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},  /* G: warm pad */
+     {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LSHP, 22)}},  /* G: warm pad */
     {"AURORA DRIFT", {7, 38, 64, 6, 58, 20, 8, 12}, {44, 96, 118, 104}, 16, 0, FX(34, 58, 34, 84), PAT(5),
-     {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 5), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},  /* (v1.5.19) a slow pad whose cut breathes with the wheel */
+     {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},  /* (v1.5.19) a slow pad whose cut breathes with the wheel */
 };
 
 static const param_desc_t ANALOG_CH[2] = {

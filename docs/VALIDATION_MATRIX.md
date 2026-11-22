@@ -3575,3 +3575,29 @@ desalineaciones**; `regress` **307 renders, 0 cambiados**; `make_release --check
 
 **Sigue abierto.** Presets de fábrica sin TILT/CURVE/ONE; ids de parámetro 127/127; instalación V16 = GO CONDITIONAL;
 tag y GitHub Release sin credencial `gh` en este entorno.
+
+## 58. v1.12.12: los presets de fábrica y sus tres parámetros sin usar
+
+**Renovación.** TILT, LFO CURVE y ENV ONE no estaban en ningún preset de fábrica (0 de 286). Ahora: **78** con
+TILT (±6..30 según el sonido), **23** con CURVE (+18..30 en pads y drones, −16..−24 en barridos) y **15** con
+ENV ONE (plucks, marimbas, 808). Entran en los huecos de `x[]` que el preset ya tenía (186 de 286 llevaban menos
+de seis), así que la tabla pesa lo mismo y la imagen no crece.
+
+**Memoria.** Ocho presets llevaban un valor igual al default del panel (`P_LWAVE` 0 en seis órganos y coros,
+`P_LRATE` 60 en FOLD LEAD y CHIP ARP): se quitaron sin cambiar el sonido, liberando su hueco.
+
+**Bug corregido.** AURORA DRIFT tenía siete `XP()` en un `x[6]`: el compilador descartaba el séptimo (M1AMT) y su
+aftertouch → filtro no existía desde 1.5.19. Reescrito a seis entradas con la matriz completa. Guarda nueva:
+`tests/preset_slots_test.py`, invocada desde `run_tests.sh` (286 presets, todos dentro de sus seis huecos).
+
+**Nivel.** `tests/preset_levels` (289 renders) + `tools/gen_preset_levels.py`: mediana **−18.6 dBFS**, **270/289
+dentro de ±3 dB**, **0 por encima** de la mediana en más de 3 dB, pico máximo **−1.7 dBFS** (sin recorte). Los 19
+restantes están topados por el fader (sonidos flojos por diseño); arreglarlos exige cambiar el sonido.
+
+**Verificación (host x86_64).** `regress`: 159 de 307 renders cambiados por diseño, 0 fallos de salud / voz /
+CPU / crashes; goldens re-baselinados y estables. Barrido **193 × 22**, **0 lint**, **0 desalineaciones**; 3088
+frames en la línea base; `ui_test` y `scl_test` verdes; `make_release --check`, `sha256sum -c`, emulador y
+`release_gate_test` verdes.
+
+**Sigue abierto.** 19 presets flojos con el fader al máximo; ids de parámetro 127/127; instalación V16 = GO
+CONDITIONAL; tag y GitHub Release sin credencial `gh`.

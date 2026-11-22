@@ -1,3 +1,36 @@
+## v1.12.12 — Los presets de fábrica se ponen al día
+
+**Tres parámetros nuevos que ningún preset usaba.** TILT (v1.12.4), LFO CURVE (v1.12.5) y ENV ONE (v1.12.6)
+existían en el motor y en el editor, y de los 286 sonidos de fábrica **ninguno** los llevaba: se podían tocar a
+mano y no se guardaban en ningún lado. Ahora **117 presets** los usan: **78** llevan TILT (los metales y las
+campanas se abren, los drones y los subs se oscurecen), **23** llevan LFO CURVE (el vaivén deja de ser simétrico:
++26 en los pads que respiran despacio, −20..−24 en los barridos), y **15** llevan ENV ONE (el pluck, la marimba,
+el 808: la forma se toca entera y la voz se apaga sola bajo el dedo, en vez de quedarse colgada).
+
+**Sin gastar un byte.** Los tres entran en los huecos que el preset ya tenía: `preset_t.x[]` son seis pares, y
+186 de los 286 sonidos llevaban menos. La tabla de presets pesa exactamente lo mismo que antes (36 B × 286) y la
+imagen no creció.
+
+**Ocho presets guardaban un valor que es el default del panel** (P_LWAVE 0 en ORGAN, PAPER ORGAN, CHOIR AAH, MONK
+DRONE, MYSTIC CHOIR, HALO CHORUS; P_LRATE 60 en FOLD LEAD y CHIP ARP): seis bytes y ocho huecos ocupados en decir
+lo que el motor ya hace. Se fueron; el sonido no cambia — es el mismo número.
+
+**Un bug de verdad: AURORA DRIFT tenía siete entradas en seis huecos.** El compilador se come la séptima con un
+aviso que `-w` apaga, y esa séptima era `M1AMT`: el preset decía aftertouch → filtro desde 1.5.19 y el filtro
+nunca se movía (la fuente y el destino estaban, la cantidad no). Ahora son seis entradas con la matriz entera, y
+`tests/preset_slots_test.py` — en `run_tests.sh` — lee las tablas y falla si algún preset vuelve a pasarse.
+
+**Todos al mismo nivel, medido.** `tests/preset_levels` renderiza los 289 sonidos uno por uno y mide RMS y pico;
+`tools/gen_preset_levels.py` reescribió la tabla que el fader aplica al cargar. Resultado: mediana **−18.6
+dBFS**, **270 de 289 dentro de ±3 dB** (antes 21 fuera, ahora 19), **ninguno más fuerte que la mediana** y pico
+máximo **−1.7 dBFS** — sin recorte. Los 19 que quedan son sonidos flojos por diseño (STATIC HAZE, GEIGER CNT,
+HOLLOW WOOD): el fader ya da todo lo que tiene y arreglarlos es cambiar el sonido, no el número; queda anotado.
+
+**El motor no cambió, los presets sí.** `regress`: **159 de 307 renders cambiados** por diseño (los presets son
+el sonido), **0 fallos de salud, 0 de voz/ruteo, 0 de CPU, 0 crashes**; goldens re-baselinados y estables en la
+corrida siguiente. Barrido **193 × 22, 0 lint, 0 desalineaciones**; `ui_test`, `scl_test`, `preset_slots_test`
+verdes.
+
 ## v1.12.11 — SCL y ARP: el diagrama que no cabía, y un teclado con luz
 
 **SCL > SCALE: la rueda no cabía y se veía.** Doce nombres alrededor de un círculo de 40 px en un panel de 240

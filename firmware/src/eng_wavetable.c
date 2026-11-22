@@ -195,28 +195,28 @@ static const preset_t WT_PRESETS[] = {
     {"MORPH LEAD", {54, 12, 1, 0, 104, 24, 18, 80}, {3, 60, 110, 35}, 0, 1, FX(20, 22, 26, 26), PAT(4),
      {XP(P_LRATE, 40), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
     {"SINE KEY", {0, 0, 0, 0, 118, 0, 0, 40}, {2, 55, 100, 40}, 0, 0, FX(0, 12, 14, 24), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 10)}},
     {"VOCAL AAH", {127, 8, 1, 4, 88, 30, 6, 66}, {35, 80, 127, 70}, 0, 0, FX(0, 36, 32, 64), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 0), XP(P_LD_FLT, 12)}},
     {"METAL BELL", {98, 0, 0, 0, 116, 12, 0, 92}, {0, 50, 40, 55}, 0, 0, FX(0, 24, 22, 40), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 24)}},
     {"HOLLOW WOOD", {72, 6, 0, 0, 96, 44, 10, 30}, {0, 60, 70, 45}, 0, 0, FX(10, 14, 16, 28), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119), XP(P_ELOOP, 2)}},
     {"BRASS SWELL", {36, 18, 1, 0, 78, 20, 30, 88}, {45, 75, 127, 60}, 0, 0, FX(26, 32, 22, 48), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
     {"SUB BASS", {10, 0, 0, 90, 60, 26, 8, 20}, {0, 55, 120, 35}, 0, 1, FX(20, 0, 0, 10), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -16)}},
     {"PULSE ORGAN", {78, 14, 1, 0, 100, 8, 0, 58}, {0, 64, 127, 40}, 0, 0, FX(0, 32, 20, 34), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},
     {"QUANTUM MASS", {44, 26, 1, 30, 66, 36, 22, 84}, {55, 90, 127, 95}, 0, 0, FX(30, 52, 46, 88), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
     {"VELVET MORPH", {40, 26, 1, 8, 86, 12, 10, 70}, {46, 88, 106, 88}, 8, 0, FX(0, 58, 30, 76), PAT(5),
-     {XP(P_LRATE, 15), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},  /* B: pad */
+     {XP(P_LRATE, 15), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LSHP, 20)}},  /* B: pad */
     {"SPECTRAL REED", {58, 14, 1, 0, 100, 26, 16, 62}, {6, 80, 84, 56}, 20, 1, FX(14, 24, 36, 40), PAT(4),
      {XP(P_LRATE, 36), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 8)}},  /* A: reed lead */
     {"CHROME PLUCK", {84, 10, 0, 0, 110, 30, 20, 88}, {0, 78, 0, 52}, 26, 0, FX(10, 18, 48, 32), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 125)}},  /* PLUCK */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 125), XP(P_ELOOP, 2)}},  /* PLUCK */
     {"BARRO Y LUZ", {28, 32, 1, 12, 74, 18, 6, 54}, {70, 92, 112, 98}, 6, 0, FX(0, 62, 34, 84), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: pad */
     /* (3.0) the morph family: each one moves MORPH itself (the matrix's E1) or lets POSMOD walk it, so the
@@ -238,9 +238,9 @@ static const preset_t WT_PRESETS[] = {
      * crystal bell (the METAL frame, a short filter env and a long tail, sent to the reverb). Neither
      * adds DSP: MORPH picks the frame, HARM the tilt, CUT/RES the body. */
     {"ELECTRIC TINE", {34, 6, 0, 0, 96, 8, 4, 72}, {0, 62, 44, 40}, 22, 0, FX(0, 18, 20, 30), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 112)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 112), XP(P_HARM, 12)}},
     {"GLASS CHIME", {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 18, 62}, 10, 0, FX(0, 24, 26, 52), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 116)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 116), XP(P_HARM, 20)}},
     {"TIDAL MIRROR", {44, 26, 1, 14, 86, 20, 18, 58}, {28, 78, 102, 84}, 10, 0, FX(24, 50, 42, 72), PAT(5),
      {XP(P_LRATE, 9), XP(P_LWAVE, 7), XP(P_LD_FLT, 20), XP(P_M1SRC, 4), XP(P_M1DST, 1), XP(P_M1AMT, 14)}},  /* (v1.5.19) the table morphing under the cut */
 };

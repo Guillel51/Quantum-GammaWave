@@ -278,7 +278,7 @@ static const preset_t NOISE_PRESETS[] = {
     /* a 7-bit register (127 steps) clocked 84 semitones (7 octaves) above the key: one period per key period,
      * a pitched chip-style buzz */
     {"ARCADE", {NZ_LFSR, 0, 127, 0, 127, 112, 0, 84}, {0, 80, 0, 50}, 0, 0, FX(6, 0, 12, 14), PAT(3),
-     {XP(P_LRATE, 50), XP(P_LWAVE, 4), XP(P_LD_FLT, 14), XP(P_LEVEL, 127)}},
+     {XP(P_LRATE, 50), XP(P_LWAVE, 4), XP(P_LD_FLT, 14), XP(P_LEVEL, 127), XP(P_HARM, 16)}},
     {"METAL", {NZ_META, 0, 100, 40, 100, 32, 0, 0}, {0, 75, 40, 60}, 10, 0, FX(10, 18, 28, 32), PAT(7),
      {XP(P_LRATE, 34), XP(P_LWAVE, 4), XP(P_LD_FLT, 16), XP(P_LEVEL, 127)}},
     /* (GAMMAWAVE / WRAITH) radiation & industrial atmosphere patches */
@@ -287,7 +287,7 @@ static const preset_t NOISE_PRESETS[] = {
     {"REACTOR", {NZ_META, 82, 58, 78, 110, 48, 60, 24}, {35, 92, 110, 85}, 20, 1, FX(46, 18, 34, 60), PAT(8),
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_LD_SHP, 14), XP(P_LEVEL, 97)}},
     {"VOID WASH", {NZ_ANLG, 90, 52, 88, 64, 0, 95, 0}, {85, 95, 118, 102}, 12, 0, FX(8, 48, 44, 92), PAT(5),
-     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_LD_AMP, 8), XP(P_LEVEL, 127)}},
+     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_LD_AMP, 8), XP(P_LEVEL, 127), XP(P_LSHP, 26)}},
     /* (1.2-GW, issue #17: ambient and expressive) the sea (a slow swell of filtered noise), a dust haze */
     {"OCEAN", {NZ_ANLG, 40, 50, 30, 0, 0, 110, 0}, {100, 90, 127, 110}, 0, 0, FX(0, 30, 10, 90), PAT(5),
      {XP(P_LRATE, 6), XP(P_LWAVE, 0), XP(P_LD_AMP, 40), XP(P_LD_FLT, 12), XP(P_LEVEL, 127)}},
@@ -295,7 +295,7 @@ static const preset_t NOISE_PRESETS[] = {
      {XP(P_LRATE, 18), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LEVEL, 127)}},
     /* (QUANTUM // QG-1) a riser (the LFO a slow saw on the filter), a counter's clicks, foam */
     {"RISER", {NZ_ANLG, 60, 40, 90, 0, 0, 80, 0}, {120, 90, 127, 60}, 20, 0, FX(0, 30, 40, 80), PAT(5),
-     {XP(P_LRATE, 4), XP(P_LWAVE, 2), XP(P_LD_FLT, 40), XP(P_LEVEL, 127)}},
+     {XP(P_LRATE, 4), XP(P_LWAVE, 2), XP(P_LD_FLT, 40), XP(P_LEVEL, 127), XP(P_LSHP, -24)}},
     {"GEIGER CNT", {NZ_DUST, 28, 90, 60, 64, 30, 30, 0}, {0, 60, 100, 40}, 0, 0, FX(12, 0, 28, 26), PAT(5),
      {XP(P_LRATE, 54), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_LEVEL, 127)}},
     {"QUANTUM FOAM", {NZ_DUST, 50, 100, 85, 90, 95, 85, 20}, {30, 90, 115, 90}, 12, 0, FX(10, 48, 44, 88), PAT(5),
@@ -312,7 +312,7 @@ static const preset_t NOISE_PRESETS[] = {
 
     /* (QG-1 1.6) EVOLVE: a texture whose colour and level breathe together */
     {"SOLAR WIND", {1, 32, 45, 52, 88, 60, 100, 0}, {96, 90, 124, 108}, 0, 0, FX(0, 45, 30, 88), PAT(5),
-     {XP(P_LRATE, 3), XP(P_LWAVE, 6), XP(P_LD_FLT, 22), XP(P_LD_AMP, 12), XP(P_LEVEL, 127)}},
+     {XP(P_LRATE, 3), XP(P_LWAVE, 6), XP(P_LD_FLT, 22), XP(P_LD_AMP, 12), XP(P_LEVEL, 127), XP(P_HARM, 8)}},
 
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
     {"SANDSTORM", {1, 44, 96, 62, 40, 104, 40, 6}, {16, 80, 90, 70}, 0, 0, FX(0, 34, 30, 64), PAT(5),
@@ -322,7 +322,7 @@ static const preset_t NOISE_PRESETS[] = {
     {"BIT SWARM", {2, 12, 120, 40, 64, 96, 62, 26}, {0, 66, 30, 40}, 0, 0, FX(30, 20, 36, 30), PAT(1),
      {XP(P_LRATE, 58), XP(P_LWAVE, 4), XP(P_LD_FLT, 18), XP(P_LEVEL, 118)}},  /* D: digital */
     {"META DUST", {3, 88, 96, 74, 88, 112, 0, 8}, {0, 72, 20, 44}, 0, 1, FX(24, 0, 28, 22), PAT(1),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 127)}},  /* F: metal perc */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 127), XP(P_HARM, 12)}},  /* F: metal perc */
     {"LLUVIA DE CENIZA", {1, 60, 84, 50, 30, 104, 100, 0}, {60, 90, 108, 88}, 0, 0, FX(0, 42, 34, 88), PAT(5),
      {XP(P_LRATE, 9), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 6), XP(P_LEVEL, 109)}},  /* G: ash rain */
 };

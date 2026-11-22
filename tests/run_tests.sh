@@ -175,6 +175,10 @@ run "release set: package, both SHA256SUMS, the site's versions.json and the ins
 # row nobody re-read, fails here instead of being discovered by whoever reads the gate next.
 run "evidence index: docs/EVIDENCE.md is exactly what docs/VALIDATION_MATRIX.md says" python3 tools/evidence_index.py --check
 
+# A preset carries six more values; a seventh is dropped by the compiler in silence (AURORA DRIFT named an
+# aftertouch its matrix never got, 1.5.19 to 1.12.11). The tables are read, so the count is a test.
+run "factory presets: every x[] fits its six slots" python3 tests/preset_slots_test.py
+
 $CC -Ibuild/gen -Ifirmware/src -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"
 

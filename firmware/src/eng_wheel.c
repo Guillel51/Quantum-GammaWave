@@ -317,15 +317,15 @@ static void wheel_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 static const preset_t WHEEL_PRESETS[] = {
     /* name, {REG, SUB, BODY, TOP, PERC, CLICK, DRIVE, ROTR}, {A D S R}, fenv, mono */
     {"FULL ORGAN", {15, 0, 0, 0, 0, 30, 20, 1}, {0, 64, 127, 45}, 0, 0, FX(0, 28, 8, 30), PAT(5),
-     {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},
+     {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6), XP(P_HARM, 6)}},
     {"JAZZ PERC", {4, 0, 0, 0, 2, 50, 8, 1}, {0, 64, 127, 40}, 0, 0, FX(0, 20, 4, 22), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, 14)}},
     {"GOSPEL", {6, 0, 0, 0, 1, 60, 40, 2}, {0, 64, 127, 45}, 0, 0, FX(6, 32, 4, 38), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 0), XP(P_LD_AMP, 8)}},
     {"SOFT FLUTE", {1, 0, -2, 0, 0, 10, 0, 1}, {0, 64, 127, 55}, 0, 0, FX(0, 22, 16, 54), PAT(5),
      {XP(P_LRATE, 26), XP(P_LWAVE, 0), XP(P_LD_PIT, 4), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
     {"ROCK DRIVE", {7, 0, 0, 0, 0, 70, 100, 2}, {0, 64, 127, 40}, 0, 0, FX(38, 0, 10, 22), PAT(4),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 18)}},
     /* (GAMMAWAVE) cathedral & overdriven tonewheel patches */
     {"DOOM CATH", {15, 6, 4, 3, 0, 45, 78, 1}, {20, 85, 127, 75}, 0, 0, FX(36, 28, 24, 86), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8)}},
@@ -338,7 +338,7 @@ static const preset_t WHEEL_PRESETS[] = {
     {"QUANTUM DRAW", {9, 2, 1, 1, 2, 40, 30, 2}, {0, 64, 127, 45}, 0, 0, FX(12, 20, 16, 38), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 10)}},
     {"CHAPEL SOFT", {2, 2, -1, 0, 0, 5, 0, 1}, {40, 64, 127, 80}, 0, 0, FX(0, 28, 20, 82), PAT(5),
-     {XP(P_LRATE, 11), XP(P_LWAVE, 6), XP(P_LD_FLT, 10)}},
+     {XP(P_LRATE, 11), XP(P_LWAVE, 6), XP(P_LD_FLT, 10), XP(P_HARM, -8)}},
     /* (QG-1 EXPANSION: Hurdy Gurdy & Acoustic Traditional) */
     {"HURDY GURDY", {10, 4, 3, -2, 1, 85, 45, 0}, {5, 60, 127, 40}, 0, 1, FX(16, 10, 16, 28), PAT(3),
      {XP(P_LRATE, 34), XP(P_LWAVE, 1), XP(P_LD_PIT, 5), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
@@ -362,7 +362,7 @@ static const preset_t WHEEL_PRESETS[] = {
     {"TONE CABINET", {6, 1, 2, 1, 1, 35, 25, 1}, {0, 72, 100, 40}, 16, 0, FX(0, 40, 10, 34), PAT(6),
      {XP(P_LRATE, 22), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},  /* KEYS: organ */
     {"SALT REED", {3, 2, -1, 2, 2, 25, 18, 1}, {8, 78, 92, 56}, 10, 0, FX(0, 30, 18, 52), PAT(6),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* KEYS: reed */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, 8)}},  /* KEYS: reed */
     {"BARKING PIPE", {11, 3, 3, -2, 4, 80, 55, 0}, {0, 74, 66, 40}, 28, 1, FX(20, 12, 20, 30), PAT(1),
      {XP(P_LRATE, 32), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},  /* D: industrial reed */
     {"CORAL ORGAN", {13, 2, 4, 2, 0, 20, 8, 2}, {30, 90, 116, 88}, 6, 0, FX(0, 52, 26, 70), PAT(5),
