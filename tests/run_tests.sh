@@ -644,7 +644,7 @@ else
     echo "== skip CPU under valgrind (no valgrind, or not Linux x86-64)"
 fi
 
-run "preset library: 251 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
+run "preset library: factory sounds, per-engine counts, DRUM's indices, names" python3 tests/preset_library_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 # the two official M-VAVE releases (V15 V16) as both installers pin them: one digest, one layout,
 # one loader window, so a page and a terminal never disagree about which file is official

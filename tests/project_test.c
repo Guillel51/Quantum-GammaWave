@@ -228,10 +228,14 @@ int main(void)
     uint32_t i, t;
     int bad = 0, ok;
 
-    bad += check("layout: SLICER after DETUNE, then the matrix just before P_E0",
+    /* (v1.12.13) the chain below P_E0 is APPEND-ONLY: TILT and LFO CURVE went after M.STRT and N.RATE (they were
+     * inserted above them in v1.12.4/5 and moved both, breaking every store written before), so the ids from
+     * P_MSTART up are the ones this line pins. P_E0 119 and P_COUNT 127 (the 7-bit ceiling) do not move. */
+    bad += check("layout: SLICER after DETUNE, then the matrix, M.STRT, N.RATE, TILT, CURVE, then P_E0",
                  P_SLCR == P_DETUNE + 1 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_SOFS && P_POFS + 1 == P_LN0 &&
-                 P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_MSTART && P_NRATE + 1 == P_E0 &&
-                 P_E0 == 117 && P_COUNT == PROJ_NP_V3 + 68u &&
+                 P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_MSTART && P_MSTART + 1 == P_NRATE &&
+                 P_NRATE + 1 == P_HARM && P_HARM + 1 == P_LSHP && P_LSHP + 1 == P_E0 &&
+                 P_E0 == 119 && P_COUNT == PROJ_NP_V3 + 70u &&      /* +2: TILT (v1.12.4) and LFO CURVE (v1.12.5) */
                  PROJ_NP_V3 == PROJ_NP_V2 + 4u);
     bad += check("FUNB fits one flash object (its whole payload), the retained cache in NOINIT",
                  sizeof(project_store_t) == 4096u - 256u && 0xC8u + 4u * sizeof(project_store_t) <= 0x3D50u);

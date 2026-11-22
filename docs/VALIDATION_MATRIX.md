@@ -3601,3 +3601,23 @@ frames en la línea base; `ui_test` y `scl_test` verdes; `make_release --check`,
 
 **Sigue abierto.** 19 presets flojos con el fader al máximo; ids de parámetro 127/127; instalación V16 = GO
 CONDITIONAL; tag y GitHub Release sin credencial `gh`.
+
+## 59. v1.12.13: ids de parámetro, perfilado real y el test del cambio de motor
+
+**Compatibilidad (bug corregido).** `P_HARM` y `P_LSHP` se habían insertado entre `P_FRES` y `P_MSTART`, moviendo
+`P_MSTART` 115→117 y `P_NRATE` 116→118 desde v1.12.4: un preset de usuario o un proyecto anterior cargaba M.STRT en
+el tilt y N.RATE en la curva del LFO. Ahora van después de N.RATE (117, 118); `P_E0` 119 y `P_COUNT` 127 (techo de
+7 bits) no cambian. `tests/upreset_test.c` comprueba cada invariante por separado; **regress 307 renders, 0
+cambiados**.
+
+**Perfilado.** En hosts sin `proc_pid_rusage` la tabla "preset más caro por motor" salía en 0.0; ahora se elige por
+ns por muestra y la cabecera declara el instrumento. Línea de base de esta sesión en
+`docs/AUDIT_PHASE1_v1.12.13.md` §2 (clase host x86_64).
+
+**Cambio de motor (test corregido, no el audio).** `tracks` comparaba el escalón de muestra de un acorde LOFI
+bit-crusheado con el de un ANALOG (6.91x, FAIL) sin referenciar la textura del sonido nuevo; contra la del propio
+LOFI asentado es 1.38x. El test ahora usa el mayor de los dos y sigue fallando por encima de 1.5x.
+
+**Sigue abierto.** Optimización de los buses en reposo y de ANALOG/NOISE (fase 2, con la tabla de §2 como
+antes/después); pantalla propia de PHASE; MORPH A/B persistente; animaciones de Reverb por modelo; instalación
+V16 = GO CONDITIONAL; `P_COUNT` en 127, sin ids libres.

@@ -218,7 +218,7 @@ static void store(void)
 
 int main(void)
 {
-    check("P_COUNT is 125", P_COUNT == 125);
+    check("P_COUNT is 127 (the 7-bit ceiling: v1.12.4 TILT and v1.12.5 LFO CURVE filled it)", P_COUNT == 127);
     audit();
     lfo_shape();
     env_vel();

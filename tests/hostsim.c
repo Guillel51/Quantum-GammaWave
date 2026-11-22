@@ -672,18 +672,27 @@ static int xfade_test(const char *dir)
     }
     fclose(w);
     for (k = 0; k < 3u; k++) {
-        int32_t calm = 1, at = 0;
+        int32_t calm = 1, at = 0, settled = 1, ref;
         for (i = sw[k] - FS / 10u; i < sw[k]; i++)
             calm = abs(L[i] - L[i - 1]) > calm ? abs(L[i] - L[i - 1]) : calm;
         for (i = sw[k]; i < sw[k] + FS / 100u; i++)
             at = abs(L[i] - L[i - 1]) > at ? abs(L[i] - L[i - 1]) : at;
+        /* (v1.12.13) THE CLICK IS MEASURED AGAINST THE SOUND IT BECOMES. The 0.1 s before is the OLD engine's own
+         * texture, and comparing a bit-crushed LOFI chord's steps with an ANALOG one's read as a 6.91 x "hard cut"
+         * when nothing had cut: LOFI's samples move in its own large quanta, block after block. The reference is
+         * the larger of that and the new engine's settled texture 0.1..0.2 s after the switch, where no transition
+         * can be; a real cut -- the note killed and restarted at level -- still beats both. */
+        for (i = sw[k] + FS / 10u; i + 1 < sw[k] + FS / 5u && i + 1 < frames; i++)
+            settled = abs(L[i + 1] - L[i]) > settled ? abs(L[i + 1] - L[i]) : settled;
+        ref = settled > calm ? settled : calm;
         printf("tracks: engine switch %s -> %s (%s): largest sample step %d in the 10 ms after, %d in the 0.1 s "
-               "before (%.2f x)\n", ENGINES[0]->name, ENGINES[to[k]]->name, k ? "chord held" : "release tail", at,
-               calm, (double)at / calm);
-        worst = (double)at / calm > worst ? (double)at / calm : worst;
-        bad += at > calm * 3 / 2;
+               "before, %d settled after (%.2f x)\n", ENGINES[0]->name, ENGINES[to[k]]->name,
+               k ? "chord held" : "release tail", at, calm, settled, (double)at / ref);
+        worst = (double)at / ref > worst ? (double)at / ref : worst;
+        bad += at > ref * 3 / 2;
     }
-    printf("tracks: engine switch: at most %.2f x the step before (a hard cut: several x) %s\n", worst, bad ? "FAIL" : "ok");
+    printf("tracks: engine switch: at most %.2f x the step of the sound before or after it (a hard cut: several x) %s\n",
+           worst, bad ? "FAIL" : "ok");
     printf("tracks: a note during the switch sounds on the new engine (%s) %s\n", ENGINES[to[3]]->name,
            late_ok ? "ok" : "FAIL");
     free(L);

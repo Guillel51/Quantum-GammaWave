@@ -319,16 +319,27 @@ int main(void)
     for (i = 0; i < 53u; i++)
         r.p[i] = (int16_t)(2000 + i);
     up_params(&r, v, def);
-    ok = P_SLCR == 45 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_SOFS &&
-         P_POFS + 1 == P_LN0 && P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_MSTART &&
-         P_NRATE + 1 == P_E0 && P_E0 == 117 && P_COUNT == 125;
+    /* (v1.12.13) ONE LINE PER INVARIANT. This used to be one compound ok, so a failure said only "the old record
+     * is wrong" -- and it was the id snapshot at the end (P_E0 / P_COUNT) that had moved when v1.12.4's TILT and
+     * v1.12.5's LFO CURVE were inserted before P_E0, not the migration. Split, the next drift says which part. */
+    bad += check("old record (np 53): the ids the migration was written against",
+                 P_SLCR == 45 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_SOFS &&
+                 P_POFS + 1 == P_LN0 && P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_MSTART &&
+                 P_MSTART + 1 == P_NRATE && P_NRATE + 1 == P_HARM && P_HARM + 1 == P_LSHP && P_LSHP + 1 == P_E0);
+    bad += check("old record (np 53): P_E0 / P_COUNT at the 7-bit ceiling (127 ids)",
+                 P_E0 == 119 && P_COUNT == 127);
+    ok = 1;
     for (i = 0; i < 45u; i++)
         ok &= v[i] == (int16_t)(2000 + i);
+    bad += check("old record (np 53): values below the SLICER keep their id", ok);
+    ok = 1;
     for (i = P_SLCR; i < P_E0; i++)
         ok &= v[i] == def[i];
+    bad += check("old record (np 53): SLICER and the matrix take the defaults", ok);
+    ok = 1;
     for (i = 0; i < 8u; i++)
         ok &= v[P_E0 + i] == (int16_t)(2000 + 45 + i);
-    bad += check("old record (np 53): SLICER and matrix defaults, E0..E7 kept", ok);
+    bad += check("old record (np 53): E0..E7 kept", ok);
     /* a record saved before the modulation matrix (P_COUNT 57, P_E0 49): the twelve matrix parameters (just
      * before P_E0) take their defaults (every slot OFF), the SLICER and everything else keep their ids */
     r.np = 57;

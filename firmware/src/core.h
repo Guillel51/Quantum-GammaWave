@@ -209,18 +209,21 @@ enum {                          /* per-track parameters */
     P_MS0, P_MS15 = P_MS0 + 15,                /* rate and slew, its 16 levels */
     P_FTYPE,                                   /* (JIANT 0.5) the filter's type: LP HP BP COMB (eng_analog.c, voice.c) */
     P_FCUT, P_FRES,                            /* .. every other engine's: a filter on the part's sum (voice.c track_filter) */
-    P_LSHP,                                    /* (v1.12.5) LFO CURVE: the phase's own bend (voice.c lfo_skew).
-                                                * With it P_COUNT reaches 127, the last id the 7-bit motion records
-                                                * can name: the parameter space is FULL, and the next one needs a
-                                                * new store format rather than a slot */
-    P_HARM,                                    /* (v1.12.4) TILT: the per-voice spectral tilt (voice.c tilt_voice). It takes
-                                                * the last free id before P_E0, which is where the count map wants a new
-                                                * common one: P_COUNT goes 125 -> 126 of the 127 the 7-bit motion
-                                                * records name, and a store written before it reads 0 (OFF, its default),
-                                                * so every project, preset and unit sounds exactly as it did */
     P_MSTART, P_NRATE,                         /* (3.5) last of the common ones, as the count map wants them: M.STRT, a
                                                * note starts a little late, at random (voice.c); N.RATE, how long the
                                                * random wander (mod.c MS_NOISE) holds a point */
+    P_HARM,                                    /* (v1.12.4) TILT: the per-voice spectral tilt (voice.c tilt_voice). It takes
+                                                * a free id AFTER M.STRT and N.RATE (v1.12.13; it was inserted above them
+                                                * and moved both): P_COUNT goes 125 -> 126 of the 127 the 7-bit motion
+                                                * records name, and a store written before it reads 0 (OFF, its default),
+                                                * so every project, preset and unit sounds exactly as it did */
+    P_LSHP,                                    /* (v1.12.5) LFO CURVE: the phase's own bend (voice.c lfo_skew).
+                                                * (v1.12.13) AFTER M.STRT and N.RATE, not above them: it was inserted
+                                                * between FRES and M.STRT and moved both, so a store written before
+                                                * v1.12.4 read its M.STRT as the tilt and its N.RATE as the curve.
+                                                * With it P_COUNT reaches 127, the last id the 7-bit motion records
+                                                * can name: the parameter space is FULL, and the next one needs a
+                                                * new store format rather than a slot */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };

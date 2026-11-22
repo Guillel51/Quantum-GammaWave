@@ -88,7 +88,10 @@ static void tables(void)
               MD_ATK == 27 && MD_DEC == 28 && MD_REL == 29);
     check("every number of before keeps its meaning",
           !strcmp(N_MSRC[15], "PAT") && !strcmp(N_MDST[26], "RES") && !strcmp(N_MDST[21], "PNCH"));
-    check("the knobs follow the tables", TP[P_M1SRC].max == 16 && TP[P_M1DST].max == 29);
+    /* (v1.12.13) the two lists the knobs are built from, not the numbers they had on the day: TILT and LFO
+     * CURVE are destinations now, so the ceiling is the table's own count. */
+    check("the knobs follow the tables", TP[P_M1SRC].max == (int16_t)(QG_SRC_N - 1) &&
+          TP[P_M1DST].max == (int16_t)(QG_DST_N - 1));
 }
 
 /* each render in its own child: the DSP's static state -- ms_clock among it -- starts as at boot, so two

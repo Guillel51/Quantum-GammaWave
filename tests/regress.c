@@ -1529,8 +1529,11 @@ int main(int argc, char **argv)
     static kv_t gold[MAXJ], cpu[MAXJ];
     uint32_t ng, nc, e, pi, i, g0, g1, c0, c1, k0, ncpu = 0;
     uint32_t g_changed = 0, g_new = 0, g_gone = 0, h_fail = 0, c_fail = 0, c_warn = 0, k_fail = 0, crash = 0;
-    double heavy[NENGINES] = {0}, heavy_ns[NENGINES] = {0}, idle_now, idle_base;
-    uint32_t heavy_p[NENGINES] = {0};
+    /* (v1.12.13) the heaviest preset per engine is reported by instructions where the kernel counts them and
+     * by ns where it does not (Linux): the first pair alone left every row at 0.0 when ripc was 0, so the
+     * profile this table exists for was empty on the host the work is measured on. */
+    double heavy[NENGINES] = {0}, heavy_ns[NENGINES] = {0}, heavy_ns_best[NENGINES] = {0}, idle_now, idle_base;
+    uint32_t heavy_p[NENGINES] = {0}, heavy_p_ns[NENGINES] = {0};
     uint64_t t_start = now_ns();
     char name[64], s[64];
     if (jobs_at_once < 1u || jobs_at_once > 64u)
@@ -1767,10 +1770,16 @@ int main(int argc, char **argv)
             crash++;
             continue;
         }
-        if (j->e < NENGINES && j->r.ipc > heavy[j->e]) {
-            heavy[j->e] = j->r.ipc;
-            heavy_ns[j->e] = j->r.ns;
-            heavy_p[j->e] = j->pi;
+        if (j->e < NENGINES) {
+            if (j->r.ipc > heavy[j->e]) {
+                heavy[j->e] = j->r.ipc;
+                heavy_ns[j->e] = j->r.ns;
+                heavy_p[j->e] = j->pi;
+            }
+            if (j->r.ns > heavy_ns_best[j->e]) {
+                heavy_ns_best[j->e] = j->r.ns;
+                heavy_p_ns[j->e] = j->pi;
+            }
         }
         if (!j->r.ipc || cupd)
             continue;
@@ -1952,11 +1961,17 @@ int main(int argc, char **argv)
         fclose(f);
         printf("regress: CPU baseline %s rewritten (%u entries)\n", cpath, c1 - c0);
     }
-    printf("regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (instructions / CPU ns per sample):\n");
-    for (e = 0; e < NENGINES; e++)
-        if (eng_ok(e))
-            printf("regress:   %-8s %-14s %6.0f instr  %6.1f ns\n", ENGINES[e]->name, ENGINES[e]->presets[heavy_p[e]].name,
-                   heavy[e], heavy_ns[e]);
+    {
+        int have_ipc = J[c0].r.ipc > 0;
+        printf("regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (%s):\n",
+               have_ipc ? "instructions / CPU ns per sample" : "CPU ns per sample, no kernel counter here");
+        for (e = 0; e < NENGINES; e++)
+            if (eng_ok(e)) {
+                uint32_t pi = have_ipc ? heavy_p[e] : heavy_p_ns[e];
+                printf("regress:   %-8s %-14s %6.0f instr  %6.1f ns\n", ENGINES[e]->name, ENGINES[e]->presets[pi].name,
+                       have_ipc ? heavy[e] : 0.0, have_ipc ? heavy_ns[e] : heavy_ns_best[e]);
+            }
+    }
     for (i = c1 - 4u; i < c1; i++)
         printf("regress:   %-23s %6.0f instr  %6.1f ns\n", J[i].name + 8, J[i].r.ipc, J[i].r.ns);
 

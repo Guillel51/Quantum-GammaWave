@@ -1,3 +1,41 @@
+## v1.12.13 — El id que se movió, el perfil que no medía, y el clic que era el sonido
+
+**Un bug de compatibilidad de datos, y es serio.** `P_HARM` (TILT, v1.12.4) y `P_LSHP` (LFO CURVE, v1.12.5) se
+insertaron en el enum **entre `P_FRES` y `P_MSTART`**, no después de `P_NRATE` como manda la regla del proyecto
+("los parámetros comunes sólo se añaden justo antes de `P_E0`"). Efecto: `P_MSTART` pasó de 115 a 117 y `P_NRATE`
+de 116 a 118, así que **todo preset de usuario y todo proyecto guardado antes de v1.12.4** cargaba su valor de
+M.STRT en el tilt (¡un TILT que nadie puso!) y su N.RATE en la curva del LFO, y perdía los dos propios. Nadie lo
+vio porque el test que lo vigila era una sola línea compuesta: fallaba con un "old record is wrong" genérico.
+Ahora los dos parámetros van **después** de M.STRT y N.RATE (117 y 118; `P_E0` sigue en 119, `P_COUNT` en 127, el
+techo de 7 bits del registro de motion), M.STRT y N.RATE vuelven a 115 y 116, y el test comprueba **cada
+invariante por separado**: ids de la migración, techo de 127, valores por debajo del SLICER, defaults del SLICER y
+de la matriz, y `E0..E7` conservados. `regress`: **307 renders, 0 cambiados** — el orden del enum no toca ningún
+sonido, los presets nombran los parámetros por nombre.
+
+**El perfil no existía en Linux.** `tests/regress.c` elige "el preset más caro de cada motor" por instrucciones
+por muestra, que sólo cuenta `proc_pid_rusage` (macOS): en un host Linux la tabla salía **0.0 ns en las diez
+filas**. Ahora el máximo se elige por instrucciones cuando hay contador y por **ns por muestra** cuando no, y la
+cabecera dice cuál. Primera tabla real (host x86_64, `cc -O2`, ventana menor de varias): idle **76.2 ns**,
+ANALOG · TUBE KEYS **371.4**, NOISE · DUST HAZE **360.8**, VOICE · BROKEN HYMN **341.7**, DRUM · CONCRETE KICK
+**336.8**, LOFI · CYBER DRONE **329.3**, `6parts_full` **325.0**, PHASE · CRYPT BELL **235.6**. El coste fijo de
+la mezcla en reposo es una cuarta parte del preset más caro: ahí es donde tiene que entrar la fase siguiente.
+
+**El "clic" del cambio de motor era el sonido.** `tracks` daba FAIL con 6.91x en ANALOG → LOFI. Medido contra la
+textura del **propio** LOFI 0.1–0.2 s después del cambio (3 630 por muestra: los escalones de su bit-crush), el
+paso de 5 025 durante la transición es **1.38x**, no un corte. El test comparaba el escalón de un acorde
+bit-crusheado con el de un ANALOG y llamaba "clic" a la diferencia de timbre. Ahora mide contra el mayor de los
+dos — el motor anterior y el mismo sonido ya asentado — y el umbral de 1.5x sigue cazando un corte de verdad
+(una nota matada y reatacada a nivel daría varios x).
+
+**Auditoría de la fase 1** en `docs/AUDIT_PHASE1_v1.12.13.md`: estado verificado del árbol, tabla de perfilado,
+registro de pendientes con estado y evidencia, y los bugs reportados (HOME, visualizer, flicker del browser, FX
+buses/reverb, ENV 1/2, instalación V16) con la comprobación concreta que se corrió para cada uno.
+
+**Verificación (host x86_64 / WASM / AC791N build).** `tests/run_tests.sh` completo en verde (incluye el test de
+presets de usuario que estaba fallando desde v1.12.4); `regress` 307 renders 0 cambiados; barrido 193 × 22, 0
+lint, 0 desalineaciones; 3 088 frames idénticos; `make_release --check`, `sha256sum -c`, emulador y
+`release_gate_test` verdes.
+
 ## v1.12.12 — Los presets de fábrica se ponen al día
 
 **Tres parámetros nuevos que ningún preset usaba.** TILT (v1.12.4), LFO CURVE (v1.12.5) y ENV ONE (v1.12.6)
