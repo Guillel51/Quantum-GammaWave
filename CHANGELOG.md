@@ -1,3 +1,38 @@
+## v1.12.2 — auditoría de HOME con un instrumento, código muerto y la vía de retorno a stock
+
+**HOME: las cinco pantallas, medidas al recorrerlas (test nuevo `ui_render --home`)**
+
+- El modo recorre HOME con el **toque real** (`go_home()`), y por cada pantalla mide: el cuadro después del cambio
+  contra un repintado completo del mismo estado (**píxel a píxel** en las tres que no animan), la tinta de la
+  cabecera y la de las cuatro tarjetas, y lo que cuesta un cuadro en reposo.
+- Resultado `[HOST]`: OVERVIEW / MIX / PERFORM quedan **exactas** al llegar (0 filas viejas, 0 px en reposo);
+  MAIN y VISUALS son las dos que animan (se identifican como tales y su diferencia es la animación, no un
+  artefacto); las cinco conservan la cabecera (656–2 004 px de tinta) y las tarjetas (3 587–10 150 px).
+- **No se reprodujo** ninguna caja ni indicador que desaparezca al recorrer las páginas: el defecto del reporte no
+  existe en esta build, y ahora hay un test que lo detectaría.
+
+**Memoria y código muerto**
+
+- `batt_icon()` (ui_draw.c) quedó sin llamador cuando la batería pasó a dibujarse en v1.10.0: eliminada. El
+  compilador ya la descartaba, así que la imagen **no cambia** (578 624 B antes y después): es limpieza de fuente,
+  no una ganancia de flash, y así se declara.
+- Nota pendiente, medida y no tocada: los cinco glifos `ICON_X_BAT0..CHG` siguen en la tabla generada de iconos
+  (~160 B de XIP) sin que nadie los dibuje. Quitarlos exige tocar el generador y su enum, y no entra en esta fase.
+
+**Instalación desde stock V16**
+
+- `docs/FM1_V16.md` §7 documenta la vía corta evaluada: backup **selectivo de la ventana `0x4000–0x93000`** (la única
+  que el loader escribe) + archivo oficial V16 con sus hashes fijados, frente al dump completo de 1 MiB.
+- **El gate no se relaja.** Un dump completo sigue siendo la única vía que cubre *todo* el chip con evidencia de esta
+  unidad; `USR`/`BTIF`/NVS no tienen una sola medida en V16 en este árbol, y cambiar el gate sin esa evidencia sería
+  vender como verificado algo que no lo está.
+
+**Barrido y regresiones**
+
+- `--env` 19 medidas 0 px, `--viz` verde, `--bands` verde, `--regions` 0 px fuera de caja, `--idle` 29 952 px y 0
+  cambiados, `--home` verde; 191 pantallas × 22 paletas con 0 lint y 0 desalineaciones; `regress` 307 renders sin
+  cambios.
+
 ## v1.12.1 — los bipolares llegan a 100 %
 
 **Corregido: PITCH, FILTER y SHAPE de LFO DEST se quedaban en 98 %**

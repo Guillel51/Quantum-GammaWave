@@ -40,15 +40,9 @@ static void draw_rec_mark(int32_t x, uint16_t bg)
         cv_icon_mid(x, H_HEAD / 2, 16, (song.rec >> song.sel) & 1u ? ICON_X_REC : ICON_X_REC_O, T_REC, bg);
 }
 
-/* the battery: a 16 px Fukiai icon. The stock thresholds give 0..3 bars of 3; the font has 0..4 bars of 4:
- * each level takes the nearest share, 0 -> battery_0 (empty), 1 (1/3) -> battery_1 (1/4), 2 (2/3) ->
- * battery_3 (3/4), 3 (full) -> battery_4 (battery_2 is not used); USB power: battery_charging.
- * Colours as the drawn battery had them: one bar left the accent, empty MID (its outline), else THEME */
-static uint32_t batt_icon(int32_t lvl)
-{
-    static const uint8_t I[5] = {ICON_X_BAT0, ICON_X_BAT1, ICON_X_BAT3, ICON_X_BAT4, ICON_X_BAT_CHG};
-    return I[clamp(lvl, 0, 4)];
-}
+/* (v1.12.2) batt_icon() LIVES HERE NO MORE. It mapped the level to the Fukiai battery glyph; the drawn battery
+ * (draw_battery) replaced it in v1.10.0 and the mapper stayed behind with no caller: dead code, and the only place
+ * left that still named the glyphs the header no longer draws. */
 /* (JIANT 0.5) the load: how much of the audio's time the sound takes now (audio.c song.cpu_q8, averaged), as five
  * segments stacked left of the battery, lit from the bottom, cold to hot (JIANT; other palettes MID); 0..5 */
 static uint32_t head_load(void)

@@ -3378,3 +3378,19 @@ afectadas y la cadena de versión. Clase: host x86 (render), no es una medida de
 
 **Limitaciones:** sin unidad física en este entorno; tag `v1.12.1` y GitHub Release bloqueados (sin credencial `gh`),
 el paquete sellado queda en `release/` y `site/`.
+
+## 47. v1.12.2: HOME recorrida con un instrumento, código muerto, retorno a stock
+
+**HOME (`ui_render --home`, `[HOST]`).** Las cinco pantallas se recorren con el toque real (`go_home()`). En las
+tres que no animan (OVERVIEW, MIX, PERFORM) el cuadro siguiente al cambio es **píxel a píxel** el de un repintado
+completo (0 filas viejas, 0 px en reposo); MAIN y VISUALS animan por diseño y se declaran como tales; las cinco
+conservan la cabecera (656–2 004 px de tinta) y las cuatro tarjetas (3 587–10 150 px). **No se reprodujo** ninguna
+caja ni indicador que desaparezca al recorrer las páginas.
+
+**Memoria.** `batt_icon()` eliminada (sin llamador desde v1.10.0). La imagen no cambia (578 624 B antes y después):
+el compilador ya la descartaba. Pendiente medido y no tocado: los glifos `ICON_X_BAT0..CHG` siguen en la tabla
+generada (~160 B de XIP) sin uso.
+
+**Instalación desde stock V16.** `docs/FM1_V16.md` §7. El gate **no** se relaja: la vía corta (backup de la ventana
+`0x4000–0x93000` + archivo oficial V16 con hashes fijados) reconstruye lo que el instalador toca, pero no `USR`/
+`BTIF`/NVS, regiones sin una sola medida en V16 en este árbol. Estado de instalación: **GO CONDITIONAL**, sin cambio.

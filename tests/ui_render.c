@@ -2555,6 +2555,76 @@ static int env_main(void)
     return bad ? 1 : 0;
 }
 
+/* (v1.12.2) HOME'S FIVE SCREENS, WALKED WITH THE TAP THE FIRMWARE USES. go_home() on HOME advances the view; a
+ * real tap is the only thing this mode does between frames, so what it measures is what a finger sees: the frame
+ * after the switch must be exactly the frame a full redraw of that same state leaves (no row of the screen the
+ * previous view drew still on the glass -- the report's "boxes and indicators that disappear"), the header and the
+ * four cards must still carry ink, and a screen that is not animating must cost nothing once it has settled. */
+static int home_main(void)
+{
+    static const char *const NM[HV_COUNT] = {"MAIN", "VISUALS", "OVERVIEW", "MIX", "PERFORM"};
+    static uint16_t got[240 * 240];
+    static uint16_t hist[4096];
+    uint32_t k, bad = 0;
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    printf("home: un toque recorre las cinco pantallas; filas viejas, tinta de cabecera y tarjetas, y lo que cuesta\n");
+    for (k = 0; k < (uint32_t)HV_COUNT; k++) {
+        uint32_t x, y, stale = 0, inkh = 0, inkc = 0, step, still, i, mx, mode_h = 0, mode_c = 0;
+        state();
+        ui.home = 1;                                /* already on HOME: the tap changes the screen */
+        ui.home_view = (uint8_t)k;
+        ui.home_viz = k == HV_VIZ;
+        go_home();                                  /* the real tap: the next screen */
+        rframe();                                   /* the body, once */
+        (void)rnext();
+        {   /* the counters ui_draw itself moves, kept so the reference pass starts from the same state */
+            uint32_t fr0 = ui.frame, ht0 = ui.hot_t, bt0 = ui.bpm_t, mt0 = ui.msg_t;
+            step = rnext();                         /* the frame after the switch, incremental */
+            memcpy(got, host_screen, sizeof got);
+            ui.force = 1, gfx_forget();              /* .. and what a whole redraw of that same state leaves */
+            ui.frame = fr0 - 1u; ui.hot_t = ht0; ui.bpm_t = bt0; ui.msg_t = mt0;
+            ui_draw();
+        }
+        for (y = 0; y < 240u; y++)
+            for (x = 0; x < 240u; x++)
+                stale += got[y * 240u + x] != host_screen[y * 240u + x];
+        memset(hist, 0, sizeof hist);
+        for (y = 0; y < 26u; y++)
+            for (x = 0; x < 240u; x++)
+                hist[(host_screen[y * 240u + x] >> 4) & 0xFFFu]++;
+        for (i = 0; i < 4096u; i++)
+            if (hist[i] > hist[mode_h])
+                mode_h = i;
+        mx = hist[mode_h];
+        inkh = 240u * 26u - mx;                     /* everything in the bar that is not its ground */
+        memset(hist, 0, sizeof hist);
+        for (y = 26u; y < 84u; y++)
+            for (x = 0; x < 240u; x++)
+                hist[(host_screen[y * 240u + x] >> 4) & 0xFFFu]++;
+        for (i = 0; i < 4096u; i++)
+            if (hist[i] > hist[mode_c])
+                mode_c = i;
+        inkc = 240u * 58u - hist[mode_c];
+        still = rnext();                            /* a frame with nothing new to say */
+        /* (v1.12.2) THE EXACT CHECK IS FOR THE SCREENS THAT SETTLE. MAIN and VISUALS animate -- the field's embers,
+         * the bay, the meters that fall ~2 dB on every draw -- so a second pass of the same state is a different
+         * frame by design and its difference is not a defect. On the three that do not move (OVERVIEW, MIX, PERFORM)
+         * the frame after the tap must be pixel for pixel the one a full redraw leaves, and on all five the header
+         * and the four cards must still carry their ink: that is what "the boxes and indicators vanish when walking
+         * the pages" would look like from here. */
+        {
+            int anim = still > 0u, fail = inkh < 400u || inkc < 2000u || (!anim && stale);
+            printf("  %-8s paso %5u px, filas viejas %3u%s, cabecera %4u px de tinta, tarjetas %5u px, en reposo %5u px %s\n",
+                   NM[(k + 1u) % HV_COUNT], step, stale, anim ? " (animada)" : " (quieta)", inkh, inkc, still,
+                   fail ? "<-- FALLA" : "");
+            if (fail)
+                bad++;
+        }
+    }
+    printf("home: %s\n", bad ? "FAILED" : "cada pantalla queda exacta al llegar, con su cabecera y sus cuatro tarjetas");
+    return bad ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *out = argc > 1 ? argv[1] : "build/ui_new";
@@ -2566,6 +2636,8 @@ int main(int argc, char **argv)
         return idle_main();
     if (argc > 1 && !strcmp(argv[1], "--bands"))
         return bands_main();
+    if (argc > 1 && !strcmp(argv[1], "--home"))
+        return home_main();
     if (argc > 1 && !strcmp(argv[1], "--env"))
         return env_main();
     if (argc > 1 && !strcmp(argv[1], "--viz"))
