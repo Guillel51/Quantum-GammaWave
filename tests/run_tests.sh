@@ -258,7 +258,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "FASE 5: BAR is the bar's phase as a matrix source (silent when stopped, an arc inside the bar) and ATK DEC REL are the envelope's times as destinations (VEL -> ATK lengthens the loud note, nothing leaks)" "$OUT/phase5_test"
 
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/morph_test" tests/morph_test.c -lm
-    run "FASE 6: MORPH SCENES: four captured states of one sound, the position between a pair interpolates (0 is A, 127 is B), a jump walks 3 a frame, and a preset load leaves the scenes alone" "$OUT/morph_test"    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
+    run "FASE 6: MORPH SCENES: four captured states of one sound, the position between a pair interpolates (0 is A, 127 is B), a jump walks 3 a frame, and a preset load leaves the scenes alone" "$OUT/morph_test"
+
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
     run "MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn" "$OUT/morph_six_test"
     run "the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation" python3 tests/particle_bounds_test.py
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/ratchet_test" tests/ratchet_test.c -lm

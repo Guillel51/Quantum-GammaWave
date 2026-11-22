@@ -328,7 +328,9 @@ static int cc_map_test(void)
     memcpy(before, trk[0].p, sizeof before);
     queued(0xB0, 121, 0, 1);
     bad += check("CC121 resets no mapped parameter (RP-015)", !memcmp(before, trk[0].p, sizeof before));
-    queued(0xB0, 20, 99, 1); queued(0xB0, 76, 99, 1); queued(0xB0, 95, 99, 1);
+    /* (v1.12.13) 76 and 77 are IN the map now -- TILT and LFO CURVE (v1.12.4/5) -- so the list is CCs that are
+     * not: 20, 95, 102 (118/119 are MIDI Learn's, 120..127 the channel mode's). */
+    queued(0xB0, 20, 99, 1); queued(0xB0, 95, 99, 1); queued(0xB0, 102, 99, 1);
     bad += check("CCs outside the map change nothing", !memcmp(before, trk[0].p, sizeof before));
     memcpy(before, trk[2].p, sizeof before);
     queued(0xB6, 7, 5, 1); queued(0xB9, 74, 5, 2); queued(0xBF, 91, 5, 1);
