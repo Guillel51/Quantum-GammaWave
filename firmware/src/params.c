@@ -75,7 +75,7 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
                                      "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES",
-                                     "ATK", "DEC", "REL"};   /* (FASE 5) the envelope's three times: a source can
+                                     "ATK", "DEC", "REL", "HARM"};   /* (FASE 5) the envelope's three times: a source can
                                      * stretch or shorten them per block (mod.c); appended after RES, so every
                                      * stored destination number keeps its meaning */   /* (JIANT: the master, FX > MASTER);
                                      * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored
@@ -171,6 +171,7 @@ static const param_desc_t TP[P_COUNT] = {
     MSTEP(8), MSTEP(9), MSTEP(10), MSTEP(11), MSTEP(12), MSTEP(13), MSTEP(14), MSTEP(15),
 #undef MSTEP
     [P_FTYPE] = PE("TYPE", N_FTYPE, 0),         /* (JIANT 0.5) the filter: LP (as before) HP BP COMB */
+    [P_HARM] = PD("TILT", F_BIPCT, -64, 63, 0),   /* (v1.12.4) the per-voice spectral tilt: dark .. bright, 0 OFF */
     [P_FCUT] = PD("CUT", F_CUTOFF, 0, 127, 127),  /* .. the other engines' (on the part): open, */
     [P_FRES] = PD("RES", F_PCT, 0, 127, 0),       /* no resonance: out of the chain (its drive: DIST, the part's) */
 };
@@ -694,6 +695,11 @@ static const page_t PAGES[] = {
     {"OP ENV", FAM_EDIT, SC_TRACK, GR_FMENV, {0xFF, 0xFF, 0xFF, 0xFF}},     /* bytes of the track's patch (ui_fm6op.c): */
     {"OPERATOR 2", FAM_EDIT, SC_TRACK, GR_FMOP2, {0xFF, 0xFF, 0xFF, 0xFF}}, /* CRS FINE LEVEL / STG RATE LEVEL / MODE DTUN VEL */
     {"FILTER", FAM_EDIT, SC_TRACK, GR_NONE, {P_FTYPE, P_E4, P_E5, P_E6}},   /* (JIANT 0.5) ANALOG: TYPE CUT RES DRV */
+    {"TILT", FAM_EDIT, SC_TRACK, GR_NONE, {P_HARM, 0xFF, 0xFF, 0xFF}},   /* (v1.12.4) the voice's own spectral tilt:
+                                     * below 0 leans the voice dark (the top goes away), above 0 bright (the top comes
+                                     * forward): every engine, including the drums and FM6, whose parts do not own the
+                                     * filter above. It is not the FILTER: the pole is fixed, DC stays at unity and
+                                     * nothing resonates -- it rides on the note, so a chord tilts as twelve voices */
     {"FILTER", FAM_EDIT, SC_TRACK, GR_NONE, {P_FTYPE, P_FCUT, P_FRES, P_DIST}},   /* .. every other engine's (on the part;
                                                          * DRV: the part's DIST, after it) */
     {"SOUND", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},   /* DRUM: a sound of the kit (ui_dx.c) */

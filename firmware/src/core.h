@@ -209,6 +209,11 @@ enum {                          /* per-track parameters */
     P_MS0, P_MS15 = P_MS0 + 15,                /* rate and slew, its 16 levels */
     P_FTYPE,                                   /* (JIANT 0.5) the filter's type: LP HP BP COMB (eng_analog.c, voice.c) */
     P_FCUT, P_FRES,                            /* .. every other engine's: a filter on the part's sum (voice.c track_filter) */
+    P_HARM,                                    /* (v1.12.4) TILT: the per-voice spectral tilt (voice.c tilt_voice). It takes
+                                                * the last free id before P_E0, which is where the count map wants a new
+                                                * common one: P_COUNT goes 125 -> 126 of the 127 the 7-bit motion
+                                                * records name, and a store written before it reads 0 (OFF, its default),
+                                                * so every project, preset and unit sounds exactly as it did */
     P_MSTART, P_NRATE,                         /* (3.5) last of the common ones, as the count map wants them: M.STRT, a
                                                * note starts a little late, at random (voice.c); N.RATE, how long the
                                                * random wander (mod.c MS_NOISE) holds a point */
@@ -437,6 +442,7 @@ typedef struct {
     int32_t fine;                /* unison detune: phase increment * (1 + fine / 4096) */
     uint32_t ph[3];
     int32_t s[8];                /* engine state (filters, envs) */
+    int32_t tilt_lp;             /* (v1.12.4) TILT's one pole: the low band every voice leans against (voice.c) */
     uint32_t age;
     uint8_t mstart;              /* (3.5) M.STRT: blocks of silence before this note's first sample (0: none) */
     uint8_t mvel;                /* mod.c: the note-on velocity (before UNISON scaling) and RAND of the note */
@@ -451,6 +457,7 @@ typedef struct {                 /* per-voice control-rate modulation, computed 
     int32_t amp0, amp1;          /* Q15 ramp over the block */
     int32_t cutoff;              /* 0..127 << 8 */
     int32_t shape;               /* 0..127 << 8 */
+    int32_t tilt;                /* (v1.12.4) TILT's amount, -64..63: the knob plus MD_HARM's own */
     int32_t envq15;              /* env value (for engines that use it as a mod source) */
     int32_t fine;                /* the residual below 1/16 semitone in inc: unison detune, TUNE, bend (1/4096) */
 } vmod_t;
@@ -486,7 +493,8 @@ typedef struct {
 #define QG_DST_VIB 11            /* MD_VIB */
 #define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
 #define QG_SRC_N 17              /* MS_N: the matrix's sources (mod.c checks the count); (FASE 5) +1: BAR */
-#define QG_DST_N 30              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL) */
+#define QG_DST_N 31              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL;
+                                  * v1.12.4 +1: HARM, TILT) */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */

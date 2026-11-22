@@ -49,7 +49,7 @@ static uint32_t clk_n;                          /* (JIANT) .. the 1/16 steps sin
 static uint32_t ms_clock;        /* (JIANT) samples since PLAY on the transport's grid (fx.c mix_block; seq.c seq_start:
                                   * 0): MS_STEP's place */
 enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY, MD_REV, MD_RATE, MD_VIB, MD_E1,
-       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_ATK, MD_DEC, MD_REL, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
+       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_ATK, MD_DEC, MD_REL, MD_HARM, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
                                                           * bank, appended after the master so every stored
                                                           * destination number keeps its meaning */
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
@@ -84,6 +84,10 @@ static uint32_t mod_param(uint32_t d)
         return P_XID[d - MD_X1];                    /* (FASE 2) CHARACTER 1..4 */
     if (d == MD_RES)                                /* (FASE 3) the part filter's resonance */
         return P_FRES;
+    if (d == MD_HARM)                               /* (v1.12.4) TILT: a block's offset moves the tilt, as ATK/DEC/REL
+                                                     * move the envelope's times: voice.c reads p[P_HARM] and hands it
+                                                     * to the voice, and mod_end puts the stored value back */
+        return P_HARM;
     if (d >= MD_ATK)                                /* (FASE 5) the envelope's three times: the shaper reads p[] every
                                                      * tick, so a block's offset moves ATK, DEC and REL like any other
                                                      * parameter, and mod_end puts the stored values back */

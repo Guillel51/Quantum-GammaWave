@@ -1,3 +1,28 @@
+## v1.12.4 — TILT: la inclinación espectral de cada voz
+
+**Qué es.** Un estante agudo de primer orden **por voz**, con el polo fijo (~880 Hz) y DC exactamente en 1: mueve
+el borde de *esa* nota y deja el cuerpo donde está. Es el hueco que no cubrían el FILTER de la parte (SVF sobre la
+suma), las TONE de DIST y el EQ de MASTER (después de la mezcla) ni las E de cada motor (dentro de su matemática):
+doce voces inclinan doce veces, el acorde conserva su balance, y los tambores y FM6 —que no pasan por el filtro de
+parte— tienen el mismo mando que un saw.
+
+**Dónde.** `P_HARM` (id 125, el último libre: `P_COUNT` 125 → 126 de 127); DSP en `voice.c` `tilt_voice()` tras
+`e->render()`; estado `voice_t.tilt_lp` (+72 B de `.bss`, 4 B por slot); página **EDIT > TILT** (−64..+63, ±%);
+destino de matriz **HARM** (número 30, añadido al final); **CC 76** por parte.
+
+**Rangos.** −64..+63 → ganancia del borde 0,25× .. 1,75× (−12 dB .. +4,9 dB). En 0 no se llama a la función: `k = 64`
+y `lp + hp` es `x` bit a bit.
+
+**Medido (`tests/tilt_test.c`, host x86-64).** +45 sube el borde **×1,62** en una nota con contenido sobre el
+pivote; −64 lo deja en **×0,66**; el pico a +45 queda en **×1,30**, bajo el techo de su ganancia; un slot prestado a
+otra nota **no hereda el polo**; el coste de una voz es indistinguible del ruido del host (cuatro instrucciones por
+muestra). `regress`: **307 renders, 0 cambiados** — el parámetro en 0 no toca una sola muestra.
+
+**Ejemplos.** TILT +40 en un pad, −25 en un bajo, +55 en un lead, +30 en la batería, y `LFO → HARM, AMT 30` en la
+matriz. Están escritos en `docs/FASE3_TILT_v1.12.4.md`, `x[]`-listos. Los presets de fábrica **no** se retocaron:
+su tabla de niveles y los renders dorados son medidas generadas y moverlas en el mismo commit habría invalidado las
+dos; queda como siguiente paso.
+
 ## v1.12.3 — polifonía y CPU medidos otra vez; dos optimizaciones descartadas con números
 
 **Polifonía: 12 voces, comprobada; 16 medidas y no**

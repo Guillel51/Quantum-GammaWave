@@ -3409,3 +3409,19 @@ el código original. Documentado en `docs/VOICE_POOL.md` §1.12.3.
 **Estabilidad.** `poly_stress_test`: acordes densos, note-on/off rápido, sustain, releases largos y robo de voces,
 12/12, pico dentro del presupuesto. `regress` 307 renders 0 cambiados, `target_budget` BLOCK_PATH 45 704 en tope.
 Sin unidad física: nada de esto es una medida del AC791N.
+
+## 49. v1.12.4: TILT, la inclinación espectral por voz
+
+**Feature (`[HOST]`, `tests/tilt_test.c`).** +45 sube la energía del borde **×1,62** en una nota con contenido por
+encima del pivote; −64 la deja en **×0,66**; el pico a +45 es **×1,30**, por debajo del techo de su ganancia
+(1,75×); un slot del pool prestado a otra nota arranca con `tilt_lp == 0`; el coste medido de una voz a 45 es
+indistinguible del ruido del host (−3,9 ns/muestra de diferencia; el DSP son cuatro instrucciones por muestra).
+
+**No degrada.** `regress` **307 renders, 0 cambiados** con `P_HARM` en su default 0: la llamada no se hace y
+`lp + hp` con `k = 64` es `x` bit a bit.
+
+**Integración.** `P_HARM` id 125 (`P_COUNT` 126 de 127), página EDIT > TILT, destino de matriz `MD_HARM` (30,
+añadido al final), CC 76 por parte. `+72 B` de `.bss` (un polo por slot del pool).
+
+**Pendiente declarado.** Los presets de fábrica no se retocaron (su tabla de niveles y los 307 renders son medidas
+generadas). El cuerpo bajo el limitador de MASTER no se mide aquí. Nada de esto es el AC791N.

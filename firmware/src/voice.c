@@ -832,6 +832,28 @@ static int32_t trk_trans(const track_t *t)
     const engine_t *e = ENGINES[t->engine % NENGINES];
     return e->oneshot || e->keys ? 0 : t->p[P_TRANS];
 }
+/* (v1.12.4) TILT: ONE POLE BETWEEN A VOICE AND THE PART, WHICH IS WHERE NOBODY HAD ONE.
+ * The part's FILTER (track_filter) is a resonant SVF on the part's sum; FX > DIST's TONE and the master EQ sit
+ * after the mix; the engines that have a tone of their own (the E knobs, P_DTONE) can only do it inside their maths.
+ * A voice's tilt is none of those: a first-order high shelf whose DC gain is exactly 1, so the fundamental and the
+ * body stay where they were and only the top of THAT note moves -- twelve voices tilt twelve times, a chord keeps
+ * its balance, and the drums and FM6, which do not run the part filter at all, get the same knob as a saw.
+ * amt 0 is not "almost off": k is then 64, lp + hp is x to the bit, and voice.c skips the call entirely, which is
+ * why every render of this tree before the parameter existed is still identical.
+ * The cost is one pole (4 B a slot) and four instructions a sample, only while a voice has it on. */
+static __attribute__((noinline)) void tilt_voice(voice_t *v, int32_t *out, uint32_t n, int32_t amt)
+{
+    int32_t lp = v->tilt_lp, k = 64 + (clamp(amt, -64, 63) * 3) / 4;   /* 16 .. 111: -12 dB .. +4.9 dB, 1.0 at 0 */
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t x = out[i], hp;
+        lp += (x - lp) >> 3;                            /* the pole: ~880 Hz at 44.1 kHz, the tilt's own pivot */
+        hp = x - lp;
+        out[i] = lp + ((hp * k) >> 6);
+    }
+    v->tilt_lp = lp;
+}
+
 static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int glide)
 {
     const engine_t *e = ENGINES[t->engine];
@@ -854,6 +876,7 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
         for (z = 0; z < 8u; z++)
             v->s[z] = 0;
         v->fine = 0;
+        v->tilt_lp = 0;                             /* (v1.12.4) a lent slot does not inherit the pole either */
     }
 #endif
     int32_t s0 = v->s[0], s1 = v->s[1], s4 = v->s[4], s5 = v->s[5], s6 = v->s[6], s7 = v->s[7];
@@ -1445,9 +1468,12 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         if (v->vel > 110)                               /* accent opens the filter with the env */
             m.cutoff += (m.envq15 * 24) >> 7;
         m.shape = (64 << 8) + ((lfo * p[P_LD_SHP]) >> 7) + ((m.envq15 * p[P_ED_SHP]) >> 7);
+        m.tilt = p[P_HARM];                         /* (v1.12.4) TILT: the knob, before the matrix adds to it */
         if (MOD.on)                                     /* the modulation matrix (mod.c) */
             mod_voice(t, v, &m, v->fine + tune_fine + bend_fine);
         e->render(t, v, out, n, &m);
+        if (m.tilt)                                 /* (v1.12.4) TILT: 0 is not "almost off", it is no call at all */
+            tilt_voice(v, out, n, m.tilt);
         nr++;
     }
     if (nr && e == &ENG_DRUM)                           /* (0.6.16) DRUM-X: DRV and the knee on the kit's sum */
