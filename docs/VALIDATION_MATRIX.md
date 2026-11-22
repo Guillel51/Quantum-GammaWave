@@ -2937,9 +2937,10 @@ commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of
   release-set gate - says **ok**.
 - **Re-sealed twice afterwards**: the fixes to `SHA256SUMS` and the UI audit rebuilt the release from
   `70ea12f` (610 933 B, sha256 `0a021e511c321603`), the master EQ fix (§37) rebuilt it from `f6a7b28`
-  (610 933 B, sha256 `f50865733ce76419`, emulator `f6a7b28`), and the flanger fix (§39) once more from
-  `e137b99` (610 933 B, sha256 `28552f81e96cf8d2`, emulator `e137b99`). The artefact in `release/` today is
-  the third one; `--check` is **ok**, the package and both `SHA256SUMS` pass `sha256sum -c`, and the
+  (610 933 B, sha256 `f50865733ce76419`, emulator `f6a7b28`), the flanger fix (§39) from `e137b99`
+  (610 933 B, sha256 `28552f81e96cf8d2`, emulator `e137b99`), and the UI polish (§40) from `62154fd`
+  (610 933 B, sha256 `757cd3775655febd`, emulator `62154fd`). The artefact in `release/` today is the
+  fourth one; `--check` is **ok**, the package and both `SHA256SUMS` pass `sha256sum -c`, and the
   emulator's own suite is green. The `8abaddbe` above is the first seal of the same size at `84745ad`, kept
   as the record of that run.
 - Pushed to `main` (`454e026e`). **The GitHub Release and the tag are not published**: this sandbox has no
@@ -3153,3 +3154,9 @@ la cabecera y en el overlay, donde los puntos suspensivos son la señal correcta
 y `mock_mixer` en las tres paletas de LARGE (`LARGE_GREY`, `LARGE_MONO`, `LARGE-LINE_GREY`). El resto queda
 byte-idéntico, que es lo que dice que el cambio no tocó ninguna otra pantalla. El barrido completo vuelve a
 pasar con el baseline nuevo: 3 056 frames idénticos.
+
+### 40.5 Build and seal `[AC791N]`
+
+XIP 558 196 B (4 788 libres, +16 B), RAM 93 504/98 304 (sin cambio), imagen 578 336/583 612. Paquete re-sellado
+desde `62154fd`: 610 933 B, sha256 `757cd3775655febd`, emulador `62154fd`; `make_release.py --check` ok,
+`sha256sum -c` en `site/firmware/` ok y `web/emu/emu_test.mjs` verde.
