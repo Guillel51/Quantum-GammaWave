@@ -2935,10 +2935,12 @@ commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of
   manifest, `build-manifest-v1.7.0.json`, the emulator zip, both `SHA256SUMS`, and the site tree
   (`site/firmware/felucca-1.7.0.fwsc`, `versions.json`, installer meta, editor label). `--check` - the suite's
   release-set gate - says **ok**.
-- **Re-sealed afterwards** (FASE 8): the fixes to `SHA256SUMS` and the UI audit rebuilt the release from
-  `70ea12f`, so the artefact in `release/` today is 610 933 B, sha256 `0a021e511c321603`, build `70ea12f`,
-  emulator `70ea12f`; `--check` is still **ok** and the site's `SHA256SUMS` now passes `sha256sum -c`. The
-  `8abaddbe` above is the first seal of the same bytes at `84745ad`, kept as the record of that run.
+- **Re-sealed twice afterwards**: the fixes to `SHA256SUMS` and the UI audit rebuilt the release from
+  `70ea12f` (610 933 B, sha256 `0a021e511c321603`), and the master EQ fix (§37) rebuilt it again from
+  `f6a7b28` (610 933 B, sha256 `f50865733ce76419`, emulator `f6a7b28`). The artefact in `release/` today is
+  the second one; `--check` is **ok**, the package and both `SHA256SUMS` pass `sha256sum -c`, and the
+  emulator's own suite is green. The `8abaddbe` above is the first seal of the same size at `84745ad`, kept
+  as the record of that run.
 - Pushed to `main` (`454e026e`). **The GitHub Release and the tag are not published**: this sandbox has no
   credential for either (`gh auth status`: not logged in to any host; `git push origin v1.7.0` fails on
   "could not read Username"). The annotated tag `v1.7.0` exists locally and the release artefacts are in the repository; `git push origin v1.7.0` is the one step left, and it needs the owner's credential.
@@ -3033,5 +3035,7 @@ EQ es el modo que el usuario eligió y el perfil **añade** su voicing en vez de
   arreglo pasa con `-24.0 / -24.0 dB`. Es la reproducción, no una afirmación.
 - `eq_response_test`, `eq_sweep_test`, `eq_dc_test`, `master_test`, `audio_stress`: verdes.
 - Build AC791N `[AC791N]`: XIP 558 164 B (4 820 libres, +1 220 sobre el sello anterior), RAM 93 504/98 304
-  (+64 B, el struct nuevo), imagen 578 288/583 612. Compila y enlaza; el manifiesto no se selló porque el árbol
-  tenía cambios sin commitear en ese momento.
+  (+64 B, el struct nuevo), imagen 578 288/583 612.
+- Paquete re-sellado desde `f6a7b28`: `release/felucca-v1.7.0.fwsc` 610 933 B, sha256
+  `f50865733ce76419`, emulador `f6a7b28`; `make_release.py --check` **ok**, `sha256sum -c` en la raíz, en
+  `release/` y en `site/firmware/` **ok**, y `web/emu/emu_test.mjs` verde (1 s de canción pesada en 26.5 ms).
