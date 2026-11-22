@@ -498,6 +498,19 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LSHP, 22)}},  /* G: warm pad */
     {"AURORA DRIFT", {7, 38, 64, 6, 58, 20, 8, 12}, {44, 96, 118, 104}, 16, 0, FX(34, 58, 34, 84), PAT(5),
      {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},  /* (v1.5.19) a slow pad whose cut breathes with the wheel */
+    /* (FASE 6) the bank's own demos: each one names the function it was written for, so the sound is a
+     * demonstration and not only a sound. NOTCH PAD is the filter type that played as LP until v1.12.14 put all
+     * eight on the per-voice filter; PUMP PAD is the LFO shape TRAP, which holds at both ends where a triangle
+     * only passes through them; STEP LEAD is STEP, the staircase that repeats every cycle; CRUSH BASS is DIST's
+     * sixth model, the one that takes resolution away instead of adding harmonics. */
+    {"NOTCH PAD", {AW_SAW3, 22, 64, 6, 74, 26, 0, 12}, {80, 90, 112, 95}, 8, 0, FX(0, 62, 30, 78), PAT(5),
+     {XP(P_FTYPE, 6), XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 24), XP(P_LSHP, 22), XP(P_HARM, 10)}},
+    {"PUMP PAD", {0, 18, 64, 4, 58, 14, 0, 0}, {70, 88, 112, 100}, 6, 0, FX(0, 60, 28, 80), PAT(5),
+     {XP(P_LWAVE, 10), XP(P_LRATE, -4), XP(P_LD_AMP, 44), XP(P_LFADE, 60), XP(P_FTYPE, 7), XP(P_LD_FLT, 6)}},
+    {"STAIR LEAD", {0, 16, 70, 0, 70, 40, 20, 0}, {2, 68, 100, 45}, 30, 1, FX(24, 12, 40, 28), PAT(4),
+     {XP(P_LWAVE, 11), XP(P_LRATE, 12), XP(P_LD_FLT, 30), XP(P_LFADE, 40), XP(P_LSHP, 18), XP(P_HARM, 16)}},
+    {"CRUSH BASS", {1, 0, 0, 0, 46, 62, 30, -12}, {0, 62, 45, 30}, 28, 1, FX(64, 0, 0, 6), PAT(2),
+     {XP(P_DTYPE, 5), XP(P_DTONE, 18), XP(P_LRATE, 28), XP(P_LWAVE, 4), XP(P_LD_FLT, 18), XP(P_HARM, 8)}},
 };
 
 static const param_desc_t ANALOG_CH[2] = {

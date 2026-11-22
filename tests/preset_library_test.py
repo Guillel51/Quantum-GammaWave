@@ -14,7 +14,7 @@ import sys
 
 ROOT = "firmware/src/"
 ENGINES = [
-    ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 69),
+    ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 73),
     ("PHASE", "eng_phase.c", "PHASE_PRESETS", 34),
     ("LOFI", "eng_lofi.c", "LOFI_PRESETS", 29),
     ("FORMANT", "eng_formant.c", "FORMANT_PRESETS", 25),
@@ -32,7 +32,7 @@ ENGINES = [
     # (ETAPA 4) PHASE SYNC CATHEDRAL joined: 287 browsable + 2 legacy kits = 289.
     ("ADDTV", "eng_additive.c", "AD_PRESETS", 10),
 ]
-TOTAL = 287
+TOTAL = 291
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
              "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]

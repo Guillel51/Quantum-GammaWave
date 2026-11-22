@@ -3681,3 +3681,21 @@ delay, que hace el low cut en DLY's TONE (comentario en params.c:682).
 **Sigue abierto.** Un modelo de reverb nuevo (GATE, un *freeze* con control propio) o un destino de LFO nuevo
 exigen un id de parámetro y `P_COUNT` = 127 = techo de 7 bits de los motion records: o formato de store nuevo
 con migración probada, o un valor más de un enum existente (lo que hizo esta versión con `P_DTYPE`).
+
+## 63. v1.12.17: banco de presets medido y cuatro demos
+
+**Añadido.** Cuatro presets al final de `ANALOG_PRESETS` (NOTCH PAD, PUMP PAD, STAIR LEAD, CRUSH BASS), que
+demuestran NOTCH/SHELF (v1.12.14), TRAP/STEP (v1.12.15) y CRUSH (v1.12.16). Append: ningún índice existente se
+movió, y `regress` lo confirma — **311 renders, 0 cambiados** (307 previos + 4 nuevos), idéntico en dos pasadas.
+Artefactos regenerados en el mismo commit: `build/gen/preset_cats.h`, `web/preset_categories.json`,
+`docs/PRESET_CATEGORIES.md`, `firmware/src/preset_level.c` (293 entradas).
+
+**Medido (host x86-64, `tests/preset_levels`).** 293 sonidos, mediana −18.60 dBFS, sd 1.61 dB, pico máximo
+−1.7 dBFS (0 recortes), 20 fuera de ±3 dB. Los cuatro nuevos: −18.1 / −17.8 / −17.9 / −18.0 dBFS. Tests:
+`preset_library_test` 291 navegables (280 nombres únicos), `preset_categories_test` 291/291, `preset_slots_test`
+290 en sus 6 slots, `preset_audit_test` passed, `upreset_test` passed, `preset_change_order_test` ok.
+
+**Pendiente con evidencia.** `AURORA FM` (rms −29.0, pico −18.9), `STATIC HAZE`, `HOLLOW WOOD`, `GLASS BELL`,
+`CRYSTAL PLUCK` siguen por debajo de ±3 dB con el fader a 127; `gen_preset_levels` los imprime como *out of
+reach*. En AURORA FM se probó SUS 60→110 + DIST 12: **+0.2 dB** medidos, revertido. Su nivel lo fija el patch de
+la ROM (SLOT 4), no el preset: el arreglo es en `fm6_vbank`, un cambio de otra clase que este pase no tocó.

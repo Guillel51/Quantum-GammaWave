@@ -1,3 +1,32 @@
+## v1.12.17 — Cuatro sonidos que demuestran lo construido, y el banco medido
+
+**Cuatro presets nuevos en ANALOG** (append al final de la tabla: ningún sonido existente cambia de índice),
+cada uno escrito para la función que nombra:
+
+| preset | categoría | qué demuestra | medido |
+|---|---|---|---|
+| **NOTCH PAD** | PADS | el tipo de filtro **NOTCH** en el filtro por voz, que sonaba como LP hasta v1.12.14 | rms −18.1, pico −6.2 dBFS |
+| **PUMP PAD** | PADS | la forma de LFO **TRAP** (se sostiene en los dos extremos) sobre AMP, con SHELF en el filtro | rms −17.8, pico −6.0 dBFS |
+| **STAIR LEAD** | LEADS | la forma **STEP**: ocho escalones ordenados que se repiten cada ciclo | rms −17.9, pico −9.5 dBFS |
+| **CRUSH BASS** | BASS | **CRUSH**, el sexto modelo de DIST, el que quita resolución | rms −18.0, pico −9.1 dBFS |
+
+Los cuatro caen en la banda del banco sin corrección de nivel (la mediana es −18.6 dBFS), así que no hay que
+retocar nada a mano: el pase de niveles (`tools/gen_preset_levels.py`, ahora con 293 entradas) los deja donde
+tienen que estar. Categorías asignadas por la regla documentada (`PADS`, `PADS`, `LEADS`, `BASS`) y
+`docs/PRESET_CATEGORIES.md` regenerado: **291 sonidos navegables + 2 kits legacy**.
+
+**El banco, medido antes de tocar nada** (`tests/preset_levels`, host x86-64): 293 sonidos, mediana
+**−18.60 dBFS**, desviación **1.61 dB**, **pico máximo −1.7 dBFS** (ninguno recorta), sin nombres duplicados y
+todos dentro de sus 6 slots de `x[]`. **Ningún preset existente cambió**: `regress` **311 renders, 0 cambiados**
+(307 + los 4 nuevos), estable en una segunda pasada.
+
+**Lo que no se pudo arreglar, con la medición que lo dice.** Cinco sonidos siguen por debajo de ±3 dB de la
+mediana y el fader ya está a 127: `AURORA FM` (rms −29.0, pico −18.9), `STATIC HAZE`, `HOLLOW WOOD`,
+`GLASS BELL`, `CRYSTAL PLUCK`. Probé en AURORA FM subir SUS 60→110 y meterle DIST 12: **+0.2 dB**, y lo
+revertí. Su volumen lo fija el patch de la ROM (slot 4), fuera del alcance por preset; el resto son texturas
+dispersas o de ataque lento cuyo RMS bajo es del diseño, no un defecto. Queda anotado en la matriz §63 con el
+paso siguiente (nivel por patch de ROM, no por preset).
+
 ## v1.12.16 — CRUSH: el insert de DIST aprende a quitar resolución
 
 **CRUSH**, sexto modelo de DIST (append en `P_DTYPE`: cada valor guardado conserva el suyo). Los cinco que
