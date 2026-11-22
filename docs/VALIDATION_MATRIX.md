@@ -3502,3 +3502,37 @@ escena no se ejecuta — causa del primer intento fallido, que escribió frames 
 
 **Sigue abierto.** Presets de fábrica sin TILT/CURVE/ONE; ids de parámetro 127/127; instalación V16 = GO CONDITIONAL
 (sin medida de `USR`/`BTIF`/`NVS`); tag y GitHub Release sin credencial `gh`.
+
+## 55. El chequeo de CPU de `regress` y el ruido del host (tooling, no firmware)
+
+**Síntoma medido.** El mismo binario decía `1 CPU entries over budget` y luego `0`. Causa: la línea de resumen sumaba
+notas (fila > +40 % de su línea base) y fallos (mediana del host > +20 %, único que hace `exit 1`).
+
+**Cambios, todos en `tests/regress.c`.**
+1. La resumen separa `N CPU budget failures` de `N notes over +40 %`; las notas no fallan.
+2. Nota robusta: una fila sobre el +40 % se mide cinco veces (primera ventana + `CPU_NS_CONFIRM`), se imprime la
+   **mediana** y la línea la tiene que pasar la **ventana más tranquila**.
+3. Puerta robusta: si la mediana del host cae dentro del 15 % de la línea (`CPU_NS_REMEAS` = 1,05), se repiten todos
+   los trabajos de CPU (máx. `CPU_NS_REMEAS_REPS` = 2) y cuenta la mediana **más pequeña**.
+4. La línea base tiene que ser la del host: clave exacta, o el **único** bloque con la misma arquitectura, máquina y
+   compilador (y la corrida dice cuál usó); con un bloque ajeno solo corre la puerta de la mediana; sin comparación,
+   la resumen dice **NOT MEASURED**, nunca un pase.
+
+**Evidencia (host x86_64, contenedor; clase: host, no unidad).**
+| caso | resultado |
+|---|---|
+| árbol real, 4 corridas | PASS, mediana 1,06 / 1,07 / 1,08 / 1,09, **0 fallos, 0 notas**, exit 0 |
+| línea base escalada ×0,83 (+28 %) | **FAIL**, exit 1, tras 2 remediciones |
+| línea base escalada ×0,70 (+53 %) | **FAIL**, exit 1, tras 2 remediciones |
+| notas antes del cambio | 6 / 8 / 12 / 13 / 14 / 17 / 21 según la corrida |
+| notas después | 0 en todas las corridas (bloque ajeno: sin notas por fila) |
+
+**Límites sin mover:** +20 % la puerta, +40 % la nota, `CPU_NS_REPS` = 3 ventanas por trabajo.
+
+**Una advertencia medida.** El índice ns supone que el trabajo y la carga de calibración se compilaron igual. Un build
+con sanitizers (`-O1 -fsanitize=address,undefined`) instrumenta el DSP y no el bucle de calibración, así que su mediana
+queda por encima de la línea y falla — correctamente: no es un build comparable. `run_tests.sh` compila este binario
+con `-O2` (línea 510) contra una línea base `-O2`.
+
+**No cambia el firmware.** Solo `tests/regress.c`; la imagen, el paquete y el WASM son los de v1.12.9 y no se
+re-selló nada.

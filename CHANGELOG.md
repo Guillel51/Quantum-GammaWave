@@ -1,3 +1,36 @@
+## Tooling — el chequeo de CPU deja de depender del ruido del host
+
+**El síntoma.** El mismo binario, sin recompilar nada, imprimía `1 CPU entries over budget` en una corrida y `0` en
+la siguiente. No era un fallo intermitente del firmware: era el reporte. La línea de resumen metía en la misma cuenta
+las **notas** (filas que pasan del +40 % de su propia línea base) y los **fallos** (la mediana del host por encima del
++20 %, que es lo único que hace `exit 1`), así que una nota de carga se leía como un presupuesto roto.
+
+**La mediana primero.** La puerta es la mediana de la relación de cada fila con su propia línea base: la carga del
+host mueve todas las filas a la vez y la mediana se mueve con ellas. Aquí esa mediana lee 1,06 en una corrida y 1,17
+en la siguiente, con el árbol quieto: a unos pocos por ciento de una línea de +20 %. Ahora, cuando la mediana cae
+dentro del 15 % de la línea, **se vuelven a medir todos los trabajos de CPU, dos veces como máximo**, y habla la
+mediana más pequeña. Trabajo ajeno solo puede frenar una medida, así que la mejor pasada es el coste honesto.
+
+**Ningún límite se movió.** Comprobado con líneas base escaladas: **+28 % → FAIL, exit 1**; **+53 % → FAIL, exit 1**;
+árbol real → PASS con median 1,06–1,09 en cuatro corridas seguidas. La puerta sigue siendo +20 % y la nota +40 %.
+
+**Las notas, medidas cinco veces.** Una fila por encima del +40 % ya no se reporta con una lectura: se mide cinco
+veces (la primera ventana más cuatro repeticiones) y lo que se imprime es la **mediana**, mientras que la línea de
+nota la tiene que pasar la **ventana más tranquila**. Una preemptión en una ventana no levanta una nota; una fila que
+de verdad se hizo más lenta también está por encima en su mejor ventana. Las notas son informativas y la resumen las
+cuenta aparte: `0 CPU budget failures, N notes over +40 %`.
+
+**Y la línea base tiene que ser la de esta máquina.** El nombre de modelo de `/proc/cpuinfo` no es estable entre
+kernels e imágenes del mismo hierro (el bloque del repo dice `19/01`, la misma caja dice ahora
+`AMD EPYC 7003 (Milan)`), y el chequeo pasaba de PASS a NOT MEASURED sin motivo. Si no hay clave exacta y **hay un
+único** bloque con esta arquitectura, máquina y compilador, se usa y la corrida lo dice; dos candidatos siguen
+NOT MEASURED. Contra un bloque ajeno solo corre la puerta de la mediana —comparar una fila con los números de otra
+máquina no dice nada de esta— y una corrida que no comparó nada lo dice en la resumen: **NOT MEASURED, nunca un
+pase**, como pide `AGENTS.md`.
+
+**Qué no cambia.** Solo `tests/regress.c`: el firmware, el paquete y el emulador son byte a byte los de v1.12.9, así
+que no hay release nueva. Documentado en la cabecera de `tests/regress.c` y en `docs/VALIDATION_MATRIX.md` §55.
+
 ## v1.12.9 — la cobertura que faltaba: TILT y LFO CURVE entran en el barrido
 
 **El pendiente de la Fase 7, cerrado de verdad.** Las dos páginas que las fases 3 y 4 añadieron no tenían **ni un

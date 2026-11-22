@@ -11,9 +11,9 @@ cannot stay invisible: the file is regenerated in the same push.
 
 | | |
 |---|---:|
-| rows in the matrix | 805 |
-| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 355 |
-| rows still asking for evidence | 31 |
+| rows in the matrix | 811 |
+| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 358 |
+| rows still asking for evidence | 33 |
 
 Classes of evidence named across the matrix (a row can name more than one):
 
@@ -63,6 +63,8 @@ Classes of evidence named across the matrix (a row can name more than one):
 | [2299](VALIDATION_MATRIX.md#L2299) | `eq_response_test` | **passed, 0 failed** (17 checks, incl. half gain at 20 kHz and the boot check) |  |
 | [2300](VALIDATION_MATRIX.md#L2300) | `eq_sweep_test`, `eq_state_test`, `eq_dc_test` | **passed, 0 failed** |  |
 | [2824](VALIDATION_MATRIX.md#L2824) | CPU aggregate of the host simulation | **red, environment**: this VM runs ~24 % slower than the baseline it was recorded on; the binaries of the previous commit fail it by the same margin, and the 307 golden renders are 0 changed. Not rebaselined (§31.4). |  |
+| [3525](VALIDATION_MATRIX.md#L3525) | línea base escalada ×0,83 (+28 %) | **FAIL**, exit 1, tras 2 remediciones |  |
+| [3526](VALIDATION_MATRIX.md#L3526) | línea base escalada ×0,70 (+53 %) | **FAIL**, exit 1, tras 2 remediciones |  |
 
 ## What this page cannot say
 
