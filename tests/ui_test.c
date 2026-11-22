@@ -491,7 +491,11 @@ static int test_sound_loads(void)
                  preset_pat_hint() == 12 && ui.ppick == 12 && str_eq(PATTERNS[12].name, "ARP"));
     t->p[P_AMODE] = 2;
     before = *t;
-    for (i = 0; i < 64u && t->eng_req == before.eng_req; i++)   /* several loads, into the next engine */
+    /* (v1.12.18) the budget is the engine's own count, not 64: the loop only stops when the browse wraps into the
+     * next engine, and a bank that grows past 64 sounds past the start would never get there (FASE 6 added four to
+     * ANALOG and this stopped failing loudly -- the previous 64 happened to be enough at 69 presets) */
+    for (i = 0; i < (uint32_t)ENGINES[before.eng_req]->npresets + 8u && t->eng_req == before.eng_req; i++)
+        /* several loads, into the next engine */
         turn(EN_PRESET, 1);
     bad += check("browsing on, into another engine: the steps still untouched", t->eng_req != before.eng_req &&
                  !memcmp(t->step, before.step, sizeof t->step) && t->p[P_AMODE] == 2);
