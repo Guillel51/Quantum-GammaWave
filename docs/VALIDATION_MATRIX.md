@@ -3256,3 +3256,11 @@ evidencia, y decidir editorialmente sobre esos 52 renders.
 voice/routing, 0 entradas de CPU sobre presupuesto. `tests/resources_test.py` **13/13** (XIP 5 312 B libres,
 RAM 4 800 B, POOL 9 248 B). `target_budget.py` verde en todas sus líneas, `BLOCK_PATH` a 0 %. `ui_test` y la
 suite del emulador verdes. Los cinco tests de polifonía, verdes.
+
+### 42.6 Build and seal `[AC791N]`
+
+`FELUCCA_VERSION` `v1.9.0` (identidad `FM-1_965`). `./build.sh --release 1.9.0` desde árbol limpio en
+`1e5b1692`: 610 933 B. `sh web/emu/build.sh` + `make_release.py --sync`: sha256 del paquete **``**, build
+**1e5b1692**, emulador **1e5b1692**. `--check` ok, `sha256sum -c` en `site/firmware/` ok, `emu_test.mjs` verde,
+`tests/regress` 307 renders 0 cambiados. Tag `v1.9.0` y Release de GitHub: **bloqueados en este entorno** (sin
+credencial `gh`, `gh auth status` = not logged in); el paquete sellado queda en `release/` y `site/`.
