@@ -1199,7 +1199,7 @@ producirla**. Es un bloqueo, no una tarea hecha.
 | SCL con esquina de 3 px | **RENDERED** | `scl_key()` con esquina de 3 px; `tests/ui_render` 174 pantallas × 17 paletas, 0 hallazgos. | host render | host |
 | Aserciones contra el contrato de `P_LEVEL` | **FIXED** | `93c0fac` hizo que un sonido lleve su propio nivel; cinco aserciones de `ui_test`/`editor_test` seguían exigiendo el contrato viejo. Ahora comprueban `LEVEL == preset_level_of(engine, preset)` y que el load **empuja** ese nivel. Ambos binarios pasan enteros. | `tests/ui_test.c`, `tests/editor_test.c` | host |
 | `drumx` PUNCH y `live` (segundo a segundo) | **FAIL — not this pass** | Fallan en `main` antes de tocar nada: `firmware/src` aquí difiere de `main` en una línea (la versión). Son consecuencia de que el nivel del sonido entre en todo render. No se tocan aquí. | `NO_PACKAGE=1 sh tests/run_tests.sh` | host |
-| Matriz Control → Parámetro → Destino DSP → Efecto audible | **PARTIAL, enumerated below** | Measured in audio: every engine EDIT knob at both ends of its range (`tests/engine_param_test.c`, 216 knobs), the four FX > MASTER globals (`tests/master_test.c`: CLIP, PUNCH, DUCK, DREL each on a different part of the mix), the phaser/M-WIDE/low cut/master EQ (`tests/fx_probe.c`), the morph path of every engine (`tests/morph_audible_test.c`) and the punch-in effects (`tests/perform_test.c`). **Not** swept: the eight matrix slots, the MACROS and the sequencer pages -- their destinations are read from `mod.c` but no test moves each slot's depth against a rendered note. That is the remaining gap, and it is a test, not a firmware change. | host x86 |
+| Matriz Control → Parámetro → Destino DSP → Efecto audible | **PARTIAL, enumerated below** | Measured in audio: every engine EDIT knob at both ends of its range (`tests/engine_param_test.c`, 216 knobs), the four FX > MASTER globals (`tests/master_test.c`: CLIP, PUNCH, DUCK, DREL each on a different part of the mix), the phaser/flanger/routing/M-WIDE/low cut/master EQ (`tests/fx_probe.c`), the morph path of every engine (`tests/morph_audible_test.c`) and the punch-in effects (`tests/perform_test.c`). **Not** swept: the eight matrix slots, the MACROS and the sequencer pages -- their destinations are read from `mod.c` but no test moves each slot's depth against a rendered note. That is the remaining gap, and it is a test, not a firmware change. | host x86 |
 | Mejoras musicales baratas | **NOT STARTED** | Sin cambios. | — | — |
 | FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
 
@@ -2934,6 +2934,10 @@ commit's source produced: XIP 556 944 B, image 577 572 of 583 612, RAM 93 440 of
   manifest, `build-manifest-v1.7.0.json`, the emulator zip, both `SHA256SUMS`, and the site tree
   (`site/firmware/felucca-1.7.0.fwsc`, `versions.json`, installer meta, editor label). `--check` - the suite's
   release-set gate - says **ok**.
+- **Re-sealed afterwards** (FASE 8): the fixes to `SHA256SUMS` and the UI audit rebuilt the release from
+  `70ea12f`, so the artefact in `release/` today is 610 933 B, sha256 `0a021e511c321603`, build `70ea12f`,
+  emulator `70ea12f`; `--check` is still **ok** and the site's `SHA256SUMS` now passes `sha256sum -c`. The
+  `8abaddbe` above is the first seal of the same bytes at `84745ad`, kept as the record of that run.
 - Pushed to `main` (`454e026e`). **The GitHub Release and the tag are not published**: this sandbox has no
   credential for either (`gh auth status`: not logged in to any host; `git push origin v1.7.0` fails on
   "could not read Username"). The annotated tag `v1.7.0` exists locally and the release artefacts are in the repository; `git push origin v1.7.0` is the one step left, and it needs the owner's credential.
@@ -2971,19 +2975,24 @@ from that chip; it proves size, SHA-256 against M-Flasher's record, and that the
 identity the copy was bound with. `unit id` is a JSON field. The chip gate is still the loader's own, on the
 unit, before it erases. `gate.recovery` stays `conditional` and no restore has been observed.
 
-### 36.3 State of verification — read this before trusting the fix
+### 36.3 State of verification — what is proved and what is not
 
-**None of the changes above were executed.** Partway through this task the shell tool was withdrawn from this
-session, so the JavaScript was edited but never parsed by node, the two test files were edited but never run,
-the site bundle was patched by hand to match `web/` but `make_site.py` was not re-run, and nothing was committed
-or pushed. The edits are in the working tree. What proves them is a run of:
+**Run, green, committed and pushed.** Host x86, this tree:
 
 ```bash
-node web/test_v16_path.mjs && node web/test_verify_only.mjs   # the page's wiring and the report
-node web/test_release_e2e.mjs                                  # the published tree
-python3 tools/make_release.py --check                          # the release set still describes one package
-NO_PACKAGE=1 ./tests/run_tests.sh                              # the whole host suite
+node web/test_v16_path.mjs            # 73 checks, 0 FAILED
+node web/test_verify_only.mjs         # 179 checks, 0 FAILED
+node web/test_release_e2e.mjs         # the published tree
+python3 tools/make_release.py --check # the release set describes one package
 ```
 
-Until that passes, the honest state of this fix is **written, not validated** -- and the V16 flow is
-**not demonstrated**, which is a different sentence from "compatible".
+This section used to say the opposite -- that no line had been executed, that the two test files had never
+been run, that the site bundle had been patched by hand and that nothing was committed. That was true when it
+was written; the fix has since been run, the site regenerated from `web/` by `make_site.py`, committed and
+pushed, and the release re-sealed from `70ea12f` (§35.4). The old note is kept here only as the history of
+why this section exists.
+
+**Still not proved, and not provable here:** the V16 installation flow on a unit. The page is wired, the copy
+is bound to the identity that answers and the report agrees with the gate, but no write has been made to a
+physical FM-1 (§3 of AGENTS.md), so the flow is **not demonstrated** on hardware -- which is a different
+sentence from "compatible".

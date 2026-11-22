@@ -26,7 +26,6 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
 #include "../firmware/src/panel.c"
 #include "../firmware/src/ui.c"
 #include "../firmware/src/menu_items.c"
-static void panel_setup(void) {}
 
 static uint8_t nor[0x100000], flash_ok = 1;
 static long cut_bytes = -1, cut_erase = -1;     /* the power goes after that many programmed bytes / at that erase */
@@ -68,7 +67,6 @@ static uint32_t irq_save(void) { return 0; }
 static void irq_restore(uint32_t f) { (void)f; }
 static uint32_t fl_jedec_ram(void) { return 0; }
 static uint32_t fl_status_ram(void) { return 0; }        /* (flash identification: see hal/fm1_flash_id.h) */
-static void fl_plain_window_init(void) {}
 #define FL_FAR(fn) (fn)
 #include "../firmware/src/storage.c"
 #include "../firmware/src/upreset.c"
@@ -177,7 +175,7 @@ static int bank_is(const bank_t *b)
 
 static void reset(void)
 {
-    uint32_t k;
+    uint32_t k, i;
     memset(nor, 0xFF, sizeof nor);
     memset(&song, 0, sizeof song);
     memset(trk, 0, sizeof trk);
@@ -193,7 +191,7 @@ static void reset(void)
     fm6_init();
     for (k = 0; k < NTRK; k++) {
         trk[k].eng_req = trk[k].engine = (uint8_t)ENGI_FM6;
-        for (uint32_t i = 0; i < 8u; i++)
+        for (i = 0; i < 8u; i++)
             trk[k].p[P_E0 + i] = ENG_FM6.edit[i].def;
         trk[k].p[P_E7] = FM6_OWN;
         fm6_slot[k] = FM6_OWN;
@@ -560,14 +558,8 @@ static int keys_test(void)
         }
     }
     /* 172, not 169: v1.5.19 appended three sounds past the 6.0 remaster's (AURORA DRIFT, ROTOR GLASS, TIDAL
-     * MIRROR), so the guard moves with them. 169, not 118: the 6.0 remaster appended 51 sounds past the generator's
-     * pool (55 in all, 4 of them inside engines the generated pool already covered). It is still a guard, not a spec: the per-preset checks
-     * above (extra values, the FM6 voice, peak in range) cover every one of them, and this only catches one
-     * sound arriving or leaving without anyone looking. The old comment, kept as it was written:
-     * 118, not 94: the 1.2 / QG-1 additions and the later preset work grew the table and nobody moved this
-     * guard with them. It is a guard, not a spec -- an accidental extra (or missing) preset still fails here,
-     * and the per-preset checks above (extra values, the FM6 voice, peak in range) cover every one of them.
-     * No name repeats among the 118. */
+     * MIRROR). It is a guard, not a spec: the per-preset checks above (extra values, the FM6 voice, the peak in
+     * range) cover every one of them, and this only catches a sound arriving or leaving without anyone looking. */
     if (n12 != 172u) printf("  %u presets past the generator's\n", n12);
     bad += check("the 1.2, QG-1, 6.0 and 19 presets (172, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 172u);
     return bad;
@@ -682,6 +674,9 @@ int main(void)
     bad += slot_test();
     bad += keep_test();
     bad += keys_test();
-    printf(bad ? "fm6bank: FAILED (%d)\n" : "fm6bank: all ok\n", bad);
+    if (bad)
+        printf("fm6bank: FAILED (%d)\n", bad);
+    else
+        printf("fm6bank: all ok\n");
     return bad ? 1 : 0;
 }

@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* Three of the effects, measured from the outside instead of judged by ear: the CHORUS bus's
- * PHASER, the master's mid/side WIDTH, and the master EQ's shelves. The complaints were that the
- * phaser was weak and that the low shelf was aggressive; "weak" and "aggressive" are numbers here
- * -- a notch depth in dB, a correlation coefficient, a shelf's gain in dB -- so a claim can be
- * checked and a regression caught.
+/* Six of the effects, measured from the outside instead of judged by ear: the CHORUS bus's PHASER and
+ * FLANGER, the buses' routing, the master's mid/side WIDTH and low cut, and the master EQ's shelves and
+ * peak. The complaints were that the phaser was weak and that the low shelf was aggressive; "weak" and
+ * "aggressive" are numbers here -- a notch depth in dB, a correlation coefficient, a shelf's gain in dB --
+ * so a claim can be checked and a regression caught.
  *
  * What this instrument found on the build it was written for:
  *   - the phaser is not weak: freezing the sweep and sweeping the tone shows a 23.6 dB comb inside
@@ -14,9 +14,6 @@
  *     widened pair's power, and a mono source stays mono);
  *   - the low shelf is monotone, reaches its -24 dB at the bottom and does not overshoot 0 above
  *     its corner, which is what "aggressive" would have looked like.
- * The first version of this file measured a single tone across the sweep, and that version said
- * the phaser was 1.7 dB deep -- the nulls were narrow in frequency and fell between the tones.
- * A measurement that says "weak" has to be checked before it is believed, too.
  *
  *   tests/fx_probe
  *
@@ -40,6 +37,8 @@ static void fm1_audio_ack_half(void) { host_acks++; }
 static void fm1_audio_init(int32_t *b, uint32_t n, void (*isr)(void), uint32_t p)
 { (void)b; (void)n; (void)isr; (void)p; }
 void isr_alnk0(void) {}
+#undef FELUCCA_UAC                /* usb.c (through hostsim.c) was compiled with the input off; the probe
+                                   * only needs the master's own tap, so the override is made explicit here */
 #define FELUCCA_UAC 1
 static void uac_tap(const int32_t *out, uint32_t n) { (void)out; (void)n; }
 static void uac_render_start(void) {}
@@ -49,14 +48,22 @@ static int32_t fm1_adc_read(uint32_t ch) { return ch == FM1_ADC_MASTER ? 1023 : 
 #include "../firmware/src/master.c"
 
 #include <math.h>
+#include <stdarg.h>
 
 #define PI2 6.283185307179586
 
 static int bad;
-static void check(const char *what, int ok, const char *fmt, double a, double b)
+/* variadic on purpose: these lines print dB, Q15 counts, Hz and integers, and a fixed (double, double)
+ * signature made every "%d" read a double -- undefined, so the line printed 0 whatever the value was. */
+static void check(const char *what, int ok, const char *fmt, ...)
 {
+    va_list ap;
     printf("%-58s %s", what, ok ? "ok  " : "FAIL");
-    if (fmt) printf(fmt, a, b);
+    if (fmt) {
+        va_start(ap, fmt);
+        vprintf(fmt, ap);
+        va_end(ap);
+    }
     printf("\n");
     if (!ok) bad++;
 }
@@ -65,9 +72,10 @@ static void check(const char *what, int ok, const char *fmt, double a, double b)
  * A 1 kHz tone through cho_phaser, the LFO driven a sample at a time as the block runs it. The
  * notches sweep past the tone, so the output envelope swings by however deep the notches are:
  * that swing is the effect. A phaser that "did little" reads as a swing of a decibel or two. */
-/* The sweep frozen at each of 32 LFO positions, the tone run to steady state at each: the gain of
- * the chain at that position. The swing of those gains is the notch depth the ear hears; smearing
- * the moving sweep into one measurement would miss a notch that is sharp and brief. */
+/* The sweep frozen at 16 LFO positions, each run at 32 log-spaced tones from 200 Hz to 6 kHz: the chain's
+ * gain at that position. Freezing it is what lets a narrow notch be seen at all -- smearing the moving
+ * sweep into one measurement misses a notch that is sharp and brief, which is how the first version of
+ * this file came to call the phaser 1.7 dB deep. */
 static double phaser_gain_at(double hz, uint32_t p)
 {
     int i;
@@ -106,8 +114,8 @@ static void probe_phaser(void)
     }
     printf("       deepest comb %.1f dB at LFO position %d; overall gain %.0f .. %.0f (Q15)\n",
            deepest, (int)at, lo_all, hi_all);
-    check("PHASER: the comb has depth somewhere in 200 Hz..6 kHz (>= 20 dB)", deepest >= 20.0, " %.1f dB", deepest, 0);
-    check("PHASER: the chain stays bounded (no runaway feedback)", hi_all < 40000, " %.0f", hi_all, 0);
+    check("PHASER: the comb has depth somewhere in 200 Hz..6 kHz (>= 20 dB)", deepest >= 20.0, " %.1f dB", deepest);
+    check("PHASER: the chain stays bounded (no runaway feedback)", hi_all < 40000, " %.0f", hi_all);
     /* and a step in DEPTH must not step the output: the mix ramps per sample */
     memset(&fx, 0, sizeof fx);
     for (i = 0; i < (int)(FS / 2); i++) {
@@ -121,7 +129,7 @@ static void probe_phaser(void)
         prev = y;
     }
     check("PHASER: no click when DEPTH jumps (max sample step, Q15)", peak_delta < 5000,
-          " %d", (double)peak_delta, 0);
+          " %d", peak_delta);
 }
 
 /* -------------------------------------------------------------- FLANGER ---
@@ -164,18 +172,16 @@ static void probe_flanger(void)
         if (20.0 * log10(hi / (lo + 1e-9)) > deepest) deepest = 20.0 * log10(hi / (lo + 1e-9));
         if (hi > hi_all) hi_all = hi;
         if (p == 0) first_notch = lo_hz;
-        if (p == 7) {
-            last_notch = lo_hz;
-            printf("       comb null at LFO 0: %.0f Hz; at LFO 7: %.0f Hz\n", first_notch, last_notch);
-        }
+        if (p == 7) last_notch = lo_hz;
     }
+    printf("       comb null at LFO 0: %.0f Hz; at LFO 7: %.0f Hz\n", first_notch, last_notch);
     printf("       deepest comb %.1f dB; peak gain %.0f (Q15)\n", deepest, hi_all);
-    check("FLANGER: the comb has depth (>= 10 dB)", deepest >= 10.0, " %.1f dB", deepest, 0);
-    check("FLANGER: the comb stays bounded (0.6 feedback, no runaway)", hi_all < 40000, " %.0f", hi_all, 0);
+    check("FLANGER: the comb has depth (>= 10 dB)", deepest >= 10.0, " %.1f dB", deepest);
+    check("FLANGER: the comb stays bounded (0.6 feedback, no runaway)", hi_all < 40000, " %.0f", hi_all);
     /* the notches travel: a comb frozen in place is a static colour, not a flanger */
     check("FLANGER: the null moves with the sweep (>= 20 % between LFO 0 and LFO 7)",
           first_notch > 0 && (last_notch > first_notch ? last_notch / first_notch : first_notch / last_notch) >= 1.2,
-          " %.0f Hz", first_notch, last_notch);
+          " %.0f -> %.0f Hz", first_notch, last_notch);
 }
 
 /* ---------------------------------------------------------------- ROUTE ---
@@ -203,9 +209,9 @@ static void probe_route(void)
         fx_buses(ci, di, ri, wet, CTL);
     }
     printf("       in %d / %d / %d; out %d / %d / %d\n", fx_vu[0], fx_vu[1], fx_vu[2], fx_vu[3], fx_vu[4], fx_vu[5]);
-    check("ROUTE: a fed send raises its own input meter only", fx_vu[0] > 0 && !fx_vu[1] && !fx_vu[2], NULL, 0, 0);
-    check("ROUTE: the bus it feeds returns audio", fx_vu[3] > 0, " %d", (double)fx_vu[3], 0);
-    check("ROUTE: a bus nobody feeds returns nothing", !fx_vu[4] && !fx_vu[5], NULL, 0, 0);
+    check("ROUTE: a fed send raises its own input meter only", fx_vu[0] > 0 && !fx_vu[1] && !fx_vu[2], NULL);
+    check("ROUTE: the bus it feeds returns audio", fx_vu[3] > 0, " %d", (int)fx_vu[3]);
+    check("ROUTE: a bus nobody feeds returns nothing", !fx_vu[4] && !fx_vu[5], NULL);
 }
 
 /* ----------------------------------------------------------- M/S WIDTH ---
@@ -240,21 +246,21 @@ static double probe_width(int mwidth, double *lvl, int mono)
 
 static void probe_mwidth(void)
 {
-    double c0, c64, c127, l0, l64, l127, lm64, lm127, cm64, cm127;
+    double c0, c64, c127, l0, l64, l127, lm64, lm127, cm127;
     c0 = probe_width(0, &l0, 0);
     c64 = probe_width(64, &l64, 0);
     c127 = probe_width(127, &l127, 0);
-    cm64 = probe_width(64, &lm64, 1);                 /* (5.0) and the same knob on a mono source */
+    probe_width(64, &lm64, 1);                        /* (5.0) on a mono source: only its level is used */
     cm127 = probe_width(127, &lm127, 1);
     printf("       correlation: width 0 %.3f, 64 %.3f, 127 %.3f (level %.0f / %.0f / %.0f)\n",
            c0, c64, c127, l0, l64, l127);
-    check("M-WIDE 0 is mono (L and R identical)", c0 > 0.999, " r=%.4f", c0, 0);
-    check("M-WIDE 64 is the untouched pair", c64 < 0.1, " r=%.4f", c64, 0);
-    check("M-WIDE 127 is wider than 64", c127 < c64 - 0.05, " r=%.4f", c127, 0);
+    check("M-WIDE 0 is mono (L and R identical)", c0 > 0.999, " r=%.4f", c0);
+    check("M-WIDE 64 is the untouched pair", c64 < 0.1, " r=%.4f", c64);
+    check("M-WIDE 127 is wider than 64", c127 < c64 - 0.05, " r=%.4f", c127);
     /* (5.0) wider is not louder: the pair keeps its power, so a turn of the knob cannot push the master's
      * limiter and pump the mix. Was +3.8 dB at 127 before the compensation. */
     check("M-WIDE 127 keeps the level of 64 (within 1 dB)", fabs(20.0 * log10(l127 / l64)) < 1.0,
-          " %.1f dB", 20.0 * log10(l127 / l64), 0);
+          " %.1f dB", 20.0 * log10(l127 / l64));
     check("M-WIDE on a mono source: it stays mono, and to within 4 dB of its level", cm127 > 0.999 &&
           fabs(20.0 * log10(lm127 / lm64)) < 4.0, " r=%.4f %.1f dB", cm127, 20.0 * log10(lm127 / lm64));
 }
@@ -264,10 +270,10 @@ static void probe_mwidth(void)
  * level it went in (within 2 dB) in every profile, and 60 Hz must be the one that goes away -- a high-pass
  * that silenced the midrange would look exactly like a broken cut. This is the "HPF silences the audio"
  * complaint measured instead of argued. */
-static double probe_lowcut(int profile, double hz, double *out_peak)
+static double probe_lowcut(int profile, double hz)
 {
     uint32_t i;
-    double acc = 0, phase = 0, inc = 2.0 * 3.14159265358979 * hz / 44100.0, pk = 0;
+    double acc = 0, phase = 0, inc = PI2 * hz / FS;
     fx_lowcut = (uint8_t)profile;
     dce_l = dce_r = 0;
     lim_env = 0;
@@ -276,26 +282,24 @@ static double probe_lowcut(int profile, double hz, double *out_peak)
     for (i = 0; i < 40000; i++) {
         int32_t l = (int32_t)(6000.0 * sin(phase)), r = l;
         phase += inc;
-        if (phase > 6.28318530717958) phase -= 6.28318530717958;
+        if (phase > PI2) phase -= PI2;
         if (i < 20000) continue;                        /* the filter's own settling, not measured */
         master_out(&l, &r);
         acc += (double)l * l;
-        if (labs((long)l) > pk) pk = (double)labs((long)l);
     }
     fx_lowcut = 0;
-    *out_peak = pk;
     return sqrt(acc / 20000.0);
 }
 
 static void probe_lowcut_all(void)
 {
-    double tone0, tone1, tone2, low0, low1, low2, pk;
-    tone0 = probe_lowcut(0, 1000.0, &pk);
-    tone1 = probe_lowcut(1, 1000.0, &pk);
-    tone2 = probe_lowcut(2, 1000.0, &pk);
-    low0 = probe_lowcut(0, 60.0, &pk);
-    low1 = probe_lowcut(1, 60.0, &pk);
-    low2 = probe_lowcut(2, 60.0, &pk);
+    double tone0, tone1, tone2, low0, low1, low2;
+    tone0 = probe_lowcut(0, 1000.0);
+    tone1 = probe_lowcut(1, 1000.0);
+    tone2 = probe_lowcut(2, 1000.0);
+    low0 = probe_lowcut(0, 60.0);
+    low1 = probe_lowcut(1, 60.0);
+    low2 = probe_lowcut(2, 60.0);
     printf("       1 kHz: off %.0f, LOWCUT %.0f, BASS+ %.0f (rms)\n", tone0, tone1, tone2);
     printf("       60 Hz: off %.0f, LOWCUT %.0f, BASS+ %.0f (rms)\n", low0, low1, low2);
     check("LOWCUT and BASS+ leave 1 kHz where it was (within 2 dB)",
@@ -321,8 +325,8 @@ static double eq_db(double hz) { return (double)fx_master_eq_hz_db((int32_t)hz) 
 static void probe_eq(void)
 {
     static const double HZ[7] = {30, 60, 120, 250, 1000, 4000, 16000};
-    double low_db, top_db, peak_db, worst = 0;
-    int i;
+    double low_db, top_db, peak_db;
+    int i, shelf_ok;
     song.g[G_EQMODE] = 3;                          /* LOW SH */
     song.g[G_EQFREQ] = 48;
     song.g[G_EQGAIN] = -24;
@@ -336,21 +340,23 @@ static void probe_eq(void)
     /* a low shelf must not dip on the way up, and must not overshoot 0 above the corner: a bump in
      * the mids is what a shelf reads as when its Q is wrong */
     {
+        int monotone = 1, overshoot = 1;
         double prev = -99;
         for (i = 20; i <= 20000; i = i * 3 / 2) {
             double d = eq_db((double)i);
-            if (d < prev - 0.3) worst = -99;        /* went down: not a shelf */
-            if (d > 0.5) worst = -98;               /* overshoot above unity */
+            if (d < prev - 0.3) monotone = 0;       /* went down: not a shelf */
+            if (d > 0.5) overshoot = 0;             /* above unity somewhere in the band */
             prev = d;
         }
+        shelf_ok = monotone && overshoot;
     }
-    check("EQ LOW SH -24: the bottom is cut near -24 dB", low_db < -18.0 && low_db > -30.0, " %.1f dB", low_db, 0);
-    check("EQ LOW SH: rises monotonically and never overshoots 0", worst > -97.0, " bad=%g", worst, 0);
-    check("EQ LOW SH: it does flatten out (4 kHz within 2 dB of 0)", fabs(top_db) < 2.0, " %.1f dB", top_db, 0);
+    check("EQ LOW SH -24: the bottom is cut near -24 dB", low_db < -18.0 && low_db > -30.0, " %.1f dB", low_db);
+    check("EQ LOW SH: rises monotonically and never overshoots 0", shelf_ok, NULL);
+    check("EQ LOW SH: it does flatten out (4 kHz within 2 dB of 0)", fabs(top_db) < 2.0, " %.1f dB", top_db);
 
     song.g[G_EQGAIN] = 24;
     low_db = eq_db(30);
-    check("EQ LOW SH +24: the bottom is lifted near +24 dB", low_db > 18.0 && low_db < 30.0, " %.1f dB", low_db, 0);
+    check("EQ LOW SH +24: the bottom is lifted near +24 dB", low_db > 18.0 && low_db < 30.0, " %.1f dB", low_db);
 
     song.g[G_EQMODE] = 1;                          /* PEAK: the curve must peak at its own gain */
     song.g[G_EQFREQ] = 64;
@@ -364,7 +370,7 @@ static void probe_eq(void)
         }
         printf("       PEAK +12: max %+.1f dB at %.0f Hz (20 Hz %+.1f, 16 kHz %+.1f)\n", peak_db, at, eq_db(20), eq_db(16000));
     }
-    check("EQ PEAK +12 reaches its gain at the center", peak_db > 10.0 && peak_db < 13.0, " %.1f dB", peak_db, 0);
+    check("EQ PEAK +12 reaches its gain at the center", peak_db > 10.0 && peak_db < 13.0, " %.1f dB", peak_db);
     song.g[G_EQMODE] = 0;
 }
 

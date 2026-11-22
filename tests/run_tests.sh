@@ -461,7 +461,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dly_echo_test" tests/dly_echo_test.c -lm
     run "DELAY echo train: the repeats FX > DLY draws, one TIME apart, falling by FEEDBK, none without echoes" "$OUT/dly_echo_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_probe" tests/fx_probe.c -lm
-    run "FX measured: the phaser's comb depth, M-WIDE mono/wide/level, the low cut, the master EQ's shelves and peak" "$OUT/fx_probe"
+    run "FX measured: the phaser's and flanger's comb depth and sweep, the buses' routing, M-WIDE mono/wide/level, the low cut, the master EQ's shelves and peak" "$OUT/fx_probe"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/audio_stress" tests/audio_stress.c -lm
     run "AUDIO STRESS: six engines, every bus fed, MIDI and preset changes under the notes: no NaN, no clip, no DC, no click" \
         "$OUT/audio_stress" 8

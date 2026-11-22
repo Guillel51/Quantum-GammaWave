@@ -21,14 +21,16 @@
   atadura es automática sobre la identidad que responde, así que el informe no retiene una copia «sin unidad»
   mientras la página la aceptaría; lo que sigue rechazándose es una copia atada a otra identidad.
 
-> Estado de esta corrección: **escrita y sin ejecutar**. La herramienta de shell se retiró a mitad de la tarea,
-> así que los tests nuevos no se han corrido. Ver `docs/VALIDATION_MATRIX.md` §36.3.
+> Estado de esta corrección: **ejecutada**. `web/test_v16_path.mjs` (73 checks) y `web/test_verify_only.mjs`
+> (179 checks) pasan, incluidos la copia cargada antes de VERIFY, la recargada y la de otra unidad. Ver
+> `docs/VALIDATION_MATRIX.md` §36.3.
 
 **Corregido**
 
 - `fx_probe` corría sin `sine_init()` igual que el arnés de la Etapa 7: medía un LFO mudo, así que el phaser
   daba 6.6 dB de peine, el flanger no movía su null y el shelf del EQ leía su propio corte a 4 kHz. Con la
-  senoide decodificada, los tres miden bien (peine profundo, null que viaja, shelf plano en +0.0 dB).
+  senoide decodificada mide 23.6 dB de peine, un null que viaja de 4383 a 240 Hz y un shelf de -24.0 dB en el
+  fondo y -0.0 dB a 4 kHz.
 - El guard de presets de `fm6bank` seguía en 171 cuando la lista ya tenía 172 (los tres sonidos del remaster
   de 1.5.19); el propio comentario del test decía 172.
 - El consola serie de diagnóstico (`FELUCCA_CDC`) queda **off por defecto**: pagan los 3 668 B de enlace del
