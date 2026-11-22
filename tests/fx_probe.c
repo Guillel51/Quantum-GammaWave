@@ -184,32 +184,63 @@ static double flanger_gain_at(double hz, uint32_t p)
     return sqrt(acc / 4096.0);
 }
 
+/* The line's first return for one frozen LFO position -- the tap's delay plus the write-back's one
+ * sample, i.e. the loop the comb is made of. Read from an impulse through the same write the block does
+ * and cho_flanger's tap: the notches sit at odd multiples of FS / (2 * this), so this is the null's
+ * position, exactly, rather than whichever grid tone happened to land nearest a notch. */
+static int flanger_delay_at(uint32_t ph)
+{
+    int i;
+    memset(&fx, 0, sizeof fx);
+    memset(cho_buf, 0, sizeof cho_buf);
+    for (i = 0; i < 1024; i++) {
+        int32_t x = i == 0 ? 16000 : 0;
+        uint32_t ci = fx.cho_w & (CHO_LEN - 1u);
+        int32_t y;
+        cho_buf[ci] = (int16_t)clamp((x >> 1) + mulq15(fx.flg_fb, 19661), -32768, 32767);
+        y = cho_flanger(cho_buf, fx.cho_w, ph, 127 * 512, &fx.flg_fb);
+        fx.cho_w++;
+        if (y)
+            return i + 1;                              /* the loop: the tap at i, the write-back a sample later */
+    }
+    return 0;
+}
+
 static void probe_flanger(void)
 {
-    double deepest = 0, hi_all = 0, first_notch = 0, last_notch = 0;
-    int p, f;
+    double deepest = 0, hi_all = 0, null_lo = 0, null_hi = 0;
+    int p, f, dmin = 1 << 20, dmax = 0;
     for (p = 0; p < 8; p++) {
         uint32_t ph = (uint32_t)((uint64_t)p << 29);   /* a turn is 2^32: 8 positions */
-        double lo = 1e9, hi = 0, lo_hz = 0;
+        double lo = 1e9, hi = 0;
+        int d = flanger_delay_at(ph);
+        double first_null = d ? (double)FS / (2.0 * (double)d) : 0.0;
         for (f = 0; f < 48; f++) {
             double hz = 150.0 * pow(40.0, f / 47.0);   /* 150 Hz .. 6 kHz, log spaced */
             double g = flanger_gain_at(hz, ph);
-            if (g < lo) { lo = g; lo_hz = hz; }
+            if (g < lo) lo = g;
             if (g > hi) hi = g;
         }
+        printf("       LFO %d: tap %d samples, first null %4.0f Hz, deepest comb %4.1f dB\n",
+               p, d, first_null, 20.0 * log10(hi / (lo + 1e-9)));
+        if (d && d < dmin) { dmin = d; null_hi = first_null; }
+        if (d > dmax) { dmax = d; null_lo = first_null; }
         if (20.0 * log10(hi / (lo + 1e-9)) > deepest) deepest = 20.0 * log10(hi / (lo + 1e-9));
         if (hi > hi_all) hi_all = hi;
-        if (p == 0) first_notch = lo_hz;
-        if (p == 7) last_notch = lo_hz;
     }
-    printf("       comb null at LFO 0: %.0f Hz; at LFO 7: %.0f Hz\n", first_notch, last_notch);
-    printf("       deepest comb %.1f dB; peak gain %.0f (Q15)\n", deepest, hi_all);
+    printf("       deepest comb %.1f dB; peak gain %.0f (Q15); null %.0f .. %.0f Hz\n",
+           deepest, hi_all, null_lo, null_hi);
     check("FLANGER: the comb has depth (>= 10 dB)", deepest >= 10.0, " %.1f dB", deepest);
     check("FLANGER: the comb stays bounded (0.6 feedback, no runaway)", hi_all < 40000, " %.0f", hi_all);
+    /* the tap is the mapping: 48 .. 302 samples of delay at DEPTH 127, the sweep the knob promises. It
+     * used to wrap in 32 bits halfway through the LFO, so the tap jumped to 8 samples and the notches
+     * jumped with it instead of travelling. */
+    check("FLANGER: the tap travels 48..302 samples over the sweep", dmin <= 50 && dmax >= 300,
+          " %d .. %d samples", dmin, dmax);
     /* the notches travel: a comb frozen in place is a static colour, not a flanger */
-    check("FLANGER: the null moves with the sweep (>= 20 % between LFO 0 and LFO 7)",
-          first_notch > 0 && (last_notch > first_notch ? last_notch / first_notch : first_notch / last_notch) >= 1.2,
-          " %.0f -> %.0f Hz", first_notch, last_notch);
+    check("FLANGER: the null moves with the sweep (>= 20 % between the ends)",
+          null_lo > 0 && null_hi > null_lo && null_hi / null_lo >= 1.2,
+          " %.0f -> %.0f Hz", null_lo, null_hi);
 }
 
 /* ---------------------------------------------------------------- ROUTE ---

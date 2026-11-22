@@ -37,6 +37,9 @@
   (`prof_eq`), aplicado después del EQ, así que los dos pueden estar a la vez. `fx_probe` mide el EQ por la
   ruta aplicada (el struct que corre `qg_biquad_process`, no una copia) y comprueba que sobrevive al cambio de
   perfil.
+- El FLANGER barría con un producto de 32 bits desbordado: `(sin + 32768) * amt` llega a 4,26e9, así que a
+  partir de media vuelta del LFO el tap caía de 302 a 9 muestras y el peine saltaba en vez de viajar. Ahora
+  recorre 48..302 muestras (null de 73 a 450 Hz) y `fx_probe` lo mide con un impulso por la ruta real.
 - El guard de presets de `fm6bank` seguía en 171 cuando la lista ya tenía 172 (los tres sonidos del remaster
   de 1.5.19); el propio comentario del test decía 172.
 - El consola serie de diagnóstico (`FELUCCA_CDC`) queda **off por defecto**: pagan los 3 668 B de enlace del

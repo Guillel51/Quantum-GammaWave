@@ -3071,3 +3071,41 @@ feedback (0.366) no desborda. Lo que faltaba era que la puerta mirara el knob en
   cancelación) y sólo baja el nivel (458 .. 7301). El techo de ~6 dB que se atribuye a "media señal seca" sale
   de mezclar wet **normalizado**, no de atenuar la suma: el código devuelve `x + cadena`, que es lo que el
   notch necesita para cancelar.
+
+## 39. El FLANGER barría con un producto de 32 bits desbordado (2026-11-22)
+
+### 39.1 What was wrong
+
+`cho_flanger` calculaba el tap como
+
+```c
+(48 << 8) + ((osc_sine(ph) + 32768) * amt >> 16)
+```
+
+con `amt = G_CDEPTH * 512` hasta 65 024 y `(sin + 32768)` hasta 65 535: el producto llega a **4,26e9** y no
+cabe en un `int32_t`, así que se daba la vuelta a negativo a partir de media vuelta del LFO. Leído con un
+impulso por la misma escritura y el mismo tap que corre el bloque, el retardo era **9, 46, 176, 302** muestras
+a lo largo del barrido donde el mapeo promete 48 .. 302: los taps de en medio se caían a 9 muestras y el peine
+saltaba en vez de viajar.
+
+Por eso la comprobación antigua no lo veía: comparaba el mínimo de una rejilla de 48 tonos en LFO 0 con el de
+LFO 7 (`4 383 Hz` contra `240 Hz`), dos armónicos distintos elegidos por suerte de rejilla, y cualquier par de
+números separados pasaba el 20 %.
+
+### 39.2 The fix
+
+- DSP: el producto en 64 bits (`(int64_t)(osc_sine(ph) + 32768) * amt >> 16`). El tap recorre ahora **49 .. 302
+  muestras** (48 más la muestra del write-back) y el primer null **73 .. 450 Hz**.
+- Prueba: el retardo se lee con un impulso por la ruta real (exacto, no una rejilla), el primer null se deriva
+  de él (`FS / (2 d)`), y la comprobación del movimiento compara **los dos extremos del barrido**, no dos
+  posiciones arbitrarias. Se añade `the tap travels 48..302 samples over the sweep`.
+
+### 39.3 Evidence `[HOST]`
+
+- `fx_probe`: tap 49 .. 302, null 73 .. 450 Hz, peine 11.5 .. 12.0 dB, pico 7 061 Q15; todas las
+  comprobaciones verdes.
+- Mutación contra la expresión anterior: tap **9 .. 176** y `the tap travels 48..302` **falla** — la firma del
+  desbordamiento, reproducida.
+- `tests/regress`: **307 golden renders, 0 cambiados**, 0 fallos de salud ni de voces; la entrada de CPU del
+  host sigue fuera de presupuesto como estaba (agregado del host, 0 notas). `audio_stress` y `master_test`
+  verdes.

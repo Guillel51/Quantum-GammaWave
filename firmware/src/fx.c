@@ -1656,7 +1656,10 @@ static inline int32_t cho_ens(const int16_t *buf, uint32_t w, uint32_t ph, int32
  * caller writes back, so the whole loop is one multiply and the delay line already there. */
 static inline int32_t cho_flanger(const int16_t *buf, uint32_t w, uint32_t ph, int32_t amt, int32_t *fb)
 {
-    int32_t y = cho_tap(buf, w, (48 << 8) + (((osc_sine(ph) + 32768) * amt) >> 16));
+    /* (v1.7.0) The sweep multiplied (sin + 32768), up to 65 535, by amt, up to 65 024: the product reaches
+     * 4.3e9 and wrapped in 32 bits, so halfway through the LFO the tap fell to an 8-sample delay instead of
+     * travelling 48 .. 302 -- the notches jumped, the sweep did not move them. 64 bits, one multiply. */
+    int32_t y = cho_tap(buf, w, (48 << 8) + (int32_t)(((int64_t)(osc_sine(ph) + 32768) * amt) >> 16));
     *fb = y;
     return y;
 }
