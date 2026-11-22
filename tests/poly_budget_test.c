@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* HOW MANY VOICES REALLY SOUND: 8, 10 and 12 notes at once, held, released, on one part and on several,
+/* HOW MANY VOICES REALLY SOUND: 8, 10, 12 and 16 notes at once, held, released, on one part and on several,
  * with the user's polyphony setting, with LOAD LITE / ECO, and with every engine's own cap.
  *
  * This is the measurement the "six or seven voices" report was about, with the numbers the allocator and the

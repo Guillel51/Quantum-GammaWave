@@ -141,8 +141,8 @@ int main(void)
         trk_note_on(&trk[0], 40u + i, 100);
         voice_stats(&snd, &rel, &fad, &pk, &stl, &den);
     }
-    check("20 notes into 12 voices: the pool still holds exactly 12", voices_busy() == (uint32_t)NVOICE,
-          voices_busy(), (unsigned)NVOICE);
+    check("20 notes into the budget: the pool still holds exactly the budget", voices_busy() == voice_budget(),
+          voices_busy(), voice_budget());
     check(".. and the ones that could not fit were counted as steals, not lost silently", stl >= 8u, stl, 8u);
     check(".. nothing was denied while steals were possible", den == 0u, den, 0u);
     check(".. the peak never exceeded the budget", pk <= (uint32_t)NVOICE, pk, (unsigned)NVOICE);

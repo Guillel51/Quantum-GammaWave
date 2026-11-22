@@ -130,6 +130,28 @@ static void load_scene(uint32_t sc)
     song.g[G_CDEPTH] = 100;
     if (sc == 3u)                                     /* (ETAPA 3) idle: the buses armed, nothing playing */
         return;
+    if (sc == 4u) {                                   /* (1.9) the polyphony case: six parts, four notes each --
+                                                       * 24 notes asked of a pool of NVOICE, so the cap binds and
+                                                       * what sounds is exactly the budget (12 or 16). It is the
+                                                       * number the phase's "how many voices" question needs: the
+                                                       * cap is not what the instrument plays, this is */
+        for (i = 0; i < 6u; i++) {
+            host_preset(&trk[i], i < 3u ? (i == 0 ? 0 : ENGI_FM6) : (i == 3 ? ENGI_DRUM : (i == 4 ? 2u : 7u)), 0);
+            trk[i].p[P_VOICE] = V_POLY;
+            trk[i].p[P_SUS] = 120;
+            trk[i].p[P_CHOR] = 60;
+            trk[i].p[P_DLY] = 70;
+            trk[i].p[P_REV] = 80;
+            trk[i].step[0].time = ST_NOTE;
+            trk[i].step[0].n = 4u;
+            trk[i].step[0].note[0] = (uint8_t)(40u + i * 3u);
+            trk[i].step[0].note[1] = (uint8_t)(47u + i * 3u);
+            trk[i].step[0].note[2] = (uint8_t)(52u + i * 3u);
+            trk[i].step[0].note[3] = (uint8_t)(59u + i * 3u);
+            trk[i].step[0].vel = 100;
+        }
+        return;
+    }
     for (i = 0; i < 4u; i++) {                        /* a sixteen-step pattern on each part */
         trk[i].step[i * 2u].time = ST_NOTE;
         trk[i].step[i * 2u].n = i < 2u ? 3u : 1u;
@@ -159,12 +181,13 @@ static double now_cpu_s(void)
 int main(int argc, char **argv)
 {
     uint32_t r, reps = argc > 1 ? (uint32_t)atoi(argv[1]) : 5u, b, i, sc;
-    static const char *const SCENE[4] = {"every bus fed", "dry parts (sends 0)", "every bus fed, CHORUS in FLANGER",
-                                         "idle: the buses armed, nothing playing"};
-    double best[4] = {1e9, 1e9, 1e9, 1e9}, best_cpu[4] = {1e9, 1e9, 1e9, 1e9};
+    static const char *const SCENE[5] = {"every bus fed", "dry parts (sends 0)", "every bus fed, CHORUS in FLANGER",
+                                         "idle: the buses armed, nothing playing",
+                                         "six parts, four notes each: the pool's cap binding"};
+    double best[5] = {1e9, 1e9, 1e9, 1e9, 1e9}, best_cpu[5] = {1e9, 1e9, 1e9, 1e9, 1e9};
     double budget = 725e-6 / 32.0;                    /* ns of budget per sample (AGENTS.md, 32-sample block) */
-    printf("fx_bench: host x86, %u Hz, %u blocks of %u samples per repeat\n", (unsigned)FS, NBLOCKS, (unsigned)CTL);
-    for (sc = 0; sc < 4u; sc++) {
+    printf("fx_bench: host x86, %u Hz, %u blocks of %u samples per repeat, NVOICE %u\n", (unsigned)FS, NBLOCKS, (unsigned)CTL, (unsigned)NVOICE);
+    for (sc = 0; sc < 5u; sc++) {
         printf(" scene %u: %s\n", sc, SCENE[sc]);
         for (r = 0; r < reps; r++) {
             double t0, t1, ns, c0, c1, nsc;

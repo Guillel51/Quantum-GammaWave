@@ -1,3 +1,26 @@
+## v1.9.0 — Fase 2/4: cuántas voces aguanta de verdad
+
+**Medido, no supuesto**
+
+- Escenario nuevo en `tests/fx_bench` (escena 4): seis pistas pidiendo **24 notas** a un pool de 12, el tope
+  mordiendo de verdad. `[HOST x86]` 12 voces **142,6 ns/muestra**, 16 voces **150,7** → **~2,0 ns por muestra
+  por voz** en el caso más denso, +5,7 % de un bloque ya a polifonía llena.
+- Se probó subir el tope a 16 y **no se subió**, con el número en la mano: `[AC791N]` el `.bss` sube 1 360 B
+  (pool + ventanas) y deja **3 440 B libres contra el piso de 4 096** de `tests/resources_test.py`, o sea no
+  entra; y el pool más grande mueve **52 de 220 renders** (los seeds por slot), hasta 1,4 dB. Falta recuperar
+  ~1 300 B de `.bss` antes de que la pregunta sea de CPU, y la CPU sobra.
+
+**Corregido en los tests**
+
+- Los cinco tests de polifonía afirmaban el literal 12 donde querían decir *el tope en vigor*: ahora comparan
+  con `voice_budget()`, así que el día que la RAM alcance, subir el número no rompe cinco ficheros ni deja
+  pasar un tope que no es el que suena.
+
+**Cómo se midió**
+
+- Los números y su clase están en `docs/VOICE_POOL.md` §"1.9", y el escenario se reproduce con
+  `cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/fx_bench tests/fx_bench.c -lm && ./build/fx_bench 8`.
+
 ## v1.8.0 — Fase 1/4: el perfilado del bloque de audio, y el gate que vuelve a medir lo que dice medir
 
 **Medido primero, no adivinado**

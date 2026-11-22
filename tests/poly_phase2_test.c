@@ -194,7 +194,7 @@ int main(void)
     printf("phase2: B %u keys in the stack (nmono %u, first %u, last %u)  note %u\n", (unsigned)MONO_STACK_N,
            trk[0].nmono, *ms_p(&trk[0], 0),
            *ms_p(&trk[0], trk[0].nmono ? trk[0].nmono - 1u : 0u), trk[0].mono_note);
-    check("B: the stack keeps all twelve keys", trk[0].nmono == MONO_STACK_N);
+    check("B: the stack keeps all twelve keys", trk[0].nmono == 12u);   /* (1.9) twelve pressed, of sixteen places */
     check("B: PRIO LOW still plays the lowest of the twelve (60)", trk[0].mono_note == 60u);
     for (i = 1; i < 12u; i++)                       /* let go of the others: 60 is what is left, and still plays */
         trk_note_off(&trk[0], 60u + i);

@@ -3218,3 +3218,41 @@ dos `SHA256SUMS`, el emulador y el portal describen esa misma versión. `./build
 `site/firmware/` ok, `emu_test.mjs` verde. Publicación en GitHub (`v1.8.0` tag + Release) **bloqueada en este
 entorno**: no hay credencial `gh` ni token de GitHub disponible; queda el paquete sellado en `release/` y en
 `site/`, y el push a `main` hecho.
+
+## 42. Fase 2/4: polifonía real, medida antes de tocarla (v1.9.0)
+
+### 42.1 The question, and the new scenario
+
+Se preguntó cuánta polifonía aguanta el instrumento. Faltaba el escenario que lo mide: `tests/fx_bench`
+escena 4 — **seis pistas, cuatro notas cada una, 24 notas pedidas** a un pool de 12, o sea el tope mordiendo
+de verdad (antes el banco pedía 12 notas justas y nunca lo tocaba).
+
+### 42.2 `[HOST x86]` what a voice costs
+
+Mejor de 8 repeticiones en cinco corridas alternadas: 12 voces **142,6 ns/muestra**, 16 voces **150,7**.
+**~2,0 ns por muestra por voz** en el caso más denso, **+5,7 %** de un bloque que ya está a polifonía llena.
+La CPU no es lo que limita la polifonía.
+
+### 42.3 `[AC791N]` why the cap stays at 12
+
+Se compiló un build de trabajo con `NVOICE=16` (VPOOLN 22) y se midió: `.bss` 93 504 → **94 864 B** (+1 360 B:
+352 del pool y el resto de las ventanas `XP_N` / `MONO_STACK_N`), y `tests/resources_test.py` **falla** con
+**3 440 B libres contra el piso de 4 096**. Ese mismo build mueve **52 de 220 renders** de sonido (los seeds
+por slot), hasta 1,4 dB. Ninguna de las dos cosas se puede presentar como gratis, así que **el tope y la
+capacidad se quedan como estaban** y queda medido qué falta: recuperar ~1 300 B de `.bss` o bajar el piso con
+evidencia, y decidir editorialmente sobre esos 52 renders.
+
+### 42.4 What shipped
+
+- `tests/fx_bench`: la escena 4 (polifonía real) y el `NVOICE` en la cabecera del banco.
+- Los cinco tests de polifonía (`poly_budget_test`, `poly_stress_test`, `poly_voices_test`, `poly_phase2_test`,
+  `poly_six_test`) afirman el **tope en vigor** (`voice_budget()`) en vez del literal 12, que era la capacidad
+  del pool disfrazada de tope. Todos verdes.
+- `docs/VOICE_POOL.md` §1.9 con las dos tablas y la decisión; `CHANGELOG.md` v1.9.0.
+
+### 42.5 Regression
+
+`tests/regress`: **307 renders, 0 cambiados** (el sonido por defecto es el mismo byte a byte), 0 health, 0
+voice/routing, 0 entradas de CPU sobre presupuesto. `tests/resources_test.py` **13/13** (XIP 5 312 B libres,
+RAM 4 800 B, POOL 9 248 B). `target_budget.py` verde en todas sus líneas, `BLOCK_PATH` a 0 %. `ui_test` y la
+suite del emulador verdes. Los cinco tests de polifonía, verdes.

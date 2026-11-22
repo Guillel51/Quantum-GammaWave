@@ -94,7 +94,7 @@ static void test_allocator(void)
           ({ uint32_t k, ok = 1; for (k = 0; k < 8u; k++) { sounding(&trk[0], 48u + 2u * k, &has); ok &= has; } ok; }));
     for (i = 0; i < 4u; i++)
         trk_note_on(&trk[0], 64u + 2u * i, 100);
-    check("POLY: twelve notes reach the part's cap of twelve", sounding(&trk[0], 0, 0) == NVOICE);
+    check("POLY: a chord reaches the part's cap, the budget in force", sounding(&trk[0], 0, 0) == voice_budget());
     trk_all_off(&trk[0]);
     check("POLY: letting go silences them", sounding(&trk[0], 0, 0) == 0u);
 }

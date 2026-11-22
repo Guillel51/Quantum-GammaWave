@@ -161,3 +161,37 @@ El desglose por función de `nm --size-sort` (ui_input_frame +608 B, gen_make +2
 llega por `xp_note_p` / `xp_vel_p` / `ms_p` (core.h), con los primeros `XP_IN_T` = 4 y `MS_IN_T` = 8 slots en su sitio
 exacto de siempre. Regla para el próximo campo: si es de una ruta por nota, va al lado; si es por bloque, se mide el
 precio antes de escribirlo.
+
+## 1.9 (Fase 2/4): lo que cuesta subir el tope, medido
+
+Se preguntó si el aparato aguanta más de 12 voces. Se midió, y **no se subió**: el número que falta no es CPU,
+es RAM, y el sonido también se mueve.
+
+**CPU `[HOST x86]`.** Escenario nuevo en `tests/fx_bench` (escena 4): seis pistas, cuatro notas cada una, 24
+notas pedidas al pool, es decir el tope mordiendo de verdad. Mejor de 8 repeticiones, cinco corridas alternadas:
+
+| tope | ns por muestra (mejor de las cinco corridas) |
+| --- | --- |
+| 12 voces | **142,6** |
+| 16 voces | **150,7** |
+
+Son **~2,0 ns por muestra por voz** en el caso más denso, +5,7 % de un bloque que ya está a polifonía llena.
+La CPU es lo barato de esta pregunta.
+
+**RAM `[AC791N]`.** Con `NVOICE=16` (VPOOLN 22) el `.bss` pasa de 93 504 a **94 864 B**: +1 360 B por los cuatro
+slots del pool (352 B) y las ventanas `XP_N` / `MONO_STACK_N` que crecen con él. Quedan **3 440 B libres**
+contra el piso de 4 096 que `tests/resources_test.py` exige (`tests/mem_budget.json`): **no entra**. Levantar
+ese piso sin una medición que lo respalde es exactamente lo que el repo prohíbe.
+
+**Sonido.** El pool no es sólo capacidad: el slot decide el estado por nota (los seeds de NOISE/WHEEL y el
+reinicio de osciladores). Subir `VPOOLN` de 18 a 22 mueve **52 de 220 renders** (§ arriba, la tabla de
+`VPOOLN=16`), hasta 1,4 dB de pico. No es una regresión, es un cambio audible que hay que querer.
+
+**Decisión.** El tope se queda en 12 y la capacidad tampoco cambia. Queda medido lo que falta para subirlo:
+**1 300 B de `.bss` que recuperar** (o un piso de RAM más ajustado, con la medición que lo respalde) y la
+decisión editorial sobre esos 52 renders. Por eso los cinco tests de polifonía ahora afirman el **tope en
+vigor** (`voice_budget()`), no el tamaño del storage: el día que la RAM alcance, subirlo es un número.
+
+En el camino quedó arreglado el escenario que faltaba: `tests/fx_bench` escena 4 mide polifonía de verdad
+(notas pedidas > tope), y `tests/poly_budget_test` / `poly_stress_test` / `poly_voices_test` /
+`poly_phase2_test` dejaron de confundir "12" con la capacidad del pool.
