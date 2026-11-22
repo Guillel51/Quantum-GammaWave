@@ -1,3 +1,23 @@
+## v1.12.8 — cierre de las siete fases: lo que hay y lo que no
+
+**Sin cambios de audio ni de UI en esta entrega.** Es el cierre: versión, documentación y paquete sellado. El motor
+de sonido es **idéntico** al de v1.12.7 (`regress`: 307 renders, 0 cambiados), y los presupuestos no se movieron:
+imagen 580 488 / 583 612, `.data+.bss` 93 640 / 98 304, reserva del pool 9 248 B.
+
+**Lo que queda abierto, con nombre** (detalle en `docs/FASE7_FINAL_v1.12.8.md`):
+
+1. **La cobertura del barrido UI no incluye las páginas TILT ni LFO CURVE**: `tests/ui_pixels.txt` no tiene ni un
+   frame suyo (comprobado). El síntoma está confirmado; la causa, no. El dibujo de `graph_tilt()` está compilado e
+   integrado y **no lo ha mirado nadie**.
+2. Los **presets de fábrica** siguen sin TILT, CURVE ni ONE: su tabla de niveles y los 307 goldens son medidas
+   generadas y no hay ruta de re-baseline para los renders.
+3. **Ids de parámetro llenos** (127/127): el próximo control exige formato de almacenamiento nuevo.
+4. **Instalación desde V16: GO CONDITIONAL**, sin cambios. `USR`/`BTIF`/`NVS` no tienen medida en V16 y el gate no
+   se relaja sin ella.
+5. **Tag y GitHub Release**: `gh` sin sesión en este entorno; el paquete sellado está en `release/` y `site/`.
+
+**No se sube a 1.8**: esta fase no trae mejoras sustanciales, y el criterio pedido era no hacerlo sin ellas.
+
 ## v1.12.7 — TILT se ve: la respuesta del mando, dibujada
 
 **Qué es.** La página TILT (v1.12.4) tenía un mando y una tarjeta vacía: el único recurso sonoro nuevo del árbol sin

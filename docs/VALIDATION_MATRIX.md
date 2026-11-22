@@ -3472,3 +3472,15 @@ integrado pero **no verificado visualmente**. Defecto de cobertura declarado par
 de audio no cambia: `regress` **307 renders, 0 cambiados**.
 
 **No medido.** La unidad, el AC791N y los FPS reales del panel (el barrido mide píxeles, no tiempo de panel).
+
+## 53. v1.12.8: cierre de las siete fases
+
+**Sin cambios de comportamiento.** Versión, documentación y sello. `regress` **307 renders, 0 cambiados**; imagen
+580 488/583 612; `.data+.bss` 93 640/98 304; pool spare 9 248 B.
+
+**Abierto y declarado (no verificado, no contado como hecho).** (a) `tests/ui_pixels.txt` no contiene frames de las
+páginas TILT ni LFO CURVE — síntoma confirmado, causa no encontrada; (b) presets de fábrica sin TILT/CURVE/ONE;
+(c) ids de parámetro llenos (127/127); (d) instalación desde V16 = **GO CONDITIONAL** (`USR`/`BTIF`/`NVS` sin medida
+en V16); (e) tag y GitHub Release bloqueados por falta de credencial `gh`.
+
+**No medido.** FPS del panel, comportamiento en el AC791N y en la unidad física.
