@@ -2883,7 +2883,8 @@ AC791N build.
   not the shelf its coefficients describe. The coefficient chain was replicated in the host and gives the
   correct curve (`30 Hz -24.0, 1 kHz -3.9, 4 kHz -0.0`), so the defect is in how the master EQ applies the
   mode, not in `qg_biquad_set_lowshelf`'s arithmetic; that is the next thing to fix and it is written here
-  rather than left as "FX fails".
+  rather than left as "FX fails". **Fixed in §37**: the "second filter" was the LOWCUT/BASS+ profile writing
+  the same `master_eq` struct.
 - No new UI defect was found by the sweeps and none was invented to show work; the pages a person should look
   at on the unit are the ones the sweeps cannot judge — the visualizers (FORGE / HEARTH / WRAITH) and the
   SCENES page in the hand.
@@ -2996,3 +2997,41 @@ why this section exists.
 is bound to the identity that answers and the report agrees with the gate, but no write has been made to a
 physical FM-1 (§3 of AGENTS.md), so the flow is **not demonstrated** on hardware -- which is a different
 sentence from "compatible".
+
+## 37. La EQ LOW SH y el perfil de LOWCUT escribían el mismo filtro (2026-11-22)
+
+### 37.1 What was wrong
+
+`master_eq` era el único biquad del firmware y lo escribían dos ajustes que no tienen nada que ver:
+`master_eq_update()`, cada bloque, desde los cuatro parámetros de MASTER EQ; y `qg_fx_update_eq()` desde
+MENU > LOWCUT, que instalaba un shelf fijo (`highshelf 90 Hz +3 dB` en LOWCUT, `lowshelf 35 Hz +4 dB` en
+BASS+). Elegir un perfil **sustituía** el EQ por el shelf del perfil, y como `qg_fx_update_eq()` no tocaba
+`eq_last_mode/_freq/_gain/_q`, el camino rápido de `master_eq_update()` seguía volviendo sin reconstruir: el EQ
+quedaba reemplazado hasta que se moviera un knob del EQ. La gráfica (`fx_master_eq_hz_db`) reconstruye el
+filtro desde `song.g[]` en cada llamada, así que dibujaba el shelf pedido mientras el audio llevaba el del
+perfil.
+
+Los coeficientes nunca fueron el problema: medido a través de `qg_biquad_process()` sobre el struct intacto, el
+lowshelf de −24 dB da `30 Hz −24.0, 1 kHz −0.4, 4 kHz −0.0` — exactamente la curva que describen. Por eso leer
+la cadena de coeficientes de vuelta no podía ver el defecto, y por eso `fx_probe` lo daba por bueno: medía
+`fx_master_eq_hz_db`, no lo que corre el mezclador.
+
+### 37.2 The fix
+
+`prof_eq`: el shelf del perfil en su propio `qg_biquad_t`, escrito por `qg_fx_update_eq()` y ejecutado después
+de `master_eq` en `mix_block()`, los dos detrás del mismo bloqueador de DC. Dos dueños, un filtro, se acabó: el
+EQ es el modo que el usuario eligió y el perfil **añade** su voicing en vez de reemplazarlo.
+
+### 37.3 Evidence `[HOST]`
+
+- `fx_probe` mide ahora el EQ **aplicado**: llama a `master_eq_update()` y pasa un tono por `master_eq` con
+  `qg_biquad_process()` (60 ciclos de asentamiento, 30 medidos), no por una copia. Curva:
+  `30:-24.0 60:-23.8 120:-21.9 250:-13.3 1000:-0.4 4000:-0.0 16000:-0.0`, y las tres comprobaciones del shelf
+  pasan sobre ella.
+- Comprobación nueva `EQ LOW SH survives a LOWCUT / BASS+ profile change`, verificada por mutación contra el
+  `fx.c` anterior: allí **falla** con `-0.0 / 4.0 dB` (el EQ sustituido por el shelf de cada perfil) y con el
+  arreglo pasa con `-24.0 / -24.0 dB`. Es la reproducción, no una afirmación.
+- `eq_response_test`, `eq_sweep_test`, `eq_dc_test`, `master_test`, `audio_stress`: verdes.
+- Build AC791N `[AC791N]`: XIP 558 164 B (4 820 libres, +1 220 sobre el sello anterior), RAM 93 504/98 304
+  (+64 B, el struct nuevo), imagen 578 288/583 612. Compila y enlaza; el manifiesto no se selló porque el árbol
+  tenía cambios sin commitear en ese momento.

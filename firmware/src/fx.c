@@ -560,6 +560,12 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
 }
 
 static qg_biquad_t master_eq = { BQ_ONE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+/* (v1.7.0) The LOWCUT / BASS+ profile's shelf, in its own filter. It used to be written into master_eq by
+ * qg_fx_update_eq(), so choosing a profile replaced whatever the master EQ was set to and left eq_last_*
+ * claiming the EQ was still applied: the sound lost the shelf the graph was drawing, and it stayed lost
+ * until an EQ knob moved. Two owners, one filter. The profile's shelf gets its own state and its own slot
+ * in the chain, so both can be on at once and neither can overwrite the other. */
+static qg_biquad_t prof_eq = { BQ_ONE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 /* the mix (dry + wet, before the MASTER knob: the same saturation at any volume) through CLIP, in place; wet
  * cleared (it is in the mix now). Its own loop, only while CLIP is on: the ISR's master loop stays as it was */
@@ -850,15 +856,15 @@ static __attribute__((noinline)) void usb_fixed_dac(int32_t *out, uint32_t n)   
 static volatile uint8_t fx_lowcut;     /* settings: 1 LOWCUT 12 dB/oct ~110 Hz, 2 BASS+ (the small speaker):
                                         * 12 dB/oct ~220 Hz plus the harmonics of the bass (spk_bass) */
 
-/* Apply EQ preset configuration using QG-1 Biquad shelf/peak filters */
+/* The LOWCUT / BASS+ profile's own shelf (prof_eq, not master_eq: see its declaration) */
 void qg_fx_update_eq(uint8_t mode)
 {
-    if (mode == 0) {
-        qg_biquad_init(&master_eq);
-    } else if (mode == 1) {
-        qg_biquad_set_highshelf(&master_eq, 90, 3);    /* LOWCUT profile: gentle high shelf compensation */
+    if (mode == 1) {
+        qg_biquad_set_highshelf(&prof_eq, 90, 3);      /* LOWCUT profile: gentle high shelf compensation */
     } else if (mode == 2) {
-        qg_biquad_set_lowshelf(&master_eq, 35, 4);     /* BASS+ profile: warm low shelf boost */
+        qg_biquad_set_lowshelf(&prof_eq, 35, 4);       /* BASS+ profile: warm low shelf boost */
+    } else {
+        qg_biquad_init(&prof_eq);
     }
 }
 static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r, eq_dc_l, eq_dc_r, eq_dce_l, eq_dce_r;
@@ -2677,14 +2683,17 @@ static __attribute__((noinline)) void mix_block(int32_t *out, uint32_t n)   /* (
         }
     if (clip_g)
         clip_block(n);
-    if (master_eq.active) {
+    if (master_eq.active || prof_eq.active) {
         /* A low shelf at +24 dB also boosts DC by ~16x. Remove it before the EQ, not after it, so a
          * DC offset in a preset cannot drive the leveler down and hide the whole mix. */
         for (i = 0; i < n; i++) {
             mix_l[i] = dc_block(mix_l[i], &eq_dc_l, &eq_dce_l);
             mix_r[i] = dc_block(mix_r[i], &eq_dc_r, &eq_dce_r);
         }
-        qg_biquad_process(&master_eq, mix_l, mix_r, n);
+        if (master_eq.active)
+            qg_biquad_process(&master_eq, mix_l, mix_r, n);
+        if (prof_eq.active)
+            qg_biquad_process(&prof_eq, mix_l, mix_r, n);
     }
     lev_block(n);                                       /* (JIANT 0.5) the leveler: the loudness held */
     {   /* (2.1) HOME's two mono meters: the left and the right peak of the mix the master is about to

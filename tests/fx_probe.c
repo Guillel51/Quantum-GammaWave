@@ -315,12 +315,46 @@ static void probe_lowcut_all(void)
 }
 
 /* ------------------------------------------------------------------ EQ ---
- * The master EQ's own curve, from the same coefficient builders the audio path uses. A low
- * shelf at -24 dB should fall by about 24 dB below its corner and stay flat two octaves above
- * it; if the shelf is "aggressive" that is visible as a corner that cuts well above its
- * frequency, or as a shelf that never flattens. */
-/* dB of the master EQ at a real frequency: fx_master_eq_hz_db, the same curve the graph draws */
-static double eq_db(double hz) { return (double)fx_master_eq_hz_db((int32_t)hz) / 256.0; }
+ * The master EQ as the mixer applies it, not as its coefficients describe it. A low shelf at -24 dB
+ * should fall by about 24 dB below its corner and stay flat two octaves above it; if the shelf is
+ * "aggressive" that is visible as a corner that cuts well above its frequency, or as a shelf that
+ * never flattens.
+ *
+ * Reading fx_master_eq_hz_db (what the graph draws) is not enough: it builds a filter of its own and
+ * cannot see what the audio path actually holds. That is how a wrong shelf went unnoticed -- the curve
+ * was right and the sound was not. This feeds a tone through master_eq, the struct master_begin()
+ * updates and qg_biquad_process() runs, and compares RMS out with RMS in. */
+static int32_t eq_bl[CTL], eq_br[CTL];
+static double eq_db(double hz)
+{
+    const double amp = 6000.0, w = PI2 * hz / FS;
+    double in = 0, out = 0;
+    long n = 0;
+    int b, i, per = (int)(FS / hz + 0.5), prime, measure;
+    if (per < 8) per = 8;
+    master_eq_update();                       /* the same call master_begin() makes every block */
+    qg_biquad_clear_state(&master_eq);
+    prime = per * 60 / CTL + 32;              /* 60 cycles to settle a 20 Hz pole, then 30 measured */
+    measure = prime / 2 + 32;
+    for (b = 0; b < prime + measure; b++) {
+        for (i = 0; i < CTL; i++) {
+            int32_t x = (int32_t)(amp * sin(w * (double)(n + i)));
+            eq_bl[i] = eq_br[i] = x;
+        }
+        n += CTL;
+        qg_biquad_process(&master_eq, eq_bl, eq_br, CTL);
+        if (b >= prime) {
+            for (i = 0; i < CTL; i++) {
+                double x = amp * sin(w * (double)(n - CTL + i));
+                in += x * x;
+                out += (double)eq_bl[i] * (double)eq_bl[i];
+            }
+        }
+    }
+    if (in <= 0 || out <= 0)
+        return -999.0;
+    return 10.0 * log10(out / in);
+}
 
 static void probe_eq(void)
 {
@@ -331,7 +365,7 @@ static void probe_eq(void)
     song.g[G_EQFREQ] = 48;
     song.g[G_EQGAIN] = -24;
     song.g[G_EQQ] = 64;
-    printf("       LOW SH -24 dB curve:");
+    printf("       LOW SH -24 dB curve (through the audio path):");
     for (i = 0; i < 7; i++)
         printf(" %g:%+.1f", HZ[i], eq_db(HZ[i]));
     printf("\n");
@@ -353,6 +387,19 @@ static void probe_eq(void)
     check("EQ LOW SH -24: the bottom is cut near -24 dB", low_db < -18.0 && low_db > -30.0, " %.1f dB", low_db);
     check("EQ LOW SH: rises monotonically and never overshoots 0", shelf_ok, NULL);
     check("EQ LOW SH: it does flatten out (4 kHz within 2 dB of 0)", fabs(top_db) < 2.0, " %.1f dB", top_db);
+    /* (v1.7.0) and it is still the LOW SH after a profile change: the LOWCUT / BASS+ shelf was written
+     * into master_eq by qg_fx_update_eq(), so picking a profile replaced the EQ (and eq_last_* kept
+     * saying it was applied, so nothing rebuilt it). Sound and graph disagreed; this is that */
+    {
+        double at30 = eq_db(30), lowcut, bass;
+        qg_fx_update_eq(1);                       /* MENU > LOWCUT, as the panel and the menu call it */
+        lowcut = eq_db(30);
+        qg_fx_update_eq(2);                       /* MENU > BASS+ */
+        bass = eq_db(30);
+        qg_fx_update_eq(0);
+        check("EQ LOW SH survives a LOWCUT / BASS+ profile change", fabs(lowcut - at30) < 1.0 && fabs(bass - at30) < 1.0,
+              " %.1f / %.1f dB", lowcut, bass);
+    }
 
     song.g[G_EQGAIN] = 24;
     low_db = eq_db(30);

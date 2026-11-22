@@ -31,6 +31,12 @@
   daba 6.6 dB de peine, el flanger no movía su null y el shelf del EQ leía su propio corte a 4 kHz. Con la
   senoide decodificada mide 23.6 dB de peine, un null que viaja de 4383 a 240 Hz y un shelf de -24.0 dB en el
   fondo y -0.0 dB a 4 kHz.
+- El master EQ y el shelf fijo del perfil LOWCUT/BASS+ escribían el **mismo** biquad: elegir un perfil
+  sustituía el EQ y, como el perfil no invalidaba la caché de parámetros, nada lo reconstruía hasta mover un
+  knob del EQ — mientras la gráfica seguía dibujando el shelf pedido. El perfil tiene ahora su propio filtro
+  (`prof_eq`), aplicado después del EQ, así que los dos pueden estar a la vez. `fx_probe` mide el EQ por la
+  ruta aplicada (el struct que corre `qg_biquad_process`, no una copia) y comprueba que sobrevive al cambio de
+  perfil.
 - El guard de presets de `fm6bank` seguía en 171 cuando la lista ya tenía 172 (los tres sonidos del remaster
   de 1.5.19); el propio comentario del test decía 172.
 - El consola serie de diagnóstico (`FELUCCA_CDC`) queda **off por defecto**: pagan los 3 668 B de enlace del
