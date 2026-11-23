@@ -3717,10 +3717,11 @@ v1.12 ("this block was the only one of the six that laid a full-width T_LINE acr
 
 **Pendiente, con la clase de evidencia que falta.** ~~Flicker del visualizer y del menú de presets al girar el
 encoder~~ -- **resuelto en v1.7.20** (§66), con `tests/ui_flicker_test.c` mirando cuadros consecutivos y las tres
-causas corregidas y verificadas al revés. Siguen abiertos: la desincronización de la línea interactiva de ENV 1/2
-con el ADSR dibujado y la superposición de notas en el teclado inferior de SCL; los dos necesitan una captura que
-el host todavía no toma (los tests de UI pasan, y el ADSR coloca el punto con `env_x_of`, que recorre la misma
-recurrencia que el dibujo). No se declaran corregidos.
+causas corregidas y verificadas al revés. Siguen abiertos: ~~la desincronización de la línea interactiva de ENV 1/2
+con el ADSR dibujado~~ -- **resuelto en v1.12** (`ui_graph.c`: el punto se coloca con `env_x_of`, que recorre la
+misma recurrencia que el dibujo, muestra a muestra, en lugar de invertir una recta; el comentario del código lo
+deja escrito y el barrido de render lo cubre) -- y la superposición de notas en el teclado inferior de SCL, que
+necesita una captura que el host todavía no toma. Ninguno de los dos se declara corregido en esta fase.
 
 ## 65. v1.7.19: la serie 1.7.x, sin perder nada
 
@@ -3824,3 +3825,21 @@ mejora de tiempo de pared** -- lo que se declara es lo que el contador mide.
 paso, acentos por paso y por lane, velocity con humanize, variaciones con semilla (MUTATE, FUGUE) y edición por
 knobs y por SysEx: todo existe y está cubierto por `ratchet_test`, `swing_test`, `pattern_len_test`, `mod_test`,
 `project_test` y `upreset_test`. No se duplicó nada.
+
+## 70. v1.8.2: cierre de ciclo, copia pública y auditoría
+
+**Copia contra código.** 291 sonidos de fábrica (medido por `preset_library_test`, por motor: ANALOG 73, FM6 37,
+PHASE 34, LOFI 29, FORMANT 25, WTABLE 23, WHEEL 22, NOISE 22, DRUM 16, ADDTV 10), 10 motores, 12 voces, 6 pistas,
+64 pasos, 8 slots de matriz por pista con 17 fuentes y 32 destinos. La portada decía 283 sonidos y `fmhub.json`
+287; el README anunciaba `v1.7.0`. Los tres corregidos; la tabla de presets no se tocó.
+
+**Pendientes cerrados o re-clasificados.** El punto de ENV contra el ADSR: resuelto en v1.12 con `env_x_of` (misma
+recurrencia que el dibujo), la matriz ya no lo lista como abierto. Sigue abierto el teclado de SCL (necesita una
+captura que el host no toma) y los slots 5..8 fuera del editor (ids de 7 bits, 125/127).
+
+**Seguridad.** `sign_test`, `key_custody_test`, `install_test`, `preflight_test` (paquete real),
+`test_pkg_bounds`, `release_gate_test`: verdes. Sin secretos en el árbol. Compuertas de instalación intactas:
+V16 sigue **GO CONDITIONAL** y ninguna se relajó en esta fase.
+
+**Limpieza.** `git ls-files` sin `.o/.pyc/.log/.tmp/.bak` y sin `.env`; ningún `TODO`/`FIXME` en `firmware/src`;
+`build/` y `wt/` fuera del repositorio. Nada de historial borrado.
