@@ -578,7 +578,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT,
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT,
        GR_SCENES};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
                                      * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
@@ -596,6 +596,12 @@ typedef struct {
 static const char *const N_PROGN[] = {"POP", "50S", "JAZZ", "ROCK", "CANON", "ANDALUS", "BLUES", "TURN"};
 static int16_t scl_prog;
 static const param_desc_t PROG_DESC = PE("PROG", N_PROGN, 0);
+/* (FASE 7) SCL > TUNE: the profile (N_TUNE, tune.c), the note of the circle being edited, its deviation and the
+ * whole profile's offset. The three are numbers a knob can hold; tune_ui_sync() is what turns them into sound. */
+static const param_desc_t TSLOT_DESC = PE("PROFILE", N_TUNE, 0);
+static const param_desc_t TNOTE_DESC = PD("NOTE", F_NOTE, 0, 11, 0);
+static const param_desc_t TCT_DESC = PD("CENTS", F_SEMI, -99, 99, 0);
+static const param_desc_t TALL_DESC = PD("REF", F_SEMI, -99, 99, 0);
 /* (6.1) FX > BUSES: the link KNOB 1 selects, and the ids KNOB 2..4 edit for it (page_desc). Its rows are the
  * parameters the other FX pages already own, so the console sets exactly what the engine reads. */
 static const char *const N_FXBT[] = {"TRACK", "BUSES", "DLY", "REV", "CHO", "SLI", "PUNCH", "MASTER"};
@@ -701,6 +707,8 @@ static const page_t PAGES[] = {
                                      * the keyboard: the key, its family and what snaps to it */
     {"CHORD", FAM_SCL, SC_TRACK, GR_SCL_CHORD, {P_CHRD, P_CVOI, P_CSTR, P_ROOT}},   /* (0.6.81) a key plays a chord;
                                      * (6.1) its voices and its strum on one page */
+    {"TUNE", FAM_SCL, SC_TRACK, GR_SCL_TUNE, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (FASE 7) the twelve cents of the
+                                     * instrument: PROFILE, NOTE, CENTS and REF are page_desc's (tune.c) */
     {"PROG", FAM_SCL, SC_TRACK, GR_SCL_PROG, {P_SCALE, P_ROOT, P_SCALE, P_CHRD}},   /* (2.8) KNOB 1 the progression
                                      * (page_desc), 3 the same SCALE as KNOB 1's real one */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
@@ -897,6 +905,10 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
             *valp = &TSEL->p[id];
             return track_desc(TSEL, id);
         }
+    }
+    if (pg->graph == GR_SCL_TUNE) {                    /* (FASE 7) SCL > TUNE's four knobs (tune.c) */
+        *valp = slot == 0u ? &tune_ui_slot : slot == 1u ? &tune_ui_note : slot == 2u ? &tune_ui_ct : &tune_ui_all;
+        return slot == 0u ? &TSLOT_DESC : slot == 1u ? &TNOTE_DESC : slot == 2u ? &TCT_DESC : &TALL_DESC;
     }
     if (pg->graph == GR_SCL_PROG && slot == 0u) {      /* SCL > PROG's KNOB 1: the progression, not the scale */
         *valp = &scl_prog;

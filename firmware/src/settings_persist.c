@@ -14,18 +14,22 @@ typedef struct {
     panel_t panel;
     uint32_t bold;
     struct { uint8_t factory[16][32]; uint32_t user, filter; } favorites;
+    tune_t tune[TUNE_USER];             /* (FASE 7) the three user temperaments, 13 bytes a slot */
 } persist_t;
-#define PERSIST_MAGIC 0x50455234u
+#define PERSIST_MAGIC 0x50455235u
+#define PERSIST_MAGIC_4 0x50455234u
 #define JIANT_PAL_SEEN 0x51u                    /* favorites.factory[15][23]: the palette set to QUANTUM once (0x47: GAMMA, GW-1) */
 
 /* Normalize in place; 1 = current, 2 = migrated, 0 = invalid. */
 static int settings_import(persist_t *p, int n)
 {
     int current = n == (int)sizeof *p && p->magic == PERSIST_MAGIC;
-    int old3 = n == (int)(sizeof *p - sizeof p->favorites) && p->magic == 0x50455233u;
-    int old2 = n == (int)(sizeof *p - sizeof p->favorites - sizeof p->bold) && p->magic == 0x50455232u;
+    int old4 = n == (int)(sizeof *p - sizeof p->tune) && p->magic == PERSIST_MAGIC_4;
+    int old3 = n == (int)(sizeof *p - sizeof p->favorites - sizeof p->tune) && p->magic == 0x50455233u;
+    int old2 = n == (int)(sizeof *p - sizeof p->favorites - sizeof p->bold - sizeof p->tune) && p->magic == 0x50455232u;
     int old1 = n == (int)(8u + sizeof(panel_t)) && p->magic == 0x50455231u;
-    if (!(current || old3 || old2 || old1)) return 0;
+    (void)old4;
+    if (!(current || old4 || old3 || old2 || old1)) return 0;
     if (old1) {
         panel_t old;
         memcpy(&old, (uint8_t *)p + 8, sizeof old);
@@ -34,6 +38,8 @@ static int settings_import(persist_t *p, int n)
     }
     if (old1 || old2) p->bold = 0;
     if (!current) memset(&p->favorites, 0, sizeof p->favorites);
+    if (!current && !old4)            /* (FASE 7) a record without temperaments had no user ones: EQUAL */
+        memset(&p->tune, 0, sizeof p->tune);
     if (p->favorites.factory[15][29] > 1u)        /* STYLE (ui.c ui_style): 2, the retired PIXEL = LINE; unknown = FLAT */
         p->favorites.factory[15][29] = p->favorites.factory[15][29] == 2u ? 1u : 0u;
     {   /* CLICK, CLICK LEVEL, COUNT-IN (ui.c ui_rec_prefs): two bits each, 3 is no value: the default (0) */
@@ -89,6 +95,19 @@ static int settings_import(persist_t *p, int n)
     }
 #endif
 #endif
+    memcpy(tune_slot, &p->tune, sizeof tune_slot);   /* (FASE 7) the user temperaments, before anything reads them */
+    {   /* a corrupt cents byte would be a class a semitone off: clamped, and the live table goes back to EQUAL
+         * (the factories are TUNE_TEMP's rodata, so there is nothing of theirs to repair) */
+        uint32_t k, n;
+        for (k = 0; k < TUNE_USER; k++) {
+            for (n = 0; n < 12u; n++)
+                tune_slot[k].ct[n] = (int8_t)clamp(tune_slot[k].ct[n], -TUNE_CMAX, TUNE_CMAX);
+            tune_slot[k].all = (int8_t)clamp(tune_slot[k].all, -TUNE_CMAX, TUNE_CMAX);
+        }
+        tune_pick(0);
+        tune_ui_slot = tune_ui_note = tune_ui_ct = tune_ui_all = 0;
+        tune_ui_slot_l = tune_ui_note_l = -1;
+    }
     memcpy(midi_learn_map, &p->favorites.factory[15][0], sizeof midi_learn_map);   /* (1.9.2) the MIDI Learn map */
     if (p->panel.magic == PANEL_MAGIC) panel = p->panel;
     return current ? 1 : 2;
@@ -119,6 +138,7 @@ static void settings_export(persist_t *p)
 #ifdef FELUCCA_FAVORITES
     memcpy(&p->favorites, &favorites, sizeof favorites);
 #endif
+    memcpy(p->tune, tune_slot, sizeof p->tune);   /* (FASE 7) the temperaments */
     memcpy(&p->favorites.factory[15][0], midi_learn_map, sizeof midi_learn_map);   /* (1.9.2) the MIDI Learn map */
     p->favorites.factory[15][16] = settings_yoff;   /* (1.4.11) PANEL Y, after the copy of the live favorites: that
                                                      * copy is what would otherwise put the byte back */

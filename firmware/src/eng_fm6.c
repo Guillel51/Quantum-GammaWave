@@ -426,7 +426,8 @@ static void fm6_render(track_t *t, voice_t *v, int32_t *out, uint32_t len, const
     p = fm6_eff[tr].p;
     if (!v->gate && n->down)
         fm6_note_key(n, p, 0);
-    lf = fm6_note_logfreq(m->pitch16 + (p[FP_TRNSP] - 24) * 16, m->fine);
+    lf = fm6_note_logfreq(m->pitch16 + (p[FP_TRNSP] - 24) * 16,
+                             m->fine + tune_cents(m->pitch16) * 13981 / 100);   /* (FASE 7) the temperament */
     fb = clamp(fm6_eff[tr].fb + ((m->shape - (64 << 8)) >> 11), 0, 7);
     lvl = clamp(t->p[P_E2], -64, 63) * 24 + clamp(m->cutoff >> 8, -150, 150) * 16 +   /* microsteps */
           clamp((m->shape - (64 << 8)) >> 8, -150, 150) * 16;   /* (0.6.81) SHAPE: the modulators' depth too (the

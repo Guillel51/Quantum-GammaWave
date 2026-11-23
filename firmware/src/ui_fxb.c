@@ -107,7 +107,7 @@ static void fxb_meters(int32_t x, int32_t y, int32_t h, int32_t snd, int32_t wet
     cv_rect(x, y + hh, 3, 1, T_LINE);               /* (a tick between the two, so they never read as one bar) */
 }
 
-static void graph_fx_buses(const track_t *t)
+static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
 {
     static const int32_t BX[2] = {3, 121}, BY[3] = {18, 54, 90};
     static const int32_t BW = 116, BH = 34, IN = 15;   /* IN: the header, so a drawing starts at y + IN */

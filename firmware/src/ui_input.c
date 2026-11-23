@@ -1154,6 +1154,10 @@ static void edit_param(uint32_t slot, int32_t steps)
         settings_save();
         return;
     }
+    if (pg->graph == GR_SCL_TUNE) {                     /* (FASE 7) SCL > TUNE: the four numbers are the table */
+        tune_ui_sync(ui.frame);
+        return;
+    }
     if (pg->scope != SC_GLOBAL) motion_capture_ui(TSEL, (uint32_t)(vp - TSEL->p), *vp);
 }
 

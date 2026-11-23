@@ -64,7 +64,7 @@ static int32_t env_x_of(int32_t lvl, int32_t n, int32_t from, int32_t to)
     return px < 0 ? 0 : (px > n * 100 ? n * 100 : px);   /* hundredths of a sample: the caller divides */
 }
 
-static void graph_adsr(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
 {
     const page_t *pg = cur_page();
     int32_t a = 4 + t->p[pg->id[0]] * 50 / 127, d = 6 + t->p[pg->id[1]] * 50 / 127, r = 6 + t->p[pg->id[3]] * 60 / 127;
@@ -124,7 +124,7 @@ static void graph_adsr(const track_t *t, uint16_t c)
  * the bend is drawn as the straight chord between them: an asymptotic sketch, labelled as such by its shape, not a
  * measured response. The dot is where the top sits; the knob moves it. Cheap: one rectangle a column, a few
  * multiplies, nothing per sample. */
-static void graph_tilt(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
 {
     int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100;
     int32_t amt = t->p[P_HARM], k = 64 + (clamp(amt, -64, 63) * 3) / 4;   /* 16..111: the same gain the DSP uses */
@@ -145,7 +145,7 @@ static void graph_tilt(const track_t *t, uint16_t c)
     cv_rrect(xp - band + 2, right - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the top's level, where the knob puts it */
 }
 
-static void graph_lfo(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
 {
     int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, xp = PANEL_W / 4;
     uint32_t span = 0xFFFFFFFFu / (PANEL_W / 2u), ph = t->lfo_ph - (uint32_t)xp * span;
@@ -178,7 +178,7 @@ static int32_t bar_x(uint32_t i) { return 12 + (int32_t)(i % 16u) * 13 + (int32_
  * ratchet's parts as pips above the baseline, a 25/50/75/100 % guide, the cursor framed and the
  * step the transport is on marked under it. Colour says the chance: T_THEME at 100 %, warmer as it
  * falls (heat_col 0..200), so the risky steps read at a glance without a legend. */
-static void graph_chance(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_chance(const track_t *t, uint16_t c)
 {
     uint32_t i, len = (uint32_t)t->p[P_SLEN], base = ((uint32_t)ui.cursor / 16u) * 16u, play = seq_src(t, t->seq_idx);
     int32_t gh = graph_ht < 40 ? 40 : graph_ht;    /* (a short card -- MENU > LARGE's strip -- never makes a
@@ -222,7 +222,7 @@ static void graph_chance(const track_t *t, uint16_t c)
     }
 }
 
-static void graph_steps(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_steps(const track_t *t, uint16_t c)
 {
     uint32_t i, len = (uint32_t)t->p[P_SLEN];
     int32_t sm = graph_ht < 100;                     /* MENU > LARGE's strip: rows 14 px apart, bars 10 px */
@@ -261,7 +261,7 @@ static uint16_t comp_mark(const step_t *st)
     if (step_ratchet(st) > 1u) return T_THEME;
     return 0;
 }
-static void graph_comp(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_comp(const track_t *t, uint16_t c)
 {
     uint32_t i, len = (uint32_t)t->p[P_SLEN], v = comp_view(), ct;
     const step_t *cs = &t->step[ui.cursor];
@@ -388,7 +388,7 @@ static void graph_comp(const track_t *t, uint16_t c)
 
 /* (0.6.43) SEQ > MUTATE: a row a track, the next 32 bars: SOUND's changes an orange mark on top, PATTERN's a violet one
  * under it; the bar now ACCENT; the selected track's row lit; ORBIT / DRIFT at the right; FROZEN over it all */
-static void graph_mutate(void)
+static __attribute__((noinline)) void graph_mutate(void)
 {
     uint32_t k, b, now = song.playing ? bar_n : 0u;
     for (k = 0; k < NTRK; k++) {
@@ -414,7 +414,7 @@ static void graph_mutate(void)
  * height; under it the two waves it is between */
 /* (0.6.48) EDIT > IMAGE (a DRUM track): the eight sounds from left to right as IMAGE places them (as wide as DRV,
  * DIST and the FILTER let it play: dx_img_k), a row each, the kick on top, on a line from the middle */
-static void graph_dximg(const track_t *t)
+static __attribute__((noinline)) void graph_dximg(const track_t *t)
 {
     static const char *const AB[DV_NLANE] = {"BD", "SD", "CP", "CH", "OH", "TM", "RS", "CB"};
     int32_t img = clamp(t->p[P_DXIMG], 0, 127), k = img ? dx_img_k(t) : 0, cx = PANEL_X0 + PANEL_W / 2;
@@ -430,7 +430,7 @@ static void graph_dximg(const track_t *t)
     }
 }
 
-static void graph_morph(const track_t *t)
+static __attribute__((noinline)) void graph_morph(const track_t *t)
 {
     const int16_t *p = t->p;
     uint32_t e = t->eng_req % NENGINES, i, a0 = 0, a1 = 0;
@@ -634,7 +634,7 @@ static void pr_bars(const step_t *st, int32_t x, int32_t w, uint16_t c, int acc_
             pr_split(x, y + 1, w, PR_RH - 2, c, hits);
     }
 }
-static void graph_roll(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_roll(const track_t *t, uint16_t c)
 {
     uint32_t i, len = (uint32_t)t->p[P_SLEN], base = ui.bank * 16u, ncol, mask = scale_mask(t), held = pr_held();
     uint64_t locks = motion_lock_steps(trk_index(t));
@@ -731,7 +731,7 @@ static void graph_roll(const track_t *t, uint16_t c)
  * names (BD SD CP CH OH TM RS CB; CG CL CY on the other kits). A hit is a rounded square (accented: the
  * accent; a RATCH step's: its 2..4 parts as bars), an empty step a dot (brighter on the beats and on the selected lane); the selected lane is
  * underlaid RAISE, the cursor framed in TEXT; a TEXT bar over the step playing */
-static void graph_grid(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_grid(const track_t *t, uint16_t c)
 {
     uint32_t l, i, len = (uint32_t)t->p[P_SLEN], base = ui.bank * 16u;
     uint64_t locks = motion_lock_steps(trk_index(t));
@@ -808,7 +808,7 @@ static void scl_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint1
     cv_rect(x + w - 1, y + r, 1, h - 2 * r, brd);
 }
 
-static void graph_scale(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
 {
     static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
     static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};    /* the white key it belongs to */
@@ -964,7 +964,7 @@ static void fx_fader_bar(int32_t x, int32_t y, int32_t h, int32_t pct)
     }
 }
 
-static void graph_fx(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_fx(const track_t *t, uint16_t c)
 {
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
     static const char *const DIST_TYPES[6] = {"SOFT", "TAPE", "HRTH", "FLUX", "FOLD", "CRSH"};   /* (FASE 5) CRSH: appended with the model */
@@ -1160,7 +1160,7 @@ static void graph_fx(const track_t *t, uint16_t c)
 /* SLICER and SL BUS pages (JIANT 0.6.3: one, on a bus): the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE
  * a bar as high as it stays open (DEPTH), STUT hatched (it repeats the last 'x'); the step playing underlined. Under
  * them what goes in: T1..T6 and FX, lit ON. Grey when OFF */
-static void graph_slicer(uint16_t c)
+static __attribute__((noinline)) void graph_slicer(uint16_t c)
 {
     uint32_t i, pat = sl_pattern(), mode = (uint32_t)song.g[G_SLMODE], cur = sl.idx;
     int32_t open = 52 - song.g[G_SLDEP] * 52 / 127;     /* px a closed GATE step keeps */
@@ -1272,7 +1272,7 @@ static uint32_t arp_route_now(const track_t *t, uint32_t len)
         return 0u;
     return arp_step_index(m, i, len);
 }
-static void graph_arp(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_arp(const track_t *t, uint16_t c)
 {
     static const uint8_t WN[7] = {0, 2, 4, 5, 7, 9, 11};          /* C D E F G A B */
     static const uint8_t BK[5] = {1, 3, 6, 8, 10};                  /* the five accidentals */
@@ -1457,7 +1457,7 @@ static void graph_arp(const track_t *t, uint16_t c)
 
 /* SL PITCH (JIANT 0.6.3): the repeats' 16 pitch steps as bars from the middle (+-24 semitones), past LEN dim, the one
  * KNOB 2 edits underlined, the one playing (STUT running) lit */
-static void graph_slpitch(uint16_t c)
+static __attribute__((noinline)) void graph_slpitch(uint16_t c)
 {
     uint32_t i, len = (uint32_t)clamp(song.g[G_SLPLEN], 1, 16), now = song.g[G_SLMODE] == SL_STUT ? sl.idx % len : 0xFFu;
     int32_t y0 = 46, hmax = 38;
@@ -1482,7 +1482,7 @@ static void graph_slpitch(uint16_t c)
  * core 1's last job really took (hal/fm1_multicore.h fm1_mc_job_us, stamped by core 1 itself around the job and
  * published before `done`), plus the late blocks and the voices shed for them (audio.c load_diag). Every figure has
  * a writer; none is a constant. */
-static void graph_diag(uint16_t c)
+static __attribute__((noinline)) void graph_diag(uint16_t c)
 {
     uint32_t i, n1 = 0, n0, step = 0, slen = 1, sounding, release, fading, peak, steals, denied, cap;
     char b[64];                    /* (v1.5.13) the longest row (POLYPHONY with every counter up) is 55 */
@@ -1674,7 +1674,7 @@ static void graph_diag(uint16_t c)
  * the destinations as chips -- and, while its knob is being turned, the row's frame takes the accent and a pip
  * travels the gauge: the same "this is the one you touched" the cards use, and only while hot (the UI redraws
  * every frame then, so the animation costs nothing when the page is still). */
-static void graph_macros(uint16_t c)
+static __attribute__((noinline)) void graph_macros(uint16_t c)
 {
     uint32_t i, k, tr = (uint32_t)song.sel;
     const char *L[4] = {"M1", "M2", "M3", "M4"};
@@ -1719,7 +1719,7 @@ static void graph_macros(uint16_t c)
  * end draws no fill: the pair is not armed and turning MORPH would do nothing). Read only: the four knobs under
  * the panel are the page's, and the fill's colour follows HEAT when the palette is chamfered, as the MACROS
  * gauges do. Cheap by construction: a handful of rectangles and two numbers a frame, no per-id loop. */
-static void graph_scenes(void)
+static __attribute__((noinline)) void graph_scenes(void)
 {
     int32_t x0 = PANEL_X0 + 4, x1 = PANEL_X0 + PANEL_W - 4, w = x1 - x0;
     int32_t pos = clamp(msc_pos, 0, 127), mx = x0 + w * pos / 127, k;
@@ -1766,7 +1766,7 @@ static void graph_scenes(void)
  * slots, drawn by the same row, and a destination two or more of them drive carries its count in a chip: the
  * shared destinations, where one value is moved twice. Read only and with no bars: MOD is where the slots are
  * edited. */
-static void graph_mod(const track_t *t, uint16_t c, int map)
+static __attribute__((noinline)) void graph_mod(const track_t *t, uint16_t c, int map)
 {
     uint32_t k, j, i = 0, n;
     for (k = 0; k < NMSLOT; k++) {
@@ -1893,7 +1893,7 @@ static uint32_t str_hash(uint32_t h, const char *s)
  * change here), the pulse width on its period, the crusher's staircase, and a T.CLK timeline that shows what
  * NOTE and FREE do -- a note restarts the formula, or the formula keeps running and the note joins it where it
  * is (eng_lofi.c lofi_note_on, voice.c's retrigger). */
-static void graph_lofi(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_lofi(const track_t *t, uint16_t c)
 {
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     int32_t chip = clamp(t->p[P_E0], 0, 4), wv = clamp(t->p[P_E1], 0, 6);
@@ -1945,7 +1945,7 @@ static void graph_lofi(const track_t *t, uint16_t c)
  * track's own P_E0..P_E7 -- the values eng_phase.c plays -- plus the figures the page does not carry.
  * Moving DCW moves the knee and moving the page's WAVE moves what the header says, because those are the
  * parameters; no state is kept here and no audio is read. */
-static void graph_phase(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_phase(const track_t *t, uint16_t c)
 {
     int32_t w = (int32_t)(t->p[P_E0] & 7), w2 = clamp(t->p[P_E1], 0, 8);
     int32_t dcw = clamp(t->p[P_E2], 0, 127), env = clamp(t->p[P_E3], 0, 127);
@@ -2004,7 +2004,7 @@ static void graph_phase(const track_t *t, uint16_t c)
  * same language as WHEEL's drawbars. Each bar is one harmonic, its height the gain add_block normalised
  * (a partial the profile leaves out shows as a stub), and the whole row lights in the accent while the
  * knob that moves the spectrum is being turned. */
-static void graph_additive(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_additive(const track_t *t, uint16_t c)
 {
     static const char *const names[8] = {"1", "2", "3", "4", "5", "6", "7", "8"};
     uint32_t k;
@@ -2020,7 +2020,7 @@ static void graph_additive(const track_t *t, uint16_t c)
         cv_text_in(x + 4, 82, 14, &AF_S, names[k], T_MID, T_SURF);
     }
 }
-static void graph_wheel(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_wheel(const track_t *t, uint16_t c)
 {
     uint32_t k;
     static const char *const names[9] = {"16", "5.3", "8", "4", "2.7", "2", "1.6", "1.3", "1"};
@@ -2123,7 +2123,7 @@ static uint32_t fm6_alg_of(const track_t *t)
  * numerals, modulators RAISE with THEME ones; an operator at output level 0: a DIM numeral (a carrier on RAISE).
  * Routes THEME, the feedback loop MID (DIM at feedback 0), the output bus MID. The knob just turned in ACCENT:
  * ALG and PTCH the label, FB the loop, MLVL the routes, MRAT MEG VMOD the modulators, DTUN the carriers. */
-static void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: the operator picked (ui_fm6op.c) */
+static __attribute__((noinline)) void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: the operator picked (ui_fm6op.c) */
 {
     uint32_t alg = fm6_alg_of(t), k, j, car = fm6_car_ops(alg), top = 0, hi = 0, fbop = fm6_fb_op(alg), hotset = 0;
     uint32_t hot = ui.hot_t ? (uint32_t)cur_page()->id[ui.hot_col & 3u] : 0u;
@@ -2204,7 +2204,7 @@ static void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: 
  * there while the key is down (a RAISE mark where it is let go), back to L4 at R4. A stage's width grows as its rate
  * falls (4..48 px: 99 is a step, 0 the longest), the levels 0..99 linearly (dB). The curve THEME, the stage KNOB 3 / 4
  * edit (STAGE) ACCENT with a dot at its target; "OP3" top left, the stage's rate and level top right */
-static void graph_fm6env(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_fm6env(const track_t *t, uint16_t c)
 {
     static const char *const STG[4] = {"ATK", "DEC", "SUS", "REL"};
     const uint8_t *op = fop_bytes((uint32_t)(t - trk));
@@ -2255,7 +2255,7 @@ static const uint16_t FM_MOD[8] = {0x0842, 0x00C2, 0x004A, 0x0806, 0x0802, 0x088
  * Carriers THEME with INK numerals, modulators RAISE with THEME ones; an operator at LEVEL 0: DIM numeral.
  * Routes by IDX: DIM at 0, MID, THEME from 64; op 4's feedback loop MID (DIM at FB 0). The knob just turned
  * (an operator's ratio or level, IDX, FB): ACCENT. Junction dots where routes split or merge. */
-static void graph_fm(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_fm(const track_t *t, uint16_t c)
 {
     uint32_t alg = (uint32_t)t->p[P_E0] & 7u, k, j, mods = FM_MOD[alg], car = 0, hop = 9;
     uint32_t hot = ui.hot_t ? (uint32_t)cur_page()->id[ui.hot_col & 3u] : 0u;
@@ -2438,7 +2438,7 @@ static uint16_t heat_col(int32_t v)
 
 /* DRUM (DRUM-X): the eight sounds as columns, each as high and as hot as its hit now (a muted one crossed); the MORPH
  * A .. B above. sel: the sound edited (EDIT > SOUND), its name in the theme colour; -1 none */
-static void graph_title(void)
+static __attribute__((noinline)) void graph_title(void)
 {
     char ti[20];
     const aafont_t *f = &AF_L;
@@ -2453,7 +2453,7 @@ static void graph_title(void)
 
 /* (0.6.52) SEQ > FUGUE: the steps (their notes as heat) with the sequencer's playhead, then a lane each for heads 2..4:
  * where it is, its RATE DIR INTERVAL; the head edited lit */
-static void graph_fugue(const track_t *t)
+static __attribute__((noinline)) void graph_fugue(const track_t *t)
 {
     uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), i, k, ti = song.sel % NTRK;
     int32_t w = PANEL_W / (int32_t)len, x0 = PANEL_X0 + (PANEL_W - w * (int32_t)len) / 2;
@@ -2541,7 +2541,7 @@ static int drift_on(void)
            g != GR_STEPS && g != GR_CHANCE && g != GR_BROWSE && g != GR_USER && g != GR_SLOTS && g != GR_EVENTS &&
            g != GR_SONG && g != GR_TOOLS && g != GR_PATS;
 }
-static void graph_drift(void)
+static __attribute__((noinline)) void graph_drift(void)
 {
     uint32_t k, gh = graph_h();
     for (k = 0; k < 14u; k++) {
@@ -2805,7 +2805,7 @@ static void panel_alert(uint32_t id, const char *a)
 
 /* preset browser: the global list (every engine), the current one selected; tag DIM, name TEXT,
  * favourites starred (the accent), the selected row's suggested pattern at its right */
-static void graph_browse(void)
+static __attribute__((noinline)) void graph_browse(void)
 {
     uint32_t total, cur = preset_pos(&total), e, k;
     int32_t row;
@@ -2872,7 +2872,7 @@ static void graph_browse(void)
 }
 
 /* Compact semi-translucent 1.5s HUD popup centered on screen when changing presets via knob */
-static void graph_pop_plate(int32_t x0, int32_t oy)
+static __attribute__((noinline)) void graph_pop_plate(int32_t x0, int32_t oy)
 {
     uint32_t total, cur = preset_pos(&total), e = NENGINES, k = 0u;
     int32_t r, y0 = oy, w = 208, h = 86;
@@ -2993,7 +2993,7 @@ static uint32_t graph_pop_sig(void)
 }
 static uint32_t graph_pop_sent;                    /* graph_pop_sig() of the card last put on the glass */
 
-static void graph_preset_pop_in_panel(void)
+static __attribute__((noinline)) void graph_preset_pop_in_panel(void)
 {
     uint32_t total;
     int32_t full = cur_page()->graph == GR_BROWSE;
@@ -3007,7 +3007,7 @@ static void graph_preset_pop_in_panel(void)
 }
 
 /* the plate alone, for a frame whose panel was not drawn (its signature did not move): one send, not two */
-static void graph_preset_pop(void)
+static __attribute__((noinline)) void graph_preset_pop(void)
 {
     uint32_t total, sig = graph_pop_sig();
     int32_t full = cur_page()->graph == GR_BROWSE;
@@ -3068,7 +3068,7 @@ static void engine_sound_row(int32_t y)
  * heat below, in every palette and in every style; GREY and MONO get a neutral bevel because both tokens are
  * neutral there, and MONO is skipped outright: a black-and-white page has no heat, and its contrast belongs
  * to the data. */
-static void graph_heat(void)
+static __attribute__((noinline)) void graph_heat(void)
 {
     /* Two separate ramps, not one wash: the shade the bezel casts (the top tenth), the panel's own colour
      * untouched through the middle, and the Solar Heat glow (the bottom quarter, six steps to 15 %). The first
@@ -3107,7 +3107,7 @@ static void graph_heat(void)
  * the sequencer's grid, read as dirt on the panel. Ten bands of two units each is a blend with no seam and
  * no texture, and the accent stays at 0..18 % so a row of steps keeps its contrast in every palette,
  * GREY and MONO included. */
-static void graph_ground_ramp(void)
+static __attribute__((noinline)) void graph_ground_ramp(void)
 {
     int32_t span = graph_h() - 4;
     /* (7.4) from under the bezel's shade to the panel's own floor: one ramp a page, ten bands, and the accent
@@ -3120,7 +3120,7 @@ static void graph_ground_ramp(void)
     ux_ground_ramp(7, y0, 226, y1 - y0, 10, T_SURF, ux_mix(T_SURF, warm, top), 100);
 }
 
-static void graph_user(void)
+static __attribute__((noinline)) void graph_user(void)
 {
     int32_t row, first = clamp((int32_t)ui.uslot - 3, 0, UP_SLOTS - 7);
     for (row = 0; row < 7; row++) {
@@ -3136,7 +3136,7 @@ static void graph_user(void)
     }
 }
 /* SEQ > PATTERNS: the pattern list around the one picked ("03  MELODY", "U07  MY BASS") */
-static void graph_pats(void)
+static __attribute__((noinline)) void graph_pats(void)
 {
     uint32_t n = pat_count(), cur = pat_pick();
     int32_t row, first = clamp((int32_t)cur - 3, 0, (int32_t)n > 7 ? (int32_t)n - 7 : 0);
@@ -3153,7 +3153,7 @@ static void graph_pats(void)
  * automation drawn as it sounds -- the sound's own value until the first record, each record held to the next --
  * with its locks as ticks on the step they belong to, the recorder's grid under it (KNOB 2) and, while the song
  * plays, the step sounding. The counts stay in the columns above, the page's actions in KNOB 4. */
-static void graph_motion(void)
+static __attribute__((noinline)) void graph_motion(void)
 {
     const track_t *t = TSEL;
     uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), k = trk_index(t), id = ui.mo_id, i, step;
@@ -3193,7 +3193,7 @@ static void graph_motion(void)
         px = x; py = y;
     }
 }
-static void graph_events(void)
+static __attribute__((noinline)) void graph_events(void)
 {
     const track_t *t = TSEL;
     uint8_t idx[MOTION_MAX];
@@ -3239,7 +3239,7 @@ static void graph_events(void)
 }
 /* (0.6.12) SAVE > TOOLS: a list of what it can do (on what: the track, the song's row), the one picked (KNOB 1 or
  * PRESETS, 0.6.25: was a knob each) filled; OCT+ does it (a dialog first) */
-static void graph_tools(void)
+static __attribute__((noinline)) void graph_tools(void)
 {
     static const char *const WHAT[7] = {"CLEAR SEQ", "INIT SOUND", "DELETE ROW", "CLEAR SONG", "NEW PROJECT", "CPU TEST",
                                         "CLEAR PROJ"};
@@ -3266,7 +3266,7 @@ static void graph_tools(void)
 /* (0.6.12) SAVE > PROJECT: the project (one of NSONG: a song of storage.c) and its four sections. A title line
  * (PROJECT n, the section the music came from or went to), the sections A-D (name, USED or --; the one picked filled;
  * the music's: NOW; the bars each plays in the project's song), then the song (ARRANGE) in a line: A4 > B8 > .. */
-static void graph_slots(void)
+static __attribute__((noinline)) void graph_slots(void)
 {
     uint32_t i, r, bars[4] = {0, 0, 0, 0};
     char b[40];
@@ -3498,13 +3498,13 @@ static void track_col6(uint32_t c, uint32_t sel, uint32_t st, uint32_t mute, uin
  * name left in the MIXER's dB zone. This flag says a whole panel was covered, so the ground and every column are
  * painted again (ui_render --regions, case A). */
 static uint8_t graph_covered;
-static void graph_invalidate(void)
+static __attribute__((noinline)) void graph_invalidate(void)
 {
     graph_covered = 1;
     ui.graph_sig = 0;
     graph_pop_sent = 0;                            /* (v1.8.7) the band is to be painted again: so is the card */
 }
-static void draw_tracks(void)
+static __attribute__((noinline)) void draw_tracks(void)
 {
     uint32_t c, sk = strip_kind() == SK_TRK, six = !sk;   /* (0.6.80: the six columns with every COLOR and STYLE;
                                                          * MENU > LARGE: four, bigger) */
@@ -3631,7 +3631,7 @@ static int16_t scope_snap[SCOPE_N];
 #define VIZ_VEIL 60
 #define Y_LABEL_GAP_H (26 - Y_LABEL)   /* (v1.11) rows Y_LABEL..25: the only rows above the panel's 26 that the
                                         * visualizer has to cover -- 26 and up are the two passes' own */
-static void graph_home_viz(uint16_t c)
+static __attribute__((noinline)) void graph_home_viz(uint16_t c)
 {
     static uint8_t peak_decay[16];
     uint32_t w = scope_w, i, trig = 0, pass;
@@ -3825,7 +3825,7 @@ static void graph_home_viz(uint16_t c)
 
 /* oscilloscope of the output, triggered on a rising zero crossing: a RAISE centre line, the trace 2 px (in silence
  * a flat line on it; MENU > SCREEN OFF keeps it from staying on the panel for hours) */
-static void graph_scope(uint16_t c)
+static __attribute__((noinline)) void graph_scope(uint16_t c)
 {
     uint32_t w = scope_w, i, trig = 0;
     int32_t cy = (int32_t)cv_h / 2, py = cy, x, peak = 1500, a = cv_h == H_GRAPH ? 46 : cy - 6;   /* (LARGE: the strip) */
@@ -3854,7 +3854,7 @@ static void graph_scope(uint16_t c)
 /* SONG: the rows, each a section (the saved project A..D, sounds and steps) and its bars (song_chain.c) */
 /* (JIANT) MSEQ: the 16 levels as bars (past LEN dim), the step KNOB 1 picked framed, the one playing in the accent, and
  * the level the matrix reads now (STEP, slewed) as a line */
-static void graph_mseq(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_mseq(const track_t *t, uint16_t c)
 {
     uint32_t i, len = t->p[P_MSLEN] > 0 ? (uint32_t)t->p[P_MSLEN] : 1u;
     uint32_t per = div_samples((uint32_t)t->p[P_MSDIV]), now = song.playing && per ? ms_clock / per % len : 0xFFu;
@@ -3890,7 +3890,7 @@ static void song_chip(int32_t x, int32_t y, uint32_t s, int saved, int sel, uint
     GFX_HOOK_ALIGN(x, y, x + 18, y + 14, AL_HV, "song chip letter centred");
     cv_text_on(x + (18 - text_w(&AF_S, b)) / 2, y + CAP_IN(S, 14), &AF_S, b, sel ? T_THEME : saved ? T_BG : T_DIM, c);
 }
-static void graph_song(void)
+static __attribute__((noinline)) void graph_song(void)
 {
     uint32_t end = song_end_row(), first, i, total = 0, played = 0;
     int32_t mh = (int32_t)graph_h() - 22, my = 4, acc = 0;
@@ -3978,7 +3978,7 @@ static void graph_song(void)
 }
 #include "ui_tech.c"                                /* (JIANT 0.5) the technical graphs (FX, DEST, VOICE, GLOBAL) */
 /* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
-static void graph_master(void)
+static __attribute__((noinline)) void graph_master(void)
 {
     /* (3.1) the master VU's geometry. The four LVL / LIM / CPU / PK boxes that used to fill y 80..98
      * are gone (the owner asked for them out of MASTER), so the meters take that band: y 80 and 87, with
@@ -4091,7 +4091,7 @@ static void graph_master(void)
      * space it held is the VU's now, so the page has no empty hole and nothing moved off the panel. */
 }
 
-static void draw_graph(void)
+static __attribute__((noinline)) void draw_graph(void)
 {
     const page_t *pg = cur_page();
     const track_t *t = TSEL;
@@ -4211,6 +4211,10 @@ static void draw_graph(void)
         case GR_SCL_CHORD:
             cv_oy = 0;
             graph_scl_chord(t, c);
+            break;
+        case GR_SCL_TUNE:                             /* (FASE 7) SCL > TUNE (ui_scl.c) */
+            cv_oy = 0;
+            graph_scl_tune(t);
             break;
         case GR_SCL_PROG:
             cv_oy = 0;

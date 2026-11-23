@@ -14,6 +14,8 @@
  * is centred at (52, 63) with its twelve labels on a ring of 47 px: the twelve note names never collide with
  * the ring, and the right column keeps 130 px for the key, its scale and the degrees. */
 
+#include "tune.c"               /* (FASE 7) SCL > TUNE's model, when this file is compiled on its own */
+
 static const char *const N_ITVN[] = {"P1", "m2", "M2", "m3", "M3", "P4", "TT", "P5", "m6", "M6", "m7", "M7"};
 static const char *const N_ROMAN[] = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII"};
 static const char *const N_ROMANM[] = {"i", "ii", "iii", "iv", "v", "vi", "vii", "viii"};
@@ -26,6 +28,11 @@ static const int16_t SCL_SIN[12] = {-256, -222, -128, 0, 128, 222, 256, 222, 128
 static const uint8_t SCL_BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
 static const uint8_t SCL_WKEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
 static const uint8_t SCL_WNOTE[7] = {0, 2, 4, 5, 7, 9, 11};
+/* (FASE 7) SCL > TUNE's circle: the geometry the page draws and the tap measures */
+#define TUNE_CX 58                /* clear of the panel's own edge on the left, of the column on the right */
+#define TUNE_CY 63
+#define TUNE_RN 40                /* the note names' ring: a name's half width still fits inside 8..232 */
+#define TUNE_RB 20                /* the spokes start here */
 #define SCL_CELLS 12
 #define SCL_CELL_W 18
 #define SCL_CELL_X 12
@@ -546,6 +553,25 @@ int scl_tap(int32_t graph, int32_t x, int32_t y)
         scl_toggle(ti, (uint32_t)n);
         return 1;
     }
+    if (graph == GR_SCL_TUNE) {                            /* (FASE 7) the circle: the note a tap lands on is
+                                                            * the one the cents knob edits, and the hub in the
+                                                            * middle is the way back to equal temperament */
+        int32_t k, dx0 = x - TUNE_CX, dy0 = y - TUNE_CY;
+        if (dx0 * dx0 + dy0 * dy0 <= 64) {
+            tune_back(ui.frame);
+            ui_message("EQUAL TEMPERAMENT");
+            return 1;
+        }
+        for (k = 0; k < 12; k++) {
+            int32_t kx = TUNE_CX + ((TUNE_RN * SCL_COS[k]) >> 8), ky = TUNE_CY + ((TUNE_RN * SCL_SIN[k]) >> 8);
+            int32_t dx = x - kx, dy = y - ky;
+            if (dx * dx + dy * dy <= 144) {
+                tune_note_pick(k, ui.frame);
+                return 1;
+            }
+        }
+        return 0;
+    }
     if (graph == GR_SCL_PROG) {                            /* a step of the progression: its chord, picked */
         uint8_t off[12], out[KB_CH];                     /* (nt[] was never read: 12 B of stack back) */
         uint32_t cnt, cn, pi = (uint32_t)clamp((int32_t)scl_prog, 0, 7);
@@ -606,7 +632,7 @@ static void scl_cell_geo(uint32_t i, int32_t *x, int32_t *y, int32_t *w, int32_t
  * the same notes. Under the ladder: the chord's name with its tones, their degrees in the key (a dash where a
  * note is outside it, never an invented degree) and the intervals over the root, or the key's own semitone steps
  * when the hand holds nothing. */
-static void graph_scl_scale(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t c)
 {
     uint32_t i, mask = scale_mask(t), root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
     uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 17), ti = trk_index(t) % NTRK;
@@ -737,12 +763,84 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
     }
 }
 
+
+/* ============================================================================================
+ * (FASE 7) SCL > TUNE: THE TWELVE CENTS OF THE INSTRUMENT.
+ *
+ * A temperament is read at a glance or not at all: the circle is the same twelve notes the SCALE page draws,
+ * with each one's deviation drawn as a spoke from a common ring -- outward when the note sits sharp, inward when
+ * it sits flat -- and the note the cents knob is editing lit. The right column carries the four numbers the
+ * knobs own (PROFILE, NOTE, CENTS, REF) so the page cannot show a value the instrument is not playing: they are
+ * the same variables params.c hands to the encoders and tune_ui_sync() has just applied.
+ *
+ * Everything here is a function of (profile, edited note): no animation, no counter, no cache. The circle costs
+ * twelve spokes of two pixels and the column six texts, which is what an edit page can spend. */
+static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
+{
+    uint32_t k, slot, cur;
+    int32_t ct, all, ax, bx;
+    char l[20], v[8];
+    (void)t;
+    tune_ui_sync(ui.frame);                                 /* the knobs' numbers, into the table */
+    tune_flush(ui.frame);                                   /* and one write once they have been still */
+    cur = (uint32_t)clamp((int32_t)tune_ui_note, 0, 11);
+    slot = (uint32_t)clamp((int32_t)tune_ui_slot, 0, (int32_t)TUNE_SLOTS - 1);
+    ct = tune_get((int32_t)cur);
+    all = tune_live.all;
+
+    cv_rect(8, 12, 224, 100, T_SURF);
+    /* the header: which temperament, and whether it still is the one it was picked from */
+    str_cpy(l, N_TUNE[slot], sizeof l);
+    if (tune_dirty) {
+        str_cpy(l + str_len(l), " *", sizeof l - str_len(l));
+    }
+    scl_head(l, tune_dirty ? "EDITED" : slot < TUNE_FACT ? "FACTORY" : "STORED",
+             tune_dirty ? T_ACCENT : T_DIM);
+
+    /* the circle: a spoke a note, from TUNE_RB outwards (sharp) or inwards (flat), 50 cents at the rim */
+    for (k = 0; k < 12u; k++) {
+        int32_t c = TUNE_CX + ((TUNE_RN * SCL_COS[k]) >> 8), y = TUNE_CY + ((TUNE_RN * SCL_SIN[k]) >> 8);
+        int32_t d = clamp(tune_get((int32_t)k) + all, -50, 50);
+        int32_t r1 = TUNE_RB + (d > 0 ? d * 16 / 50 : 0), r0 = TUNE_RB + (d < 0 ? d * 16 / 50 : 0);
+        uint16_t col = k == cur ? T_ACCENT : d ? T_THEME : T_LINE;
+        cv_line(TUNE_CX + ((r1 * SCL_COS[k]) >> 8), TUNE_CY + ((r1 * SCL_SIN[k]) >> 8),
+                TUNE_CX + ((r0 * SCL_COS[k]) >> 8), TUNE_CY + ((r0 * SCL_SIN[k]) >> 8), col);
+        cv_text_in(c - 9, y - 5, 18, &AF_S, N_NOTE[k], k == cur ? T_ACCENT : T_TEXT, T_SURF);
+    }
+    cv_rect(TUNE_CX - 1, TUNE_CY - 1, 3, 3, tune_dirty ? T_ACCENT : T_DIM);
+
+    /* the right column: the four numbers the knobs own */
+    ax = 112;
+    scl_field(ax, 20, "CENTS", T_DIM, T_SURF);
+    v[0] = ct < 0 ? '-' : '+';
+    fmt_int(v + 1, ct < 0 ? -ct : ct);
+    cv_text_on(ax + 40, 20 + CAP_IN(S, 16), &AF_L, v, T_ACCENT, T_SURF);
+    /* the deviation as a bar either side of zero: 99 cents is the knob's end and the bar's end */
+    bx = 170;
+    cv_rect(ax, 40, 116, 7, T_LINE);
+    cv_rect(bx, 38, 1, 11, T_DIM);
+    if (ct > 0)
+        cv_rect(bx + 1, 40, ct * 58 / 99, 7, T_ACCENT);
+    else if (ct < 0)
+        cv_rect(bx - (-ct) * 58 / 99, 40, (-ct) * 58 / 99, 7, T_ACCENT);
+    /* the twelve as numbers do not fit across 124 px without setting one note on the next (the lint said so
+     * when they tried): the circle is the list. What the column adds is the note being edited and the profile's
+     * whole offset. */
+    scl_field(ax, 56, "NOTE", T_DIM, T_SURF);
+    scl_field(ax + 34, 56, N_NOTE[cur], T_TEXT, T_SURF);
+    scl_field(ax, 70, "REF", T_DIM, T_SURF);
+    v[0] = all < 0 ? '-' : '+';
+    fmt_int(v + 1, all < 0 ? -all : all);
+    scl_field(ax + 34, 70, v, T_MID, T_SURF);
+    scl_field(ax, 84, slot < TUNE_FACT ? "TAP HUB: EQUAL" : "KEPT IN THIS SLOT", T_DIM, T_SURF);
+}
+
 /* SCL > CHORD: the chord a key plays on this track (CHRD's shape on ROOT, laid out by VOICING and strummed by
  * STRUM), the degrees of the key with the one the chord stands on lit, and the voices themselves as four lanes
  * over the chord's own compass -- the closer the dots, the tighter the voicing; the stagger between the lanes
  * is the strum the engine applies. When CHRD is OFF the page says so and keeps the lanes empty: a key plays
  * itself, nothing here is added. */
-static void graph_scl_chord(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_scl_chord(const track_t *t, uint16_t c)
 {
     uint8_t off[12], nt[12];
     uint32_t sn, tn, ti = trk_index(t) % NTRK, i, oob = 0;
@@ -927,7 +1025,7 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
 /* SCL > PROG: the progressions the degrees make and what each step becomes in this key -- the step, its
  * degree, the chord's root, its notes and its name, in the scale's own count (a pentatonic has five, so a
  * VII folds down onto the degree below it, and the row says so in DIM instead of pretending) */
-static void graph_scl_prog(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_scl_prog(const track_t *t, uint16_t c)
 {
     uint8_t off[12], out[KB_CH];
     uint32_t n = scl_chord_offsets(t, off), k, cnt, pi = (uint32_t)clamp((int32_t)scl_prog, 0, 7);

@@ -474,7 +474,7 @@ static const char *hv_route_name(uint32_t i)
  *
  * The rail on the left is the flow: one stage a row, the chain read top to bottom across both passes. */
 /* the screen HOME is showing (HV_OVERVIEW, HV_MIX, HV_SYSTEM): one 240 x 176 body in two 88-row passes */
-static void graph_home_view(uint16_t c)
+static __attribute__((noinline)) void graph_home_view(uint16_t c)
 {
     uint32_t pass, sig = hv_view_sig();
     if (!ui.force && sig == hv_sig_was)

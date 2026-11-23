@@ -9299,7 +9299,7 @@ static int test_fx_latch(void)
         ok = settings_import(&p, (int)sizeof p) == 1 && (fx_latch & 1u);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;                                    /* PER3: no favorites */
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(fx_latch & 1u);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(fx_latch & 1u);
         bad += check("  FX LATCH saved with the settings; settings from before it: OFF", ok);
     }
     /* A mode switch while a key is down must not leave a hidden held effect behind, and turning
@@ -9529,7 +9529,7 @@ static int test_knob_accel(void)
         ok = settings_import(&p, (int)sizeof p) == 1 && ui_prefs == PREF_ACCEL_OFF;
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(ui_prefs & PREF_ACCEL_OFF);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(ui_prefs & PREF_ACCEL_OFF);
         bad += check("#52 KNOB ACCEL OFF saved with the settings; settings from before it: ON", ok);
     }
     ui_prefs = PREF_ACCEL_OFF;
@@ -9608,7 +9608,7 @@ static int test_usb_level(void)
         ok &= settings_import(&p, (int)sizeof p) == 1 && (ui_prefs & ~PREF_ACCEL_OFF) == PREF_USB_FIXED;
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
         frame();
         ok &= !fx_usb_fixed;
     }
@@ -10185,7 +10185,7 @@ static int test_click_menu(void)
         ok &= click_mode == CLICK_OFF && click_lvl == 1u && cin_bars == 1u;
         memset(&p.favorites, 0, sizeof p.favorites);   /* settings from before the favorites (PER3): the defaults */
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !ui_rec_prefs;
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !ui_rec_prefs;
         frame();
         ok &= click_mode == CLICK_OFF && click_lvl == 1u && !cin_bars;
     }
@@ -10295,7 +10295,7 @@ static int test_usb_serial(void)
         ok &= !usb_cdc_on && !usb.up && plain_desc();
         memset(&p.favorites, 0, sizeof p.favorites);   /* settings from before it (PER3): ON */
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(ui_prefs & PREF_SERIAL_OFF);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(ui_prefs & PREF_SERIAL_OFF);
         usb_serial_apply();
         ok &= usb_cdc_on && dev_is(DEV_DESC);
     }
@@ -10460,7 +10460,7 @@ static int test_bpm_lock(void)
         ok &= settings_import(&q, (int)sizeof q) == 1 && (ui_prefs & ~PREF_ACCEL_OFF) == PREF_BPM_LOCK && !memcmp(&p, &q, sizeof p);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;                                        /* (PER3: before the favorites record) */
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
         q = p;
         ok &= settings_import(&q, (int)sizeof q) == 1 && !(ui_prefs & ~PREF_ACCEL_OFF);
         frame();
@@ -10578,7 +10578,7 @@ static int test_large(void)
         ok &= settings_import(&q, (int)sizeof q) == 1 && (ui_prefs & ~PREF_ACCEL_OFF) == PREF_LARGE && !memcmp(&p, &q, sizeof p);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;                                    /* (PER3: before the favorites record) */
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
         q = p;
         ok &= settings_import(&q, (int)sizeof q) == 1 && !(ui_prefs & ~PREF_ACCEL_OFF);
         ui.force = 1; frame();
@@ -10659,7 +10659,7 @@ static int test_menu_prefs(void)
         ok = settings_import(&p, (int)sizeof p) == 1 && (ui_prefs & PREF_ANIM_OFF);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && !(ui_prefs & ~PREF_ACCEL_OFF);
         bad += check("#46 ANIM saved with the settings; settings from before it: ON", ok);
     }
     ui_prefs = 0;
@@ -10717,7 +10717,7 @@ static int test_style(void)
         settings_export(&p);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;                          /* settings from before STYLE (PER3) */
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_style == ST_FLAT;
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.tune - sizeof p.favorites)) == 2 && ui_style == ST_FLAT;
         frame();
         ok &= ux.style == ST_FLAT && ux.surf != ux.bg;
         bad += check("  STYLE saved with the settings and read back; older settings and unknown values: FLAT, PIXEL: LINE (idempotent)", ok);

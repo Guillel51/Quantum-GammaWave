@@ -4130,3 +4130,26 @@ haría falta anotarlo en la fuente, que es una pasada de herramientas aparte.
 
 **Gates.** `target_budget` 0 fuera (DRUM_PATH 1 153/1 153), `ui_test` verde, RAM 4 336, POOL 9 248, LOWBUF 1 720,
 NOINIT 124. Suelo de XIP rojo por 488 B. Nada medido en la FM-1 física.
+
+## §83 · QUANTUM TUNING y el espacio que lo hizo posible (v1.10.0)
+
+**Antes / después.** Imagen 583 336 → **581 108 B**; XIP libre 276 → **2 504 B** (suelo 2 048). RAM 94 144 de
+98 304 (4 160 libres, suelo 4 096). Clase: build AC791N + `tools/resource_map.py` + `tests/target_budget.py` +
+host x86 para el modelo (`tests/tune_test.c`).
+
+**Temperamentos.** 12 cents por perfil, 5 de fábrica (EQUAL JUST PYTHAG MEAN WERCK) en rodata y 3 ranuras de
+usuario en RAM/objeto de settings (PER5, 13 B cada una). Aplicado en `tune_inc()` y en `cents_inc()`; la clase
+sale del pitch, no de un estado por voz. Precisión medida: 0,432 cents de peor error en ±99 (host x86, ratio de
+frecuencias). Con todo a cero, `tune_inc()` devuelve `pitch_inc()` bit a bit.
+
+**Lo que no toca.** Pitch bend (medido: 50 cents de rueda sobre 15 de temperamento dan 49.x), el formato de
+canción, presets, MIDI (una nota MIDI entra por el mismo `pitch16`), la escala y los acordes (siguen siendo
+conjuntos de notas; el temperamento es la frecuencia), y la batería (su pitch es un parámetro de kit).
+
+**El espacio.** `noinline` en la fuente de 117 dibujantes de página (`ui_*.c`): `draw_graph` los tenía inlinados
+(51 228 B) y ahora los llama. Es lo que el viaje por IR de `tools/size_fns.py` no lograba. Medido: −2 200 B en
+XIP y los presupuestos de audio intactos.
+
+**Gates.** `tune_test` 0 fallos; `ui_test` en verde; `target_budget` 0 líneas fuera; render sweep 196 pantallas ×
+22 paletas con 0 hallazgos de lint y 0 desalineaciones; píxeles actualizados (página nueva + r=9). Nada medido en
+la FM-1 física.

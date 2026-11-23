@@ -17,7 +17,7 @@ static const uint32_t ABOUT_QR[29] = {
     0x09F1355Du, 0x1D27305Du, 0x13B4555Du, 0x0917F141u, 0x19F2217Fu,
 };
 
-static void draw_about_qr(int32_t x, int32_t y)
+static __attribute__((noinline)) void draw_about_qr(int32_t x, int32_t y)
 {
     uint32_t row, col;
     cv_rect(x, y, 74, 74, UI_QR_LIGHT);             /* fixed light / dark, independent of the palette */
@@ -180,7 +180,7 @@ static uint8_t secret_viz_mode;
 static const char *const SECRET_VIZ_NAMES[4] = {
     "1/4 SUPERNOVA", "2/4 WRAITH 3D", "3/4 WARP TUNNEL", "4/4 MATRIX FFT"
 };
-static void draw_secret_viz(void)
+static __attribute__((noinline)) void draw_secret_viz(void)
 {
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
     uint32_t t = ui.frame * 520u, pk = song.playing ? 96u + ((ui.frame * 12u) & 63u) : 32u;
@@ -471,7 +471,7 @@ static void menu_extra_status(int32_t y)
     cv_text(130, y, &AF_S, b, T_MID);
 }
 static void confirm_open(uint32_t kind, uint32_t trk);   /* (0.6.58) INIT SYSTEM: ui_input.c */
-static void draw_menu(void)
+static __attribute__((noinline)) void draw_menu(void)
 {
     static const khint_t KEYS[2][3] = {{{KC_ALGO, "TAB"}, {KC_PRESETS, "ROW"}, {KC_OCTPM, "VALUE"}},
                                        {{KC_ALGO, "TAB"}, {KC_PRESETS, "ROW"}, {KC_OCTUP, "OPEN"}}};

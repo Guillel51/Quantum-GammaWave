@@ -11,7 +11,7 @@
  * cv_plate_ground / cv_plate_cut_ground), row by row and inside the plate's own corner, so a card, a module and
  * a list row share one ramp instead of three. The three broad bands that used to live here would now sit on top
  * of it and put back the steps this replaced. */
-static void draw_menu(void);
+static __attribute__((noinline)) void draw_menu(void);
 static int name_on(void);                              /* NAME (ui_name.c) */
 static uint64_t lock_held(void);                       /* parameter locks: the steps held on STEP (ui_input.c) */
 static void name_draw(void);
@@ -34,7 +34,7 @@ static int32_t batt_shown(void)
 }
 
 /* REC: filled, the selected track armed; outlined, another track armed */
-static void draw_rec_mark(int32_t x, uint16_t bg)
+static __attribute__((noinline)) void draw_rec_mark(int32_t x, uint16_t bg)
 {
     if (song.rec)
         cv_icon_mid(x, H_HEAD / 2, 16, (song.rec >> song.sel) & 1u ? ICON_X_REC : ICON_X_REC_O, T_REC, bg);
@@ -50,7 +50,7 @@ static uint32_t head_load(void)
     uint32_t l = (song.cpu_q8 * 5u + 128u) >> 8;
     return song.cpu_q8 && !l ? 1u : l > 5u ? 5u : l;
 }
-static void draw_load(int32_t x)
+static __attribute__((noinline)) void draw_load(int32_t x)
 {
     uint32_t k, n = head_load();
     for (k = 0; k < 5u; k++) {
@@ -62,7 +62,7 @@ static void draw_load(int32_t x)
         cv_rect(x, (H_HEAD - 14) / 2 + (4 - (int32_t)k) * 3, 3, 2, c);
     }
 }
-static void draw_battery(int32_t bx)
+static __attribute__((noinline)) void draw_battery(int32_t bx)
 {
     int32_t lvl = batt_shown(), y = (H_HEAD - 13) / 2, k;
     uint16_t ink = lvl == 1 ? T_ACCENT : lvl == 0 ? T_MID : T_THEME;
@@ -310,7 +310,7 @@ static void head_group(void)
     GFX_HOOK_ALIGN(0, 0, 0, H_HEAD, AL_V, "header text on its middle");
     cv_text(x + 4, HEAD_MY, &AF_M, b, T_THEME);
 }
-static void draw_head(void)
+static __attribute__((noinline)) void draw_head(void)
 {
     static int16_t metro_x = -1;                       /* the metronome's ink as drawn (-1: hidden), its beat */
     static int8_t metro_beat;
@@ -417,7 +417,7 @@ static void lcd_rule(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
     lcd_fill(x, y, w, h, T_RULE);
     GFX_HOOK_RULE(x, y, w, h);
 }
-static void draw_rules(uint32_t y, uint32_t h)
+static __attribute__((noinline)) void draw_rules(uint32_t y, uint32_t h)
 {
     uint32_t i;
     if (y == Y_LABEL) {                                 /* (LARGE: the geometry of the page, ui.c card_h) */
@@ -429,7 +429,7 @@ static void draw_rules(uint32_t y, uint32_t h)
         lcd_rule((uint32_t)(CARD_X(i) + CARD_W), y, 1, h);
 }
 /* full redraw: the strips (header, cards, panel, footer) cover the rest; only the BG between them is filled */
-static void draw_frame(void)
+static __attribute__((noinline)) void draw_frame(void)
 {
     uint32_t i, ch = card_h(), gy = graph_y(), gh = graph_h();   /* (MENU > LARGE: tall cards, a strip) */
     lcd_fill(0, H_HEAD, 240, Y_LABEL - H_HEAD, T_BG);
@@ -509,7 +509,7 @@ static void card_edge(int32_t w, int32_t h, int hot)
     cv_rect(3, h - 1, w - 6, 1, T_BG);
     cv_rect(w - 1, 3, 1, h - 6, T_BG);
 }
-static void draw_column_tall(uint32_t c, const char *label, const char *val, const char *unit, uint16_t vc, int32_t ratio,
+static __attribute__((noinline)) void draw_column_tall(uint32_t c, const char *label, const char *val, const char *unit, uint16_t vc, int32_t ratio,
                              uint32_t icon, int hot, int mot, int32_t kid)
 {
     uint16_t lc = hot ? T_ACCENT : mot ? T_THEME : T_MID;
@@ -595,7 +595,7 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
  * the motion icon in place of its own, in the theme colour; a long label moves it left, up to the card's edge;
  * a label with no room for it at all (or FELUCCA_ICONS=0): the label in the theme colour.
  * vc: the value's colour (T_THEME, T_DIM inactive, T_ACCENT the knob just turned) */
-static void draw_column(uint32_t c, const char *label, const char *val, const char *unit, uint16_t vc,
+static __attribute__((noinline)) void draw_column(uint32_t c, const char *label, const char *val, const char *unit, uint16_t vc,
                         int32_t ratio, uint32_t icon)
 {
     char key[56];
@@ -806,7 +806,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
 }
 
 /* an action's column (act_cols): picked, the OCT+ keycap (accent while it would do something); else "--" */
-static void draw_act_column(uint32_t c, const char *label, uint16_t vc, uint32_t icon)   /* icon: ICON_AUTO = by label */
+static __attribute__((noinline)) void draw_act_column(uint32_t c, const char *label, uint16_t vc, uint32_t icon)   /* icon: ICON_AUTO = by label */
 {
     int picked = act_col() == c + 1u;
     draw_column(c, label, picked ? "[OCT+]" : "--", "", picked ? (act_ready() ? T_ACCENT : T_DIM) : vc, -1, icon);
@@ -849,7 +849,7 @@ static void sound_name(const track_t *t, char *b)
         str_cpy(b, e->presets[t->preset % e->npresets].name, 16);
 }
 
-static void draw_foot(void)
+static __attribute__((noinline)) void draw_foot(void)
 {
     char s[48], pn[16], ti[20];
     const track_t *t = TSEL;
@@ -1018,7 +1018,7 @@ static void draw_foot(void)
     cv_blit(0, Y_FOOT);
 }
 /* the EDIT layer's cards (ui_layer.c): ENG (the engine), No. (its sounds: KNOB 2's list), FAV, an empty card */
-static void draw_columns(void)
+static __attribute__((noinline)) void draw_columns(void)
 {
     uint32_t c;
     char val[12];
@@ -1528,7 +1528,7 @@ static uint32_t spl_shown;                          /* (QG-1 v1.5) the art's sig
 /* The QG block alphabet (no font hook side effects: it is a shape, not text). t is the stroke: 3 px on
  * the big word, 2 px on the small one, so both keep the same weight on a 240 px panel. (3.2) G and V
  * were missing, which is why GAMMAWAVE could only ever show "AMMAWE". */
-static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t t)
+static __attribute__((noinline)) void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t t)
 {
     int32_t mw = w / 2;
     if (t < 1) t = 1;
@@ -1862,7 +1862,7 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     }
     cv_blit(0, SPL_SY);
 }
-static void draw_splash(void)
+static __attribute__((noinline)) void draw_splash(void)
 {
     uint32_t k;
     /* Clear full 240x240 frame with authentic theme background to eliminate any black line artifacts */
@@ -1891,7 +1891,7 @@ static void splash_write(uint32_t ms)
 }
 
 /* UPDATE MODE countdown (main.c: OCT- + OCT+ held): over everything, the menu and the dialogs too */
-static void draw_uboot(void)
+static __attribute__((noinline)) void draw_uboot(void)
 {
     static uint8_t shown;
     char d[4] = {(char)('0' + ui.uboot % 10u), 0, 0, 0};
@@ -1919,7 +1919,7 @@ static void draw_uboot(void)
  * PLAY stops it. Drawn again on each beat (seq.c's state; the header stays live) */
 #define CI_Y 88                                       /* the cells: 4 x 48 px, 8 px apart, 72 tall */
 #define CI_H 72
-static void draw_countin(void)
+static __attribute__((noinline)) void draw_countin(void)
 {
     static uint32_t shown;
     uint32_t total = cin_total, e = total - cin_left, j, sig = total * 64u + e + 1u;
@@ -2052,8 +2052,8 @@ static void confirm_text(char *a, char *b)
         break;
     }
 }
-static void draw_gen(void);                             /* (0.6.91) gen.c: the GEN screen */
-static void draw_confirm(void)
+static __attribute__((noinline)) void draw_gen(void);                             /* (0.6.91) gen.c: the GEN screen */
+static __attribute__((noinline)) void draw_confirm(void)
 {
     char a[24], b[24];
     const aafont_t *tf = &AF_M;

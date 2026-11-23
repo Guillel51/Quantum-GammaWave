@@ -1392,7 +1392,7 @@ static void layer_cards(uint32_t l)
     }
 }
 
-static void draw_layer(void)
+static __attribute__((noinline)) void draw_layer(void)
 {
     uint32_t l = ui.layer % LAYER_N, sig = l * 7919u + ux.gen * 977u;
     if (l != LAYER_FX)

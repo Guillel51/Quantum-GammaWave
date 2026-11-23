@@ -1,3 +1,35 @@
+## v1.10.0 — FASE 7: QUANTUM TUNING, y los mini knobs un pixel más grandes
+
+**Lo que no existía y ahora sí.** La FM-1 no tenía temperamentos: `cents` existía como *detune* de un oscilador
+(`cents_inc`) y la escala/chord eran conjuntos de notas, no frecuencias. Ahora hay doce cents por perfil, cinco
+temperamentos de fábrica y tres ranuras de usuario.
+
+- **SCL > TUNE**: una página nueva en la familia SCL. El círculo de las doce notas con la desviación de cada una
+  dibujada como un radio (hacia fuera, sostenida; hacia dentro, bemol), y a la derecha CENTS del nota que se
+  edita, su barra alrededor del cero, NOTE, REF y el estado de la ranura (FACTORY / STORED / EDITED).
+- **Cuatro knobs**: PROFILE (EQUAL JUST PYTHAG MEAN WERCK USER 1..3), NOTE, CENTS (±99) y REF (el perfil entero,
+  A 440 → A 432 es -32). Tocar una nota del círculo la elige; tocar el centro vuelve a EQUAL, que también está a
+  un click en PROFILE.
+- **Guardar**: USER 1..3 guardan lo que se edita en ellas y se escriben en el objeto de settings dos segundos
+  después del último giro (un write por gesto, no uno por detent). Un slot de fábrica no se sobrescribe: se
+  edita, suena, y queda marcado `* EDITED`.
+- **Dónde se aplica**: en `tune_inc()`, donde el pitch en 1/16 de semitono se vuelve incremento de fase, y dentro
+  de `cents_inc()` para los motores que ya detunean en cents. La nota sale del propio pitch (`(p16 >> 4) % 12`), así
+  que una nota transportada, una octava arriba o el segundo oscilador desafinado leen su propia clase. Con todo a
+  cero el incremento es `pitch_inc()` bit a bit: el temperamento estándar no cuesta nada.
+- **Precisión medida** (`tests/tune_test.c`, host): el peor error en todo el recorrido del knob es **0,432 cents**
+  (la rejilla de 1/16 de semitono es 6,25: sin el segundo término de la expansión el error a 99 cents era 2,8). El
+  pitch bend se suma encima y no se come la desviación (50 + 15 medidos). Un registro de settings PER4 importa
+  como EQUAL; un byte corrupto se recorta al extremo del knob; un registro con otro magic se rechaza.
+- **Mini knobs**: los cuatro del módulo WAVE de las pantallas de edición pasan de r=8 a r=9 (26 px de paso: 8 px
+  de aire entre aros, 13 px hasta los bordes del módulo). Nada se mueve ni se toca.
+
+**Lo que se pagó y con qué se pagó.** La página y el modelo costaban 2 032 B de XIP y el suelo ya estaba 488 B por
+debajo. El espacio vino de `noinline` **en la fuente** de los dibujantes de página (117 funciones `graph_*`/`gw_*`/
+`draw_*` de los `ui_*.c`): `draw_graph` los absorbía todos en sí mismo (51 228 B) y ahora los llama. Es lo que el
+viaje por IR no conseguía aplicar. Resultado: **imagen 581 108 B, 2 504 B libres** (suelo 2 048) y **RAM 4 160 B
+libres** (suelo 4 096), con `target_budget` en 0 líneas fuera (DRUM_PATH 1 155 de 1 153, dentro del 10 %).
+
 ## v1.9.4 — 1 284 B de vuelta en el slot de aplicación
 
 El suelo de XIP llevaba rojo desde v1.9.0. Esta pasada devuelve **1 284 B** sin quitar ninguna función y sin

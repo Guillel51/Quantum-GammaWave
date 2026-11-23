@@ -42,7 +42,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.9.4" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+#define FELUCCA_VERSION "v1.10.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
                                     * editor. 1.0.0 is the clean public numbering of the whole instrument: the six tracks,
                                     * twelve voices and nine engines, the eight-slot modulation matrix with its MACROS
                                     * page, the ARP page drawn against its own clock and the Web Studio's preset
@@ -100,6 +100,7 @@
 #define FELUCCA_MC_BUSY() fm1_mc_job_busy()      /* (FASE 1) core 1 mid-job: voice.c postpones the note */
 #endif
 #include "preset_level.c"        /* (2.1) the measured level of every factory preset */
+#include "tune.c"              /* (FASE 7) QUANTUM TUNING: the twelve cents, read by engines.c's pitch maths */
 #include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns */
 #include "morph.c"            /* (FASE 6) MORPH SCENES: the page's engine, used by params.c and ui_input.c */
 #include "params.c"

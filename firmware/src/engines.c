@@ -2,6 +2,7 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Engine table (order = PRESETS browsing order and the engine numbers of the editor protocol), the
  * factory patterns (SEQ > PATTERNS) and the parts' sounds at power-on. */
+#include "tune.c"              /* (FASE 7) the twelve cents dsp.c's pitch maths reads */
 #include "dsp.c"
 #include "eng_analog.c"
 #include "eng_phase.c"

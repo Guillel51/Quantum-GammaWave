@@ -9,7 +9,7 @@
  * SEQUENCER TOOLS in the sense of the pending list: real operations on seq_steps with undo, not a menu. */
 
 /* the pattern as the page shows it: 16 rows of the current bank, a mark a note (its length in the width) */
-static void graph_seq_tools(const track_t *t, uint16_t c)
+static __attribute__((noinline)) void graph_seq_tools(const track_t *t, uint16_t c)
 {
     char b[24];
     uint32_t i, len = (uint32_t)t->p[P_SLEN];

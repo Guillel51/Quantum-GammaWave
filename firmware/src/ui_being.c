@@ -134,7 +134,7 @@ static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
         }
     }
 }
-static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
+static __attribute__((noinline)) void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     uint32_t i;
     int32_t l, top = y0, bot = y0 + h - 1, rgt = x0 + w - 1;
@@ -181,7 +181,7 @@ static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 static void vz_np_add(int32_t x, int32_t y, int32_t vx, int32_t vy, uint16_t col, uint8_t life, uint8_t size)
 { (void)x; (void)y; (void)vx; (void)vy; (void)col; (void)life; (void)size; }
 static void vz_np_layer(uint8_t l) { (void)l; }
-static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
+static __attribute__((noinline)) void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 { (void)x0; (void)y0; (void)w; (void)h; }
 #endif
 
@@ -207,7 +207,7 @@ static int32_t bg_energy(void)
 }
 
 /* Chamfered Octagonal GammaWave Sub-Module (GroupedComponent::paint from PluginEditorComponents.h) */
-static void gw_oct_panel(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t fill, uint16_t brd,
+static __attribute__((noinline)) void gw_oct_panel(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t fill, uint16_t brd,
                          int bracket, uint16_t bcol)
 {
     int32_t i, j;
@@ -241,7 +241,7 @@ static void gw_oct_panel(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, 
 }
 
 /* Smooth anti-aliased filled circular disc for THE HEARTH solar core, knobs & satellite moons */
-static void gw_disc(int32_t cx, int32_t cy, int32_t r, uint16_t col)
+static __attribute__((noinline)) void gw_disc(int32_t cx, int32_t cy, int32_t r, uint16_t col)
 {
     int32_t dy, dx, r2 = r * r, r_inner2 = (r > 1) ? (r - 1) * (r - 1) : 0;
     for (dy = -r; dy <= r; dy++) {
@@ -272,7 +272,7 @@ static void gw_disc(int32_t cx, int32_t cy, int32_t r, uint16_t col)
 }
 
 /* Smooth circular/elliptical ring (24 segments, optional dotted mode for satellite orbit track) */
-static void gw_orbit_ring(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
+static __attribute__((noinline)) void gw_orbit_ring(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
 {
     int32_t i, px = cx + rx, py = cy;
     for (i = 1; i <= 24; i++) {
@@ -287,7 +287,7 @@ static void gw_orbit_ring(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16
 }
 
 /* Segmented vertical plasma meter bar */
-static void gw_plasma_bar(int32_t x, int32_t y0, int32_t w, int32_t h, int32_t segs, int32_t val256, int32_t heat0)
+static __attribute__((noinline)) void gw_plasma_bar(int32_t x, int32_t y0, int32_t w, int32_t h, int32_t segs, int32_t val256, int32_t heat0)
 {
     int32_t k, lit = (val256 * segs + 128) >> 8, step = h / segs, sh = step > 2 ? step - 1 : 1;
     for (k = 0; k < segs; k++) {
@@ -298,7 +298,7 @@ static void gw_plasma_bar(int32_t x, int32_t y0, int32_t w, int32_t h, int32_t s
 }
 
 /* Segmented horizontal thermal bar */
-static void gw_hbar(int32_t x0, int32_t y, int32_t w, int32_t h, int32_t segs, int32_t val256, int32_t heat0)
+static __attribute__((noinline)) void gw_hbar(int32_t x0, int32_t y, int32_t w, int32_t h, int32_t segs, int32_t val256, int32_t heat0)
 {
     int32_t k, lit = (val256 * segs + 128) >> 8, step = w / segs, sw = step > 2 ? step - 1 : 1;
     for (k = 0; k < segs; k++) {
@@ -322,7 +322,7 @@ static int32_t bg_knob(uint32_t c, const char **lab)
 }
 
 /* Live triggered waveform trace across a horizontal span */
-static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_t heat_base)
+static __attribute__((noinline)) void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_t heat_base)
 {
     uint32_t sw = scope_w, i, trig = 0;
     int32_t x, py, pk = 2000;
@@ -448,13 +448,13 @@ static __attribute__((noinline)) void gw_ring(int32_t cx, int32_t cy, int32_t rx
 }
 /* the ring gw_orbit_ring paints (24 segments from cx + rx, clockwise, every other one when dotted), from the
  * table: identical geometry, no interpolation */
-static void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
+static __attribute__((noinline)) void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
 {
     gw_ring(cx, cy, rx, ry, col, dotted, cv_line);
 }
 /* the same ring, clipped by HOME's bay: the note's answer and the touch's rings are drawn with it, so an echo
  * that leaves the 91 x 55 px square is dropped rather than painted over the panel's border */
-static void gw_ring_clip(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
+static __attribute__((noinline)) void gw_ring_clip(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
 {
     gw_ring(cx, cy, rx, ry, col, dotted, sys_line);
 }
@@ -501,7 +501,7 @@ static int32_t gw_span(int32_t r, int32_t dy)                /* the row's half w
  * path; each now carries a companion: one pixel lit on the half facing the star, one in shadow on the other, on an
  * ellipse just outside its own limb, its angle a pure function of the clock (no state, no allocation). Two psets a
  * moon a frame, and the pair turn at different rates, so the bay keeps moving where it already did. */
-static void gw_moon(int32_t px, int32_t py, int32_t pr, uint32_t tm, uint32_t seed, int32_t heat)
+static __attribute__((noinline)) void gw_moon(int32_t px, int32_t py, int32_t pr, uint32_t tm, uint32_t seed, int32_t heat)
 {
     uint32_t ph = tm * (4u + (seed & 3u)) + seed * 7919u;
     int32_t rx = pr + 4, ry = pr + 2;
@@ -517,7 +517,7 @@ static void gw_moon(int32_t px, int32_t py, int32_t pr, uint32_t tm, uint32_t se
  * belts, the ocean world rolls a crest and flashes its glint, the ringed giant runs a sparkle round its ring, and
  * the frozen one wears an aurora over its pole and a drifting frost mote. Every phase is a function of the clock,
  * so nothing accumulates: three or four psets a body a frame, and none of it is a table or an allocation. */
-static void gw_body_fx(int kind, int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, uint32_t tm)
+static __attribute__((noinline)) void gw_body_fx(int kind, int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, uint32_t tm)
 {
     uint32_t ph = tm * 7u + (uint32_t)kind * 2600u;
     uint16_t hi = ux_mix(T_BG, bg_col(heat + 90), 62);
@@ -570,7 +570,7 @@ static void gw_body_fx(int kind, int32_t x, int32_t y, int32_t r, int32_t heat, 
     }
     }
 }
-static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int kind,
+static __attribute__((noinline)) void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int kind,
                       uint32_t rot, int32_t flash)
 {
     int32_t dy, span, atm, lo, hi, t, tz, lift, bi;
@@ -764,7 +764,7 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
  * whose (note, gate) differs from the last scan's. Additive and clamped, so a chord or a fast run
  * raises the excitation instead of restarting it; the release is a fixed fraction a frame. */
 #if !UI_NO_DRIFT
-static void gw_planet_excite(int on)
+static __attribute__((noinline)) void gw_planet_excite(int on)
 {
     uint8_t hit[NPL] = {0}, vel[NPL] = {0};
     uint32_t t, i, g;
@@ -796,7 +796,7 @@ static void gw_planet_excite(int on)
 }
 #else
 /* the host's deterministic pixel builds (UI_NO_DRIFT) freeze the response: no scan, no excitation */
-static void gw_planet_excite(int on)
+static __attribute__((noinline)) void gw_planet_excite(int on)
 {
     (void)on;
     { uint32_t k; for (k = 0; k < NPL; k++) pl_ex[k] = 0; }
@@ -842,7 +842,7 @@ static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
     cv_line(x0, y0, x1, y1, c);
 }
 /* half an orbit: the far half (behind the star) or the near one, from the same 24-entry table */
-static void gw_ring_semi(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int back)
+static __attribute__((noinline)) void gw_ring_semi(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int back)
 {
     uint32_t k;
     int32_t px = cx + rx, py = cy;
@@ -929,7 +929,7 @@ static int32_t gw_planet_at(int32_t x, int32_t y)
 
 /* (FASE 2) which body answered last, and when: the selection ring reads it (gw_body_sel, below) */
 static uint32_t pl_sel_i = 0xFFu, pl_sel_t;
-static void gw_planet_poke(int32_t i)
+static __attribute__((noinline)) void gw_planet_poke(int32_t i)
 {
     if (i == (int32_t)NPL) {
         gal_t = ui.frame;                                   /* (3.1.5) and the band lights from its centre */                        /* (4.0) THE STAR: an expansion that reaches the bodies.
@@ -971,7 +971,7 @@ static void gw_planet_poke(int32_t i)
 /* (FASE 2) SELECTION. The body that answered last keeps a thin ring, drawn in its own tone and fading over the
  * reaction: at 240 x 240 the five are a few pixels apart and a touch had no lasting trace, so there was no way
  * to see which one heard you. One arc pass, no state beyond the frame the poke happened. */
-static void gw_body_sel(int32_t bx, int32_t by, int32_t r, int32_t heat)
+static __attribute__((noinline)) void gw_body_sel(int32_t bx, int32_t by, int32_t r, int32_t heat)
 {
     uint32_t age;
     int32_t a;
@@ -994,7 +994,7 @@ static void gw_body_sel(int32_t bx, int32_t by, int32_t r, int32_t heat)
  * as if only one world answered a touch. The ring and the three sparks below are drawn for all five, and the
  * per-kind block that follows adds the signature on top (the echo, the flakes, the turning arcs, the halo, the
  * wake). Same gesture, five accents. */
-static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
+static __attribute__((noinline)) void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
 {
     uint32_t pa = pl_age(pi, POKE_L[pi]);
     int32_t common_br = pl_sr[pi] ? (int32_t)pl_sr[pi] : 4;
@@ -1089,7 +1089,7 @@ static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
  * and whose length follows the patch's energy, and a flare every ~7 s that throws five embers off its
  * rim through the pool the bay already owns. The rays are points on a circle of radius r + k, so a
  * corona costs 8 sines and at most 8 x 6 pixels -- no per-pixel trigonometry anywhere. */
-static void gw_star(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat, int32_t big, uint32_t tm)
+static __attribute__((noinline)) void gw_star(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat, int32_t big, uint32_t tm)
 {
     int32_t i, k;
     uint16_t glow = ux_mix(T_BG, bg_col(70 + heat / 3), 30 + big / 14);
@@ -1148,7 +1148,7 @@ static void gw_star(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat,
  * background so they read behind the system rather than in it. Their terminator is their own phase,
  * not the star's -- a distant world is lit by a sun that is not on this screen. Called before the
  * orbits, so a path passes in front of them and the bay gains a front and a back. */
-static void gw_far_world(int32_t cx, int32_t cy, int32_t r, uint32_t tm, int32_t rate, int32_t heat, int ring)
+static __attribute__((noinline)) void gw_far_world(int32_t cx, int32_t cy, int32_t r, uint32_t tm, int32_t rate, int32_t heat, int ring)
 {
     int32_t dy, span = 0;
     int32_t ph = (int32_t)((tm * (uint32_t)rate) & 0x7FFFu);
@@ -1180,7 +1180,7 @@ static void gw_far_world(int32_t cx, int32_t cy, int32_t r, uint32_t tm, int32_t
  * the rocky one blows dust off its limb, the gas giant's storm eye surfaces, the ocean world glints,
  * the ringed giant's ring shimmers, the frozen one throws frost off its pole. One compare when an
  * event is not due, a handful of pixels when it is. */
-static void gw_body_life(int32_t kind, int32_t bx, int32_t by, int32_t r, int32_t heat, uint32_t tm)
+static __attribute__((noinline)) void gw_body_life(int32_t kind, int32_t bx, int32_t by, int32_t r, int32_t heat, uint32_t tm)
 {
     uint32_t per = 5400u + (uint32_t)kind * 1300u;
     uint32_t ph = (tm + (uint32_t)kind * 2100u) % per;
@@ -1228,7 +1228,7 @@ static void gw_body_life(int32_t kind, int32_t bx, int32_t by, int32_t r, int32_
         break;
     }
 }
-static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat)
+static __attribute__((noinline)) void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat)
 {
     /* three orbits: radius, tilt, rate (16-bit units a millisecond) and planet size. (3.1) SIZES are derived
      * from the bay, not chosen by eye: for orbit i the room left is min(half_w - ORX[i], half_h - ORY[i]);
@@ -1632,7 +1632,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
  * the same field the full-screen visualizer draws (graph_home_viz), moved here so there is one
  * implementation: n embers drifting in a rect, dimmed to `bg` so they read as depth and never as
  * data. MENU > VISUALIZER QUALITY thins them; PREF_ANIM_OFF stops the motion (not the field). */
-static void gw_embers(int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t n, uint32_t seed,
+static __attribute__((noinline)) void gw_embers(int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t n, uint32_t seed,
                       int32_t heat0, uint16_t bg)
 {
     uint32_t i;
@@ -1676,7 +1676,7 @@ static void gw_embers(int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t n, 
  *    is on the side that should be dark. A 32 s tide moves them and a ~22 s one breathes their light. The
  *    music's content stays the only bright thing on the page.
  * ============================================================================ */
-static void gw_deep_row(int32_t cx, int32_t y, int32_t span, int32_t ph, uint16_t lit, uint16_t shade,
+static __attribute__((noinline)) void gw_deep_row(int32_t cx, int32_t y, int32_t span, int32_t ph, uint16_t lit, uint16_t shade,
                         uint16_t edge)
 {
     int32_t q;
@@ -1698,7 +1698,7 @@ static void gw_deep_row(int32_t cx, int32_t y, int32_t span, int32_t ph, uint16_
 /* A body of the visualizer's deep field. Same shading law as HOME's worlds -- a terminator, a lit face and
  * a rim -- but mixed far out of the page's own tone, so it sits behind the data, and with its own surface
  * marks so an enlarged disc reads as a world instead of as a bigger circle. */
-static void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t lit, uint16_t shade,
+static __attribute__((noinline)) void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t lit, uint16_t shade,
                          uint16_t edge, int32_t ring, int32_t kind)
 {
     int32_t dy, span = 0;
@@ -1738,7 +1738,7 @@ static void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t
  * lane biting into the lit side, and twelve stars with their own twinkle. All from tables -- no trigonometry,
  * no allocation, one pset per element -- and every tone is mixed out of the page's own background, so the
  * measured data still leads. It sits before the bodies and the trace, so the scope is in front of it. */
-static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x, int32_t wave_age)
+static __attribute__((noinline)) void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x, int32_t wave_age)
 {
     static const uint8_t SX[12] = {22, 47, 63, 79, 96, 108, 121, 139, 154, 171, 188, 206};
     static const uint8_t SY[12] = {149, 138, 130, 121, 110, 103, 96, 87, 78, 70, 63, 54};
@@ -1842,7 +1842,7 @@ static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x,
     }
 }
 
-static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32_t ph, int32_t kind,
+static __attribute__((noinline)) void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32_t ph, int32_t kind,
                          int32_t heat, int32_t en, uint32_t pulse)
 {
     int32_t dy, span = 0, span_any = 0;
@@ -1946,7 +1946,7 @@ static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32
 static int16_t vzb_x[2], vzb_y[2], vzb_r[2];
 static uint32_t vzb_t[2];
 
-static void gw_viz_poke(int32_t i)
+static __attribute__((noinline)) void gw_viz_poke(int32_t i)
 {
     if (i < 0 || i > 1 || !vzb_r[i])
         return;
@@ -1965,7 +1965,7 @@ static int32_t gw_viz_hit(int32_t x, int32_t y)
     return -1;
 }
 
-static void gw_viz_deep(uint32_t q)
+static __attribute__((noinline)) void gw_viz_deep(uint32_t q)
 {
     uint16_t page = cv_bg;
     int32_t sway = q >= 2u ? 0 : (int32_t)(bg_sin(fm1_ms * 2u) >> 14);      /* +-2 px, one 32 s tide */
@@ -2044,7 +2044,7 @@ static void gw_viz_deep(uint32_t q)
  * 2. WRAITH 6-BAND CHARACTER RIBBON & 5-BAND VOWEL RIBBON
  *    (Ported from CharacterRibbon & VowelSelector in PluginEditorWraith.cpp)
  * ============================================================================ */
-static void gw_wraith_glyph(int32_t idx, int32_t cx, int32_t cy, uint16_t col)
+static __attribute__((noinline)) void gw_wraith_glyph(int32_t idx, int32_t cx, int32_t cy, uint16_t col)
 {
     int32_t i;
     switch (idx) {
@@ -2094,7 +2094,7 @@ static int32_t gw_trk_res(const track_t *t)
     return clamp(t->p[(t->eng_req % NENGINES) == ENGI_ANALOG ? P_E5 : P_FRES], 0, 127);
 }
 
-static void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h)
+static __attribute__((noinline)) void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     static const char *const CHAR_N[6] = {"FLU", "WHI", "VOX", "CHR", "BEL", "SCR"};
     static const char *const VOW_N[5]  = {"OO", "OH", "AH", "EH", "EE"};
@@ -2207,7 +2207,7 @@ static int32_t gw_isqrt(int32_t v)
         t++;
     return t;
 }
-static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val256, uint16_t arc_col)
+static __attribute__((noinline)) void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val256, uint16_t arc_col)
 {
     int32_t v = clamp(val256, 0, 256), dy, k;
     int32_t ri = r > 5 ? r - 3 : (r > 2 ? r - 2 : 1);      /* the face, inside the rim band */
@@ -2325,7 +2325,7 @@ static void wf_advance(void)
     }
 }
 
-static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t en)
+static __attribute__((noinline)) void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t en)
 {
     int32_t gx0 = x0 + 4, gy0 = y0 + 4, gw = w - 28, gh = h - 8;
     int32_t y_zero = gy0 + gh * 2 / 5, cut = gw_trk_cut(t), res = gw_trk_res(t);
@@ -2523,7 +2523,7 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
  * 4. SCREEN 2 (WAVES & WRAITH): WAVE 1 + WAVE 2 + MIXER + WRAITH RIBBON
  *    (Matches planned_2_waves.png & latest GammaWave WAVE 1 / WAVE 2 / MIXER)
  * ============================================================================ */
-static void graph_being(const track_t *t)
+static __attribute__((noinline)) void graph_being(const track_t *t)
 {
     uint32_t c;
     int32_t k[4];
@@ -2546,7 +2546,10 @@ static void graph_being(const track_t *t)
     /* 4 Mini Bakelite Rotary Knobs for Wave 1 (Pitch, Fine, PWM, Drift) */
     for (c = 0; c < 4u; c++) {
         int32_t kx = 24 + (int32_t)c * 26;
-        gw_mini_bakelite_knob(kx, 66, 8, k[c], (c & 1u) ? T_ACCENT : T_THEME);
+        /* (FASE 7) 9 px, not 8: the four mini knobs of an EDIT module read a little small next to the cards
+         * above them. The 26 px pitch leaves 8 px of air between rims at this radius (and 13 px to the module's
+         * own edges), so nothing touches and nothing moves. */
+        gw_mini_bakelite_knob(kx, 66, 9, k[c], (c & 1u) ? T_ACCENT : T_THEME);
     }
 
     /* 2. Upper-Right Module (x=122..232, y=2..82): WAVE 2 + MIXER (Wave 1/2/Sub/Noise/FM/Ring/Grain) */
@@ -2574,7 +2577,7 @@ static void graph_being(const track_t *t)
  * 5. SCREEN 1 (HOME): SPECTROGRAM FILTER BAY + BLAZING SUN/MOON + HEARTH & 6 TRACKS
  *    (Matches planned_1_home.png & latest GammaWave screenshot)
  * ============================================================================ */
-static void graph_ecosys(void)
+static __attribute__((noinline)) void graph_ecosys(void)
 {
     static int32_t en[NTRK];
     static uint32_t ec_frame;                           /* the frame of that draw */
@@ -2676,7 +2679,7 @@ static void graph_ecosys(void)
 /* ============================================================================
  * 6. DRUM-X: 8 CHAMFERED OCTAGONAL DRUM FORGE PADS + TRANSIENT WAVEFORMS
  * ============================================================================ */
-static void gw_drum_wave(uint32_t lane, int32_t x0, int32_t cy, int32_t w, uint16_t col)
+static __attribute__((noinline)) void gw_drum_wave(uint32_t lane, int32_t x0, int32_t cy, int32_t w, uint16_t col)
 {
     int32_t i, py = cy;
     for (i = 0; i < w; i++) {
@@ -2713,7 +2716,7 @@ static void gw_drum_wave(uint32_t lane, int32_t x0, int32_t cy, int32_t w, uint1
     }
 }
 
-static void graph_colony(const track_t *t, int32_t sel)
+static __attribute__((noinline)) void graph_colony(const track_t *t, int32_t sel)
 {
     const drum_lane_t *K = drum_kit_of(t);
     int32_t morph = clamp(t->p[P_E0] + dx_mot_v, 0, 127), mx = 30 + morph * 180 / 127;

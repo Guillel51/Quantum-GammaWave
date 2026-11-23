@@ -180,7 +180,7 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
     /* (FASE 2) LINE = PM: line 2 bends line 1's phase, the index 0 .. ~1.5 rad following DCW, so the DCW knob and
      * ENV -> DCW set it (no parameter of its own; the ratio is DTUNE's, as W2 already is) */
     uint32_t pmk = line == 2 ? (uint32_t)depth * 31200u / (127u << 8) : 0u;
-    inc2 = pitch_inc(clamp(m->pitch16 + d16, 0, 2047));
+    inc2 = tune_inc(clamp(m->pitch16 + d16, 0, 2047));
     inc2 += (uint32_t)((int32_t)(inc2 >> 12) * (rem * 2367 / 16000));
     if (t->mo_cur || t->mo_prev) {
         int32_t pos = (int32_t)w1 * 256 + t->mo_cur * 3 / 127, p0 = (int32_t)w1 * 256 + t->mo_prev * 3 / 127;   /* (x 768 / (127 << 8)) */

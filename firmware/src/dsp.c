@@ -179,7 +179,10 @@ static inline int32_t soft_knee(int32_t y, int32_t k)
  * the rest (and fine, in 1/4096) as a factor (1 ct = 2.367 / 4096) */
 static inline uint32_t cents_inc(int32_t pitch16, int32_t ct, int32_t fine)
 {
-    int32_t d16 = ct * 16 / 100, rem = ct * 16 - d16 * 100;          /* rem: 1/1600 semitone */
+    int32_t d16, rem;
+    ct += tune_cents(pitch16);            /* (FASE 7) the note's own temperament, then the detune on top */
+    d16 = ct * 16 / 100;
+    rem = ct * 16 - d16 * 100;            /* rem: 1/1600 semitone */
     uint32_t inc = pitch_inc(clamp(pitch16 + d16, 0, 2047));
     return inc + (uint32_t)((int32_t)(inc >> 12) * (rem * 2367 / 16000 + fine));
 }
