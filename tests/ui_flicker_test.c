@@ -166,6 +166,7 @@ typedef struct {
     int32_t step;               /* detents a frame */
     int frames;                 /* how many detents */
     int flash_ok;               /* a within-frame flash the screen legitimately has, if any */
+    int pop;                    /* (v1.8.7) the preset card is up on every frame of the run */
 } fl_case_t;
 
 static int fl_run(const fl_case_t *cs, int verbose)
@@ -189,6 +190,8 @@ static int fl_run(const fl_case_t *cs, int verbose)
     memcpy(fl_a, host_screen, sizeof fl_a);        /* frame 0: the state before the first detent */
     for (k = 1; k <= cs->frames; k++) {
         host_flash = host_flash_frames = 0;
+        if (cs->pop)                                /* (v1.8.7) the transient card, armed as the knob re-arms it */
+            ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
         turn(cs->role, cs->step);                  /* one detent, one frame (ui_test.c) */
         fl_frame_id = (uint32_t)k * 2u;
         memcpy(fl_b, host_screen, sizeof fl_b);
@@ -257,9 +260,10 @@ static int fl_run(const fl_case_t *cs, int verbose)
 int main(void)
 {
     static const fl_case_t CASES[] = {
-        {"home_viz", S_HOME_VIZ, EN_K1, 1, 8, 0},     /* the full-screen visualizer, KNOB 1 turned */
-        {"home_eco", S_HOME, EN_K1, 1, 8, 0},         /* HOME's own bay, its first card's value */
-        {"browse", S_PRESETS, EN_PRESET, 1, 8, 0},    /* the preset browser, PRESETS turned */
+        {"home_viz", S_HOME_VIZ, EN_K1, 1, 8, 0, 0},  /* the full-screen visualizer, KNOB 1 turned */
+        {"home_eco", S_HOME, EN_K1, 1, 8, 0, 0},      /* HOME's own bay, its first card's value */
+        {"browse", S_PRESETS, EN_PRESET, 1, 8, 0, 0}, /* the preset browser, PRESETS turned */
+        {"browse_pop", S_PRESETS, EN_PRESET, 1, 8, 0, 1},  /* (v1.8.7) the transient card up, mid-turn */
     };
     uint32_t k;
     int bad = 0;

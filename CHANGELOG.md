@@ -1,3 +1,46 @@
+## v1.8.7 — la tarjeta de presets: una pantalla que parpadeaba, y lo que se midió
+
+Fase 1/9 del ciclo nuevo: una optimización medida, la UI repasada entera y el parpadeo de la pantalla transitoria
+de presets, rediseñada como tarjeta Quantum y con pruebas que impiden que el defecto vuelva.
+
+**El parpadeo, encontrado y medido.** La pantalla transitoria de presets (`graph_pop_plate`, 208 × 86 sobre el
+panel) tenía **tres** intentos anteriores de arreglo (v1.11 dejó de reutilizar el lienzo de la página, v1.5.15 le
+dio su propio lienzo de su tamaño, v1.7.20 la hizo cabalgar el blit del panel para no enviar dos veces las mismas
+filas). El defecto que quedaba era otro: con la perilla quieta y la ventana de 1,5 s corriendo, **la tarjeta se
+volvía a enviar en cada frame** — 17 888 px, treinta veces por segundo, de píxeles idénticos a los que ya estaban
+en el cristal. Un panel que muestra cada escritura eso lo pinta como un parpadeo. Ahora la tarjeta tiene su propia
+firma (`graph_pop_sig`: el sonido elegido, la lista, el filtro, la estrella, el estilo) y **se envía una sola vez**;
+un cambio de página o cualquier invalidación del panel la vuelve a habilitar. Medido: `--regions` caso A, «el
+pop-up: 17 888 px escritos», «un frame después y sin cambios: **0 px**» (antes: 17 888 en cada uno).
+
+**Rediseño.** La transitoria decía el nombre y nada más. Ahora es una tarjeta: cuerpo con degradado (el bisel de
+las cajas de operador de FM6 y de las filas de MENU), raíl de acento en la cabecera, y una cabecera con el motor y
+la categoría del sonido (**ANALOG KEYS**), su nivel medido como barra (el mismo número que las filas del navegador)
+y su sitio en la lista (**6/291**). Debajo, las cinco filas de siempre —dos arriba, la elegida encendida y con su
+estrella si es favorita, dos abajo— en 13 px de paso. Misma caja, mismo sitio, un solo envío.
+
+**Regresión.** `ui_flicker_test` tiene un cuarto caso, `browse_pop`: el navegador con la tarjeta arriba en **cada**
+frame mientras la perilla gira ocho pasos, medido en los dos sentidos que el instrumento sabe (dentro del frame:
+px escritos dos veces; entre frames: un elemento borrado y vuelto en un frame). 0, 0 y 0. Y `--regions` caso A
+comprueba ahora, además, que un segundo frame con la tarjeta arriba y nada movido escribe **0 px**: el parpadeo no
+puede volver sin que una prueba lo diga. Nueva escena `presets_pop` en el barrido (196 pantallas × 22 paletas).
+
+**Repaso de la UI.** Barrido completo: **196 pantallas × 22 paletas**, 0 de lint, 0 tintas sobre su propio color,
+0 medidas de alineación fuera de 1 px (76 sitios declarados), 0 textos cortados nuevos; **3 136 tomas de píxeles**
+idénticas a la base (actualizada sólo por la escena nueva). `--idle`: 29 952 px escritos y 0 cambiados, el mismo
+piso que v1.8.6 — la tarjeta no añade gasto en reposo. `ui_flicker_test`: las cuatro escenas, 0 hallazgos.
+
+**Lo que se revisó y no se tocó.** Los defectos de las fases anteriores siguen cubiertos por sus pruebas y no se
+reabrieron: vúmetro de FX (`tests/fx_meter_test.c`, 3 comprobaciones), solapes de HOME 4/5 (`--regions`), nombres
+de preset sobre el MIXER (`--regions` caso A), parpadeo del navegador (`ui_flicker_test` caso `browse`), MORPH y
+escenas (`tests/morph_test.c`, escenas `S_SCENES`).
+
+**Numeración.** Progresiva por parche (1.8.6 → 1.8.7), `docs/VERSIONING.md`.
+
+**Límite declarado.** Nada medido en la FM-1 física: son las mismas fuentes en el host x86-64. Los «Issues» de
+GitHub no son consultables desde este entorno (sin navegador ni credenciales): el estado de los defectos
+reportados se comprobó en el código y en las pruebas que los guardan, no en el rastreador.
+
 ## v1.8.6 — la auditoría de cierre: presets, parpadeo, reposo y texto
 
 Fase extra final, sin funciones nuevas: mirar todo lo que las tres fases tocaron y decir lo que se midió.

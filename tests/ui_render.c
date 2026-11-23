@@ -755,7 +755,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
                                                    * the alignment lint had ever seen them. BEFORE S_MOCK_HOME, which
                                                    * starts the mock branch: after it, setup() never reaches them */   S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
        S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_PERF,
-       S_SCENES, S_SCENES_EMPTY, S_COUNT };   /* (v1.8.5) QUANTUM MORPH: a captured pair and an empty one */
+       S_SCENES, S_SCENES_EMPTY, S_PRESETS_POP, S_COUNT };   /* (v1.8.5) QUANTUM MORPH: a captured pair and an empty one */
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "mod_map", "fx", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
@@ -774,7 +774,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty"};
+    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -812,6 +812,13 @@ static void mock_state(int s)
     }
     trk[3].p[P_SLEN] = 32;
     switch (s) {
+    case S_PRESETS_POP:                             /* (v1.8.7) the transient preset card, up, mid-turn */
+        favorite_set(0, 4, 1);
+        go_page(GR_BROWSE);
+        preset_step(2);                             /* two detents: the card shows its neighbours */
+        fm1_ms = 4000u;                              /* mid-window: the card is up (1.5 s from the detent) */
+        ui.preset_pop_ms = 3900u;
+        break;
     case S_SCENES:                                  /* (v1.8.5) two scenes captured, the position at 96 */
         TSEL->p[P_FCUT] = 30; msc_capture(0);
         TSEL->p[P_FCUT] = 100; msc_capture(1);
@@ -2065,7 +2072,18 @@ static int regions_main(void)
     rsnap();
     fm1_ms = 10000u;                                /* the HUD's 1.5 s window is measured against the clock */
     ui.preset_pop_ms = fm1_ms;
-    printf("  el pop-up: %u px escritos\n", rnext());
+    written = rnext();
+    printf("  el pop-up: %u px escritos\n", written);
+    {   /* (v1.8.7) AND ONCE. The card's pixels are a function of the sound picked; while the knob rests it was sent
+         * again every frame of its 1.5 s window -- the same 17 888 px, thirty times a second, changing nothing.
+         * A second frame with the card up and nothing moved must write 0 px. */
+        uint32_t again = rnext();
+        printf("  el pop-up, un frame después y sin cambios: %u px escritos\n", again);
+        if (again) {
+            printf("  FALLA: la tarjeta se vuelve a enviar sin que haya cambiado nada\n");
+            rbad++;
+        }
+    }
     {   /* (v1.5.15) AND IT PAINTS ITS OWN BOX, NOTHING ELSE. The pop-up used to composite itself into whatever canvas
          * the page had left and blit it as the whole band: on the MIXER that band was a stale canvas -- preset names
          * of a previous draw -- sent over the desk, which is the report's "preset names drawn over the mixer". The
@@ -2808,6 +2826,10 @@ int main(int argc, char **argv)
                     char name[64], tag[24];
                     if (!FELUCCA_FM4 && (s == S_OP_ENV || (s >= S_ALG1 && s <= S_OP_LEVEL)))
                         continue;
+                    if (s == S_PRESETS_POP)            /* (v1.8.7) the preset card is the graph's, not a tall card's: the
+                                                        * LARGE pass measures the strip's labels, and the card over it is
+                                                        * not part of that layout (its own pass is the FLAT one) */
+                        continue;
                     snprintf(tag, sizeof tag, "%s_%s", ST_N[st], UI_PALETTES[p].name);
                     snprintf(name, sizeof name, "%s/%s", tag, S_NAME[s]);
                     cur_name = name;
@@ -2837,6 +2859,10 @@ int main(int argc, char **argv)
                 for (s = 0; s < S_COUNT; s++) {
                     char name[64], tag[24];
                     if (!FELUCCA_FM4 && (s == S_OP_ENV || (s >= S_ALG1 && s <= S_OP_LEVEL)))
+                        continue;
+                    if (s == S_PRESETS_POP)            /* (v1.8.7) the preset card is the graph's, not a tall card's: the
+                                                        * LARGE pass measures the strip's labels, and the card over it is
+                                                        * not part of that layout (its own pass is the FLAT one) */
                         continue;
                     snprintf(tag, sizeof tag, "%s_%s", ST_N[st], UI_PALETTES[p].name);
                     snprintf(name, sizeof name, "%s/%s", tag, S_NAME[s]);

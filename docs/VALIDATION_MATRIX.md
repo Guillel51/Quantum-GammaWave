@@ -3937,3 +3937,26 @@ píxeles idénticas.
 las versiones publicadas.
 
 **Límite declarado.** Nada de esto se midió en la FM-1 física: son las mismas fuentes en el host x86-64.
+
+## §75 · La tarjeta de presets y la primera optimización medida (v1.8.7)
+
+**El defecto.** Con la perilla de presets quieta, la transitoria se reenviaba cada frame de su ventana de 1,5 s:
+**17 888 px idénticos**, ~45 veces por ventana (804 960 px por giro a 30 fps). Causa: el camino «panel cacheado»
+(`graph_preset_pop`) no tenía memoria de lo enviado. Arreglo: `graph_pop_sig()` (sonido, lista, filtro, estrella,
+estilo, página) y `graph_pop_sent`; `graph_invalidate()` la rehabilita.
+
+**Medido (host x86-64).** `ui_render --regions` caso A: pop-up 17 888 px; **frame siguiente sin cambios: 0 px**
+(antes 17 888). 0 px del panel tocados fuera de la caja. `--idle`: 29 952 px escritos / 0 cambiados (sin cambio:
+la tarjeta no gasta en reposo). Barrido: 196 pantallas × 22 paletas, 0 lint, 0 tintas sobre su color, 0 medidas
+fuera de 1 px. `ui_pixels.py`: 3 136 tomas.
+
+**Regresión.** `ui_flicker_test` caso `browse_pop` (tarjeta arriba 8 pasos de encoder): 0 px borrados-y-vueltos,
+0 de banda, 0 escritos dos veces. Escena `presets_pop` en el barrido (flat; el pase LARGE la salta a propósito,
+mide las etiquetas de las tarjetas altas).
+
+**Pruebas de la tarjeta por lo que muestra.** La cabecera usa `preset_level_of` y `pcat_of` (los mismos datos de
+las filas del navegador) y `pcat_of` está acotado a `PCAT_N`; el sitio en la lista sale de `preset_visible` y
+`preset_pos`, así que un filtro de categoría o de favoritos cambia lo que la tarjeta dice en el mismo frame.
+
+**Límite declarado.** Nada medido en la FM-1 física; el parpadeo percibido se explica por el reenvío idéntico,
+no por una captura en el panel real.

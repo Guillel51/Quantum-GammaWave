@@ -2867,45 +2867,68 @@ static void graph_browse(void)
 /* Compact semi-translucent 1.5s HUD popup centered on screen when changing presets via knob */
 static void graph_pop_plate(int32_t x0, int32_t oy)
 {
-    uint32_t total, cur = preset_pos(&total), e, k;
+    uint32_t total, cur = preset_pos(&total), e = NENGINES, k = 0u;
     int32_t r, y0 = oy, w = 208, h = 86;
-    /* (v1.11) FULL WIDTH ONLY WHERE THE BAND IS THE PAGE'S OWN. On PRESETS the pop-up covers five of the seven list
-     * rows and graph_browse leaves them to it; there the canvas is the whole 240-wide band and every one of those
-     * rows is written once. On any other page (the MIXER's columns, HOME's trace) the plate still rides its own
-     * 208 x 86 box: a full-width band there would blank the page's content in its margins, and --regions case A
-     * measures exactly that. */
-    if (!total) return;
-    /* (v1.5.15) ITS OWN CANVAS, THE SIZE OF ITS BOX, AND ONLY ITS BOX IS SENT. This used to paint into whatever
-     * canvas the page had left and blit it as the whole 240 x graph_h band: on the MIXER, whose columns are drawn
-     * one canvas each and never fill the shared buffer, the band it sent was a STALE canvas -- the preset names of
-     * a previous draw -- with this plate composited on top, which is the "preset names drawn over the mixer" of the
-     * report. Now the pop-up is a canvas of exactly its plate (208 x 86) drawn at (16, Y_GRAPH + 18): nothing under
-     * it is reused and nothing outside it is touched. */
-    /* (v1.11) THE BAND IS THE LIST'S, AND IT IS PAINTED ONCE. lcd_blit sends the rows a blit changed, so a row
-     * painted twice in one frame is a row SENT twice, first as the list row and then as the plate over it: on the
-     * glass that is a flash across the middle of the screen on every step of the preset knob, which is exactly
-     * what the report calls the preset menu flickering. The canvas is the pop-up's whole band now (full width, the
-     * page's tone in its margins) and graph_browse leaves those rows to it, so each row is written and sent once. */
+    char b[24];
+    if (!total)
+        return;
+    cur = preset_pos(&total);
+    if (!total)
+        return;
     cv_bg = T_SURF;
-
-    /* (1.4.1) opaque plate: the dithered rows this used to paint were covered by the panel a line later */
-    /* Centered chamfered HUD enclosure */
+    /* (v1.8.7) A CARD, NOT FIVE BARE NAMES. The transient said the preset's name and nothing else: not what the
+     * sound is, not how loud it comes out, not where it sits in the library -- the three things a player weighing
+     * "stay or turn again" actually needs. It is a QUANTUM card now: the gradient body and bevel the FM6 operator
+     * boxes and MENU's rows use, an accent rail along its head, a head strip with the picked sound's engine, its
+     * category, its measured level (the same number the browser's rows carry as a bar) and its place in the list
+     * ("06/291"), then the five rows of the list with the picked one lit and starred if it is a favourite.
+     *
+     * The box, the place and the send discipline are unchanged: 208 x 86 at (16, Y_GRAPH + 18) on a page of its
+     * own, or into the panel's canvas at (16, 18) when the panel is drawn -- the browser blanks exactly those five
+     * rows for it, and --regions case A measures that nothing outside the box is touched. */
     if (ux.chamfer && !ux.style) {
         gw_oct_panel(x0, y0, w, h, 6, T_SURF, T_ACCENT, 1, T_ACCENT);
     } else {
-        cv_rrect(x0, y0, w, h, 6, T_SURF, T_LINE);
+        gw_bevel(x0, y0, w, h, T_SURF, ux_mix(T_SURF, T_TEXT, 12), ux_mix(T_SURF, T_BG, 58));
+        cv_rect(x0 + 7, y0 + 1, w - 14, 2, T_ACCENT);          /* the rail: the card's own edge, as HOME's panels */
     }
-
-    /* 5 compact rows of presets centered on current preset */
+    {   /* the head: what the picked sound is, and how loud. Its own canvas tone keeps it inside the plate. */
+        uint32_t total2, index = cur;
+        int32_t lvx = 0;
+        char bq[24];
+        e = preset_at(index, &k);
+        GFX_HOOK_ALIGN(0, y0 + 5, 0, y0 + 18, AL_V, "preset card head text centred up/down");
+        fmt_int(bq, (int32_t)index + 1);                        /* "06/291": where the sound sits */
+        str_cpy(bq + str_len(bq), "/", 2);
+        fmt_int(bq + str_len(bq), (int32_t)total);
+        if (e == NENGINES) {
+            cv_text(x0 + 9, y0 + 4, &AF_S, "USER", T_MID);
+            cv_text(x0 + 40, y0 + 4, &AF_S, "SOUND", T_TEXT);
+        } else {
+            int32_t lv = (int32_t)preset_level_of(e, k);
+            const char *cat = PCAT_NAME[pcat_of(e, k) < PCAT_N ? pcat_of(e, k) : 0u];
+            str_cpy(b, ENGINES[e]->name, sizeof b);
+            str_cpy(b + str_len(b), " ", 2);
+            str_cpy(b + str_len(b), cat, sizeof b - str_len(b));
+            cv_text(x0 + 9, y0 + 4, &AF_S, b, T_TEXT);         /* "ANALOG KEYS" */
+            lvx = x0 + w - 9 - text_w(&AF_S, bq) - 8 - 26;      /* the bar sits left of the place, clear of both */
+            cv_rect(lvx, y0 + 11, 26, 3, T_RAISE);             /* its measured level, as the browser's bar */
+            if (lv > 0)
+                cv_rect(lvx, y0 + 11, 26 * (lv > 127 ? 127 : lv) / 127, 3, T_ACCENT);
+        }
+        total2 = total;
+        (void)total2;
+        GFX_HOOK_ALIGN(0, y0 + 5, 0, y0 + 18, AL_V, "preset card head text centred up/down");
+        cv_text_r(x0 + w - 9, y0 + 4, &AF_S, bq, T_TEXT, T_SURF);
+    }
     for (r = -2; r <= 2; r++) {
-        int32_t ry = y0 + 4 + (r + 2) * 15;
-        int32_t x1 = x0 + w - 16;
+        int32_t ry = y0 + 19 + (r + 2) * 13;
+        int32_t x1 = x0 + w - 9;
         char tag[6], nm[16];
         uint32_t index = preset_visible(cur, total, (uint32_t)(r + 3));
-        int sel = (index == cur);
-        uint16_t row_bg;
-
-        if (index >= total) continue;
+        int sel = index == cur, fav;
+        if (index >= total)
+            continue;
         e = preset_at(index, &k);
         if (e == NENGINES) {
             up_slot_label(tag, k);
@@ -2914,26 +2937,24 @@ static void graph_pop_plate(int32_t x0, int32_t oy)
             str_cpy(tag, eng_abbr(ENGINES[e]->name), sizeof tag);
             str_cpy(nm, ENGINES[e]->presets[k].name, sizeof nm);
         }
-
-        row_bg = sel ? T_THEME : T_SURF;
-        if (favorite_has(e, k)) x1 -= 14;
-        /* (v1.12) no pattern number here. `preset_pat_hint` was drawn as four bare characters at the right
-         * of the name, and on a popup that is up for 1.5 s they read as a random number stuck to the
-         * preset. The hint belongs to the pattern list, where the row is labelled and the number means
-         * something; the popup keeps the name and the favourite's star. */
-
+        fav = favorite_has(e, k);
+        if (fav)
+            x1 -= 14;
         if (sel) {
-            cv_rrect(x0 + 4, ry, w - 8, 14, 3, T_THEME, T_SURF);
-            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_INK);
-            /* Generous 44px spacing between tag and name, avoiding heavy bold visual weight */
-            cv_free_text(x0 + 46, ry + 1, &AF_S, nm, T_INK, T_THEME, x1 - (x0 + 46));
+            cv_rrect(x0 + 4, ry, w - 8, 13, 3, T_THEME, T_SURF);
+            GFX_HOOK_ALIGN(0, ry, 0, ry + 13, AL_V, "preset card row text centred up/down");
+            cv_text_on(x0 + 9, ry - 1, &AF_S, tag, T_INK, T_THEME);
+            GFX_HOOK_ALIGN(0, ry, 0, ry + 13, AL_V, "preset card row text centred up/down");
+            cv_free_text(x0 + 40, ry - 1, &AF_S, nm, T_INK, T_THEME, x1 - (x0 + 40));
         } else {
-            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_MID);
-            cv_free_text(x0 + 46, ry + 1, &AF_S, nm, T_TEXT, T_SURF, x1 - (x0 + 46));
+            GFX_HOOK_ALIGN(0, ry, 0, ry + 13, AL_V, "preset card row text centred up/down");
+            cv_text(x0 + 9, ry - 1, &AF_S, tag, T_MID);
+            GFX_HOOK_ALIGN(0, ry, 0, ry + 13, AL_V, "preset card row text centred up/down");
+            cv_free_text(x0 + 40, ry - 1, &AF_S, nm, T_TEXT, T_SURF, x1 - (x0 + 40));
         }
-
-        if (favorite_has(e, k)) {
-            cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
+        if (fav) {
+            GFX_HOOK_ALIGN(0, ry, 0, ry + 13, AL_V, "preset card row text centred up/down");
+            cv_icon_in(x1 - 1, ry - 1, 0, 16, 12, ICON_X_STAR, sel ? T_INK : T_ACCENT, sel ? T_THEME : T_SURF);
         }
     }
 }
@@ -2945,6 +2966,26 @@ static void graph_pop_plate(int32_t x0, int32_t oy)
  * canvas before the one blit now; only a frame where the panel was cached still needs its own send. */
 static uint32_t graph_pop_frame = 1u << 31;        /* ui.frame of the last frame the plate rode a panel blit */
 
+/* (v1.8.7) WHAT THE CARD SHOWS, AS ONE NUMBER. The card's pixels are a function of the sound picked, the list it is
+ * picked from, the filter, the star and the two styles -- nothing else. While the knob rests, the 1.5 s window keeps
+ * running and the card was SENT AGAIN every frame of it: 17 888 px, thirty times a second, of pixels identical to
+ * the ones already on the glass. That is the "0 changed, everything written" the idle instrument reports, and on a
+ * panel that shows every write it is the card flickering on its own. It is sent once now, and once more only when
+ * one of these numbers moves. */
+static uint32_t graph_pop_sig(void)
+{
+    uint32_t total, cur = preset_pos(&total), e, k, h;
+    if (!total)
+        return 0xFFFFFFFFu;
+    e = preset_at(cur, &k);
+    h = cur * 2654435761u ^ total * 40503u ^ (uint32_t)pcat * 7919u ^ (uint32_t)favorites.filter * 104729u;
+    h = (h ^ (uint32_t)e * 2246822519u ^ (uint32_t)k * 668265263u) * 16777619u;
+    h = (h ^ (uint32_t)favorite_has(e, k) * 131u ^ (uint32_t)ui.uslot * 1299709u ^ up_gen * 65537u) * 16777619u;
+    h ^= (uint32_t)ux.style << 8 | (uint32_t)ux.chamfer << 9 | (uint32_t)(cur_page()->graph == GR_BROWSE) << 10;
+    return h ^ 0x9E3779B9u;
+}
+static uint32_t graph_pop_sent;                    /* graph_pop_sig() of the card last put on the glass */
+
 static void graph_preset_pop_in_panel(void)
 {
     uint32_t total;
@@ -2955,20 +2996,24 @@ static void graph_preset_pop_in_panel(void)
         cv_rect(0, 18, 240, 86, T_BG);
     graph_pop_plate(16, 18);
     graph_pop_frame = ui.frame;
+    graph_pop_sent = graph_pop_sig();
 }
 
 /* the plate alone, for a frame whose panel was not drawn (its signature did not move): one send, not two */
 static void graph_preset_pop(void)
 {
-    uint32_t total;
+    uint32_t total, sig = graph_pop_sig();
     int32_t full = cur_page()->graph == GR_BROWSE;
     if (!preset_pos(&total))
+        return;
+    if (sig == graph_pop_sent)                     /* (v1.8.7) the card on the glass is this card: nothing to send */
         return;
     cv_begin(full ? 240u : 208u, 86u, full ? T_BG : T_SURF);
     cv_oy = 0;
     graph_pop_plate(full ? 16 : 0, 0);
     cv_blit(full ? 0 : 16, Y_GRAPH + 18);
     graph_pop_frame = ui.frame;
+    graph_pop_sent = sig;
 }
 
 /* the EDIT layer (ui_layer.c): the sound loaded, as the browser's selected row: "03" (its place in KNOB 2's list,
@@ -3402,7 +3447,12 @@ static void track_col6(uint32_t c, uint32_t sel, uint32_t st, uint32_t mute, uin
  * name left in the MIXER's dB zone. This flag says a whole panel was covered, so the ground and every column are
  * painted again (ui_render --regions, case A). */
 static uint8_t graph_covered;
-static void graph_invalidate(void) { graph_covered = 1; ui.graph_sig = 0; }
+static void graph_invalidate(void)
+{
+    graph_covered = 1;
+    ui.graph_sig = 0;
+    graph_pop_sent = 0;                            /* (v1.8.7) the band is to be painted again: so is the card */
+}
 static void draw_tracks(void)
 {
     uint32_t c, sk = strip_kind() == SK_TRK, six = !sk;   /* (0.6.80: the six columns with every COLOR and STYLE;
