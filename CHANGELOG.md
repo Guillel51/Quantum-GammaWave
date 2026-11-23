@@ -26,7 +26,7 @@ comprueba ahora, además, que un segundo frame con la tarjeta arriba y nada movi
 puede volver sin que una prueba lo diga. Nueva escena `presets_pop` en el barrido (196 pantallas × 22 paletas).
 
 **Repaso de la UI.** Barrido completo: **196 pantallas × 22 paletas**, 0 de lint, 0 tintas sobre su propio color,
-0 medidas de alineación fuera de 1 px (76 sitios declarados), 0 textos cortados nuevos; **3 136 tomas de píxeles**
+0 medidas de alineación fuera de 1 px (76 sitios declarados), 0 textos cortados nuevos; **3 129 tomas de píxeles**
 idénticas a la base (actualizada sólo por la escena nueva). `--idle`: 29 952 px escritos y 0 cambiados, el mismo
 piso que v1.8.6 — la tarjeta no añade gasto en reposo. `ui_flicker_test`: las cuatro escenas, 0 hallazgos.
 
