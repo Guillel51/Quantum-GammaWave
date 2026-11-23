@@ -321,18 +321,24 @@ static void hv_mix(const track_t *t, uint16_t c)
         hv_seg(180, y + 1, 44, 6, q2->p[P_LEVEL], 127, 6, k == song.sel ? c : T_MID, T_RAISE);
     }
     /* the mix itself: its own two peaks, with a scale, as a desk's last look */
+    /* (v1.8.3) THE METERS STOP WHERE THE NUMBERS BEGIN. Each bar ran 132 px from x 82 to 214 while its
+     * percentage is right-aligned at 226 and, at three digits plus the sign, starts around x 202: twelve
+     * pixels of meter sat under the number on every row of the master band, and the LEVEL bar (from 72) came
+     * within two. The bars now share one column -- x 82, 112 px wide: 194 at most -- and the numbers keep the
+     * 32 px strip from 196 to 228, so a hundred-per-cent row ends a pixel before its text begins. The bar and
+     * the number are the same height and the same baseline, so the row still reads as one line. */
     cv_text(16, 150, &AF_S, "MASTER", T_THEME);
     for (k = 0; k < 2u; k++) {
         int32_t y = 148 + (int32_t)k * 12, v = fx_vu[6u + k] > 0 ? (int32_t)((uint32_t)fx_vu[6u + k] * 100u / 32767u) : 0;
         cv_text(72, y, &AF_S, k ? "R" : "L", T_DIM);
-        hv_seg(82, y + 1, 132, 7, v, 100, 16, k ? T_THEME : c, T_RAISE);
+        hv_seg(82, y + 1, 112, 7, v, 100, 16, k ? T_THEME : c, T_RAISE);
         fmt_int(b, v);
         hv_cat(b, "%", sizeof b);
         cv_text_r(226, y, &AF_S, b, T_MID, T_SURF);
     }
     cv_text(16, 174, &AF_S, "LEVEL", T_DIM);
     {   int32_t mv = (int32_t)(song.master_q12 >> 4);
-        hv_seg(72, 175, 132, 6, mv, 100, 16, c, T_RAISE);
+        hv_seg(82, 175, 112, 6, mv, 100, 16, c, T_RAISE);
         fmt_int(b, mv);
         hv_cat(b, "%", sizeof b);
         cv_text_r(226, 174, &AF_S, b, T_MID, T_SURF);

@@ -78,14 +78,21 @@ static void draw_battery(int32_t bx)
      * the cells grow with it (5 x 7, 6 px apart): the same three states, readable from the front panel. */
     cv_rect(bx, y, 20, 13, ink);                        /* the body's outline, 1 px */
     cv_rect(bx + 1, y + 1, 18, 11, T_BG);               /* its inside, so the outline reads as a frame */
-    for (k = 0; k < lit; k++)                           /* the cells, from the left as the bars were */
-        cv_rect(bx + 2 + k * 6, y + 3, 5, 7, ink);
-    cv_rect(bx + 20, y + 4, 2, 5, ink);                 /* the tip */
-    if (lvl == 4) {                                     /* USB power: the bolt, cut out of the cells */
-        cv_rect(bx + 9, y + 2, 2, 4, T_BG);
-        cv_rect(bx + 8, y + 6, 2, 2, T_BG);
-        cv_rect(bx + 10, y + 5, 2, 3, T_BG);
+    if (lvl == 4) {                                     /* (v1.8.3) USB power: THE BOLT IS DRAWN, NOT CUT.
+                                                         * It used to be three notches of BG punched out of the
+                                                         * three level cells, and the notches left the cells as
+                                                         * a lump with bites in it ("un icono raro que no es
+                                                         * legible"). The cells are not drawn at all under it:
+                                                         * the body keeps its frame and the bolt is three runs
+                                                         * of ink, 5 x 9, big enough to read at arm's length. */
+        cv_rect(bx + 10, y + 2, 4, 3, ink);             /* its head, upper right */
+        cv_rect(bx + 7, y + 5, 6, 2, ink);              /* the fall of the bolt, across */
+        cv_rect(bx + 7, y + 7, 3, 4, ink);              /* and its foot, lower left */
+    } else {
+        for (k = 0; k < lit; k++)                       /* the cells, from the left as the bars were */
+            cv_rect(bx + 2 + k * 6, y + 3, 5, 7, ink);
     }
+    cv_rect(bx + 20, y + 4, 2, 5, ink);                 /* the tip */
 }
 
 /* ---------------------------------------------------- rolling digits --- */

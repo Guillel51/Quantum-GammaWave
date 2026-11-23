@@ -3843,3 +3843,25 @@ V16 sigue **GO CONDITIONAL** y ninguna se relajó en esta fase.
 
 **Limpieza.** `git ls-files` sin `.o/.pyc/.log/.tmp/.bak` y sin `.env`; ningún `TODO`/`FIXME` en `firmware/src`;
 `build/` y `wt/` fuera del repositorio. Nada de historial borrado.
+
+## §71 · HOME, Fase 1/3 (v1.8.3): MASTER del MIXER, batería cargando y el repintado del hogar
+
+**Un error de layout, medido en píxeles.** En HOME 4/5 las barras L/R del MASTER iban de x 82 a 214 y su porcentaje
+está alineado a la derecha en 226: una fila de tres cifras empieza hacia x 202, así que 12 px de barra quedaban bajo
+el número en cada fila, y LEVEL (desde 72) a 2 px. Ahora las tres comparten columna x 82..194 y los números ocupan
+196..228. Comprobado a 0 %, 12 %, 16 % y 100 %, y en el barrido de páginas/valores.
+
+**El icono de carga.** Con USB el cuerpo se llenaba de tres celdas y el rayo se recortaba en ellas con tres muescas
+de fondo: a 20 x 13 eso era un bloque con mordiscos. Ahora, con corriente externa, no hay celdas: marco + rayo de
+tres trazos en tinta (5 x 9). Los cuatro estados de nivel siguen igual (`batt_0..3` sin cambios en el barrido).
+
+**FPS: perfilado y candidato descartado.** `gprof` sobre HOME 1/5 (host x86-64): cuadro 90-105 µs, `graph_ecosys`
+102,7 µs por dibujo, 36 % en `ux_mix`, 17 % en los diales HEARTH (12,1 M `bg_sin` en 3 000 cuadros). Un cache por
+firma de los 4 diales y las 6 losetas bajó el panel a 78,8 µs (mediana de cinco series) pero `ui_flicker_test`
+midió **375 px borrados durante un cuadro**: `draw_graph` limpia el lienzo en cada repintado (`cv_begin`), así que
+un widget que se salta su dibujo deja un agujero. **Revertido en su totalidad; v1.8.3 no declara ganancia de FPS.**
+El camino que queda (lienzo persistente por panel, o 2 senos por ángulo en el arco de los diales) está anotado en
+`docs/OPT_HOME_2026-11-23.md` y no se implementó aquí.
+
+**Lo que no se midió.** Nada de esto es una medida de la FM-1 física: son µs de host x86-64 y conteos de píxeles.
+Los FPS del panel no se declaran.

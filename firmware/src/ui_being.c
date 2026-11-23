@@ -2578,6 +2578,7 @@ static void graph_being(const track_t *t)
 static void graph_ecosys(void)
 {
     static int32_t en[NTRK];
+    static uint32_t ec_frame;                           /* the frame of that draw */
     static uint32_t f0;
     int32_t tot_en = bg_energy();
     uint32_t c, dt = vz_qframe() - f0;
@@ -2639,6 +2640,10 @@ static void graph_ecosys(void)
     gw_note_particles(9, 66, 88, 52);
 
     /* 3. Lower-Right Bay (x = 100..232, y = 66..118): HEARTH Physics Knobs (Heat/Sparks/Weight/Force) + 6 Track Pads */
+    /* (v1.8.3) THE HEARTH CANNOT CACHE ITSELF. `draw_graph` starts every panel from a cleared canvas
+     * (cv_begin fills it with the page's background), so a dial or an ingot that skipped its own draw
+     * left a hole in the bay: the flicker test caught it at 375 px, erased for one frame and back. The
+     * widgets are drawn whole on every paint, as they were. */
     gw_oct_panel(100, 66, 132, 52, 4, T_BG, T_LINE, 1, T_ACCENT);
     for (c = 0; c < 4u; c++) {                             /* (2.0) 8 px, not 9: a little smaller without
                                                             * losing the value arc or the 31 px pitch */
