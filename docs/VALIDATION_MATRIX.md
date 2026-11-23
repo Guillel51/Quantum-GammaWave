@@ -3948,7 +3948,7 @@ estilo, página) y `graph_pop_sent`; `graph_invalidate()` la rehabilita.
 **Medido (host x86-64).** `ui_render --regions` caso A: pop-up 17 888 px; **frame siguiente sin cambios: 0 px**
 (antes 17 888). 0 px del panel tocados fuera de la caja. `--idle`: 29 952 px escritos / 0 cambiados (sin cambio:
 la tarjeta no gasta en reposo). Barrido: 196 pantallas × 22 paletas, 0 lint, 0 tintas sobre su color, 0 medidas
-fuera de 1 px. `ui_pixels.py`: 3 136 tomas.
+fuera de 1 px. `ui_pixels.py`: 3 129 tomas.
 
 **Regresión.** `ui_flicker_test` caso `browse_pop` (tarjeta arriba 8 pasos de encoder): 0 px borrados-y-vueltos,
 0 de banda, 0 escritos dos veces. Escena `presets_pop` en el barrido (flat; el pase LARGE la salta a propósito,
