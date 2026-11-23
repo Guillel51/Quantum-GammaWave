@@ -3916,3 +3916,24 @@ no-referencia, 0 → 127 → 0, slew del controlador, recortes, CC 79/80), `morp
 
 **Pendiente declarado.** Las escenas en sí no se guardan (no hay formato para ellas); un par de pistas sí. No hay
 máscara de ids por escena. `DIFF` sigue reservado. Nada medido en la unidad física.
+
+## §74 · Auditoría de cierre, Fase extra (v1.8.6)
+
+**Presets.** 293 presets pasados por el motor (`preset_audit_test`): 0 en silencio, 0 pasados de nivel, 0
+duplicados exactos, 0 nombres repetidos, 0 fuera de rango. Censo: PADS 68, KEYS 58, TEXTURES 51, DRUMS 24,
+BASS 21, BELLS 21, ORGANS 18, LEADS 13, PLUCKS 12, ARPS 7; 291/293 con movimiento en `x[]`, 0 sin envíos; el par
+más cercano mide 0,045 (umbral 0,035). No se reescribió ningún preset: la compatibilidad con las funciones
+nuevas se comprueba por los tests de carga (slots, biblioteca, orden de cambio, categorías, user presets).
+
+**UI.** `ui_flicker_test`: 0 px borrados y reescritos, 0 de banda perdidos, 0 escritos dos veces en las escenas
+que más se mueven (8 pasos de encoder cada una). `ui_render --idle`: 29 952 px escritos, 0 cambiados. Barrido de
+195 pantallas × 22 paletas: 0 de lint, 0 tintas sobre su propio color, 0 medidas fuera de 1 px; 3 120 tomas de
+píxeles idénticas.
+
+**Limpieza.** Separación del pie en SCENES; línea del manual EN reenvuelta; árbol sin archivos sueltos
+(`git status` limpio antes del release).
+
+**Numeración.** Progresiva por parche (1.8.N → 1.8.N+1), documentada en `docs/VERSIONING.md`; sin retroceso de
+las versiones publicadas.
+
+**Límite declarado.** Nada de esto se midió en la FM-1 física: son las mismas fuentes en el host x86-64.

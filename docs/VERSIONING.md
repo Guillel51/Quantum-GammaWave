@@ -37,3 +37,21 @@ proves which commit and bytes it is, and the version string is a name, not an or
 
 Tags `v1.7.0`, `v1.8.x`, `v1.9.0`, `v1.10`, `v1.12.x` and their releases are untouched. This file adds a
 series note; it does not rename, retag, delete or republish anything already published.
+
+## The 1.8.x series: one patch a phase (2026-11-23)
+
+The owner asked that the number stop jumping: from now on a phase of work is **one patch**, `1.8.N` to
+`1.8.N+1`, and the minor only moves when a whole series of features is done. What this cycle shipped that way:
+
+| version | phase | what it is |
+|---|---|---|
+| v1.8.3 | 1/3 | HOME: the MASTER's numbers and the charging battery (no overlap, 4/5 layout) |
+| v1.8.4 | 2/3 | FX: the meter's scale (Q15, not 7000) -- the distortion report |
+| v1.8.5 | 3/3 | QUANTUM MORPH: an end from another track, CC 78/79/80, the rail |
+| v1.8.6 | extra | the global audit: presets, flicker, idle, lint, polish |
+
+Nothing was renumbered: 1.8.3, 1.8.4 and 1.8.5 are published, tagged and in the site's `versions.json`
+list, and **a published package is never rolled back to an older name** (the site offers entry 0, and the
+installer reads it by publication order, but a downgrade on a unit is a decision the owner makes, not a
+side effect of tidying names). A request to "leave everything at 1.7.4" would have meant exactly that
+downgrade; the series went forward instead, one patch at a time.

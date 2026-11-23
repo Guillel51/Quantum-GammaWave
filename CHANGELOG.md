@@ -1,3 +1,34 @@
+## v1.8.6 — la auditoría de cierre: presets, parpadeo, reposo y texto
+
+Fase extra final, sin funciones nuevas: mirar todo lo que las tres fases tocaron y decir lo que se midió.
+
+**Presets.** La biblioteca entera, leída y sonada: **293 presets, 0 en silencio, 0 pasados de nivel, 0
+duplicados exactos, 0 nombres repetidos, 0 fuera de rango** (`tests/preset_audit_test.c`, que los pasa por el
+motor de verdad). El censo (`tools/preset_audit.py`): PADS 68 · KEYS 58 · TEXTURES 51 · DRUMS 24 · BASS 21 ·
+BELLS 21 · ORGANS 18 · LEADS 13 · PLUCKS 12 · ARPS 7; **291 de 293 llevan movimiento** en sus `x[]` y ninguno
+se queda sin envíos. Ningún par cae por debajo de la distancia 0,035 (el más cercano es 808 SUB / TRAP 808 a
+0,045) y ningún nombre se repite. No se reescribió ningún preset: la identidad de los clásicos es el activo, y
+la auditoría no encontró nada que justificara tocarla. Lo que sí se comprueba es que las funciones nuevas no
+rompen la carga: `upreset_test`, `preset_slots_test`, `preset_library_test`, `preset_change_order_test` y
+`preset_categories_test` en verde.
+
+**Parpadeo y reposo.** `ui_flicker_test` sobre las escenas que más se mueven, 8 pasos de encoder cada una:
+**0 px borrados y reescritos, 0 px de banda perdidos, 0 px escritos dos veces**. Y el cuadro quieto:
+`ui_render --idle` da **29 952 px escritos y 0 cambiados** en las escenas que no se mueven (tope 33 000: el
+piso medido más un 10 %), el mismo número que antes de las tres fases.
+
+**El barrido.** 195 pantallas × 22 paletas: **0 hallazgos de lint, 0 tintas sobre su propio color, 0 medidas
+fuera de 1 px**, 3 120 tomas de `ui_pixels` idénticas a su base.
+
+**Limpieza y texto.** La página SCENES separa su pie del borde de la placa; el manual en inglés vuelve a
+envolver la línea de controladores que la fase 3 había estirado. `git status` limpio: no se generó ningún
+archivo suelto que quedara en el árbol.
+
+**La numeración, ahora progresiva.** De aquí en adelante una fase es **un parche** (1.8.N → 1.8.N+1) y el
+minor sólo se mueve al cerrar una serie (`docs/VERSIONING.md`). **No hubo retroceso**: 1.8.3, 1.8.4 y 1.8.5
+siguen publicadas, etiquetadas y en la lista del sitio; bajar la línea a 1.7.4 habría sido exactamente el
+downgrade que se pidió evitar.
+
 ## v1.8.5 — QUANTUM MORPH: un extremo de otro track, y el controlador que lo mueve
 
 **MORPH SCENES ya existía** (LFO > SCENES: cuatro estados del sonido de la pista, una pareja A/B y la posición

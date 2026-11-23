@@ -1753,7 +1753,7 @@ static void graph_scenes(void)
         cv_text_on(PANEL_X0 + 100, y + 5, &AF_S, c ? "STORED" : "KNOB 4: STORE", c ? T_KEY : T_DIM, T_SURF);
     }
     /* the footline: what a pair does, and the controllers that move it -- the page documents itself */
-    cv_text_on(PANEL_X0, 98, &AF_S, msc_on ? "CC 78: MORPH   CC 79/80: STORE" : "STORE BOTH ENDS TO MORPH",
+    cv_text_on(PANEL_X0, 101, &AF_S, msc_on ? "CC 78: MORPH   CC 79/80: STORE" : "STORE BOTH ENDS TO MORPH",
                msc_on ? T_DIM : T_MID, T_SURF);
 }
 

@@ -1472,7 +1472,8 @@ faded): a photo of that screen helps when you report a problem.
   **Bluetooth MIDI** (the chip has a radio, but its Bluetooth software is JieLi's closed SDK, which Quantum GammaWave does not use).
 - **Clock**: GLO > GLOBAL > CLOCK **USB** or **TRS** follows that input's clock and Start / Continue / Stop. With an
   external clock, TAP and GLO + PLAY restart are disabled.
-- **Controllers** (on the track the channel plays): CC5 glide, CC7 level, CC10 pan, CC78 morph (LFO > SCENES), CC79/80 store its A/B, CC71 resonance and CC74 cutoff (the
+- **Controllers** (on the track the channel plays): CC5 glide, CC7 level, CC10 pan, CC78 morph (LFO > SCENES),
+  CC79/80 store its A/B, CC71 resonance and CC74 cutoff (the
   engine's own, where it has them), CC72 release, CC73 attack, CC75 decay, CC91 reverb send, CC93 chorus send,
   CC94 delay send. CC1 (mod wheel), CC11 (expression) and channel aftertouch are sources in the MOD matrix (MODW, EXPR,
   AT). Pitch bend, sustain (CC64), All Sound Off (CC120) and All Notes Off (CC123) work. A CC is recorded as automation
