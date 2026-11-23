@@ -420,9 +420,15 @@ static const int16_t GW_RING[24][2] = {
     {-31650, -8481}, {-28377, -16384}, {-23170, -23170}, {-16384, -28377}, {-8481, -31650}, {0, -32767},
     {8481, -31650}, {16384, -28377}, {23170, -23170}, {28377, -16384}, {31650, -8481}, {32767, 0}
 };
-/* the same ring gw_orbit_ring paints (24 segments from cx + rx, clockwise, every other one when
- * dotted), from the table: identical geometry, no interpolation */
-static void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
+static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c);   /* the bay's clip (below) */
+typedef void (*ring_line_t)(int32_t, int32_t, int32_t, int32_t, uint16_t);
+/* (1.9.4) ONE RING, ONE LOOP. This was two functions -- gw_ring_tab on the panel (cv_line) and gw_ring_clip in
+ * HOME's bay (sys_line) -- with the same 24-segment body twice, and at -Oz the toolchain inlined each copy whole:
+ * 1 344 B of identical code for a different name on the line call. The loop is one now, noinline so it is not
+ * pasted back into both callers, and the line primitive is its only difference: the pixels are the same ones the
+ * two copies drew (the golden renders and the pixel sweep compare them). */
+static __attribute__((noinline)) void gw_ring(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col,
+                                              int dotted, ring_line_t line)
 {
     uint32_t k;
     int32_t px = cx + rx, py = cy;
@@ -433,31 +439,24 @@ static void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t
          * not the arc's -- half a pixel off at most, and no second table. */
         int32_t mx = (px + x) / 2, my = (py + y) / 2;
         if (!dotted || (k & 1u))
-            cv_line(px, py, mx, my, col);
+            line(px, py, mx, my, col);
         if (!dotted || !(k & 1u))
-            cv_line(mx, my, x, y, col);
+            line(mx, my, x, y, col);
         px = x;
         py = y;
     }
 }
-
-static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c);   /* the bay's clip (below) */
+/* the ring gw_orbit_ring paints (24 segments from cx + rx, clockwise, every other one when dotted), from the
+ * table: identical geometry, no interpolation */
+static void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
+{
+    gw_ring(cx, cy, rx, ry, col, dotted, cv_line);
+}
 /* the same ring, clipped by HOME's bay: the note's answer and the touch's rings are drawn with it, so an echo
  * that leaves the 91 x 55 px square is dropped rather than painted over the panel's border */
 static void gw_ring_clip(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
 {
-    uint32_t k;
-    int32_t px = cx + rx, py = cy;
-    for (k = 0; k < 24u; k++) {
-        int32_t x = cx + (rx * GW_RING[k][0] >> 15), y = cy + (ry * GW_RING[k][1] >> 15);
-        int32_t mx = (px + x) / 2, my = (py + y) / 2;
-        if (!dotted || (k & 1u))
-            sys_line(px, py, mx, my, col);
-        if (!dotted || !(k & 1u))
-            sys_line(mx, my, x, y, col);
-        px = x;
-        py = y;
-    }
+    gw_ring(cx, cy, rx, ry, col, dotted, sys_line);
 }
 
 /* A shaded planet: the dark side, the lit crescent turned toward the star, a terminator pixel

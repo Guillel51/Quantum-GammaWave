@@ -51,7 +51,7 @@ DOCKER_IMAGE = os.environ.get("JIELI_DOCKER_IMAGE", "debian:bookworm-slim")
 # (FASE 6) -flto: the app is already one IR module, but the final object used to be machine code, so the linker
 # could only concatenate. With -flto clang hands ld bitcode and ld runs LLVMgold.so over it, which is where the
 # 4 196 B came from. ld does not load the plugin on its own, so LTO_PLUGIN is passed to both links explicitly.
-CFLAGS = ["-Oz", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function"]
+CFLAGS = ["-Oz", "-ffunction-sections", "-fdata-sections", "-fno-builtin", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wall", "-Wno-unused-function"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)
@@ -244,7 +244,14 @@ def build_app():
         flags.append(f'-DFELUCCA_VERSION="{VERSION}"')
     # felucca.c goes to LLVM IR without the optimizer, the main-loop functions (UI, stores, editor) are
     # marked minsize (tools/size_fns.py), then the IR is compiled at -Os. FELUCCA_SIZE=0: -Os everywhere
-    size = os.environ.get("FELUCCA_SIZE") != "0"
+    # (1.9.4) measured: the per-function minsize/noinline pass (FELUCCA_SIZE=1) costs 1 180 B more than
+    # compiling the one TU straight at -Oz (582 052 vs 583 232 in the same tree), and the audio hot paths are
+    # inside their budgets either way (tests/target_budget.py, +0..+3 %). Direct compile is the default now;
+    # FELUCCA_SIZE=1 brings the attribute pass back.
+    # (1.9.4) measured: the per-function attribute pass costs 1 180 B more than compiling the one TU straight
+    # at -Oz (582 052 vs 583 232 in the same tree) and the audio budgets are inside their limits either way
+    # (tests/target_budget.py). Straight compile is the default; FELUCCA_SIZE=1 brings the pass back.
+    size = os.environ.get("FELUCCA_SIZE") == "1"
     hot = size and os.environ.get("FELUCCA_HOTRAM") != "0"   # (0.6.78) core 0's hottest audio code in RAM (HOT_FNS)
     flags.append(f"-DFELUCCA_HOTRAM={int(hot)}")
     cmain = (("cc", *flags, "-S", "-emit-llvm", "-Xclang", "-disable-llvm-optzns", "-c",

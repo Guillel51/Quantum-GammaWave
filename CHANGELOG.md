@@ -1,3 +1,30 @@
+## v1.9.4 — 1 284 B de vuelta en el slot de aplicación
+
+El suelo de XIP llevaba rojo desde v1.9.0. Esta pasada devuelve **1 284 B** sin quitar ninguna función y sin
+tocar un píxel ni una muestra: la imagen pasa de **583 336 a 582 052 B** y el espacio libre de **276 a 1 560 B**
+(faltan 488 B para el suelo de 2 048).
+
+**Lo que se encontró midiendo, no leyendo.**
+
+| palanca | resultado |
+|---|---|
+| compilar el único TU directo a `-Oz` en vez del viaje por IR (`size_fns.py`, `minsize`+`noinline`) | **−1 180 B**: el viaje por IR compila código sin optimizar primero y sale 1 180 B más grande (583 232 frente a 582 052 en el mismo árbol). Los presupuestos de audio siguen dentro: `tests/target_budget.py`, 0 líneas fuera |
+| `-fdata-sections` (con `--gc-sections` ya activo) | −8 B y ningún símbolo muerto que recoger |
+| `-fno-unwind-tables -fno-asynchronous-unwind-tables` | 0 B (ya era el comportamiento de `-Oz`) |
+| `gw_ring_tab` y `gw_ring_clip`: el mismo bucle de 24 segmentos dos veces, con `cv_line` y `sys_line` | **−96 B**: un solo bucle `gw_ring`, `noinline`, con la primitiva de línea como parámetro; los píxeles son los mismos |
+
+**Lo que se midió y NO se adoptó**, porque el audio lo paga: `-fno-inline` global da −9 072 B pero deja
+`DRUM_PATH` a +72 % y `analog_render` con 20 divisiones en bucle; `-mllvm -inline-threshold=2/3` da −5 008 B y
+rompe `dx_run` (+247 %) y `lofi_render` (+109 %); `minsize` sobre los motores cuesta +112 B. La única forma de
+recuperar esos 9 KB sin tocar el audio es anotar `noinline` en el código frío *a nivel de fuente* (el viaje por IR
+no lo consigue: con las 1 350 anotaciones puestas el enlace sale igual de grande), y eso es una obra de
+herramientas de compilación, no de esta pasada.
+
+**Estado de los gates.** `target_budget`: 0 líneas fuera (DRUM_PATH 1 153 de 1 153). `ui_test`: todo en verde.
+`resource_map`: RAM 4 336 libres, POOL 9 248, LOWBUF 1 720, NOINIT 124. El suelo de XIP sigue rojo por **488 B**,
+con la aritmética delante: el slot no puede crecer (`APP_SLOT` ya absorbe los 2 048 B de holgura de la región y
+quedan 725 B hasta `0x8F000`), y no queda código ni constante muerta que recoger.
+
 ## v1.9.3 — el A/B manual de HOME, retirado
 
 El "EDIT mantenido para aparcar, EDIT tocado para intercambiar" que HOME prometía no era un camino: era un

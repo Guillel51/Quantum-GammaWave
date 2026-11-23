@@ -4111,3 +4111,22 @@ fallan contra el código retirado.
 
 **Presupuesto.** Imagen 583 336 / 583 612 B (**276 libres**; el suelo de XIP de 2 048 sigue rojo, faltan 1 772 B).
 La retirada devuelve 176 B. Clase: build AC791N + host x86-64; nada medido en la FM-1 física.
+
+## §82 · Recuperación de XIP, la que sí cabe (v1.9.4)
+
+**Antes / después.** Imagen 583 336 → **582 052 B**; libre **276 → 1 560 B** (suelo 2 048: faltan 488 B).
+Clase: build AC791N + `tools/resource_map.py` + `tests/target_budget.py`.
+
+**Ganado.** El viaje por IR de `tools/size_fns.py` cuesta 1 180 B más que compilar el único TU directo a `-Oz`
+(medido en el mismo árbol: 583 232 frente a 582 052), y los presupuestos de audio no cambian; `-fdata-sections`
+aporta 8 B; el bucle del anillo de HOME dibujado dos veces (`gw_ring_tab`/`gw_ring_clip`) se unifica: 96 B y los
+mismos píxeles.
+
+**Medido y descartado.** `-fno-inline` global: −9 072 B con `DRUM_PATH` +72 % y `analog_render` con 20 divisiones
+en bucle. `-inline-threshold=2/3`: −5 008 B con `dx_run` +247 % y `lofi_render` +109 %. `minsize` en los motores:
++112 B. `-fmerge-all-constants`, `-falign-*=1`, `--sort-section=alignment`: 0 B. Anotar `noinline` en el código
+frío desde el IR: 1 350 funciones anotadas y el enlace sigue en 583 232 B, así que el viaje por IR no lo consigue;
+haría falta anotarlo en la fuente, que es una pasada de herramientas aparte.
+
+**Gates.** `target_budget` 0 fuera (DRUM_PATH 1 153/1 153), `ui_test` verde, RAM 4 336, POOL 9 248, LOWBUF 1 720,
+NOINIT 124. Suelo de XIP rojo por 488 B. Nada medido en la FM-1 física.
