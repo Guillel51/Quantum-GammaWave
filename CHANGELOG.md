@@ -1,3 +1,36 @@
+## v1.9.2 — el MIDI Learn que sobrevive al apagado
+
+Fase 6/9: el MIDI Learn, auditado antes de tocarlo y completado con lo que el slot de aplicación permite pagar.
+
+**Lo que había, revisado antes de empezar.** `midi_control.c` (QG-1 1.7): ocho enlaces `{cc, param}` en RAM, CC 119
+arma un parámetro del motor de la pista del canal y el siguiente CC se enlaza, CC 118 lo olvida todo. Funcionaba,
+pero **se perdía en cada apagado**, no se veía en ningún sitio, un CC que ya era de otro parámetro se lo quitaba en
+silencio, no llegaba a las macros y no tenía perfiles ni forma de deshacer.
+
+**Lo que se construyó.** El mapa es ahora **ocho enlaces de dos bytes en `favorites.factory[15][0..15]`**, bytes que
+ningún motor usa y que valen 0 en todos los registros de ajustes anteriores: un registro viejo simplemente no tiene
+mapa, así que **no hay formato nuevo ni migración** y no se toca ningún preset ni dato de fábrica. El byte 0 guarda
+`CC + 1` (0 = libre) y el 1 el id del parámetro (o `G_MAC1 + m` para una macro). Al leerlo, un id que ese motor no
+tiene **se ignora**: un byte corrupto no puede llegar a una voz. Cada cambio escribe los ajustes por la vía de
+siempre (`settings_save`), que difiere la escritura hasta que el transporte está parado.
+
+**Interfaz.** CC 119 arma un parámetro, **CC 111 una macro** (0..3 = M1..M4) — el CC enlazado mueve la macro como su
+página —, CC 118 borra el mapa. El pie dice qué ha pasado, con el CC: `CC20 BOUND`, `CC20 TAKEN` (el CC era de otro
+parámetro y se lo ha llevado), `CC20 ALSO STD` (pisa un CC del mapa estándar), `MAP NO ROOM`, `MAP CLEARED`.
+
+**Lo que se midió y no cupo.** La fase completa —un perfil guardado aparte (CC116/115), deshacer/restaurar (CC117),
+volcado por consola y una página propia del mapa — costaba **~2,2 KB** de XIP y el slot tenía **444 B** libres: la
+imagen no enlazaba (se quedaba 1 812 B corta). Se probaron y se descartaron, con medida: `-fdata-sections` (+4 B),
+mover dibujantes fríos a `.ram_text` (el `AT > XIP` de `app.ld` deja la copia en el mismo sitio: 0 B), quitar el
+kerning (prohibido por `tests/text_spacing_test.py`, que exige ≤ 0,25 px) y `FELUCCA_SIZE=0` (864 B libres, pero
+todo el DSP a `-Oz`: no paga). El mapa de flash tiene además solo 725 B hasta el final de su región (`0x8F000`).
+
+**Pruebas (host x86-64, `tests/midi_control_test.c`, seis checks nuevos).** Dos CCs enlazados a ATK y PAN que mueven
+cada uno lo suyo; un CC que era de otro parámetro se lo lleva una sola vez y el pie dice TAKEN; el mapa viaja en el
+registro de ajustes y vuelve igual tras exportar e importar (un apagado); un enlace que nombra un parámetro que el
+motor no tiene no se aplica; una macro (CC111 → M1) se enlaza y se mueve 0..127; y dos canales con el mismo CC en un
+mismo bloque mueven cada uno el parámetro de su pista.
+
 ## v1.9.1 — la perilla que se mueve, grabada sobre la automatización que ya había
 
 Fase 5/9: el Motion Recorder, auditado y completado donde cabía, sin un segundo sistema de automatización.

@@ -89,6 +89,7 @@ static int settings_import(persist_t *p, int n)
     }
 #endif
 #endif
+    memcpy(midi_learn_map, &p->favorites.factory[15][0], sizeof midi_learn_map);   /* (1.9.2) the MIDI Learn map */
     if (p->panel.magic == PANEL_MAGIC) panel = p->panel;
     return current ? 1 : 2;
 }
@@ -118,6 +119,7 @@ static void settings_export(persist_t *p)
 #ifdef FELUCCA_FAVORITES
     memcpy(&p->favorites, &favorites, sizeof favorites);
 #endif
+    memcpy(&p->favorites.factory[15][0], midi_learn_map, sizeof midi_learn_map);   /* (1.9.2) the MIDI Learn map */
     p->favorites.factory[15][16] = settings_yoff;   /* (1.4.11) PANEL Y, after the copy of the live favorites: that
                                                      * copy is what would otherwise put the byte back */
 }

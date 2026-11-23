@@ -4059,3 +4059,29 @@ perdidos, 0 nuevos.
 +856 B de imagen.
 
 **Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.
+
+## §80 · El MIDI Learn que sobrevive al apagado (v1.9.2)
+
+**Lo que había.** `midi_control.c` (1.7): 8 enlaces `{cc, param}` en RAM (CC 119 arma, el siguiente CC enlaza, CC 118
+borra). Se perdían en cada apagado, no se veían, un CC ajeno se arrebataba en silencio y las macros no llegaban.
+
+**Cambio.** El mapa vive en `favorites.factory[15][0..15]` (16 B, bytes que ningún motor usa, 0 en todo registro
+anterior): sin formato nuevo ni migración, y viaja en el registro de ajustes (`settings_import`/`export`). Un id que
+el motor de la pista no tiene se ignora al leer (un byte corrupto no llega a una voz). Macros por CC 111 (M1..M4).
+Conflicto y resultado en el pie (`CC20 BOUND / TAKEN / ALSO STD`, `MAP NO ROOM / CLEARED`). La escritura espera al
+transporte parado (`project.c` `midi_settings` desde `settings_poll`).
+
+**No cupo (medido).** Perfil aparte (116/115), deshacer (117), volcado de consola y página propia: ~2,2 KB con 444 B
+libres (1 812 B de desbordamiento). Descartados con medida `-fdata-sections` (+4 B), `.ram_text` (0 B: `AT > XIP`),
+kerning (prohibido por `text_spacing_test.py`, 0,239 de 0,25 px) y `FELUCCA_SIZE=0` (864 B, DSP a `-Oz`). La región
+de flash acaba en `0x8F000`: 725 B.
+
+**Comprobado.** `midi_control_test`, seis checks nuevos (dos CCs a ATK/PAN, conflicto TAKEN, ida y vuelta por el
+registro de ajustes, enlace inválido ignorado, macro por CC111, dos canales en un bloque). `ui_test` y
+`settings_test` en verde (PER1..PER4 siguen migrando). Barrido 196 × 22: 0 hallazgos, 0 alineaciones. `ui_pixels`:
+48 cambiados (versión), 0 perdidos.
+
+**Presupuesto.** Imagen 583 512 / 583 612 B (**100 libres; suelo de XIP de 2 048 no cumplido, faltan 1 948 B**); RAM
+4 328; POOL 9 248; LOWBUF 1 716; NOINIT 124. Coste de la fase: +356 B.
+
+**Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.

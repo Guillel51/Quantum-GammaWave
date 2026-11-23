@@ -367,15 +367,95 @@ static int cc_map_test(void)
         queued(0xB0, 118, 0, 1);
         queued(0xB0, 20, 127, 1);
         bad += check("MIDI Learn: CC118 forgets the binding", trk[0].p[P_ATK] == d->min);
+        memset(midi_learn_map, 0, sizeof midi_learn_map);
         queued(0xB0, 119, 127, 1);
         queued(0xB0, 21, 127, 1);
-        bad += check("MIDI Learn: an out-of-range arm binds nothing", midi_learn_n == 0u);
+        bad += check("MIDI Learn: an out-of-range arm binds nothing", !midi_learn_map[0]);
     }
+    return bad;
+}
+/* (1.9.2) MIDI Learn kept: the map in the settings, conflicts, macros, a corrupt entry, two channels at once */
+static int learn_map_test(void)
+{
+    int bad = 0, ok;
+    midi_test_reset(); track_t *t = &trk[0];
+    midi_learn_reset();
+    memset(midi_learn_map, 0, sizeof midi_learn_map);
+    queued(0xB0, 119, P_ATK, 1);                     /* arm ATK on channel 1 (track 1) */
+    queued(0xB0, 20, 127, 1);
+    queued(0xB0, 119, P_PAN, 1);
+    queued(0xB0, 21, 0, 1);
+    ok = midi_learn_map[0] == 21u && midi_learn_map[1] == P_ATK && midi_learn_map[2] == 22u &&
+         midi_learn_map[3] == P_PAN && !midi_learn_map[4] &&
+         t->p[P_ATK] == param_desc_of(eng_idx(t->eng_req), P_ATK)->max && t->p[P_PAN] == -64;
+    bad += check("MIDI Learn: two CCs bound to ATK and PAN, each one moves its own", ok);
+    midi_map_msg = 0;
+
+    /* CONFLICT: CC20 belongs to ATK; armed for PAN it is PAN's now, once, and the footer says TAKEN */
+    queued(0xB0, 119, P_PAN, 1);
+    queued(0xB0, 20, 0, 1);
+    ok = midi_map_msg == 2u && midi_learn_map[0] == 21u && midi_learn_map[1] == P_PAN &&
+         midi_learn_map[2] == 22u && !midi_learn_map[4];                               /* still two slots, one each */
+    {
+        int32_t atk = t->p[P_ATK];
+        t->p[P_PAN] = 0;
+        queued(0xB0, 20, 127, 1);
+        ok &= t->p[P_PAN] == 63 && t->p[P_ATK] == atk;
+    }
+    bad += check("MIDI Learn: a CC another parameter had is taken from it once, and the footer says TAKEN", ok);
+    midi_map_msg = 0;
+
+    /* A POWER CYCLE: the map is inside the settings record and comes back the same */
+    {
+        persist_t p;
+        settings_export(&p);
+        ok = p.favorites.factory[15][0] == 21u && p.favorites.factory[15][1] == P_PAN;
+        memset(&p.favorites.factory[15][0], 0, 4);
+        memset(midi_learn_map, 0, sizeof midi_learn_map);
+        ok &= settings_import(&p, (int)sizeof p) == 1 && midi_learn_map[0] == 0u;
+        bad += check("MIDI Learn: the map rides in the settings (engine 15's unused bytes), no format moves", ok);
+
+        /* CORRUPTION: a byte that names nothing on this engine is ignored, never half applied */
+        midi_learn_map[0] = 21u;                     /* CC20 (stored as cc + 1) -> */
+        midi_learn_map[1] = 0x70u;                   /* .. a parameter no engine has */
+        t->p[P_ATK] = 3;
+        queued(0xB0, 20, 127, 1);
+        ok = t->p[P_ATK] == 3;
+        midi_learn_map[0] = 21u;                     /* and a slot that names a parameter it does have works */
+        midi_learn_map[1] = P_ATK;
+        queued(0xB0, 20, 127, 1);
+        ok &= t->p[P_ATK] == param_desc_of(eng_idx(t->eng_req), P_ATK)->max;
+
+        bad += check("MIDI Learn: a corrupt binding is ignored by the engine that does not have the parameter", ok);
+    }
+
+    /* MACROS: CC111 0..3 arms M1..M4, the next CC binds and the CC moves the macro as its page does */
+    memset(midi_learn_map, 0, sizeof midi_learn_map);
+    midi_map_msg = 0;
+    queued(0xB0, 111, 0, 1);
+    queued(0xB0, 23, 127, 1);
+    ok = midi_learn_map[0] == 24u && midi_learn_map[1] == G_MAC1 && macro_get(0) == 127;
+    queued(0xB0, 23, 40, 1);
+    ok &= macro_get(0) == 40;
+    bad += check("MIDI Learn: a macro (M1..M4, CC111) can be learned and moves with its CC, 0..127", ok);
+
+    /* SIMULTANEOUS messages, different channels, one block: both land on their own track */
+    midi_test_reset();
+    memset(midi_learn_map, 0, sizeof midi_learn_map);
+    queued(0xB0, 119, P_ATK, 1);
+    queued(0xB0, 20, 127, 1);
+    midi_enqueue(0x0u | 0xB0u << 8 | 20u << 16 | 0u << 24, 1);       /* CC20 = ATK, min */
+    midi_enqueue(0x1u | 0xB1u << 8 | 20u << 16 | 127u << 24, 1);     /* CC20 on channel 2: track 2's ATK, max */
+    events_block(CTL);
+    ok = trk[0].p[P_ATK] == param_desc_of(eng_idx(trk[0].eng_req), P_ATK)->min &&
+         trk[1].p[P_ATK] == param_desc_of(eng_idx(trk[1].eng_req), P_ATK)->max;
+    bad += check("MIDI Learn: two channels' CCs in one block each move their own track's parameter", ok);
+    memset(midi_learn_map, 0, sizeof midi_learn_map);
     return bad;
 }
 int main(void)
 {
     int bad = controls_test() + sustain_test() + ownership_test() + clock_test(1) + clock_test(2) + clock_arp_and_boundaries() +
-              arp_ext_stop_test() + usb_burst_test() + route_test() + cc_map_test();
+              arp_ext_stop_test() + usb_burst_test() + route_test() + cc_map_test() + learn_map_test();
     printf("%s\n", bad ? "MIDI CONTROL/CLOCK TEST FAILED" : "MIDI control/clock integration tests passed"); return bad != 0;
 }

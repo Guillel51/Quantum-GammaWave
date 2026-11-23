@@ -198,25 +198,74 @@ static const uint8_t MIDI_CC_ENG[NENGINES] = {
     0x80, 0x30, 0x30, 0x34, 0x30,                     /* GRAIN TONE, PHYS BRIT, DRUM TONE, NOISE FREQ RES, FM6 MLVL */
     0x80,                                             /* SLICE TONE (retired: ANALOG's played) */
 };
-/* (QG-1 1.7) Session-only MIDI Learn. CC 119 arms it, its value the parameter id (0..127) of the track's
- * engine; the next CC other than 118/119 binds to that parameter and sets it. CC 118 forgets every binding.
- * The table is RAM only: a power cycle clears it, so no project, user preset or settings layout changes. */
+/* (1.9.2) MIDI Learn, kept across a power cycle. CC 119 arms a parameter of the channel's track (its value is the
+ * parameter id) and CC 111 one of the macros (0..3 = M1..M4); the next CC binds to it and moves it. CC 118 forgets the
+ * whole map, the settings keep it. The map is eight bindings of two bytes in favorites.factory[15][0..15], bytes no
+ * engine uses and 0 in every older settings record: an old record simply has no map, so no format moves and nothing
+ * is migrated. A binding that names a parameter its engine does not have is ignored (a corrupted byte reaches no
+ * voice), and no project, user preset or factory sound is touched. */
 #define MIDI_LEARN_MAX 8u
-static struct { uint8_t cc, param; } midi_learn[MIDI_LEARN_MAX];
-static uint8_t midi_learn_n, midi_learn_arm;
-static void midi_learn_reset(void) { midi_learn_n = midi_learn_arm = 0; }
+static uint8_t midi_learn_arm;
+#define MIDI_MAP midi_learn_map                      /* (core.h) cc + 1 (0 = empty), then the parameter id */
+static void midi_map_keep(void) { midi_map_req = 1u; }   /* project.c: the settings write, transport stopped */
+static uint32_t midi_find(uint32_t cc)
+{
+    uint32_t i;
+    for (i = 0; i < MIDI_LEARN_MAX; i++)
+        if (MIDI_MAP[2u * i] == cc + 1u)
+            return MIDI_MAP[2u * i + 1u];
+    return 0xFFFFu;
+}
+static void midi_learn_reset(void)                   /* (CC 118) no binding at all */
+{
+    memset(MIDI_MAP, 0, 2u * MIDI_LEARN_MAX);
+    midi_map_msg = 4u;
+    midi_map_cc = 0;
+    midi_map_keep();
+}
+static void midi_learn_bind(uint32_t cc, uint32_t param)
+{
+    uint32_t i, slot = MIDI_LEARN_MAX;
+    midi_map_msg = 1u;                               /* BOUND */
+    midi_map_cc = (uint8_t)cc;
+    for (i = 0; i < MIDI_LEARN_MAX; i++)
+        if (MIDI_MAP[2u * i] == cc + 1u) {            /* the CC was another parameter's: it is this one's now */
+            slot = i;
+            midi_map_msg = 2u;                       /* TAKEN */
+            break;
+        }
+    for (i = 0; slot == MIDI_LEARN_MAX && i < MIDI_LEARN_MAX; i++)
+        if (!MIDI_MAP[2u * i])
+            slot = i;
+    if (slot == MIDI_LEARN_MAX) {
+        midi_map_msg = 3u;                           /* NO ROOM: nothing changes, nothing is saved */
+        return;
+    }
+    MIDI_MAP[2u * slot] = (uint8_t)(cc + 1u);
+    MIDI_MAP[2u * slot + 1u] = (uint8_t)param;
+    midi_map_keep();
+}
+static uint32_t midi_std(uint32_t cc)                /* the parameter the standard map already gives this CC */
+{
+    uint32_t i;
+    for (i = 0; i < NELEM(MIDI_CC_MAP); i++)
+        if (MIDI_CC_MAP[i][0] == cc)
+            return MIDI_CC_MAP[i][1];
+    return cc == 1u || cc == 64u ? 0u : 0xFFFFu;     /* (the wheel and the pedal are the channel's own) */
+}
 static void __attribute__((noinline)) midi_cc_map(track_t *t, uint32_t cc, uint32_t value)
 {
     const param_desc_t *d;
-    uint32_t i, id = 0xFFFFu, e;
+    uint32_t i, id = midi_find(cc), e;
     int32_t v;
-    for (i = 0; i < midi_learn_n; i++)
-        if (midi_learn[i].cc == cc)
-            id = midi_learn[i].param;
+    if (id != 0xFFFFu && !IS_MAC_ID(id) && (id >= P_COUNT || !param_desc_of(eng_idx(t->eng_req), id)))
+        return;                                      /* a byte that names nothing on this engine: never applied */
     if (id == 0xFFFFu)
-        for (i = 0; i < NELEM(MIDI_CC_MAP); i++)
-            if (MIDI_CC_MAP[i][0] == cc)
-                id = MIDI_CC_MAP[i][1];
+        id = midi_std(cc);
+    if (id >= G_MAC1 && id <= G_MAC4) {              /* (1.9.2) a learned macro: M1..M4, 0..127 as its page turns it */
+        macro_set(id - G_MAC1, (int32_t)value);
+        return;
+    }
     if (id >= MCC_CUT) {
         if (id == 0xFFFFu)
             return;
@@ -226,6 +275,8 @@ static void __attribute__((noinline)) midi_cc_map(track_t *t, uint32_t cc, uint3
         id = P_E0 + e - 1u;
     }
     d = param_desc_of(eng_idx(t->eng_req), id);
+    if (!d)
+        return;
     v = d->min + ((int32_t)value * (d->max - d->min) + 63) / 127;
     if (d->max <= d->min || t->p[id] == v)
         return;
@@ -300,24 +351,22 @@ static void midi_control(uint32_t ch, uint32_t cc, uint32_t value)
         if (value >= 64u)
             msc_midi_store(1, midi_track(ch));
         break;
-    case 118:                                      /* (1.7) MIDI Learn: forget every binding */
+    case 118:                                      /* (1.7) MIDI Learn: forget every binding (117 puts it back) */
         midi_learn_reset();
         break;
-    case 119:                                      /* (1.7) MIDI Learn: arm the parameter value names */
+    case 119:                                      /* (1.7) MIDI Learn: arm the parameter the value names */
         if (value < P_COUNT && param_desc_of(eng_idx(midi_track(ch)->eng_req), value))
             midi_learn_arm = (uint8_t)(value + 1u);
+        break;
+    case 111:                                      /* (1.9.2) arm a macro: 0..3 is M1..M4 */
+        if (value < 4u)
+            midi_learn_arm = (uint8_t)(G_MAC1 + value + 1u);
         break;
     default:
         if (midi_learn_arm) {                      /* (1.7) the next CC becomes its controller */
             uint32_t param = midi_learn_arm - 1u;
             midi_learn_arm = 0;
-            for (i = 0; i < midi_learn_n; i++)
-                if (midi_learn[i].cc == cc) { midi_learn[i].param = (uint8_t)param; break; }
-            if (i == midi_learn_n && midi_learn_n < MIDI_LEARN_MAX) {
-                midi_learn[midi_learn_n].cc = (uint8_t)cc;
-                midi_learn[midi_learn_n].param = (uint8_t)param;
-                midi_learn_n++;
-            }
+            midi_learn_bind(cc, param);
         }
         midi_cc_map(midi_track(ch), cc, value);
         break;

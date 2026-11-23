@@ -175,6 +175,10 @@ static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at 
 #ifndef FELUCCA_HOTRAM
 #define FELUCCA_HOTRAM 1
 #endif
+/* (1.9.2) the MIDI Learn map: eight bindings of two bytes (CC + 1, then the parameter id or G_MAC1 + m; CC + 1 = 0
+ * is an empty slot). It lives in the settings' favorites.factory[15][0..15], bytes no engine uses and 0 in every older
+ * record, so nothing is migrated and a corrupt entry is ignored when it is read (midi_control.c). */
+static uint8_t midi_learn_map[16];
 #define UP_SLOTS 32u             /* user presets (upreset.c) */
 #define NELEM(a) (sizeof(a) / sizeof((a)[0]))
 

@@ -47,6 +47,9 @@ static uint8_t last_note = 60;
 static volatile uint8_t transport_req;   /* 1 start, 2 stop, 3 restart (from the UI) */
 static volatile uint8_t panic_req;       /* bit per track: release every sounding note (preset / engine change) */
 static volatile uint8_t midi_hint;       /* MIDI IN played track n - 1, which is not the selected one (the UI says so) */
+static volatile uint8_t midi_map_req;    /* (1.9.2) MIDI Learn asked the settings for something: 1 store the map,
+                                          * 2 keep it as the profile, 3 load the profile back (project.c midi_settings) */
+static volatile uint8_t midi_map_msg, midi_map_cc;   /* .. and what the footer says (ui_input.c) */
 
 static uint32_t trk_index(const track_t *t) { return (uint32_t)(t - trk); }
 

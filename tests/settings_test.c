@@ -24,6 +24,7 @@ static void settings_save(void) {}
 #if __has_include("../firmware/src/favorites.c")
 #include "../firmware/src/favorites.c"
 #endif
+static uint8_t midi_learn_map[16];                /* (core.h in the firmware: the MIDI Learn map the record carries) */
 #include "../firmware/src/settings_persist.c"
 int main(void)
 {

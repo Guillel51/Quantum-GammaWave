@@ -1976,6 +1976,18 @@ static uint8_t persist_pending;                 /* 1 requested, 2 waiting after 
 static uint32_t persist_retry_ms;
 #endif
 
+#if FELUCCA_FLASH
+/* (1.9.2) a learned binding writes the settings record (settings_export copies the map in), so it survives a power
+ * cycle; the write itself waits for a stopped transport, as every settings write does. */
+static void midi_settings(void)
+{
+    if (!midi_map_req)
+        return;
+    midi_map_req = 0;
+    settings_save();
+}
+#endif
+
 static void song_index_load(void);                /* song_main.c */
 static void song_index_boot(void);
 
@@ -2036,6 +2048,9 @@ static int project_used(uint32_t slot) { return proj_import(&proj_scratch, &proj
 
 static void settings_poll(void)
 {
+#if FELUCCA_FLASH
+    midi_settings();                                 /* (1.9.2) a MIDI Learn change is a settings change */
+#endif
 #if FELUCCA_FLASH
     persist_t p;
     if (!persist_pending || !flash_ok || transport_busy() ||

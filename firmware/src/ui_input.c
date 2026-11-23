@@ -1843,6 +1843,20 @@ static void ui_notices(void)
         }
     }
     if (motion_full) { motion_full = 0; ui_message("AUTOMATION FULL"); }
+    if (midi_map_msg) {                                 /* (1.9.2) MIDI Learn's answer: the CC and its word */
+        static const char *const W[] = {"BOUND", "TAKEN", "NO ROOM", "CLEARED", "RESTORED", "SAVED", "LOADED", "ALSO STD"};
+        uint32_t k = midi_map_msg, cc = midi_map_cc;
+        midi_map_msg = 0;
+        if (!ui.msg_t) {
+            char b[8];
+            str_cpy(b, "CC", sizeof b);
+            if (k == 4u || k == 5u || k == 6u)
+                b[2] = 0;                               /* (the whole map: no CC to name) */
+            else
+                fmt_int(b + 2, (int32_t)cc);
+            ui_say(b[2] ? b : "MAP", W[k - 1u < 8u ? k - 1u : 0u]);
+        }
+    }
     if (midi_hint) {                                    /* MIDI notes into a track that is not selected */
         uint32_t h = midi_hint;
         midi_hint = 0;
