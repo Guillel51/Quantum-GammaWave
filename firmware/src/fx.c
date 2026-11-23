@@ -1645,6 +1645,27 @@ static void rev_clear(void)
     fx.cl_fill = 0;
 }
 
+static void fx_lines_clear(void)                         /* (FASE 3) every line and state of the buses to silence:
+                                                          * shared by fx_trip (out of range) and the sleep below */
+{
+    uint32_t i;
+    for (i = 0; i < DLY_LEN; i++)
+        dly_buf[i] = 0;
+    for (i = 0; i < CHO_LEN; i++)
+        cho_buf[i] = 0;
+    for (i = 0; i < 4u; i++)
+        fx.ph_s[i] = 0;
+    fx.ph_y = 0;
+    fx.flg_fb = 0;
+    for (i = 0; i < RPRE_LEN; i++)
+        rpre_buf[i] = 0;
+    for (i = 0; i < CL_LEN; i++)
+        cloud_buf[i] = 0;
+    rev_clear();
+    fx.dt1 = fx.dt2 = fx.rt1 = fx.rt2 = 0;
+    fx.dly_lp = fx.dly_hp = fx.rf_lp = fx.rpre_s = fx.cl_lp = fx.cl_half = 0;
+}
+
 static int32_t part_buf[CTL];                            /* a part's block (mix_part); the fade of a model change */
 static int32_t c1_buf[CTL];                              /* (0.6.71) the second core's part_buf (mix_part) */
 
@@ -1734,6 +1755,8 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
 #define FXG_QUIET3 ((uint32_t)FS * 8u / CTL)
 #define FXG_FLOOR3 1024
 static uint32_t fxg_quiet;
+static uint8_t fx_zz;                                /* (FASE 3) the buses are asleep: cleared and skipped
+                                                      * (fx_buses), nothing sent since the gate closed them */
 static int32_t fxg_dpk;                              /* (0.6.89) the delay line's peak this block (fx_buses) */
 static int32_t fxg_g = 32767;
 static void fx_gate(int32_t *wet, uint32_t n)
@@ -1780,13 +1803,12 @@ static int32_t fx_glide(int32_t cur, int32_t to, uint32_t n)
 static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t *rev_in, int32_t *wet,
                      uint32_t n)
 {
-    uint32_t i, dl = delay_samples();
+    uint32_t i, dl = delay_samples(), rt_now;
     int32_t dcd, dcw, ddm;
-    int32_t vin0 = 0, vin1 = 0, vin2 = 0;
+    int32_t vin0 = 0, vin1 = 0, vin2 = 0, any;
     {   /* (7.0) one pass over the three buses where 0.6.14 walked them twice: the peaks, and from them the
          * "anything sent?" the gate needs. Same numbers by construction, a third fewer reads on the busiest
          * function of the audio path (host profile: 45 % of the block). */
-        int32_t any;
         for (i = 0; i < n; i++) {
             int32_t a = cho_in[i] < 0 ? -cho_in[i] : cho_in[i];
             int32_t b = dly_in[i] < 0 ? -dly_in[i] : dly_in[i];
@@ -1805,6 +1827,37 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         fxg_quiet = any ? 0u : fxg_quiet < 0xFFFFFFu ? fxg_quiet + 1u : fxg_quiet;
     }                                                   /* (0.6.19: it opens over ~6 ms, fx_gate: at once, the
                                                          * residue in the lines stepped in: a tick on the next note) */
+    /* (FASE 3) THE BUSES SLEEP WHEN NOTHING IS SENT AND THEIR GATE HAS ALREADY MUTED THEM. fx_gate fades wet to
+     * 0 after 1.5 s of silence, but the buses kept working: the reverb's networks (rev_room alone was 22 % of the
+     * block's host profile) plus the chorus taps and the delay's loop, all over input that is exactly zero and
+     * state the gate multiplies by zero at the output. Here they are cleared once, into that already-muted
+     * silence, and then skipped: a linear network with zero state and zero input returns exactly zero for ever,
+     * so every sample the sleep covers would have been faded to nothing anyway -- the output is unchanged, and
+     * what comes back is silence instead of a residue the gate had muted. Nothing is cut: the gate reaches 0
+     * only after 1.5 s without a send and with wet below -54 dB. The LFO phase, the wow and the line positions
+     * keep their place (a block's worth a block), so waking is a fresh block and never a jump, and a send, a
+     * knob turn, CLOUD's FREEZE (its gate stays open) or any non-zero send wakes them at once, gate opening from
+     * 0 as before. */
+    {   /* the model, as this block would run it (the change below must happen even while the buses sleep) */
+        uint32_t rr = (uint32_t)song.g[G_RTYPE] <= 4u ? (uint32_t)song.g[G_RTYPE] : 0u;
+        rt_now = REV_LITE[sys_load % 3u][rr];
+    }
+    if (!any && !fxg_g && fxg_quiet > FXG_QUIET3 && (uint8_t)rt_now == fx.rtype) {
+        if (!fx_zz) {
+            fx_zz = 1;
+            fx_lines_clear();
+            fxg_dpk = 0;
+        }
+        for (i = 0; i < n; i++)
+            wet[i] = 0;
+        fx_vu[3] = fx_vu[4] = fx_vu[5] = 0;
+        fx.cho_w += n;
+        fx.dly_w += n;
+        fx.rpre_w += n;
+        fx.cho_ph += (LFO_INC[song.g[G_CRATE] & 127] / CTL) * n;
+        return;
+    }
+    fx_zz = 0;
     int32_t fb = dly_fb(song.g[G_DFDBK]), tn = song.g[G_DCOLOR] - 64;   /* (JIANT 0.4) TONE: one knob, low-pass .. open .. low cut */
     int32_t wm, dwm, dig = song.g[G_DTYPE] == 1;        /* (0.6.89: TONE in the middle: each repeat the very copy) */
     tone_t *dtn = &tc_dly.t, *rtn = &tc_rev.t;
@@ -1983,9 +2036,8 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             fx_sr[i] -= side;
         }
     }
-    rt = (uint32_t)song.g[G_RTYPE] <= 4u ? song.g[G_RTYPE] : 0;
-    rt = REV_LITE[sys_load % 3u][rt];                   /* (0.6.29) LOAD LITE: SHIMMER, CLOUD as ROOM, RESO as SPRING; ECO:
-                                                         * all SPRING */
+    rt = (int32_t)rt_now;                               /* (FASE 3) worked out before the sleep check: a model
+                                                         * change has to be taken while the buses sleep too */
     if (rt != fx.rtype) {                               /* the model changed: the old one's block fades out, */
         int32_t *t = fx_tmp, g = 65536, d = 65536 / (int32_t)n;   /* its buffers are cleared, the new */
         for (i = 0; i < n; i++)                                     /* one starts from silence */
@@ -2582,18 +2634,7 @@ static __attribute__((noinline)) void fx_trip(uint32_t c1, uint32_t n)
         fxq_c[i] = fxq_d[i] = fxq_r[i] = 0;
     for (i = 0; i < DLY_LEN; i++)
         dly_buf[i] = 0;
-    for (i = 0; i < CHO_LEN; i++)
-        cho_buf[i] = 0;
-    for (i = 0; i < 4u; i++)
-        fx.ph_s[i] = 0;
-    fx.ph_y = 0;
-    for (i = 0; i < RPRE_LEN; i++)
-        rpre_buf[i] = 0;
-    for (i = 0; i < CL_LEN; i++)
-        cloud_buf[i] = 0;
-    rev_clear();
-    fx.dt1 = fx.dt2 = fx.rt1 = fx.rt2 = 0;
-    fx.dly_lp = fx.dly_hp = fx.rf_lp = fx.rpre_s = fx.cl_lp = fx.cl_half = 0;
+    fx_lines_clear();
     fx_bad = 0;
     fx_trips++;
     if (c1) {

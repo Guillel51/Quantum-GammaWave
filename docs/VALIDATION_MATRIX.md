@@ -3987,3 +3987,25 @@ escritura de la caja y sin forma de medirlo aquí. Sin cambios.
 con los siete checks de SOUND EDITED; `--idle` 29 952/0.
 
 **Límite.** Nanosegundos de host; no ciclos del AC791N ni lectura de la unidad.
+
+## §77 · Los buses duermen en reposo (v1.8.9)
+
+**Perfil.** gprof sobre `tests/fx_bench` (host x86-64): `fx_buses` 24 % del bloque y `rev_room` 22 % con la entrada
+de los tres buses exactamente a cero.
+
+**Cambio.** `fx_buses` duerme cuando `!any && !fxg_g && fxg_quiet > FXG_QUIET3` (8 s sin un solo envío, gate ya
+cerrado): limpia una vez sus líneas (`fx_lines_clear`) y sólo avanza posiciones y fase del LFO. Red lineal con
+estado cero y entrada cero = cero exacto, así que la salida no cambia (el gate ya la multiplicaba por cero). El
+despacho del modelo se resuelve antes del sueño para que un cambio se aplique también dormido.
+
+**Medido (host, `fx_bench`, mejor de 5, ns/muestra).** idle 77,3 → **36,3** (−53 %); secas 119,4 → **75,8** (−36 %);
+buses alimentados 122,1 → 121,3; FLANGER 116,4 → 116,0; seis partes 137,0 → 132,8 (sin cambio en los tres).
+
+**Regresión.** `regress`: 311 renders dorados, 0 cambiados, 0 fallos. `reverb_test` 32/32 con cambio de modelo en
+marcha y colas; `dly_echo_test`, `six_track_test`, `six_track_live_test`, `fx_meter_test`, `audio_test`,
+`eq_state_test`, `poly_stress_test` 12/12, `audio_stress` p99 233,7/725 µs.
+
+**No tocado, con razón.** `master_out` (12 %) es el contrato de salida por muestra; el reparto 0/1 ya va por coste
+medido (`mc_split`); un bus con envío no baja nada.
+
+**Límite.** ns de host; no ciclos del AC791N ni lectura de la unidad.
