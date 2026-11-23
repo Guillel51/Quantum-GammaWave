@@ -54,23 +54,31 @@ static int16_t msc_lerp(int16_t a, int16_t b, int32_t pos)
     return (int16_t)(a + ((int32_t)b - a) * pos / 127);
 }
 
-/* one scene = the selected track's sound as it is now */
-static __attribute__((noinline)) void msc_capture(uint32_t slot)
+/* (v1.8.5) one scene = a whole sound, and the sound can be another track's: the project already stores every
+ * part, so a pair built from two tracks is a morph that survives a save and a reboot with no new storage --
+ * the gap the audits listed as "estados A/B persistentes: abierto". The track's own p[] and mx[] are copied,
+ * never a reference: editing that track afterwards leaves the scene as it was captured. */
+static __attribute__((noinline)) void msc_capture_trk(uint32_t slot, const track_t *src)
 {
     uint32_t f, i;
-    if (slot >= MSC_N)
+    if (slot >= MSC_N || !src)
         return;
     f = msc_guard();
     for (i = 0; i < P_COUNT; i++)
-        msc_p[slot][i] = TSEL->p[i];
+        msc_p[slot][i] = src->p[i];
     for (i = 0; i < 4u; i++) {
-        msc_mx[slot][i][0] = TSEL->mx[i][0];
-        msc_mx[slot][i][1] = TSEL->mx[i][1];
-        msc_mx[slot][i][2] = TSEL->mx[i][2];
+        msc_mx[slot][i][0] = src->mx[i][0];
+        msc_mx[slot][i][1] = src->mx[i][1];
+        msc_mx[slot][i][2] = src->mx[i][2];
     }
     msc_unguard(f);
     msc_have |= (uint8_t)(1u << slot);
     msc_on = (uint8_t)(((msc_have >> msc_a) & 1u) && ((msc_have >> msc_b) & 1u));
+}
+/* one scene = the selected track's sound as it is now */
+static __attribute__((noinline)) void msc_capture(uint32_t slot)
+{
+    msc_capture_trk(slot, TSEL);
 }
 
 /* the sounding values for a position: called from the main loop, never the ISR */
@@ -120,8 +128,12 @@ static __attribute__((noinline)) void msc_sync(void)
     if (msc_ui_p != msc_want)                         /* the position: a knob turn is one step */
         msc_want = msc_ui_p;
     if (msc_ui_g) {                                   /* KNOB 4: an action, run once */
-        if (msc_ui_g == 1 || msc_ui_g == 2) {
-            msc_capture(msc_ui_g == 1 ? msc_a : msc_b);
+        int32_t g = msc_ui_g;
+        if (g == 1 || g == 2)
+            msc_capture(g == 1 ? msc_a : msc_b);
+        else if (g >= 4 && g < 4 + 2 * NPART) {        /* (v1.8.5) A < T1..T6, B < T1..T6: the end is another */
+            int32_t k = g - 4;                         /* track's sound (a scene keeps a copy) */
+            msc_capture_trk(k < NPART ? msc_a : msc_b, &trk[k % NPART]);
         }
         msc_ui_g = 0;
     }
@@ -139,4 +151,16 @@ static void msc_tick(void)
     d = (int32_t)msc_want - msc_pos;
     msc_pos = (int16_t)(msc_pos + (d > 3 ? 3 : d < -3 ? -3 : d));
     msc_apply(msc_pos);
+}
+
+/* (v1.8.5) THE MIDI SIDE (midi_control.c: CC 78 the position, 79 / 80 the two captures). The position is the
+ * page's own value, so the slew still walks it and a knob turn and a controller move the same number: the
+ * engines never see more than one step of 127 between two blocks, whatever moved it. */
+static void msc_midi_pos(int32_t v)
+{
+    msc_want = msc_ui_p = (int16_t)clamp(v, 0, 127);
+}
+static void msc_midi_store(int32_t which, const track_t *t)
+{
+    msc_capture_trk(which ? msc_b : msc_a, t);
 }

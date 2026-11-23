@@ -578,7 +578,8 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT};   /* (v1.12.7)
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT,
+       GR_SCENES};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
                                      * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
@@ -641,7 +642,12 @@ static const param_desc_t *const MAC_DESC[4] = {&MAC1_DESC, &MAC2_DESC, &MAC3_DE
 #define G_MSCG 0xF8u
 #define IS_MSC_ID(id) ((id) >= G_MSCP && (id) <= G_MSCG)
 static const char *const N_MSCS[] = {"1", "2", "3", "4"};
-static const char *const N_MSCG[] = {"--", "STORE A", "STORE B", "DIFF"};
+/* (v1.8.5) KNOB 4's list: the two captures of the edit buffer, DIFF (reserved), then A < T1..T6 and
+ * B < T1..T6 -- an end taken from another track's sound (morph.c msc_capture_trk). 16 entries: an encoder
+ * walks them, the card shows the four-character name */
+static const char *const N_MSCG[] = {"--", "STORE A", "STORE B", "DIFF",
+                                     "A < T1", "A < T2", "A < T3", "A < T4", "A < T5", "A < T6",
+                                     "B < T1", "B < T2", "B < T3", "B < T4", "B < T5", "B < T6"};
 static const param_desc_t MSCP_DESC = PD("MORPH", F_PCT, 0, 127, 64);
 static const param_desc_t MSCA_DESC = PE("A", N_MSCS, 0);
 static const param_desc_t MSCB_DESC = PE("B", N_MSCS, 1);
@@ -669,7 +675,7 @@ static const page_t PAGES[] = {
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
     {"MACROS", FAM_LFO, SC_GLOBAL, GR_MACROS, {G_MAC1, G_MAC2, G_MAC3, G_MAC4}},   /* (FASE 8) M1..M4: what the
                                      * matrix's sources of the same name read, KNOB 1..4 */
-    {"SCENES", FAM_LFO, SC_TRACK, GR_NONE, {G_MSCP, G_MSCA, G_MSCB, G_MSCG}},   /* (FASE 6) four scenes of this
+    {"SCENES", FAM_LFO, SC_TRACK, GR_SCENES, {G_MSCP, G_MSCA, G_MSCB, G_MSCG}},   /* (FASE 6) four scenes of this
                                        * track's sound and the position between A and B (morph.c) */
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
     {"BUSES", FAM_FX, SC_GLOBAL, GR_FX_BUSES, {0xFF, G_DMIX, G_RSIZE, G_CDEPTH}},   /* (6.1) the routing console:

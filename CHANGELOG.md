@@ -1,3 +1,32 @@
+## v1.8.5 — QUANTUM MORPH: un extremo de otro track, y el controlador que lo mueve
+
+**MORPH SCENES ya existía** (LFO > SCENES: cuatro estados del sonido de la pista, una pareja A/B y la posición
+continua entre ellos, con slew de 3/127 por cuadro). Lo que faltaba era lo que la propia auditoría del proyecto tenía
+abierto: *"MORPH con estados A/B persistentes — el formato de preset no tiene dos estados"*, y mover la posición
+desde un controlador en vez de sólo la perilla.
+
+**Un extremo puede ser otra pista (A < T1..T6 / B < T1..T6).** KNOB 4 de la página recorre ahora dieciséis acciones:
+las dos capturas del buffer de edición, DIFF y doce `A < Tn` / `B < Tn` que copian *el sonido completo de otra pista*
+—sus `p[]` y sus cuatro slots de matriz— dentro de la escena. La escena es una copia, no una referencia: editar esa
+pista después no la cambia. Y como el proyecto ya guarda las seis pistas, una pareja hecha así **sobrevive a guardar
+y a apagar** sin un byte de almacenamiento nuevo (la imagen crece 1 116 B; el registro de proyecto, que está lleno
+hasta el último byte de su objeto de flash, no se toca).
+
+**CC 78 mueve la posición, CC 79 y CC 80 capturan.** El controlador entra por la misma variable que la perilla, así
+que la posición sigue pasando por el slew: entre dos bloques de audio nunca llega más de un paso de 127, venga de
+donde venga. Los valores fuera de 0..127 se recortan, no dan la vuelta. La captura de un CC es la de la pista del
+canal que lo manda.
+
+**La página muestra lo que hace.** LFO > SCENES dibuja el raíl de A a B: la parte recorrida rellena, el marcador de
+la posición, los números de escena en los extremos (color de tema para A, acento para B; grises cuando ese extremo
+está vacío) y una fila por extremo con su número y `STORED` o `KNOB 4: STORE`. El pie dice lo que un par hace y qué
+controladores lo mueven. Un extremo vacío no dibuja relleno y el pie avisa: nada de un deslizador que no mueve nada.
+
+**Lo que no cambia.** Ni motores, ni voces, ni efectos, ni la escala de la posición; los tres tests de MORPH siguen
+en verde (21 casos audibles, 6 transiciones sin click, la página y su interpolación) más once comprobaciones nuevas
+de esta versión: la copia desde otra pista, que no es una referencia, el recorrido 0 → 127 → 0, el slew del
+controlador, el recorte en los extremos y las dos capturas por CC.
+
 ## v1.8.4 — FX: el vumetro de DIST y la escala que lo tenía clavado
 
 **El vúmetro del FX pegado arriba con la distorsión al 1 %.** No era la distorsión: era la escala. Las cuatro

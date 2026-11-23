@@ -443,6 +443,13 @@ click; las notas siguen.
   ANALOG SAW > SQR > TRI > SIN, en PHASE hacia su forma siguiente, en LOFI hacia la onda siguiente hasta WRAM). 0 = la
   onda tal como la elegiste. En ANALOG y LOFI la modulación **SHAPE** también mueve el morph, así un LFO o una
   envolvente barren la onda. La página dibuja un ciclo de la onda resultante y dice qué dos ondas mezcla.
+- **SCENES** (LFO > SCENES, v1.8.5 QUANTUM MORPH): cuatro estados del sonido de esta pista y una posición continua
+  entre la pareja A/B: MORPH (KNOB 1) recorre 0..127, A y B (KNOB 2/3) eligen las escenas y SCENE (KNOB 4) las guarda
+  —`STORE A`, `STORE B`, o `A < T1..T6` / `B < T1..T6` para tomar el sonido entero de otra pista—. La página dibuja el
+  raíl de A a B con lo recorrido relleno y el marcador de la posición. El cambio es continuo y con slew (3 de 127 por
+  cuadro): nunca hay un salto. Nunca se mueven el motor ni el routing. CC 78 mueve la posición y CC 79/80 guardan A/B
+  de la pista del canal. Un par tomado de dos pistas sobrevive a guardar el proyecto y a apagar; las escenas se
+  guardan sólo en RAM.
 - **VOICE**: una voz por formantes (basada en klattsch): vocales, habla, aliento.
 - **WHEEL**: un órgano de drawbars: registraciones (REG), percusión (PERC: OFF, 2ND, 3RD, 2SOFT, 3SOFT, 2SLOW,
   3SLOW), click de tecla, drive, ROTOR (OFF, SLOW, FAST).
@@ -1558,7 +1565,8 @@ protección desvaneció): una foto de esa pantalla ayuda cuando reportás un pro
   (los propios del motor, donde los tiene), CC72 release, CC73 attack, CC75 decay, CC91 envío de reverb, CC93 envío
   de chorus, CC94 envío de delay. CC1 (rueda de modulación), CC11 (expresión) y el aftertouch de canal son fuentes de
   la matriz MOD (MODW, EXPR, AT). Funcionan el pitch bend, el sustain (CC64), All Sound Off (CC120) y All Notes Off
-  (CC123). Un CC se graba como automatización igual que un movimiento de perilla.
+  (CC123). CC 78 mueve el MORPH de LFO > SCENES (0..127, con su slew) y CC 79/80 guardan sus escenas A/B en la
+  pista del canal. Un CC se graba como automatización igual que un movimiento de perilla.
 - Nombre USB MIDI: el equipo se sigue presentando como "Felucca", así el editor web se conecta.
 
 ---

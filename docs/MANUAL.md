@@ -432,6 +432,13 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
   SAW > SQR > TRI > SIN, on PHASE toward its next shape, on LOFI toward the next wave up to WRAM). 0 = the wave as
   chosen. On ANALOG and LOFI the **SHAPE** modulation moves the morph too, so an LFO or envelope sweeps the wave. The
   page draws one cycle of the morphed wave and says which two waves it blends.
+- **SCENES** (LFO > SCENES, v1.8.5 QUANTUM MORPH): four states of this track's sound and a continuous position between
+  the A/B pair: MORPH (KNOB 1) walks 0..127, A and B (KNOB 2/3) pick the scenes and SCENE (KNOB 4) stores them --
+  `STORE A`, `STORE B`, or `A < T1..T6` / `B < T1..T6` to take another track's whole sound. The page draws the rail
+  from A to B with the walked share filled and the position's marker. The change is continuous and slewed (3 of 127 a
+  frame): never a jump. The engine and the routing never move. CC 78 moves the position and CC 79/80 store A/B of the
+  channel's track. A pair taken from two tracks survives saving the project and a power cycle; the scenes themselves
+  live in RAM.
 - **VOICE**: a formant voice (after klattsch): vowels, talk, breath.
 - **WHEEL**: a drawbar organ: registrations (REG), percussion (PERC: OFF, 2ND, 3RD, 2SOFT, 3SOFT, 2SLOW, 3SLOW),
   key click, drive, ROTOR (OFF, SLOW, FAST).
@@ -1465,7 +1472,7 @@ faded): a photo of that screen helps when you report a problem.
   **Bluetooth MIDI** (the chip has a radio, but its Bluetooth software is JieLi's closed SDK, which Quantum GammaWave does not use).
 - **Clock**: GLO > GLOBAL > CLOCK **USB** or **TRS** follows that input's clock and Start / Continue / Stop. With an
   external clock, TAP and GLO + PLAY restart are disabled.
-- **Controllers** (on the track the channel plays): CC5 glide, CC7 level, CC10 pan, CC71 resonance and CC74 cutoff (the
+- **Controllers** (on the track the channel plays): CC5 glide, CC7 level, CC10 pan, CC78 morph (LFO > SCENES), CC79/80 store its A/B, CC71 resonance and CC74 cutoff (the
   engine's own, where it has them), CC72 release, CC73 attack, CC75 decay, CC91 reverb send, CC93 chorus send,
   CC94 delay send. CC1 (mod wheel), CC11 (expression) and channel aftertouch are sources in the MOD matrix (MODW, EXPR,
   AT). Pitch bend, sustain (CC64), All Sound Off (CC120) and All Notes Off (CC123) work. A CC is recorded as automation

@@ -3887,3 +3887,32 @@ renders idénticos). Quedan escritos con su coste en `docs/OPT_DSP_2026-11-23.md
 
 **Nada medido en la FM-1 física**: microsegundos de host x86-64 y conteos; los FPS del panel y el gasto real del
 AC791N no se declaran.
+
+## §73 · QUANTUM MORPH, Fase 3/3 (v1.8.5)
+
+**Lo que ya existía.** `LFO > SCENES`: cuatro escenas del sonido de la pista, pareja A/B, posición 0..127 con slew de
+3/127 por cuadro sobre los ids que el sistema de movimiento clasifica como sonido. No se duplicó: se extendió.
+
+**Un extremo de otra pista.** KNOB 4 pasa a 16 acciones: `STORE A`, `STORE B`, `DIFF`, `A < T1..T6`, `B < T1..T6`.
+`msc_capture_trk()` copia `p[]` y `mx[]` de cualquier pista, así que un par "mi sonido ↔ el del track 4" se recupera
+al cargar el proyecto (el proyecto ya guarda las pistas) sin un byte de formato nuevo, y editar la fuente después no
+cambia la escena.
+
+**Controladores.** CC 78 = posición (misma variable que la perilla, mismo slew, recorte en 0..127); CC 79/80 (≥ 64) =
+`STORE A`/`STORE B` de la pista del canal. No estaban en `MIDI_CC_MAP` ni en el switch: nada cambia para quien no los
+mande.
+
+**UI.** La página dibuja el raíl A→B, la parte recorrida, el marcador, el porcentaje, un chip por extremo con su
+número (gris si está vacío) y una fila `A SCENE n STORED / KNOB 4: STORE`, más un pie con los CC. Render verificado
+en GAMMA (`scenes`, `scenes_empty`), barrido de 195 pantallas × 22 paletas con **0 hallazgos de lint, 0 tintas sobre
+su propio color, 0 medidas fuera de 1 px**.
+
+**Coste.** Imagen AC791N 580 564 de 583 612 B (**+1 116 B**, 3 048 libres); `.data+.bss` 93 800 de 98 304 B sin cambio
+(las escenas ya estaban).
+
+**Pruebas (host x86-64).** `morph_test` (todas las comprobaciones, incluidas once nuevas: captura desde otra pista,
+no-referencia, 0 → 127 → 0, slew del controlador, recortes, CC 79/80), `morph_audible_test` 21/0, `morph_six_test`
+6/0 (sin click con seis pistas y FX).
+
+**Pendiente declarado.** Las escenas en sí no se guardan (no hay formato para ellas); un par de pistas sí. No hay
+máscara de ids por escena. `DIFF` sigue reservado. Nada medido en la unidad física.

@@ -286,6 +286,20 @@ static void midi_control(uint32_t ch, uint32_t cc, uint32_t value)
             midi_expression_channel(ch);
         }
         break;
+    case 78:                                       /* (v1.8.5) QUANTUM MORPH: the position between A and B,
+                                                    * 0..127, through the page's own slew (nothing bigger than
+                                                    * one step of 127 reaches the engines). The morph is one,
+                                                    * of the selected track, so every channel moves it */
+        msc_midi_pos((int32_t)value);
+        break;
+    case 79:                                       /* .. and an end taken from this channel's track */
+        if (value >= 64u)
+            msc_midi_store(0, midi_track(ch));
+        break;
+    case 80:
+        if (value >= 64u)
+            msc_midi_store(1, midi_track(ch));
+        break;
     case 118:                                      /* (1.7) MIDI Learn: forget every binding */
         midi_learn_reset();
         break;

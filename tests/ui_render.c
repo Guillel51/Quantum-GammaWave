@@ -754,7 +754,8 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
                                                    * frame in this sweep at all, so neither the pixel baseline nor
                                                    * the alignment lint had ever seen them. BEFORE S_MOCK_HOME, which
                                                    * starts the mock branch: after it, setup() never reaches them */   S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
-       S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_PERF, S_COUNT };
+       S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_PERF,
+       S_SCENES, S_SCENES_EMPTY, S_COUNT };   /* (v1.8.5) QUANTUM MORPH: a captured pair and an empty one */
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "mod_map", "fx", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
@@ -773,7 +774,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf"};
+    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -811,6 +812,17 @@ static void mock_state(int s)
     }
     trk[3].p[P_SLEN] = 32;
     switch (s) {
+    case S_SCENES:                                  /* (v1.8.5) two scenes captured, the position at 96 */
+        TSEL->p[P_FCUT] = 30; msc_capture(0);
+        TSEL->p[P_FCUT] = 100; msc_capture(1);
+        msc_ui_a = 1; msc_ui_b = 2; msc_ui_p = 96;
+        msc_sync(); msc_pos = msc_want = 96; msc_apply(96);
+        go_page(GR_SCENES);
+        break;
+    case S_SCENES_EMPTY:                            /* .. and nothing stored: the rail empty, no fill */
+        msc_have = 0; msc_on = 0; msc_ui_p = 0; msc_pos = msc_want = 0;
+        go_page(GR_SCENES);
+        break;
     case S_MOCK_HOME: ui.home = 1; ui.hot_col = 1; ui.hot_t = 30; break;
     case S_MOCK_PRESETS: go_page(GR_BROWSE); break;
     case S_MOCK_SEQ: song.sel = 0; song.rec = 1; go_page(GR_ROLL); ui.cursor = 6; ui.hot_col = 0; ui.hot_t = 30; break;

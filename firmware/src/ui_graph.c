@@ -1714,6 +1714,49 @@ static void graph_macros(uint16_t c)
     }
 }
 
+/* (v1.8.5) QUANTUM MORPH (LFO > SCENES): the rail from A to B, the share walked filled, the position as a
+ * marker and a percentage, and what each end holds -- its scene number and whether it was captured (an empty
+ * end draws no fill: the pair is not armed and turning MORPH would do nothing). Read only: the four knobs under
+ * the panel are the page's, and the fill's colour follows HEAT when the palette is chamfered, as the MACROS
+ * gauges do. Cheap by construction: a handful of rectangles and two numbers a frame, no per-id loop. */
+static void graph_scenes(void)
+{
+    int32_t x0 = PANEL_X0 + 4, x1 = PANEL_X0 + PANEL_W - 4, w = x1 - x0;
+    int32_t pos = clamp(msc_pos, 0, 127), mx = x0 + w * pos / 127, k;
+    uint32_t hv[2];
+    char b[8];
+    hv[0] = (msc_have >> msc_a) & 1u;
+    hv[1] = (msc_have >> msc_b) & 1u;
+    cv_text_on(PANEL_X0, 1, &AF_S, "QUANTUM MORPH", msc_on ? T_MID : T_DIM, T_SURF);
+    fmt_int(b, pos * 100 / 127);
+    cv_text_r(x1, 1, &AF_S, "%", msc_on ? T_MID : T_DIM, T_SURF);
+    cv_text_r(x1 - text_w(&AF_S, "%") - 2, 1, &AF_S, b, msc_on ? T_MID : T_DIM, T_SURF);
+    cv_rrect(x0, 26, w, 14, 3, T_GRID, T_SURF);                       /* the rail */
+    if (msc_on && pos > 0) {
+        int32_t fw = mx - x0;
+        cv_rrect(x0, 26, fw < 3 ? 3 : fw, 14, 3,
+                 ux.chamfer ? heat_col(90u + (uint32_t)pos) : T_THEME, T_SURF);
+    }
+    for (k = 0; k < 2; k++) {                                         /* the two stops, their scene numbers */
+        int32_t sx = k ? x1 - 13 : x0, c = (int32_t)hv[k];
+        fmt_int(b, (int32_t)(k ? msc_b : msc_a) + 1);
+        cv_rrect(sx, 21, 13, 24, 2, c ? (k ? T_ACCENT : T_THEME) : T_RAISE, T_SURF);
+    }
+    cv_rect(mx - 1, 18, 3, 30, msc_on ? T_ACCENT : T_DIM);            /* the position */
+    for (k = 0; k < 2; k++) {                                         /* what each end holds */
+        int32_t y = 54 + k * 24, c = (int32_t)hv[k];
+        cv_rrect(PANEL_X0, y, 232, 20, 3, T_SURF, T_BG);
+        cv_text_on(PANEL_X0 + 6, y + 4, &AF_M, k ? "B" : "A", c ? T_MID : T_DIM, T_SURF);
+        fmt_int(b, (int32_t)(k ? msc_b : msc_a) + 1);
+        cv_text_on(PANEL_X0 + 26, y + 5, &AF_S, "SCENE", T_DIM, T_SURF);
+        cv_text_on(PANEL_X0 + 82, y + 4, &AF_M, b, c ? T_MID : T_DIM, T_SURF);
+        cv_text_on(PANEL_X0 + 100, y + 5, &AF_S, c ? "STORED" : "KNOB 4: STORE", c ? T_KEY : T_DIM, T_SURF);
+    }
+    /* the footline: what a pair does, and the controllers that move it -- the page documents itself */
+    cv_text_on(PANEL_X0, 98, &AF_S, msc_on ? "CC 78: MORPH   CC 79/80: STORE" : "STORE BOTH ENDS TO MORPH",
+               msc_on ? T_DIM : T_MID, T_SURF);
+}
+
 /* (FASE 8) MOD page: the matrix's eight slots as rows "1 LFO > CUT +50" and, on the right, the value the slot's
  * source has now -- a bar from the middle for a bipolar source (LFO, KEY, RAND, NOISE: its side is the polarity of
  * the moment) and from the left for the others. The amount's own sign (param_format, F_BIPCT) is the assignment's
@@ -4108,6 +4151,10 @@ static void draw_graph(void)
         case GR_MACROS:
             cv_oy = 0;
             graph_macros(c);
+            break;
+        case GR_SCENES:                                /* (v1.8.5) the morph's rail */
+            cv_oy = 0;
+            graph_scenes();
             break;
         case GR_BROWSE:
             cv_oy = 0;
