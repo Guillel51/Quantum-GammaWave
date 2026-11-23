@@ -1814,6 +1814,7 @@ static void ui_notices(void)
             snd_first = 0;
             snd_dirty = 0;
             for (k = 0; k < NTRK; k++) snd_ref[k] = snd_hash(&trk[k]);
+            pc_arm(TSEL);                             /* (FASE 4/9) and so is the compare's preset side */
         } else if (!song.playing) {
             uint32_t sel = snd_trk(TSEL), oth;
             if (!((snd_dirty >> sel) & 1u) && snd_hash(TSEL) != snd_ref[sel])
@@ -2086,6 +2087,8 @@ static void ui_input_frame(void)
         } else if (ab == BT_TAP && ab_snd.used) {
             ab_swap(TSEL);
             ui_message(ab_side ? "SOUND B" : "SOUND A");
+        } else if (ab == BT_TAP) {
+            ui_message("NOTHING TO COMPARE");
         }
     }
     /* (1.3.2) THE FX PAGE'S SCENE: the track's four sends and DIST's type, on the two keys that page has free -- its knobs

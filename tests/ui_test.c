@@ -11657,6 +11657,118 @@ static int test_sound_edited(void)
     return bad;
 }
 
+/* (FASE 4/9) PRESET COMPARE: the sound as the preset left it (snd_clean) against the edit, one key each way
+ * (EDIT held, A3 -- the EDIT layer's third white key). Both sides always exist -- one in the track, one in the
+ * A/B slot -- so nothing is lost; the engine and an FM6 patch travel with the sound; a track with no reference
+ * of its own is not compared by mistake, and nothing edited says so and moves nothing. */
+static int test_preset_compare(void)
+{
+    int bad = 0, ok;
+    static int16_t p0[P_COUNT], p1[P_COUNT];
+    uint8_t e0;
+    track_t *t;
+    ui_power_on();
+    snd_first = 1;                                   /* the power-on sound: the preset side */
+    frame();
+    t = TSEL;
+    ok = pc_side(t) == 0 && pc_compare(t) == 1;      /* nothing edited: nothing to hear, nothing moves */
+    /* the preset as it is, then an edit of it */
+    memcpy(p0, t->p, sizeof p0);
+    e0 = t->eng_req;
+    t->p[P_E1] = (int16_t)(t->p[P_E1] + 9);
+    frame();
+    ok &= pc_side(t) == 2;
+    memcpy(p1, t->p, sizeof p1);                     /* the edit, as it must come back */
+    ok &= pc_compare(t) == 0 && pc_side(t) == 1 && msg_is("PRESET (A)");
+    ok &= !memcmp(t->p, p0, sizeof p0) && t->eng_req == e0;
+    frame();
+    ok &= pc_side(t) == 1;                           /* the indicator holds while it sounds */
+    ok &= pc_compare(t) == 0 && pc_side(t) == 2 && msg_is("EDIT (B)");
+    ok &= !memcmp(t->p, p1, sizeof p1);
+    bad += check("PRESET COMPARE: a key puts the preset on (and the edit away), the next the edit back, value for value",
+                 ok);
+    /* the engine is part of the sound */
+    {
+        uint8_t other = e0 == ENGI_LOFI ? (uint8_t)ENGI_ANALOG : (uint8_t)ENGI_LOFI;
+        t->eng_req = other;                          /* another engine altogether: a different sound */
+        t->preset = 0;
+        frame();
+        other = t->eng_req;                          /* (what the UI settled on) */
+        ok = other != e0 && pc_side(t) == 2;
+        ok &= pc_compare(t) == 0 && t->eng_req == e0;
+        ok &= pc_compare(t) == 0 && t->eng_req == other;
+        bad += check("  the engine travels with it: the preset's back, the other's back again", ok);
+        t->eng_req = e0;
+        t->preset = 0;
+        frame();
+    }
+    /* an FM6 sound is its patch too */
+    {
+        uint8_t k0[sizeof fm6_patch[0]], k1[sizeof fm6_patch[0]];
+        uint32_t sel, i;
+        int16_t save[P_COUNT];
+        sel = song.sel;
+        track_select(4);                             /* track 5: an FM6 track */
+        frame();
+        t = TSEL;
+        for (i = 0; i < P_COUNT; i++)
+            t->p[i] = param_desc_of(ENGI_FM6, i)->def;
+        t->eng_req = ENGI_FM6;
+        fm6_init_voice(t);                           /* the engine's own first sound */
+        snd_first = 1;
+        frame();                                     /* the preset side */
+        memcpy(save, t->p, sizeof save);
+        memcpy(k0, fm6_patch[4], sizeof k0);
+        fm6_patch[4][FP_NAME] = (uint8_t)(fm6_patch[4][FP_NAME] ^ 1u);   /* an edit of the patch alone */
+        t->p[P_E1] = (int16_t)(t->p[P_E1] + 3);
+        frame();
+        memcpy(k1, fm6_patch[4], sizeof k1);
+        ok = pc_side(t) == 2;
+        ok &= pc_compare(t) == 0 && !memcmp(fm6_patch[4], k0, sizeof k0) && !memcmp(t->p, save, sizeof save);
+        ok &= pc_compare(t) == 0 && !memcmp(fm6_patch[4], k1, sizeof k1) && t->p[P_E1] == (int16_t)(save[P_E1] + 3);
+        bad += check("  an FM6 sound: the patch and the values swap together", ok);
+        song.sel = (uint8_t)sel;
+        frame();
+    }
+    /* a track with no reference of its own is not compared by mistake */
+    {
+        uint32_t sel = song.sel;
+        track_select(2);
+        frame();
+        ok = pc_side(TSEL) == 0 && pc_compare(TSEL) == 1;
+        bad += check("  another track: no preset side, the key does nothing", ok);
+        song.sel = (uint8_t)sel;
+        frame();
+    }
+    /* the key itself: EDIT held, the A3 white key that is A/B in the EDIT layer */
+    {
+        static int16_t before[P_COUNT];
+        t = TSEL;
+        snd_clean(TSEL);                             /* the reference: the sound as it stands */
+        t->p[P_E1] = (int16_t)(t->p[P_E1] + 5);      /* and an edit of it */
+        frame();
+        memcpy(before, t->p, sizeof before);
+        ok = pc_side(t) == 2;
+        btn_down(B_EDIT);
+        frame();
+        key_down(white(2));                          /* A3: the combo opens the layer, the key is the layer's */
+        frame();
+        ok &= ui.layer == LAYER_EDIT && msg_is("PRESET (A)") && pc_side(t) == 1;
+        key_up(white(2));
+        frame();
+        key_down(white(2));
+        frame();
+        key_up(white(2));
+        frame();
+        ok &= pc_side(t) == 2 && !memcmp(t->p, before, sizeof before);
+        btn_up(B_EDIT);
+        frame();
+        bad += check("  the key: EDIT held, A3 -- the layer's own control, the same swap, nothing of the edit lost", ok);
+    }
+    snd_clean(TSEL);
+    return bad;
+}
+
 /* (FASE 4) ANIM OFF MEANS THE SCREEN DOES NOT MOVE. The report named a continuous flicker in the header of
  * OVERVIEW, MIXER and PERFORMANCE "regardless of FLAT/LINE or ANIM ON/OFF": the breathing bar under the lit page
  * icon kept stepping from ui.frame with ANIM OFF, and the body's signature hashed that same phase, so the three
@@ -11937,6 +12049,7 @@ int main(void)
     bad += test_screen_off();
     bad += test_fm6_charts();
     bad += test_sound_edited();
+    bad += test_preset_compare();      /* (FASE 4/9) the preset against the edit, one tap each way */
     bad += test_still_when_anim_off();
 #if FELUCCA_FM4
     bad += test_fm_charts();                        /* (DIGITAL's charts: built with FELUCCA_FM4=1 only) */

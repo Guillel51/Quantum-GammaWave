@@ -1,3 +1,57 @@
+## v1.9.0 — el preset guardado contra la edición, una tecla cada vez
+
+Fase 4/9: comparación real en el instrumento, sin duplicar el A/B que ya existía ni un solo preset.
+
+**Lo que había, revisado antes de empezar.** En Web Studio no hay ningún A/B de presets: los `.js` de `web/` solo
+comparan paquetes y huellas (`web/*.js`), así que no había nada que no duplicar allí. En el instrumento sí había un
+A/B manual: en HOME, EDIT mantenido aparca el sonido (`ab_store`), EDIT tocado lo intercambia (`ab_swap`), con
+`ab_snd`/`ab_side` en `ui.c` y el intercambio seguro a través de `motion_guard`/`motion_unguard`/`motion_rebase`.
+Ese A/B **se reutiliza tal cual**: lo nuevo es la referencia automática al preset, no un segundo mecanismo.
+
+**Hallazgo al probarlo.** El toque de EDIT en HOME que el A/B manual esperaba no llega a su bloque: la maquinaria
+de capas se queda el toque (el `ui_test` lo enseña: tras el toque el instrumento está en la página de EDIT y el pie
+dice `HOLD [EDIT] QUICK`, no `SOUND A`). El camino llevaba tiempo inalcanzable desde el panel. Por eso el control
+nuevo vive donde el toque sí llega: **en la capa de EDIT**, sin tocar el bloque de HOME (quitarlo de ahí tampoco
+era el encargo, y el A/B manual sigue donde estaba).
+
+**El control.** EDIT mantenido abre su capa; la tercera tecla blanca, **A3** (F3 INIT, G3 RECALL, A3 A/B), compara.
+Su celda dice `A/B`, y `PRESET` mientras suena el lado del preset. Una pulsación pone el preset en la pista y la
+edición en el slot, la siguiente devuelve la edición: las dos partes existen siempre (una en la pista, otra en el
+slot), así que pulsar de más no puede perder nada y el ISR nunca ve medio sonido (el intercambio es `ab_swap`).
+
+**La referencia.** `snd_clean()` (core.h) la toma sola cada vez que un sonido pasa a ser el de la pista: cargar un
+preset de fábrica, guardar uno de usuario, recordar un proyecto o una sección, un UNDO; y en el arranque, la ruta
+`snd_first` de `ui_notices`. Es un único slot de RAM (`pc_orig`, ~600 B, en `.lowbuf` desde esta versión: ningún
+ISR lo lee). **No se duplica ningún preset en flash y no cambia ningún formato**: es el mismo `track_t` que ya
+había, en RAM, y solo mientras el instrumento está encendido.
+
+**Qué viaja con el sonido.** Los valores, la matriz de modulación, el motor (`eng_req`), el número de preset y —en
+FM6— el parche (`fm6_patch`/`fm6_set_patch`/`fm6_adopt`, que el A/B manual tampoco copiaba antes): un sonido FM6 es
+su parche tanto como sus valores, así que comparar sin él habría comparado dos veces el mismo motor.
+
+**Indicadores.** El pie y HOME siguen la regla que ya existía: `nombre A` cuando suena el preset tal cual se cargó,
+`nombre*` (la estrella de SOUND EDITED) cuando suena la edición. Si se edita mientras suena el lado del preset, ese
+lado pasa a ser una variante y el indicador deja de decir `A` — sin mentir sobre lo que se oye.
+
+**Pruebas (host x86-64, `tests/ui_test`, cinco checks nuevos).** Valores (una tecla pone el preset y la siguiente
+devuelve la edición, valor por valor, comparando la tabla entera); motor (ANALOG ↔ LOFI en los dos sentidos);
+FM6 (parche y valores cambian de lado juntos); una pista sin referencia propia no se compara por error; y la tecla
+de verdad (EDIT mantenido, A3: la capa, el mensaje `PRESET (A)`, y la edición de vuelta intacta). Suite completa:
+todo en verde.
+
+**Píxeles.** 128 fotogramas cambian: 48 por el texto de versión (about / about_rec / splash en cada estilo y
+paleta) y 80 por la celda nueva de la capa de EDIT (cada paleta y estilo). 0 hallazgos de lint, 0 alineaciones.
+
+**Presupuesto (medido en el enlace, `tools/resource_map.py`).** Imagen **582 300 B de 583 612** (1 312 B libres);
+RAM 93 976 de 98 304 (4 328 libres); pool 9 248 libres; LOWBUF 31 052 de 32 768 (1 716 libres). La RAM vuelve a
+estar por encima de su suelo (4 096) gracias a mover `pc_orig` a `.lowbuf`; **el suelo de XIP (2 048 B libres) no
+se cumple: faltan 736 B**. La fase anterior dejó 2 100 B y esta función cuesta ~790 B de imagen (728 B de código
+medidos símbolo a símbolo más 60 B de constantes); con `-Oz` + LTO ya en uso no queda margen de banderas. Queda
+dicho, no escondido, y es la deuda a pagar en la próxima fase de tamaño.
+
+**Límite.** Todo lo anterior es host x86-64 y emulador. No hay ninguna medida hecha en la FM-1 física: escribir en
+la unidad está prohibido en este repositorio.
+
 ## v1.8.9 — los buses se duermen cuando ya están mudos
 
 Fase 3/9: DSP y audio. El perfil (gprof sobre `tests/fx_bench`, host x86-64) ponía `fx_buses` al 24 % del bloque y

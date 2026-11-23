@@ -4009,3 +4009,27 @@ marcha y colas; `dly_echo_test`, `six_track_test`, `six_track_live_test`, `fx_me
 medido (`mc_split`); un bus con envío no baja nada.
 
 **Límite.** ns de host; no ciclos del AC791N ni lectura de la unidad.
+
+## §78 · El preset guardado contra la edición (v1.9.0)
+
+**Lo que había.** En Web Studio, ningún A/B de presets: `web/*.js` compara paquetes y huellas. En el instrumento,
+un A/B manual (HOME: EDIT mantenido `ab_store`, EDIT tocado `ab_swap`, `ab_snd`/`ab_side` en `ui.c`).
+
+**Hallazgo.** El toque de EDIT en HOME no llega al bloque del A/B: la capa se queda el toque (`ui_test`: tras el
+toque, página de EDIT y pie `HOLD [EDIT] QUICK`). No se movió ese bloque; el control nuevo vive en la capa de EDIT.
+
+**Cambio.** Referencia automática en `snd_clean` (`core.h` → `pc_arm`) y en la ruta `snd_first` de `ui_notices`; un
+slot `pc_orig` en `.lowbuf`; `pc_compare` (ui.c) reutiliza `ab_swap`; el intercambio copia el parche FM6
+(`ab_snd.patch`, `fm6_set_patch`, `fm6_adopt`); control en la capa de EDIT (A3, celda `A/B` / `PRESET`); pie y HOME
+con ` A` cuando suena el preset tal cual.
+
+**Comprobado.** `ui_test`, cinco checks nuevos en verde: valores (tabla entera, ida y vuelta), motor ANALOG ↔ LOFI,
+FM6 parche + valores, pista sin referencia (no compara), y la tecla real (EDIT mantenido + A3 → capa, `PRESET (A)`,
+edición intacta). Barrido 196 × 22: 0 hallazgos, 0 alineaciones. `ui_pixels`: 128 cambiados (48 versión, 80 celda
+`A/B`), 0 perdidos, 0 nuevos.
+
+**Presupuesto.** Imagen 582 300 / 583 612 B (1 312 libres; **suelo de XIP de 2 048 no cumplido, faltan 736 B**);
+RAM 4 328 libres (suelo 4 096, verde tras `pc_orig` a `.lowbuf`); POOL 9 248; LOWBUF 1 716. Coste medido del
+cambio: +728 B de código, +60 B de constantes.
+
+**Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.

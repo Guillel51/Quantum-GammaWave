@@ -169,7 +169,10 @@ static void hv_overview(const track_t *t, uint16_t c)
     }
 
     cv_text(14, 64, &AF_S, "SOUND", T_DIM);
-    if (pn[0] && snd_edited(t)) {                      /* (1.2.6) SOUND EDITED: the star the footer writes */
+    if (pn[0] && pc_side(t) == 1u) {                   /* (FASE 4/9) PRESET COMPARE: the preset side is sounding */
+        uint32_t n = str_len(pn);
+        if (n < sizeof pn - 2u) { pn[n] = ' '; pn[n + 1] = 'A'; pn[n + 2] = 0; }
+    } else if (pn[0] && snd_edited(t)) {                /* (1.2.6) SOUND EDITED: the star the footer writes */
         uint32_t n = str_len(pn);
         if (n < sizeof pn - 1u) { pn[n] = '*'; pn[n + 1] = 0; }
     }

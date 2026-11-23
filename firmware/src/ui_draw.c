@@ -861,7 +861,10 @@ static void draw_foot(void)
     int glob = !ui.home && (pg->graph == GR_SLOTS || pg->graph == GR_SONG || pg->graph == GR_TOOLS || pg->fam == FAM_GLO);
     char pj[12];
     sound_name(t, pn);
-    if (pn[0] && snd_edited(t)) {                      /* (1.2.6) SOUND EDITED: a star after the name */
+    if (pn[0] && pc_side(t) == 1u) {                   /* (FASE 4/9) the preset as it was loaded is sounding */
+        uint32_t n = str_len(pn);
+        if (n < 14u) { pn[n] = ' '; pn[n + 1] = 'A'; pn[n + 2] = 0; }
+    } else if (pn[0] && snd_edited(t)) {                /* (1.2.6) SOUND EDITED: a star after the name */
         uint32_t n = str_len(pn);
         if (n < 15u) { pn[n] = '*'; pn[n + 1] = 0; }
     }

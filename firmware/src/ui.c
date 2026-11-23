@@ -965,7 +965,8 @@ static void load_begin(track_t *t, uint32_t what)
  * way to audition a preset: park your sound, turn the PRESETS knob as far as you like, tap EDIT to come back.
  * Only the sound travels (its values and the matrix slots, not the steps or the motion), and the audio ISR
  * sees one sound or the other, never half of each (motion_guard). One slot: P_COUNT int16 + the matrix. */
-typedef struct { int16_t p[P_COUNT]; int16_t mx[4][3]; uint8_t engine, preset, used; } ab_snd_t;
+typedef struct { int16_t p[P_COUNT]; int16_t mx[4][3]; uint8_t patch[sizeof fm6_patch[0]];
+                 uint8_t engine, preset, used; } ab_snd_t;
 static ab_snd_t ab_snd;
 static uint8_t ab_side;                              /* which side the track is holding: 0 A, 1 B */
 
@@ -1006,6 +1007,7 @@ static void ab_store(track_t *t)                     /* the sound the next tap c
 {
     memcpy(ab_snd.p, t->p, sizeof ab_snd.p);
     memcpy(ab_snd.mx, t->mx, sizeof ab_snd.mx);
+    memcpy(ab_snd.patch, fm6_patch[snd_trk(t)], sizeof ab_snd.patch);   /* (FASE 4/9) an FM6 sound is its patch too */
     ab_snd.engine = t->eng_req;
     ab_snd.preset = t->preset;
     ab_snd.used = 1;
@@ -1018,12 +1020,15 @@ static void ab_swap(track_t *t)                      /* the two sides change pla
     uint32_t f = motion_guard();
     memcpy(s.p, t->p, sizeof s.p);
     memcpy(s.mx, t->mx, sizeof s.mx);
+    memcpy(s.patch, fm6_patch[snd_trk(t)], sizeof s.patch);
     s.engine = t->eng_req;
     s.preset = t->preset;
     s.used = 1;
     memcpy(t->p, ab_snd.p, sizeof t->p);
     memcpy(t->mx, ab_snd.mx, sizeof t->mx);
-    t->eng_req = ab_snd.engine % NENGINES;
+    fm6_set_patch(snd_trk(t), ab_snd.patch);         /* (FASE 4/9) the patch travels with the sound */
+    fm6_adopt(snd_trk(t));
+    t->eng_req = ab_snd.engine;                      /* (as it was stored: the engine the UI asked for) */
     t->preset = ab_snd.preset;
     t->user = 0;                                     /* (the sound is not anyone's slot any more: A/B made it) */
     ab_snd = s;
@@ -1031,6 +1036,64 @@ static void ab_swap(track_t *t)                      /* the two sides change pla
     motion_unguard(f);
     motion_rebase(t);
     ui.force = 1;
+}
+
+/* (FASE 4/9) PRESET COMPARE. The other half of A/B, and the one that needs no preparing: the reference is
+ * taken by itself every time a sound becomes the track's own -- a preset loaded, a user preset saved, a
+ * project or a section recalled, an UNDO (snd_clean, core.h) -- so from the first knob turn there is a
+ * real "as the preset says" to hear against the edit. One tap puts the preset in the track and the edit in
+ * the A/B slot, the next puts the edit back: both sides always exist (one in the track, one in the slot),
+ * so nothing can be lost, and the swap is ab_swap's -- the audio ISR never sees half a sound. The patch
+ * travels with it (an FM6 sound is its patch as much as its values), the engine and its preset number too.
+ * Nothing is written anywhere: no preset is duplicated, no format changes, and the steps, the motion and
+ * everything else of the track stay put. While the preset side is on show it can be edited like any sound
+ * (it is the sound); the indicator says which side is sounding and the tap always swaps the two. */
+static ab_snd_t pc_orig __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) the sound the last
+                                                      * load / save left: ~600 B no ISR ever reads */
+static uint8_t pc_ok;                                /* there is a reference */
+static uint8_t pc_trk;                               /* the track it belongs to */
+static uint8_t pc_on;                                /* the track is holding the preset side */
+
+static __attribute__((noinline)) void pc_take(ab_snd_t *s, const track_t *t)
+{
+    memcpy(s->p, t->p, sizeof s->p);
+    memcpy(s->mx, t->mx, sizeof s->mx);
+    memcpy(s->patch, fm6_patch[snd_trk(t)], sizeof s->patch);
+    s->engine = t->eng_req;
+    s->preset = t->preset;
+    s->used = 1;
+}
+/* (core.h, snd_clean) the sound as the load or the save left it: the side the first tap comes back to */
+static __attribute__((noinline)) void pc_arm(track_t *t)
+{
+    pc_take(&pc_orig, t);
+    pc_trk = (uint8_t)snd_trk(t);
+    pc_ok = 1;
+    pc_on = 0;
+}
+/* which side of the preset the track is holding: 0 none (no reference, or nothing edited yet), 1 the preset
+ * as it was loaded, 2 the edit */
+static __attribute__((noinline)) uint32_t pc_side(const track_t *t)
+{
+    if (!pc_ok || pc_trk != snd_trk(t))
+        return 0;
+    if (pc_on)
+        return 1;
+    return snd_edited(t) ? 2u : 0u;
+}
+/* the tap: preset <-> edit. 0 done (ui.force set), 1 nothing to compare */
+static __attribute__((noinline)) int pc_compare(track_t *t)
+{
+    if (!pc_ok || pc_trk != snd_trk(t))
+        return 1;
+    if (!pc_on && !snd_edited(t))                    /* it already is the preset: nothing to hear */
+        return 1;
+    if (!pc_on)
+        ab_snd = pc_orig;                            /* the other side is the preset; ab_swap parks the edit */
+    ab_swap(t);
+    pc_on = (uint8_t)!pc_on;
+    ui_message(pc_on ? "PRESET (A)" : "EDIT (B)");
+    return 0;
 }
 
 static void load_end(track_t *t)

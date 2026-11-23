@@ -906,11 +906,13 @@ static uint32_t snd_hash(const track_t *t)
                   ((uint32_t)(uint16_t)t->mx[(i + 1u) / 3u][(i + 1u) % 3u] << 16))) * 16777619u;
     return (h ^ (uint32_t)t->eng_req * 2654435761u ^ (uint32_t)t->preset * 40503u) * 16777619u;
 }
+static void pc_arm(track_t *t);                 /* (FASE 4/9) the sound a load or a save left, ui.c */
 static void snd_clean(track_t *t)
 {
     uint32_t k = snd_trk(t);
     snd_ref[k] = snd_hash(t);
     snd_dirty &= (uint8_t)~(1u << k);
+    pc_arm(t);                                  /* (FASE 4/9) PRESET COMPARE: the reference to come back to */
 }
 static uint32_t snd_edited(const track_t *t) { return (snd_dirty >> snd_trk(t)) & 1u; }    /* the selected track */
 

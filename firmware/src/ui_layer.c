@@ -16,7 +16,8 @@
  *              sound (and a DRUM track's kit) as the section playing stored it, the safe state (project.c
  *              project_recall_sound). Each asks first (the dialog closes the layer); the steps stay. KNOB 1..4 the
  *              EDIT page's four (the engine's first); on a DRUM track black keys 1..8 mute each DRUM-X sound
- *              (eng_drum.c DXM_LANE, saved with the section; lit = sounding)
+ *              (eng_drum.c DXM_LANE, saved with the section; lit = sounding). (FASE 4/9) A3 A/B: the sound as the
+ *              preset left it against the edit, one key each way (ui.c pc_compare; the footer says which sounds)
  *   SEQ  SET   (1.2, on the SEQ pages that show the pattern: STEP / the DRUM grid, PATTERN, CHANCE, AUTOMATION; elsewhere
  *              SEQ held opens SONG as before) TOOLS: the white keys from F3 the sequence tools (ui_tools.c: CLEAR,
  *              REVERSE, SHIFT < >, RANDOM, COOK, CLR AUTO (0.6.8: the track's automation); on a DRUM track BEAT and the lane's CLEAR REVERSE FILL RANDOM), black
@@ -57,7 +58,7 @@ static const layer_t LAYERS[LAYER_N] = {
     {B_FX, LK_HOLD, FAM_HOME, "[FX] HOLD", {{KC_KEYS, "FX"}, {KC_K14, "MACRO"}, {KC_OCTUP, "LATCH"}}},   /* (LET GO: the header's HOLD) */
     {B_GLO, LK_SET, FAM_HOME, "[GLO] SET", {{KC_PLAY, "RESTART"}, {KC_GLO, "DONE"}, {0, 0}}},
     {B_SCL, LK_SET, FAM_SCL, "[SCL] SET", {{KC_KEYS, "ROOT"}, {KC_SCL, "DONE"}, {0, 0}}},
-    {B_EDIT, LK_SET, FAM_EDIT, "[EDIT] SET", {{KC_KEYS, "INIT / RECALL"}, {KC_EDIT, "DONE"}, {0, 0}}},
+    {B_EDIT, LK_SET, FAM_EDIT, "[EDIT] SET", {{KC_KEYS, "INIT / RECALL / A/B"}, {KC_EDIT, "DONE"}, {0, 0}}},
     {B_SEQ, LK_SET, FAM_SEQ, "[SEQ] TOOLS", {{KC_REC, "CLEAR ALL"}, {KC_SEQ, "DONE"}, {0, 0}}},   /* (0.6.14: REC, all six
                                                                      * tracks cleared, shown: it was nowhere) */
     {B_REC, LK_SET, FAM_HOME, "[REC] SET", {{KC_KEYS, "RECORDING"}, {KC_REC, "DONE"}, {0, 0}}},
@@ -73,7 +74,7 @@ static const page_t *ly_page(uint32_t l) { return l == LAYER_SCL ? &LY_SCL : l =
 #define LY_OPEN 2u                     /* ui.ly_t0: the map opened (no tap any more) */
 #define LY_COMBO 4u                    /* .. by a combo */
 #define LY_DEAD 8u                     /* .. pressed where there is no layer: does nothing */
-enum { LY_INIT, LY_RECALL };          /* EDIT: the white keys F3 G3 */
+enum { LY_INIT, LY_RECALL, LY_AB };    /* EDIT: the white keys F3 G3 A3 (FASE 4/9: A/B PRESET) */
 #define layer_seen (favorites.factory[15][31])   /* bit l: layer l opened once (a byte no engine uses) */
 static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "FX"}, {KC_OCTUP, "LATCH"}, {KC_OCTDN, "ALL OFF"}};
 static const khint_t MAC_LATCH_FOOT[3] = {{KC_K14, "M1-M4"}, {KC_SELECT, "DICE"}, {KC_LFO, "DONE"}};   /* (MACRO latched) */
@@ -575,6 +576,9 @@ static void layer_key(uint32_t l, uint32_t k)
         }
     } else if (l == LAYER_EDIT && key_black(k) && p < NLANE && drum_track(TSEL)) {
         dx_mute_set(dx_mute ^ DXM_LANE(p));             /* DRUM: black keys 1..8 mute each sound (lit = sounding) */
+    } else if (l == LAYER_EDIT && !key_black(k) && p == LY_AB) {
+        if (pc_compare(TSEL))                        /* (FASE 4/9) the preset against the edit, one key each way */
+            ui_message("NOTHING TO COMPARE");        /* (or nothing edited yet) */
     } else if (l == LAYER_EDIT && !key_black(k) && p <= LY_RECALL) {
         if (chain_busy())
             ui_message("STOP TO EDIT");
@@ -755,7 +759,8 @@ static uint32_t layer_leds(uint32_t *br)
             on = e == 0u;
             can = (mask >> e) & 1u;
         } else if (l == LAYER_EDIT && !b) {             /* INIT and RECALL breathe (RECALL: a stored section) */
-            can = !chain_busy() && (p == LY_INIT || (p == LY_RECALL && edit_recallable()));
+            can = !chain_busy() && (p == LY_INIT || (p == LY_RECALL && edit_recallable()) ||
+                                    (p == LY_AB && pc_side(TSEL) != 0));
         } else if (l == LAYER_EDIT && p < NLANE && drum_track(TSEL)) {   /* DRUM: a sound sounding lit, muted dark */
             on = !dx_lane_muted(p);
         } else if (l == LAYER_SEQ) {                    /* the tools breathe (not while a song plays); DRUM: the lane */
@@ -1147,6 +1152,8 @@ static void layer_edit(void)                            /* F3 INIT, G3 RECALL (a
     uint32_t dr = (uint32_t)drum_track(TSEL), st = chain_busy() ? LS_DIM : LS_OFF;
     lcell(LC_X(0), 4, LC_H, "F", ICON_X_WARN, 0, dr ? "INIT+KIT" : "INIT", st, 0);
     lcell(LC_X(1), 4, LC_H, "G", ICON_LOOP, 0, dr ? "RCL+KIT" : "RECALL", edit_recallable() ? st : LS_DIM, 0);
+    lcell(LC_X(2), 4, LC_H, "A", ICON_LOOP, 0, pc_side(TSEL) == 1u ? "PRESET" : "A/B",
+          pc_side(TSEL) ? st : LS_DIM, 0);              /* (FASE 4/9) the preset against the edit */
     if (dr) {                                           /* DRUM: the 8 sounds of black keys 1..8, muted: the mute's fill */
         uint32_t l;
         lc_w = 26;
