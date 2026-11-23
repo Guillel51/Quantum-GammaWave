@@ -4032,6 +4032,10 @@ edición intacta). Barrido 196 × 22: 0 hallazgos, 0 alineaciones. `ui_pixels`: 
 RAM 4 328 libres (suelo 4 096, verde tras `pc_orig` a `.lowbuf`); POOL 9 248; LOWBUF 1 716. Coste medido del
 cambio: +728 B de código, +60 B de constantes.
 
+**Suite.** `tests/run_tests.sh`: verde salvo el suelo de XIP (`resources_test.py`, 100 < 2 048 B; el rótulo "the
+ST7789's init table" de la suite ejecuta ese script). `regress: CPU ns` salió rojo por carga de la máquina y pasa
+repetido solo (mediana 1,11; 311 renders, 0 cambiados). Ningún tope ni línea base se tocó.
+
 **Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.
 
 ## §79 · La perilla grabada sobre la automatización (v1.9.1)
