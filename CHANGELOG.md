@@ -27,7 +27,7 @@ temperamentos de fábrica y tres ranuras de usuario.
 **Lo que se pagó y con qué se pagó.** La página y el modelo costaban 2 032 B de XIP y el suelo ya estaba 488 B por
 debajo. El espacio vino de `noinline` **en la fuente** de los dibujantes de página (117 funciones `graph_*`/`gw_*`/
 `draw_*` de los `ui_*.c`): `draw_graph` los absorbía todos en sí mismo (51 228 B) y ahora los llama. Es lo que el
-viaje por IR no conseguía aplicar. Resultado: **imagen 581 108 B, 2 504 B libres** (suelo 2 048) y **RAM 4 160 B
+viaje por IR no conseguía aplicar. Resultado: **imagen 581 156 B, 2 456 B libres** (suelo 2 048) y **RAM 4 160 B
 libres** (suelo 4 096), con `target_budget` en 0 líneas fuera (DRUM_PATH 1 155 de 1 153, dentro del 10 %).
 
 ## v1.9.4 — 1 284 B de vuelta en el slot de aplicación

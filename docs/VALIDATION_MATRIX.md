@@ -4133,7 +4133,7 @@ NOINIT 124. Suelo de XIP rojo por 488 B. Nada medido en la FM-1 física.
 
 ## §83 · QUANTUM TUNING y el espacio que lo hizo posible (v1.10.0)
 
-**Antes / después.** Imagen 583 336 → **581 108 B**; XIP libre 276 → **2 504 B** (suelo 2 048). RAM 94 144 de
+**Antes / después.** Imagen 583 336 → **581 156 B**; XIP libre 276 → **2 456 B** (suelo 2 048). RAM 94 144 de
 98 304 (4 160 libres, suelo 4 096). Clase: build AC791N + `tools/resource_map.py` + `tests/target_budget.py` +
 host x86 para el modelo (`tests/tune_test.c`).
 

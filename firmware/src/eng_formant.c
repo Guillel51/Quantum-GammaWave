@@ -180,8 +180,9 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
             x += ph < te ? nz : nz >> 1;                /* aspiration follows the glottal opening */
         }
         /* F1 -> F2 -> F3 -> F4, Q30, rounded; the signal x 64 inside: the rounding
-         * dead band of F1 (+-0.5 / A, ~340 at 270 Hz) stays below 6 LSB */
-        a = (int32_t)(((int64_t)r1.a * (x << 6) + (int64_t)r1.b * y1 + (int64_t)r1.c * y2 + (1 << 29)) >> 30);
+         * dead band of F1 (+-0.5 / A, ~340 at 270 Hz) stays below 6 LSB. (v1.10.0) the 64 is a multiply on a
+         * widened value: `x << 6` on a negative sample is undefined behaviour, and UBSan strict stops there */
+        a = (int32_t)(((int64_t)r1.a * ((int64_t)x * 64) + (int64_t)r1.b * y1 + (int64_t)r1.c * y2 + (1 << 29)) >> 30);
         y2 = y1;
         y1 = a;
         a = (int32_t)(((int64_t)r2.a * a + (int64_t)r2.b * y3 + (int64_t)r2.c * y4 + (1 << 29)) >> 30);
@@ -195,7 +196,7 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
         y7 = clamp(a, -(1 << 28), 1 << 28);             /* int32 state stays far from overflow */
         s = soft_knee(clamp((int32_t)(((int64_t)y7 * og + (int64_t)(y7 - y8) * ogk) >> 21), -200000, 200000), 24000);
         ph += inc;
-        out[i] += voice_amp(s, m, i) << 1;
+        out[i] += voice_amp(s, m, i) * 2;   /* (v1.10.0) << 1 on a negative sample is UB: same value, defined */
     }
     v->ph[0] = ph;
     v->ph[1] = (uint32_t)y7;

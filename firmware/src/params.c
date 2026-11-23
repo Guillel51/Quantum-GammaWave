@@ -602,6 +602,9 @@ static const param_desc_t TSLOT_DESC = PE("PROFILE", N_TUNE, 0);
 static const param_desc_t TNOTE_DESC = PD("NOTE", F_NOTE, 0, 11, 0);
 static const param_desc_t TCT_DESC = PD("CENTS", F_SEMI, -99, 99, 0);
 static const param_desc_t TALL_DESC = PD("REF", F_SEMI, -99, 99, 0);
+/* (FASE 7) .. and they are the page's own four numbers, not song parameters: page_desc hands the encoders what
+ * tune.c keeps, the way GR_SCL_PROG's KNOB 1 is the progression and GR_MOD's KNOB 1 the slot (tests/control_map
+ * knows the page as one of those). */
 /* (6.1) FX > BUSES: the link KNOB 1 selects, and the ids KNOB 2..4 edit for it (page_desc). Its rows are the
  * parameters the other FX pages already own, so the console sets exactly what the engine reads. */
 static const char *const N_FXBT[] = {"TRACK", "BUSES", "DLY", "REV", "CHO", "SLI", "PUNCH", "MASTER"};

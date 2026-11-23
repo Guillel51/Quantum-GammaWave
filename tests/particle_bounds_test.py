@@ -20,7 +20,10 @@ SRC = os.path.join(os.path.dirname(__file__), "..", "firmware", "src")
 
 def read(name):
     with open(os.path.join(SRC, name), encoding="utf-8") as f:
-        return f.read()
+        text = f.read()
+    # (v1.10.0) the painters carry __attribute__((noinline)) now (draw_graph no longer inlines them): it is not
+    # part of what this test measures, and the signatures it looks for are the ones underneath it.
+    return text.replace("__attribute__((noinline)) ", "")
 
 
 def uncomment(text):

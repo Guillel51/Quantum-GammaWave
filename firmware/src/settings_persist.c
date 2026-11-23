@@ -9,6 +9,8 @@
  * engine uses; 0 in older settings = every one's default); [15][27]: SCREEN OFF (1.1.5; 0 = 30 MIN, the default).
  * MENU's flags (ui.c PREF_*) are append-only bits whose 0 is the default: BPM LOCK (16) is clear in every older setting
  * = unlocked, LARGE (32) = OFF, RESTORE LAST OFF (128, 1.2) = ON, read as saved (nothing to migrate, so importing twice changes nothing). */
+#include "tune.c"                    /* (FASE 7) the temperaments this record carries */
+
 typedef struct {
     uint32_t magic, palette, lowcut, zoom;
     panel_t panel;
@@ -101,8 +103,8 @@ static int settings_import(persist_t *p, int n)
         uint32_t k, n;
         for (k = 0; k < TUNE_USER; k++) {
             for (n = 0; n < 12u; n++)
-                tune_slot[k].ct[n] = (int8_t)clamp(tune_slot[k].ct[n], -TUNE_CMAX, TUNE_CMAX);
-            tune_slot[k].all = (int8_t)clamp(tune_slot[k].all, -TUNE_CMAX, TUNE_CMAX);
+                tune_slot[k].ct[n] = (int8_t)tune_clamp(tune_slot[k].ct[n], -TUNE_CMAX, TUNE_CMAX);
+            tune_slot[k].all = (int8_t)tune_clamp(tune_slot[k].all, -TUNE_CMAX, TUNE_CMAX);
         }
         tune_pick(0);
         tune_ui_slot = tune_ui_note = tune_ui_ct = tune_ui_all = 0;
