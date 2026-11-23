@@ -4089,3 +4089,25 @@ registro de ajustes, enlace inválido ignorado, macro por CC111, dos canales en 
 4 328; POOL 9 248; LOWBUF 1 716; NOINIT 124. Coste de la fase: +356 B.
 
 **Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.
+
+## §81 · HOME + EDIT: el A/B manual, retirado (v1.9.3)
+
+**Lo que había.** `ui_input.c` guardaba un bloque para "EDIT mantenido aparca el sonido de la pista, EDIT tocado
+intercambia los dos lados" en HOME, con `ab_store` / `ab_swap` y `ab_side`.
+
+**Lo que se midió.** EDIT es una capa SET (`ui_layer.c`): el mapa se abre con la tecla. Con el bloque en su sitio,
+un mantenido en HOME **sí** corría un frame y hacía las tres cosas: `SOUND A STORED`, `SOUND B` y el mapa arriba;
+un toque se lo quedaba la capa y acababa en la página de EDIT. Ni era el camino que prometía ni era inocuo.
+
+**Decisión.** Retirado. Resucitarlo pide quitarle el mapa de EDIT a HOME (la página de los cuatro mandos del
+motor) para un aparcado manual que PRESET COMPARE ya cubre: capa de EDIT, tecla **A3**, los dos lados siempre
+puestos (el preset se arma en cada carga, guardado, recall y UNDO). Se fueron el bloque, `ab_store`, `ab_side` y el
+byte `used`; queda `ab_swap` (el primitivo de `pc_compare`) y A3.
+
+**Comprobado.** `tests/ui_test.c` `test_home_edit_is_the_layer`, tres checks: EDIT mantenido en HOME abre el mapa y
+no dice nunca `SOUND A STORED` / `SOUND A` / `SOUND B` / `NOTHING TO COMPARE` (sonido byte a byte intacto); A3
+sigue intercambiando preset y edición; un toque abre la página de EDIT sin tocar el sonido. Los checks 1 y 3
+fallan contra el código retirado.
+
+**Presupuesto.** Imagen 583 336 / 583 612 B (**276 libres**; el suelo de XIP de 2 048 sigue rojo, faltan 1 772 B).
+La retirada devuelve 176 B. Clase: build AC791N + host x86-64; nada medido en la FM-1 física.

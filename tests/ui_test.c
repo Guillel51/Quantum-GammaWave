@@ -11769,6 +11769,78 @@ static int test_preset_compare(void)
     return bad;
 }
 
+/* (FASE 6/9) HOME + EDIT: the manual A/B this page used to promise (EDIT held to park the sound, tapped to
+ * swap it) was unreachable and is retired. EDIT is a SET layer (ui_layer.c): its map is up in the frame the key
+ * goes down, so the block that parked, gated on !ui.layer, bailed out on the next frame -- the park never ran,
+ * the footer never said SOUND A, and the tap that did arrive was the layer's page tap. Resurrecting it would
+ * mean taking EDIT's map away from HOME, the page whose four knobs are the engine's, and the A/B that exists
+ * (PRESET COMPARE: A3 in that map, both sides always there -- one loaded, one in the slot) is the same
+ * audition with nothing to prepare. This pins the behaviour that is left and what must not come back. */
+static int test_home_edit_is_the_layer(void)
+{
+    int bad = 0, ok, said_ab = 0;
+    static int16_t before[P_COUNT];
+    uint32_t i;
+    track_t *t;
+    ui_power_on();
+    frame();
+    home_first();
+    frame();
+    t = TSEL;
+    ok = ui.home && ui.layer == 0;
+    snd_clean(t);                                    /* the reference: the sound as it stands */
+    t->p[P_E1] = (int16_t)(t->p[P_E1] + 7);          /* and an edit of it */
+    frame();
+    memcpy(before, t->p, sizeof before);
+    ok &= pc_side(t) == 2;
+    btn_down(B_EDIT);                                /* held on HOME, past every HOLD */
+    for (i = 0; i < 60u; i++) {
+        frame();
+        said_ab |= msg_is("SOUND A STORED") || msg_is("SOUND A") || msg_is("SOUND B") ||
+                   msg_is("NOTHING TO COMPARE");
+    }
+    ok &= ui.home && ui.layer == LAYER_EDIT && pc_side(t) == 2 && !said_ab;
+    ok &= !memcmp(t->p, before, sizeof before);      /* neither parked nor swapped */
+    btn_up(B_EDIT);
+    frame();
+    ok &= ui.home && ui.layer == 0 && !memcmp(t->p, before, sizeof before);
+    bad += check("HOME + EDIT held: the layer's map, not a park (never SOUND A STORED, the sound untouched)", ok);
+    /* the way in that is left: the same swap, A3 in that map */
+    ok = pc_side(t) == 2;
+    btn_down(B_EDIT);
+    frame();
+    key_down(white(2));
+    frame();
+    ok &= ui.layer == LAYER_EDIT && msg_is("PRESET (A)") && pc_side(t) == 1;
+    key_up(white(2));
+    frame();
+    key_down(white(2));
+    frame();
+    key_up(white(2));
+    frame();
+    ok &= pc_side(t) == 2 && !memcmp(t->p, before, sizeof before);
+    btn_up(B_EDIT);
+    frame();
+    bad += check("  the way in that is left: EDIT's map, A3 -- the preset and the edit, one tap each way", ok);
+    /* a tap of EDIT on HOME is the layer's own tap: its page, never a swap (measured on the code this
+     * replaced: a tap of the HOME park had already been taken by the layer, and a hold ran both halves) */
+    said_ab = 0;
+    ok = ui.home;
+    btn_down(B_EDIT);
+    frame();
+    said_ab |= msg_is("SOUND A STORED") || msg_is("SOUND A") || msg_is("SOUND B") || msg_is("NOTHING TO COMPARE");
+    btn_up(B_EDIT);
+    for (i = 0; i < 8u; i++) {
+        frame();
+        said_ab |= msg_is("SOUND A STORED") || msg_is("SOUND A") || msg_is("SOUND B") ||
+                   msg_is("NOTHING TO COMPARE");
+    }
+    ok &= !said_ab && !ui.home && ui.layer == 0 && !memcmp(t->p, before, sizeof before);
+    bad += check("  a tap of EDIT on HOME opens the EDIT page (the layer's tap) and swaps nothing", ok);
+    snd_clean(TSEL);
+    return bad;
+}
+
 /* (FASE 5/9) THE RECORDER: the grid it takes a move on (1, 2 or 4 steps, kept in the project's spare bytes), the take
  * that replaces a parameter's curve instead of overdubbing onto it, the page that draws the movement, and what a fast
  * hand does to a store of 64 records. */
@@ -12156,6 +12228,7 @@ int main(void)
     bad += test_fm6_charts();
     bad += test_sound_edited();
     bad += test_preset_compare();
+    bad += test_home_edit_is_the_layer();
     bad += test_motion_recorder();     /* (FASE 5/9) the recorder: grid, take, the page, a fast hand */      /* (FASE 4/9) the preset against the edit, one tap each way */
     bad += test_still_when_anim_off();
 #if FELUCCA_FM4

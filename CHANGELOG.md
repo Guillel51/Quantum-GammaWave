@@ -1,3 +1,30 @@
+## v1.9.3 — el A/B manual de HOME, retirado
+
+El "EDIT mantenido para aparcar, EDIT tocado para intercambiar" que HOME prometía no era un camino: era un
+bloque que se quedó sin puerta. EDIT es una capa **SET** (`ui_layer.c`): su mapa se abre con la tecla, y el
+bloque de HOME, que se saltaba con `ui.layer`, no volvía a mirar cuando el mapa ya estaba arriba.
+
+**Medido antes de decidir** (`tests/ui_test.c`, `test_home_edit_is_the_layer`, sobre el código que había): con
+EDIT mantenido en HOME el bloque **sí** llegaba a correr un frame, y hacía las dos cosas a la vez — aparcaba
+(`SOUND A STORED`), intercambiaba (`SOUND B`) **y** el mapa de EDIT subía igualmente. Un toque, en cambio, se lo
+quedaba la capa y acababa en la página de EDIT. Es decir: ni era alcanzable como se describía, ni era inocuo lo
+que sí corría.
+
+**Decisión: retirarlo.** Hacerlo alcanzable otra vez significa quitarle el mapa de EDIT a HOME, que es la página
+cuyos cuatro mandos son los del motor, para recuperar un aparcado manual que el A/B que existe ya no necesita:
+**PRESET COMPARE** (capa de EDIT, tecla **A3**) tiene los dos lados siempre puestos — uno en la pista y otro en el
+slot, el preset armado en cada carga, guardado, recall y UNDO — así que "probar presets y volver" ya es una tecla
+cada vez, sin preparar nada y sin poder perder nada.
+
+**Lo que se fue**: el bloque de HOME en `ui_input.c`, `ab_store`, `ab_side` y el byte `used` del slot; el
+comentario de `ui.c` dice ahora qué queda y por qué. **Lo que queda**: `ab_swap`, que es el primitivo que usa
+`pc_compare`, y la tecla A3. La imagen baja 176 B (583 512 → 583 336).
+
+**Pruebas** (`tests/ui_test.c`, tres checks nuevos): EDIT mantenido en HOME abre el mapa y **nunca** dice
+`SOUND A STORED` / `SOUND A` / `SOUND B` / `NOTHING TO COMPARE`, con el sonido intacto; la tecla A3 sigue
+intercambiando preset y edición, una vez cada una; y un toque de EDIT en HOME abre la página de EDIT sin tocar el
+sonido. Los tres fallan contra el código retirado (el primero y el tercero, medidos).
+
 ## v1.9.2 — el MIDI Learn que sobrevive al apagado
 
 Fase 6/9: el MIDI Learn, auditado antes de tocarlo y completado con lo que el slot de aplicación permite pagar.

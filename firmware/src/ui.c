@@ -961,16 +961,17 @@ static void load_begin(track_t *t, uint32_t what)
     load_motion_hold(t, what);
 }
 
-/* (FASE 4) A/B OF THE SOUND. EDIT on HOME parks the selected track's sound in this slot and, from then on,
- * puts it back in place of the one the track holds -- and the other way round on the next tap -- so two
- * versions of a patch can be heard one after the other without losing either. That is also the non-destructive
- * way to audition a preset: park your sound, turn the PRESETS knob as far as you like, tap EDIT to come back.
- * Only the sound travels (its values and the matrix slots, not the steps or the motion), and the audio ISR
- * sees one sound or the other, never half of each (motion_guard). One slot: P_COUNT int16 + the matrix. */
+/* (FASE 4) A/B OF THE SOUND, the one slot both sides of a swap pass through. (FASE 6/9) The manual park --
+ * EDIT held on HOME to park the sound and tapped to swap it -- is gone: EDIT is a SET layer (ui_layer.c), so
+ * pressing it on any page, HOME included, opens its map in that same frame and ui.layer is already set when
+ * the block that parked looked at it; the guard made the block unreachable, and the park was never a way in
+ * (measured by test_home_edit_is_the_layer, ui_test.c). What is left is one primitive, ab_swap: the two sides
+ * change places, only the sound (its values, the matrix and an FM6 patch) travels, and the audio ISR sees one
+ * sound or the other, never half of each (motion_guard). PRESET COMPARE (pc_compare) is its only caller, and
+ * EDIT's A3 is the key: both sides always exist, so nothing can be lost. One slot: P_COUNT int16 + the matrix. */
 typedef struct { int16_t p[P_COUNT]; int16_t mx[4][3]; uint8_t patch[sizeof fm6_patch[0]];
-                 uint8_t engine, preset, used; } ab_snd_t;
+                 uint8_t engine, preset; } ab_snd_t;
 static ab_snd_t ab_snd;
-static uint8_t ab_side;                              /* which side the track is holding: 0 A, 1 B */
 
 /* (1.3.2) THE FX SCENE, one per track: the four sends of the FX page and DIST's type, saved and called with that page's
  * two free keys -- OCT+ stores the strip, OCT- calls it back (ui_input.c: the knobs are the sends, PRESETS the sound,
@@ -1005,17 +1006,6 @@ static void fx_scn_recall(track_t *t, uint32_t tr, uint32_t sl)      /* the musi
     t->p[P_DTYPE] = v[4];
 }
 
-static void ab_store(track_t *t)                     /* the sound the next tap comes back to */
-{
-    memcpy(ab_snd.p, t->p, sizeof ab_snd.p);
-    memcpy(ab_snd.mx, t->mx, sizeof ab_snd.mx);
-    memcpy(ab_snd.patch, fm6_patch[snd_trk(t)], sizeof ab_snd.patch);   /* (FASE 4/9) an FM6 sound is its patch too */
-    ab_snd.engine = t->eng_req;
-    ab_snd.preset = t->preset;
-    ab_snd.used = 1;
-    ab_side = 0;
-}
-
 static void ab_swap(track_t *t)                      /* the two sides change places */
 {
     ab_snd_t s;
@@ -1025,7 +1015,6 @@ static void ab_swap(track_t *t)                      /* the two sides change pla
     memcpy(s.patch, fm6_patch[snd_trk(t)], sizeof s.patch);
     s.engine = t->eng_req;
     s.preset = t->preset;
-    s.used = 1;
     memcpy(t->p, ab_snd.p, sizeof t->p);
     memcpy(t->mx, ab_snd.mx, sizeof t->mx);
     fm6_set_patch(snd_trk(t), ab_snd.patch);         /* (FASE 4/9) the patch travels with the sound */
@@ -1034,7 +1023,6 @@ static void ab_swap(track_t *t)                      /* the two sides change pla
     t->preset = ab_snd.preset;
     t->user = 0;                                     /* (the sound is not anyone's slot any more: A/B made it) */
     ab_snd = s;
-    ab_side ^= 1u;
     motion_unguard(f);
     motion_rebase(t);
     ui.force = 1;
@@ -1064,7 +1052,6 @@ static __attribute__((noinline)) void pc_arm(track_t *t)
     memcpy(pc_orig.patch, fm6_patch[snd_trk(t)], sizeof pc_orig.patch);
     pc_orig.engine = t->eng_req;
     pc_orig.preset = t->preset;
-    pc_orig.used = 1;
     pc_trk = (uint8_t)snd_trk(t);
     pc_ok = 1;
     pc_on = 0;

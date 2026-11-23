@@ -2103,23 +2103,6 @@ static void ui_input_frame(void)
         gw_planet_poke((int32_t)NPL);
         ui.force = 1;
     }
-    /* (FASE 4) EDIT on HOME, the A/B of the sound: held it parks the track's sound (the one the next tap
-     * comes back to), tapped it swaps the two sides -- the parked sound and the one in the track -- and says
-     * which is sounding. It is free on HOME (EDIT only acts elsewhere) and it is the way to try a preset, a
-     * knob or the dice and still get back: nothing is lost, the other side is a tap away */
-    if (ui.home && !ui.menu && !ui.confirm && !ui.layer && !ui.home_viz) {
-        static uint32_t ab_t0;
-        uint32_t ab = btn_hold(&ab_t0, B_EDIT, now, 1);
-        if (ab == BT_HOLD) {
-            ab_store(TSEL);
-            ui_message("SOUND A STORED");
-        } else if (ab == BT_TAP && ab_snd.used) {
-            ab_swap(TSEL);
-            ui_message(ab_side ? "SOUND B" : "SOUND A");
-        } else if (ab == BT_TAP) {
-            ui_message("NOTHING TO COMPARE");
-        }
-    }
     /* (1.3.2) THE FX PAGE'S SCENE: the track's four sends and DIST's type, on the two keys that page has free -- its knobs
      * are the sends, PRESETS the sound, SELECT the pages, the buttons their sections and layers. OCT+ stores the strip in
      * the track's scene, OCT- calls it back (UNDO brings the music before it back). The edge is taken from the buttons
