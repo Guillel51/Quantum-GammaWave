@@ -107,6 +107,8 @@ typedef struct {                 /* the part in mix_part (one at a time) */
     int8_t vamt[NMSLOT];
     uint8_t kid[NMSLOT];         /* per-block: the parameter, its stored value */
     int16_t keep[NMSLOT];
+    uint32_t sc_mask;            /* (v1.8.1) the per-track sources already resolved for this block: bit s */
+    int32_t sc[MS_N];            /* .. and their values, 72 B a core */
 } mod_t;
 static mod_t mod_c[2];                      /* (JIANT 0.6.71) one a core: each renders its own parts at once (fx.c mix_block) */
 #define MOD (mod_c[MC_CPU() & 1u])
@@ -148,9 +150,17 @@ static uint32_t mod_nlen(const track_t *t)
     n = (div_samples(2u) * SIX[v] + 16u) / 32u;          /* the 1/16 in samples -> blocks of 32 */
     return n ? n : 1u;
 }
+#ifdef MOD_TSRC_COUNT
+/* (v1.8.1, tests only) how many times a block resolves a per-track source: a count, so the test that guards the
+ * per-block cache cannot flake on a busy host. Nothing at all when the macro is off. */
+uint32_t mod_tsrc_n;
+#endif
 /* source s of the track: the per-track ones, the per-voice ones of the latest note-on */
 static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
 {
+#ifdef MOD_TSRC_COUNT
+    mod_tsrc_n++;
+#endif
     switch (s) {
     case MS_LFO:
         return lfo;
@@ -186,6 +196,20 @@ static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, 
     default:
         return macro_v[(s - MS_M1) & 3u] * 258;
     }
+}
+
+/* (v1.8.1) ONE SOURCE VALUE A BLOCK, NOT ONE A SLOT. mod_tsrc() is pure -- it reads the LFO of the block before,
+ * the latest note-on's VEL/KEY/RAND/PAT, the wheel, the macros, the transport and the noise clock, and writes
+ * nothing -- so two slots that name the same source were resolving it twice: four LFO routes, four times, and
+ * every NOISE route a mod_noise of its own. The values are kept for the block in the part's own mod_t and reset
+ * where a block starts. Same numbers, fewer calls: the audio is bit-identical, which regress holds. */
+static __attribute__((noinline)) int32_t mod_src_block(mod_t *mp, const track_t *t, uint32_t s, int32_t lfo)
+{
+    if (!(mp->sc_mask & (1u << s))) {
+        mp->sc[s] = mod_tsrc(t, s, lfo);
+        mp->sc_mask |= 1u << s;
+    }
+    return mp->sc[s];
 }
 
 /* (FASE 8) the live value of a slot's source, Q15, for the MOD page: the LFO as the block sees it, the per-voice
@@ -278,14 +302,14 @@ static __attribute__((noinline)) void mod_block_slot(track_t *t, uint32_t k, con
             mp->vdst[mp->nv] = (uint8_t)d;
             mp->vamt[mp->nv++] = (int8_t)a;
         } else {
-            mod_voice_add(s, d, mod_tsrc(t, s, lfo), a, &mp->pit, &mp->cut, &mp->shp, &mp->gain);
+            mod_voice_add(s, d, mod_src_block(mp, t, s, lfo), a, &mp->pit, &mp->cut, &mp->shp, &mp->gain);
         }
         return;
     }
     {                                                   /* per block: AMT 64 = the whole range */
         uint32_t id = mod_param(d);
         const param_desc_t *pd = track_desc(t, id);   /* (FASE 2) the engine's labels for its CHARACTER bank */
-        x = mod_tsrc(t, s, lfo);
+        x = mod_src_block(mp, t, s, lfo);
         for (j = 0; j < mp->nk && mp->kid[j] != id; j++)
             ;
         if (j == mp->nk) {
@@ -316,6 +340,7 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
             ms_tick(t);                                 /* (once, before any slot reads it) */
     }
     mp->on = 1;
+    mp->sc_mask = 0;                                 /* (v1.8.1) a block's sources: resolved once each */
     mp->amp = 0;
     mp->nv = mp->nk = 0;
     mp->pit = mp->cut = mp->shp = 0;
@@ -342,11 +367,13 @@ static __attribute__((noinline)) void macro_master(void)
     mns_clk++;                                          /* (1.2.1-GW) NOISE's clock: a block */
     for (i = 0; i < NTRK; i++) {
         const track_t *t = &trk[i];
+        int32_t lfo = mulq15(t->lfo_val, t->lfo_fade);   /* (v1.8.1) once a track, not once a slot */
+        MOD.sc_mask = 0;
         for (k = 0; k < NMSLOT; k++) {
             uint32_t s = (uint32_t)mslot(t, k, 0), d = (uint32_t)mslot(t, k, 1);
             int32_t a = mslot(t, k, 2);
             if (s && a && s < MS_N && (d == MD_CLIP || d == MD_PNCH))
-                off[d - MD_CLIP] += (((mod_tsrc(t, s, mulq15(t->lfo_val, t->lfo_fade)) * a) >> 6) * 100) >> 15;
+                off[d - MD_CLIP] += (((mod_src_block(&MOD, t, s, lfo) * a) >> 6) * 100) >> 15;
         }
     }
     clip_eff = (int16_t)clamp(song.g[G_CLIP] + off[0], 0, 100);

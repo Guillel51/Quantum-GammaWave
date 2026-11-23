@@ -1350,6 +1350,32 @@ static int32_t pan_delta(void)          /* what one block's matrix writes into P
     return after - before;
 }
 
+/* (v1.8.1) THE PER-BLOCK SOURCE CACHE, AS A COUNT. Eight slots on the same source used to resolve it eight times a
+ * block; the part's mod_t keeps it for the block. Counted with MOD_TSRC_COUNT (mod.c, nothing in a shipped build),
+ * so the test says the same thing on any host. */
+static void test_src_cache(void)
+{
+    uint32_t n8, n2;
+    int32_t before = trk[0].p[P_M1AMT];
+    fresh(eng_by_name("ANALOG"), 0);
+    {
+        int k;
+        for (k = 0; k < 8; k++)                            /* every slot, the same source */
+            slot(&trk[0], (uint32_t)k, MS_LFO, MD_CUT, 40);
+    }
+    mod_tsrc_n = 0;
+    blocks(1);
+    n8 = mod_tsrc_n;
+    check("CACHE: eight slots on one source resolve it once a block", n8 == 1 && before != 12345);
+    fresh(eng_by_name("ANALOG"), 0);
+    slot(&trk[0], 0, MS_LFO, MD_CUT, 40);
+    slot(&trk[0], 1, MS_NOISE, MD_CUT, 40);                /* two different sources: two resolutions */
+    mod_tsrc_n = 0;
+    blocks(1);
+    n2 = mod_tsrc_n;
+    check("CACHE: two different sources, two resolutions", n2 == 2 && n8 == 1);
+}
+
 /* (v1.8.0) THE ACTIVITY BAR'S NUMBER: source x depth, signed, clamped -- the same product the engine applies,
  * so the MOD page cannot show a route moving one way while it modulates the other. */
 static void test_contrib(void)
@@ -1473,6 +1499,7 @@ int main(int argc, char **argv)
     test_noise_src();
     test_eight_slots();
     test_contrib();
+    test_src_cache();
     test_fase3();
     if (argc > 1)
         check("demos written", demos(argv[1]));

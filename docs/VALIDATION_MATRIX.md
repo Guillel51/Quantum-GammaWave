@@ -3807,3 +3807,20 @@ el cambio de la barra y por `PRJ`; `--idle` sin cambios (29 952 px escritos, 0 c
 **Lo que sigue abierto, con la razón.** Los slots 5..8 no viajan al editor de escritorio ni son automatizables:
 los ids de parámetro son 7 bits y `P_COUNT` está en 125 de 127 (un slot necesita tres), así que necesitan un
 mensaje de protocolo nuevo y una tabla nueva en el editor; no se hizo en esta fase y no se declara hecho.
+
+## 69. v1.8.1: la matriz resuelve cada fuente una vez por bloque
+
+**Medido en el código, no en el reloj.** `mod_tsrc()` es una función pura y se llamaba una vez por slot: con ocho
+rutas sobre la misma fuente, ocho resoluciones por bloque y por pista, y un `mod_noise` por ruta de NOISE. Ahora el
+valor se guarda por bloque en el `mod_t` de la parte (72 B por core) y `macro_master` mezcla la LFO una vez por
+pista. Contador de llamadas bajo `-DMOD_TSRC_COUNT` (tests): **8 slots, 1 resolución** y **2 fuentes distintas, 2** --
+las dos comprobaciones fallan sin la caché.
+
+**Sin cambio de audio.** `regress` 311 renders, 0 cambiados; `mod_test` completo en verde. `target_budget`
+`BLOCK_PATH` 33 422 de 45 704 (-27 %) sin mover: la escena que mide no repite fuentes, así que **no se declara una
+mejora de tiempo de pared** -- lo que se declara es lo que el contador mide.
+
+**La secuencia expresiva, verificada.** Probabilidad por paso, ratchet x1..x4 con división y largo, microtiming por
+paso, acentos por paso y por lane, velocity con humanize, variaciones con semilla (MUTATE, FUGUE) y edición por
+knobs y por SysEx: todo existe y está cubierto por `ratchet_test`, `swing_test`, `pattern_len_test`, `mod_test`,
+`project_test` y `upreset_test`. No se duplicó nada.

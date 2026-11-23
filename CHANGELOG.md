@@ -1,28 +1,21 @@
-## v1.8.0 — La matriz de modulación enseña lo que aplica, y la etiqueta que se cortaba
+## v1.8.1 — Una fuente, un valor por bloque: la matriz deja de resolver la misma fuente dos veces
 
-**La matriz ya existía y no se duplicó.** Ocho slots por pista (cuatro en parámetros, cuatro en `track_t.mx`),
-diecisiete fuentes (LFO, ENV, VEL, KEY, RAND, MODW, AT, EXPR, M1..M4, STEP, NOISE, PAT, BAR), treinta y cuatro
-destinos más el banco X1..X4 de cada motor y los dos del master, profundidad bipolar de -100 a +100, guardado en
-proyecto y en presets de usuario, y una vista de mapa de destinos. Todo eso queda como estaba: esta entrega no
-añade una segunda matriz al lado de la que hay.
+**El defecto, en el código.** `mod_tsrc()` es pura: lee la LFO del bloque anterior, la VEL/KEY/RAND del último
+note-on, la rueda, los macros, el transporte y el reloj del ruido, y no escribe nada. Aun así se llamaba **una vez
+por slot**: ocho rutas con la misma fuente resolvían la misma fuente ocho veces por bloque y por pista, y cada ruta
+de NOISE pagaba su propio `mod_noise`. En `macro_master` el `mulq15` de la LFO se recalculaba además por slot.
 
-**Lo que cambió es lo que la pantalla dice.** La barra de actividad de cada fila dibujaba el valor *de la fuente*:
-con profundidad -50 o +10 se movía igual, así que la única lectura posible era "la LFO se mueve", no "esta ruta
-está moviendo algo". Ahora dibuja **el producto que el motor aplica**, `fuente x profundidad`, con signo:
+**La corrección.** El valor de cada fuente se guarda en el `mod_t` de la parte (17 enteros y una máscara de bits,
+72 B por core) y se resuelve una vez por bloque; `macro_master` mezcla la LFO una vez por pista. La misma cuenta,
+muchas menos llamadas: **8 slots con la misma fuente = 1 resolución por bloque** (antes 8), y **2 fuentes distintas
+= 2** (la prueba lo comprueba con un contador, `-DMOD_TSRC_COUNT`, que no existe en el build que se publica).
 
-- el centro es "sin modulación" para toda fuente, bipolar o no -- una fuente unipolar con AMT -100 ya no parece
-  apagada;
-- el lado lo decide la polaridad de la ruta, y el color también (acento arriba, medio abajo);
-- una ruta de poca profundidad dibuja una barra corta, así que la profundidad se ve sin leer el número.
+**El audio no cambia.** `regress`: 311 renders, 0 cambiados. `mod_test`: las dos comprobaciones nuevas (`CACHE`)
+fallan al reponer las llamadas por slot y pasan con la caché.
 
-El producto vive en `mod_contrib()` (`mod.c`), que es exactamente el que usan `mod_block_slot` y `mod_voice_add`
-(AMT 64 = 100 %): la pantalla no puede mostrar una ruta hacia un lado mientras el motor la mueve al otro.
-
-**Seis comprobaciones nuevas** en `tests/mod_test.c`: AMT 64 no aplica nada; la polaridad invierte el signo y es
-simétrica; doble profundidad, doble cantidad; una fuente unipolar con AMT -100 sigue moviendo; la profundidad
-completa es la fuente misma y los extremos quedan dentro de Q15 sin desbordar; una fuente vacía no aporta nada.
-
-**Y un texto que se cortaba.** La columna del PROYECTO en la página de canciones decía `PROJ` en un ancho que no
-lo admite y el barrido lo daba como elipsis: ahora dice `PRJ`. Es una de las tres elipsis que informa el audit
-(las otras dos son avisos largos con "…" a propósito).
+**Lo que ya existía y se verificó, sin duplicarlo.** La secuencia expresiva completa: probabilidad por paso
+(`step_chance`, página CHANCE), ratchets de x1 a x4 con su división y largo (`SF_RATCH`, `ctime`), microtiming por
+paso (`ST_MICRO`, ±8/16 de paso, temprano y tarde), acentos por paso y por lane, velocity por paso con humanize,
+variaciones reproducibles (MUTATE con semilla, FUGUE) y su edición desde los knobs y el editor SysEx (chance y
+ratchet viajan en el registro del preset). No se añadió un segundo secuenciador.
 
