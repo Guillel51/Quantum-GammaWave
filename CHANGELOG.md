@@ -4,47 +4,46 @@ Fase 3/9: DSP y audio. El perfil (gprof sobre `tests/fx_bench`, host x86-64) pon
 `rev_room` solo al 22 %: los tres buses —coro, delay, reverb— trabajaban cada bloque aunque no hubiera nada que
 enviarles, con su entrada exactamente a cero.
 
-**Lo que ya estaba bien y no se tocó.** Las pistas sin voz ya no cuestan nada (`mix_part` sale antes del mezclador),
+**Lo que ya estaba bien y no se tocó.** Las pistas sin voz no cuestan nada (`mix_part` sale antes del mezclador),
 una pista seca no paga los envíos (`if (c | d | r)`), el reparto 0/1 va por el coste medido de cada parte
-(`mc_tk`, `mc_fx_tk`), y `beat_samples` ya cacheaba su división. El escaneo de envíos por bloque ya decía cuándo
-no se envía nada (`any`, los tres picos): era el único dato que faltaba para no procesar.
+(`mc_tk`, `mc_fx_tk`) y `beat_samples` ya cacheaba su división. El escaneo de envíos por bloque ya decía cuándo no
+se envía nada (`any`, los tres picos): era el único dato que faltaba para no procesar.
 
-**El cambio.** `fx_buses` duerme cuando no se envía nada **y** el gate ya ha dejado los buses a cero
-(`!any && !fxg_g`) y han pasado 8 s sin un solo envío (`fxg_quiet > FXG_QUIET3`, la ventana en la que el gate ya
-cerró de −54 dB a −30 dB). Al entrar duerme limpia una vez sus líneas y estados (`fx_lines_clear`, compartido con
-`fx_trip`) y después sólo avanza las posiciones y la fase del LFO: una red lineal con estado cero y entrada cero
-devuelve exactamente cero para siempre, así que **cada muestra que cubre el sueño ya iba a salir a cero** — el
-gate la multiplicaba por cero. Nada se corta: el gate llega a 0 sólo tras 1.5 s sin envío y con el wet bajo −54 dB,
-y las líneas se limpian (no se congelan) para que al despertar el bus arranque del silencio en vez de con un
-residuo. Un envío, un cambio de modelo (el despacho se resuelve antes del sueño, así el modelo se aplica también
-dormido), CLOUD en FREEZE (su gate queda abierto) o cualquier muestra no nula los despiertan en el acto, con el
-gate abriendo desde 0 como antes.
+**El cambio.** `fx_gate` ya sabe cuándo ha dejado los buses a cero y cuánto lleva sin un solo envío; de ahí sale
+`fxg_shut` (gate a 0 y 8 s sin envío). `fx_buses` lo comprueba con `any` y, si se cumple, llama a `fx_sleep`, que
+pone el wet a cero y avanza las posiciones y la fase del LFO: **cada muestra que cubre el sueño ya iba a salir a
+cero** (el gate la multiplicaba por cero). Las líneas se dejan como están —el gate las había dejado en −54 dB o
+menos y vuelve a entrar desde 0, como siempre— y al despertar el bus arranca desde el silencio que ya sonaba. Un
+envío, CLOUD en FREEZE (su gate queda abierto) o un cambio de modelo despiertan: el cambio de modelo se resuelve
+dentro de `fx_sleep` (limpiar y tomar el nuevo), porque dormido la salida es cero de cualquier forma y no hay
+crossfade que oír.
 
 **Medido (host x86-64, `cc -O2`, `tests/fx_bench`, mejor de 5, ns por muestra).**
 
 | escena | antes | después |
 |---|---|---|
-| idle: los buses armados, nada sonando | 77,3 | **36,3** (−53 %) |
-| pistas secas (envíos 0) | 119,4 | **75,8** (−36 %) |
-| los tres buses alimentados | 122,1 | 121,3 (±1 %, sin cambio) |
-| buses alimentados, CHORUS en FLANGER | 116,4 – 118,2 | 116,0 (sin cambio) |
-| seis partes, cuatro notas cada una | 137,0 | 132,8 (sin cambio) |
+| idle: los buses armados, nada sonando | 77,3 | **36,4** (−53 %) |
+| pistas secas (envíos 0) | 119,4 | **96,9** (−19 %) |
+| los tres buses alimentados | 122,1 | 119,3 (sin cambio) |
+| buses alimentados, CHORUS en FLANGER | 116,4 | 112,6 (sin cambio) |
+| seis partes, cuatro notas cada una | 137,0 | 132,4 (sin cambio) |
 
 **El sonido, comprobado.** `tests/regress` con los renders dorados: **311 renders, 0 cambiados, 0 fallos de salud,
 0 de voces/routing, 0 de presupuesto de CPU** — cada motor × preset de fábrica, los modos de voz, los envíos, la
 mezcla de 4 pistas y el SLICER, muestra a muestra iguales. `reverb_test` (32 comprobaciones: modelos, cambio de
 modelo en marcha, colas, train de ecos, coste, disparo por fuera de rango), `dly_echo_test`, `six_track_test`,
 `six_track_live_test`, `fx_meter_test`, `audio_test`, `eq_state_test`, `poly_stress_test` (12/12, nada denegado
-con robo posible) y `audio_stress`: p99 **233,7 µs** de los 725 de presupuesto del bloque, 0 % por encima, sin
-muestras no finitas.
+con robo posible) y `audio_stress`: p99 180,8 µs de los 725 de presupuesto del bloque, 0 % por encima, sin muestras
+no finitas. Barrido de UI: 3 129 tomas (48 de ellas por el texto de la versión), 0 lint, 0 alineaciones.
 
 **Lo que se midió y no se tocó.** `master_out` (12 % del perfil) es dos DC-blocks, el leveler, el limitador y dos
 softclips por muestra: todo él es el contrato de salida y no hay nada redundante que quitar. El reparto entre
-cores queda como está: el `mc_split` ya elige por coste medido y la caja de correo no cambia. Los buses con envío
-no bajan ni un nanosegundo: no hay nada que dormir mientras suenan.
+cores queda como está: `mc_split` ya elige por coste medido. Y ningún bus con envío baja nada: no hay nada que
+dormir mientras suenan.
 
-**Nuevo en el banco.** `tests/fx_bench` ya medía el bloque entero con todo alimentado; sus escenas 1 y 3 (secas y
-en reposo) son las que dan la medida de este cambio.
+**Presupuesto.** El XIP es el recurso que aprieta: el cambio entra con la condición en un byte que pone el gate y
+el trabajo en una función fuera de línea (`fx_buses` va inlineada dos veces, flash y RAM), y el app slot queda en
+**2 100 B libres** con el suelo en 2 048.
 
 **Límite declarado.** Nanosegundos de host x86-64 sobre el C del camino de audio; no son ciclos del AC791N ni una
 lectura de la FM-1. El ahorro en la unidad no está medido aquí.
