@@ -14,6 +14,19 @@ extern volatile int32_t fx_vu[8];
  * way each frame (so a peak between two frames is still seen and the bar does not snap), and a peak hold
  * that stands 30 frames over the bar and then falls a pixel a frame. Pure arithmetic on three bytes: no
  * state of its own, a few instructions per meter per frame. target and the result are px, 0..mh. */
+/* (v1.8.4) A PEAK FROM fx.c AS THE PAGE'S 0..255 TARGET. fx.c measures |x| of the part's own sample after
+ * its FX (Q15, 0..32767); the FX page's four bars used to divide by 7000, a scale left over from the old
+ * 0..7000 envelope, so a plain note (17 638 on the probe) clamped the DIST card at the top and read as "1 %
+ * of distortion pegs the meter". One helper, so the page and tests/fx_meter_test.c cannot drift apart again. */
+static inline int32_t fx_meter_target(int32_t pk)
+{
+    if (pk < 0)
+        pk = -pk;
+    if (pk > 32767)
+        pk = 32767;
+    return pk * 255 / 32767;
+}
+
 static inline int32_t fx_meter_step(uint8_t *vu, uint8_t *hold, uint8_t *hold_t, int32_t target, int32_t mh)
 {
     int32_t v;

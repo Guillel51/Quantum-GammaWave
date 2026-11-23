@@ -1010,8 +1010,14 @@ static void graph_fx(const track_t *t, uint16_t c)
          * used to cut through the last two letters. The name is one row higher (ink 8 .. 16, its line ends on
          * 17) and the meter opens on 22: six rows of air, and the bar is still 16 x 43 (22 .. 64). */
         int32_t mx = cx + 35, my = 22, mh = 43;
-        int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
-        int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
+        /* (v1.8.4) THE METER'S FULL SCALE IS THE SIGNAL'S, 32767. These bars were clamped to 7000, a scale
+         * from when the track's envelope was a 0..7000 peak; fx.c has measured |x| of the part's own sample
+         * (Q15, 0..32767) since v1.9, so ANY note -- 17 638 was the probe's plain one, 252 % of 7000 -- put
+         * DIST at the top before a hand touched it, and the owner read it as "1 % of distortion pegs the
+         * meter". It was the scale, not the drive. The four cards, their clip dots and the send ticks now use
+         * the same 32767 the mixer's meters and the MASTER VU use. */
+        int32_t lvl = clamp(bus[i], 0, 32767);        /* the return, not the fader */
+        int32_t inpx = clamp(send[i], 0, 32767) * mh / 32767;
         char num[8];
 
         cv_rrect(cx, 4, 54, 75, 5, T_SURF, T_BG);
@@ -1034,7 +1040,7 @@ static void graph_fx(const track_t *t, uint16_t c)
          * 80 px one, so the meter gets the rows between the value and it instead of the label splitting them. */
         cv_text_on(cx + 3, 66, &AF_S, i == 0 ? DIST_TYPES[(uint32_t)t->p[P_DTYPE] % 6u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, ux_ground_at(61, 73, 10, 45));
-        if (lvl >= 6800)                              /* (3.6) this bus is at full scale: it clips now */
+        if (lvl >= 32700)                             /* (3.6) this bus is at full scale: it clips now */
             cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
         else if (lvl > 64)                            /* (3.6) this bus is producing sound now: its own
                                                        * return, not the track's envelope (which lit all
@@ -1053,7 +1059,7 @@ static void graph_fx(const track_t *t, uint16_t c)
          * bus actually receives. Every figure is the DSP's own. */
         cv_rect(mx, my, 16, mh, T_BG);                /* the track: 16 of the card's 54 px, 3 px from its edge */
         {   /* (3.7) HOME's own meter: the segmented plasma bar, with the same attack/decay ballistics */
-            int32_t target = clamp(lvl * 255 / 7000, 0, 255);
+            int32_t target = fx_meter_target(lvl);
             uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
             gw_plasma_bar(mx + 2, my, 12, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
         }
@@ -1063,7 +1069,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         fx_fader_bar(mx - 5, my, mh, (val * 100 + 63) / 127);
         if (i && inpx > 0)                            /* what the bus receives, over the return */
             cv_rect(mx + 6, my + mh - inpx, 4, 1, T_MID);
-        if (lvl >= 6800)                              /* full scale: the head of the meter clips */
+        if (lvl >= 32700)                             /* full scale: the head of the meter clips */
             cv_rect(mx + 2, my, 12, 2, T_ACCENT);
     }
 

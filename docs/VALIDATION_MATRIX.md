@@ -3865,3 +3865,25 @@ El camino que queda (lienzo persistente por panel, o 2 senos por ángulo en el a
 
 **Lo que no se midió.** Nada de esto es una medida de la FM-1 física: son µs de host x86-64 y conteos de píxeles.
 Los FPS del panel no se declaran.
+
+## §72 · FX y motor, Fase 2/3 (v1.8.4)
+
+**El vúmetro del FX.** Las cuatro tarjetas de la página FX recortaban a 7000 un pico que `fx.c` mide en Q15: una nota
+normal (17 638) lo dejaba en el tope con la distorsión a cero, y el reporte lo atribuía a "DIST al 1 %". Corregido a
+32 767, con el clip en 32 700 (el umbral del VU de MASTER) y una sola función de conversión (`fx_meter_target`),
+fijada por tres comprobaciones en `tests/fx_meter_test.c`.
+
+**Coste medido del motor** (`tests/eng_bench`, host x86-64, por bloque de 32 muestras, 8 teclas): ANALOG 2,7 µs de
+extra sobre el silencio (5,5) · LOFI 3,1 · DRUM 4,1 · FM6 5,9 · PHASE 6,3 · VOICE 6,5 · NOISE 6,6 · ADDTV 6,8 ·
+WHEEL 7,4 · WTABLE 7,5. Seis pistas del motor más caro: ~50 µs de los 725 del presupuesto.
+
+**Bloque completo** (`tests/fx_bench`): vías alimentadas 135,2 ns/muestra; seco 134,1; flanger 157,9; **reposo 119,4**;
+seis pistas 203,3. El reposo no lo pone la reverberación sino la estructura del bloque (`fx_buses` 28 %, `mix_block`
+16 %, `track_render` 12 % en el perfil).
+
+**Ninguna optimización del DSP se quedó**: los candidatos medidos mueven la fase del chorus o los taps de la
+reverberación, y eso cambia el sonido al volver la señal (la barra para tocar el camino de audio son los 311 golden
+renders idénticos). Quedan escritos con su coste en `docs/OPT_DSP_2026-11-23.md`.
+
+**Nada medido en la FM-1 física**: microsegundos de host x86-64 y conteos; los FPS del panel y el gasto real del
+AC791N no se declaran.

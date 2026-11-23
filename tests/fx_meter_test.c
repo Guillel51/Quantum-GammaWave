@@ -30,6 +30,15 @@ int main(void)
     uint8_t vu, hold, ht;
     int32_t i, v, prev;
 
+    {   /* (v1.8.4) the page's scale: a peak from fx.c (Q15) as the 0..255 target. The four bars divided by
+         * 7000, so every note clamped them at the top and "1 % of DIST" read as a pegged meter. */
+        check("scale: a plain note (17 638 of 32 767) is 54 % of the bar, not the top",
+              fx_meter_target(17638) > 130 && fx_meter_target(17638) < 145);
+        check("scale: 0 is dark, full scale (32 767) is the top, and past it still the top",
+              fx_meter_target(0) == 0 && fx_meter_target(32767) == 255 && fx_meter_target(40000) == 255);
+        check("scale: the old 7000 ceiling would have said 255 here, and now says 54",
+              fx_meter_target(7000) < 60);
+    }
     {   /* attack: immediate, and the hold follows the new peak */
         vu = hold = ht = 0;
         v = fx_meter_step(&vu, &hold, &ht, 18, 42);
