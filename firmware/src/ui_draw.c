@@ -1275,7 +1275,7 @@ static void draw_columns(void)
         uint32_t k = (uint32_t)song.g[G_SLOT] - 1u;
         int used = graph_project_used(k);
         fmt_int(val, (int32_t)song_cur + 1);
-        draw_column(0, "PROJ", val, "", VAL(0u), (int32_t)song_cur * 1000 / (int32_t)(NSONG - 1u), ICON_X_SONG);
+        draw_column(0, "PRJ", val, "", VAL(0u), (int32_t)song_cur * 1000 / (int32_t)(NSONG - 1u), ICON_X_SONG);
         val[0] = (char)('A' + (k & 3u)); val[1] = 0;
         draw_column(1, "SECT", val, "", VAL(1u), (int32_t)(k & 3u) * 1000 / 3, ICON_AUTO);
         draw_act_column(2, "LOAD", used ? T_THEME : T_DIM, ICON_AUTO);

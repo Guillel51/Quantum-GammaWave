@@ -1350,6 +1350,24 @@ static int32_t pan_delta(void)          /* what one block's matrix writes into P
     return after - before;
 }
 
+/* (v1.8.0) THE ACTIVITY BAR'S NUMBER: source x depth, signed, clamped -- the same product the engine applies,
+ * so the MOD page cannot show a route moving one way while it modulates the other. */
+static void test_contrib(void)
+{
+    check("CONTRIB: AMT at its centre (64) applies nothing", mod_contrib(20000, 64) == 0 &&
+                                                           mod_contrib(-20000, 64) == 0);
+    check("CONTRIB: the polarity flips it (AMT 96 up, AMT 32 down, the same source)",
+          mod_contrib(20000, 96) > 0 && mod_contrib(20000, 32) < 0 &&
+          mod_contrib(20000, 96) == -mod_contrib(20000, 32));
+    check("CONTRIB: twice the depth, twice the amount", mod_contrib(20000, 32) == 2 * mod_contrib(20000, 48));
+    check("CONTRIB: a unipolar source at AMT -100 still moves, to the other side", mod_contrib(0, 64) == 0 &&
+          mod_contrib(32767, 0) < 0 && mod_contrib(32767, 127) > 0);
+    check("CONTRIB: full depth is the source itself, and the edges stay inside Q15",
+          mod_contrib(32767, 127) == 32767 * 63 / 64 && mod_contrib(-32767, 0) == 32767 &&
+          mod_contrib(32767, 0) == -32767 && mod_contrib(32767, 64) == 0);
+    check("CONTRIB: an empty or out-of-range source reads nothing", mod_contrib(0, 127) == 0);
+}
+
 static void test_eight_slots(void)
 {
     uint64_t off, h5;
@@ -1454,6 +1472,7 @@ int main(int argc, char **argv)
     test_lofi_tone();
     test_noise_src();
     test_eight_slots();
+    test_contrib();
     test_fase3();
     if (argc > 1)
         check("demos written", demos(argv[1]));

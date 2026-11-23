@@ -53,8 +53,11 @@ Ocho filas de 15 px (`1` .. `8`), cada una `n SRC > DST AMT` y, a la derecha, el
 
 - El **AMT** se formatea con `F_BIPCT`, así que el signo es siempre visible: `+50`, `-50`, `0`. Es la
   polaridad de la asignación.
-- La **barra viva** va del centro hacia un lado para las fuentes bipolares (LFO, KEY, RAND, NOISE) — el lado es
-  el signo del momento — y desde la izquierda para las demás (ENV, VEL, MODW, AT, EXPR, STEP, M1..M4).
+- La **barra viva** (v1.8.0) dibuja `fuente x profundidad`, el producto que el motor aplica, no el valor de la
+  fuente: el centro es "sin modulación" para toda fuente, bipolar o no, el lado lo decide la polaridad de la ruta
+  (y el color: acento arriba, medio abajo) y la longitud, la profundidad. Seis comprobaciones de `mod_contrib()`
+  en `tests/mod_test.c` sostienen el número que dibuja. Antes de v1.8.0 dibujaba la fuente sola: desde el centro
+  para las bipolares y desde la izquierda para las demás, con lo que una ruta de AMT -50 o +10 se veía igual.
 - Un slot sin SRC, DST o AMT se dibuja apagado y sin barra, como antes.
 - KNOB 1 recorre los ocho slots (`SLOT n/8`); KNOB 2..4 editan SRC, DST y AMT del elegido, con las tarjetas
   grandes igual que los cuatro primeros (`params.c page_desc` devuelve descriptores propios para 5..8).

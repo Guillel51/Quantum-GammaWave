@@ -1,32 +1,28 @@
-## v1.7.21 — El visualizer cuesta la mitad: la mezcla de share fijo es una tabla
+## v1.8.0 — La matriz de modulación enseña lo que aplica, y la etiqueta que se cortaba
 
-**Medido primero.** Un banco en el host (`tres pasadas de 300 cuadros, `-O1`, `UI_NO_DRIFT`, reloj fijo`) puso el
-visualizer de HOME en **371,5 µs por cuadro** (mediana de 7 corridas) contra 88 µs de HOME/eco, 19 del MIXER y 3 del
-navegador de presets: el visualizer era, por lejos, el cuadro más caro del instrumento. El desglose por partes
-(apagando una y midiendo) dejó el velo translúcido del pozo del osciloscopio -- `cv_rect_a(12,63,144,72,T_BG,60)` y
-`cv_rect_a(164,64,64,67,...)`, 14 656 px por cuadro -- con 117 µs: un tercio del cuadro para bajar el brillo de un
-fondo.
+**La matriz ya existía y no se duplicó.** Ocho slots por pista (cuatro en parámetros, cuatro en `track_t.mx`),
+diecisiete fuentes (LFO, ENV, VEL, KEY, RAND, MODW, AT, EXPR, M1..M4, STEP, NOISE, PAT, BAR), treinta y cuatro
+destinos más el banco X1..X4 de cada motor y los dos del master, profundidad bipolar de -100 a +100, guardado en
+proyecto y en presets de usuario, y una vista de mapa de destinos. Todo eso queda como estaba: esta entrega no
+añade una segunda matriz al lado de la que hay.
 
-**La causa, contada en operaciones.** Cada uno de esos píxeles pasaba por `ux_mix`: dos desempaquetados de color,
-tres multiplicaciones, tres divisiones por 100 y tres saturaciones. **19 052 mezclas por cuadro** en el visualizer,
-14 656 de ellas del velo.
+**Lo que cambió es lo que la pantalla dice.** La barra de actividad de cada fila dibujaba el valor *de la fuente*:
+con profundidad -50 o +10 se movía igual, así que la única lectura posible era "la LFO se mueve", no "esta ruta
+está moviendo algo". Ahora dibuja **el producto que el motor aplica**, `fuente x profundidad`, con signo:
 
-**La corrección, que no cambia un píxel.** Cuando el share es el mismo para todo el rectángulo, mezclar es un mapa
-`dst -> out` por canal que cabe en el ancho del canal: `cv_rect_a` arma tres tablas (32 + 64 + 32 entradas) con la
-misma expresión y el mismo redondeo que `ux_mix` y aplica tres búsquedas por píxel. El recorte se hace una vez por
-rectángulo en lugar de una vez por punto. El camino MONO conserva el original (un canal, un tono), así que GREY y
-MONO no cambian de comportamiento.
+- el centro es "sin modulación" para toda fuente, bipolar o no -- una fuente unipolar con AMT -100 ya no parece
+  apagada;
+- el lado lo decide la polaridad de la ruta, y el color también (acento arriba, medio abajo);
+- una ruta de poca profundidad dibuja una barra corta, así que la profundidad se ve sin leer el número.
 
-**Números (host x86-64, `-O1`, 300 cuadros, mediana de 7):** visualizer **371,5 -> 187,6 µs/cuadro (-49 %)**;
-mezclas por cuadro **19 052 -> 4 396 (-77 %)**. Las otras pantallas no se mueven (HOME/eco 88 µs, MIXER 19 µs,
-presets 3 µs): el velo era el único sitio con una mezcla de área grande.
+El producto vive en `mod_contrib()` (`mod.c`), que es exactamente el que usan `mod_block_slot` y `mod_voice_add`
+(AMT 64 = 100 %): la pantalla no puede mostrar una ruta hacia un lado mientras el motor la mueve al otro.
 
-**La prueba que lo sostiene.** `tests/blend_budget_test.c` (en `tests/run_tests.sh`) cuenta las mezclas de un cuadro
-con un contador que `gfx.c` lleva solo bajo `-DGFX_MIX_COUNT` -- un **conteo**, no un tiempo, así que no puede
-fallar por un host ocupado. Tope 6 000 para el visualizer, 200 para las demás pantallas. Verificado al revés:
-repuesta la implementación anterior, el test falla (19 052 > 6 000); con las tablas, pasa.
+**Seis comprobaciones nuevas** en `tests/mod_test.c`: AMT 64 no aplica nada; la polaridad invierte el signo y es
+simétrica; doble profundidad, doble cantidad; una fuente unipolar con AMT -100 sigue moviendo; la profundidad
+completa es la fuente misma y los extremos quedan dentro de Q15 sin desbordar; una fuente vacía no aporta nada.
 
-**Nada visual cambió.** `ui_pixels`: 3 088 cuadros idénticos al baseline (regenerado solo por la cadena de versión
-del splash). `--idle`: 29 952 px escritos, 0 cambiados (igual que en 1.7.20). `--bands`: cada paso cuesta las
-filas que cambian, 0 filas no enviadas que estuvieran mal. `regress`: 311 renders de audio, 0 cambiados.
+**Y un texto que se cortaba.** La columna del PROYECTO en la página de canciones decía `PROJ` en un ancho que no
+lo admite y el barrido lo daba como elipsis: ahora dice `PRJ`. Es una de las tres elipsis que informa el audit
+(las otras dos son avisos largos con "…" a propósito).
 

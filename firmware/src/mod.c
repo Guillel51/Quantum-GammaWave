@@ -197,6 +197,17 @@ static int32_t mod_src_live(const track_t *t, uint32_t k)
     return s < MS_N ? mod_tsrc(t, s, mulq15(t->lfo_val, t->lfo_fade)) : 0;
 }
 
+/* (v1.8.0) WHAT A ROUTE APPLIES: the same product the engine uses, source x depth, in Q15 and signed.
+ * mod_block_slot scales by ((x * a) >> 6) >> 15 with AMT 64 = 100 %, so the MOD page's activity bar asks this and
+ * shows the amount that actually reaches the destination -- a +50 route and a -50 route from the same source read
+ * as opposite sides, and a shallow route reads short. Pure, clamped, no state: the UI calls it from the main loop
+ * and the test checks it. */
+static int32_t mod_contrib(int32_t sv, int32_t amt)
+{
+    int32_t v = clamp(sv, -32767, 32767) * (clamp(amt, 0, 127) - 64) / 64;
+    return clamp(v, -32767, 32767);
+}
+
 /* AMP: the gain (Q15, 0..32767) of source x (bipolar: as 0..1) at amount a */
 static int32_t mod_gain(uint32_t s, int32_t x, int32_t a)
 {

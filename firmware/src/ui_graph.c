@@ -1757,16 +1757,21 @@ static void graph_mod(const track_t *t, uint16_t c, int map)
                 cv_text_on(200, y - 1, &AF_S, b, T_INK, T_KEY);
             }
             i++;
-        } else if (on) {                                 /* the source's live value, as a rounded bar */
-            int32_t v = clamp(mod_src_live(t, k), -32767, 32767), x0 = 160, x1 = 230, yc = y + 6;
+        } else if (on) {                                 /* (v1.8.0) WHAT THE ROUTE APPLIES, not the source alone:
+                                                          * the bar is source x depth, signed, so a route with AMT at
+                                                          * -50 moves left for the same source a +50 one moves right
+                                                          * with, and a shallow route draws a short bar. The centre
+                                                          * is "no modulation" for every source, bipolar or not: a
+                                                          * unipolar source at AMT -100 must not read as "nothing"
+                                                          * because it cannot go below zero. */
+            int32_t v = mod_contrib(mod_src_live(t, k), a), x0 = 160, x1 = 230, yc = y + 6;
+            int32_t xm = (x0 + x1) / 2, px = xm + v * (xm - x0) / 32767;
             cv_rrect(x0, yc, x1 - x0, 1, 0, sel ? T_INK : T_GRID, bg);
-            if (MS_BIPOLAR((uint32_t)s)) {
-                int32_t xm = (x0 + x1) / 2, px = xm + v * (xm - x0) / 32767;
-                cv_rrect(px < xm ? px : xm, yc, px > xm ? px - xm : xm - px, 1, 0, sel ? T_INK : T_ACCENT, bg);
-                cv_rect(px, y + 3, 1, 7, hot ? T_TEXT : sel ? T_INK : T_ACCENT);       /* the pip */
-            } else {
-                int32_t px = x0 + clamp(v, 0, 32767) * (x1 - x0) / 32767;
-                cv_rrect(x0, y + 5, px - x0 + 1, 3, 1, sel ? T_INK : T_ACCENT, bg);
+            cv_rect(xm, y + 4, 1, 5, sel ? T_INK : T_GRID);          /* the zero, so the sign reads */
+            if (v) {
+                cv_rrect(px < xm ? px : xm, yc, px > xm ? px - xm : xm - px, 1, 0,
+                         sel ? T_INK : v > 0 ? T_ACCENT : T_MID, bg);
+                cv_rect(px, y + 3, 1, 7, hot ? T_TEXT : sel ? T_INK : v > 0 ? T_ACCENT : T_MID);   /* the pip */
             }
         }
         (void)unit;

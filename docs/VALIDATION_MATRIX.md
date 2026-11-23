@@ -3786,3 +3786,24 @@ implementación anterior, falla con 19 052; con las tablas, pasa.
 **Clase de evidencia.** Host x86-64: ratios y conteos, no tiempos de la unidad. El conteo de mezclas es una
 propiedad del código y no depende de la máquina; los µs sí, y por eso el test gatea el conteo. Nada medido en la
 FM-1 física.
+
+## 68. v1.8.0: la actividad de la matriz, y la etiqueta cortada
+
+**Lo que ya había (y no se repitió).** `docs/MOD_MATRIX_SLOTS.md`: ocho slots por pista, 17 fuentes, 34 destinos
+más X1..X4 por motor y CLIP/PNCH del master, AMT bipolar, `mod_src_live` para la pantalla, almacenamiento en
+proyecto ('MX') y en los bytes sobrantes del preset de usuario, vista de mapa con las sumas por destino. Todo
+verificado por `mod_test`, `project_test`, `upreset_test` y el barrido de render.
+
+**Lo que cambió.** La barra de actividad de la página MOD dibujaba el valor de la fuente; ahora dibuja el producto
+que el motor aplica (`fuente x profundidad`, `mod_contrib()` en `mod.c`, el mismo que `mod_block_slot` y
+`mod_voice_add`), con el centro como cero para toda fuente, el lado y el color por la polaridad de la ruta, y la
+longitud por la profundidad. Una ruta con AMT -100 sobre una fuente unipolar ya no se lee como apagada.
+
+**Verificación.** `mod_test`: seis comprobaciones nuevas sobre `mod_contrib` (centro, polaridad simétrica, doble
+profundidad doble cantidad, unipolar negativo, límites de Q15, fuente vacía) -- **pasa**. `ui_pixels` regenerado por
+el cambio de la barra y por `PRJ`; `--idle` sin cambios (29 952 px escritos, 0 cambiados); el barrido sigue con
+**0 hallazgos de lint** y 0 elipsis nuevas (`PRJ` sale del audit de textos cortados).
+
+**Lo que sigue abierto, con la razón.** Los slots 5..8 no viajan al editor de escritorio ni son automatizables:
+los ids de parámetro son 7 bits y `P_COUNT` está en 125 de 127 (un slot necesita tres), así que necesitan un
+mensaje de protocolo nuevo y una tabla nueva en el editor; no se hizo en esta fase y no se declara hecho.
