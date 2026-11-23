@@ -1,3 +1,61 @@
+## v1.8.8 — el pase de CPU: la música se recorre dos veces de seis, no seis de seis
+
+Fase 2/9: CPU, entrada y sistema. Se midió antes de tocar, se tocó lo que la medida señaló y lo que se midió
+neutro se devolvió.
+
+**Lo que la medida encontró.** El perfilado del bucle principal quieto (gprof sobre la escena «pantalla
+asentada, sin entrada», host x86-64) ponía el 78 % del tiempo en una sola función: `snd_hash` (core.h), la
+huella del sonido de cada pista con la que el aviso SOUND EDITED sabe si el sonido cambió desde la última carga
+o guardado. `ui_notices` la llamaba **seis veces por llamada de `ui_input`**, y `ui_input` no se llama una vez
+por frame: el bucle la vuelve a llamar una y otra vez dentro de su espera de 15 ms (main.c). Con la perilla
+quieta, el instrumento recorría las seis tablas de parámetros completas decenas de veces por frame para
+llegar siempre al mismo número.
+
+**El arreglo.** Dos de seis, no seis de seis: la pista **seleccionada** (la que dibujan el punto del navegador
+y el pie) se hashea en cada llamada, así que un cambio se marca en la misma llamada que lo ve, como antes; las
+otras cinco se turnan, una por llamada, y un cambio en ellas se marca dentro de seis llamadas — menos de un
+frame en el bucle, y el punto de una pista no seleccionada sólo se dibuja cuando la página muestra esa pista.
+Y `snd_hash` va ahora a **dos valores por paso** de FNV (16 bits leídos y combinados; `p[]` está alineado a 2,
+no a 4: una lectura de 32 bits sería un acceso desalineado en pi32v2 y una excepción), la mitad de pasos por el
+mismo sonido, valor por valor.
+
+**Medido (host x86-64, `cc -O2`, `tests/frame_bench`, 60 000 llamadas, tres corridas).**
+
+| | antes | después |
+|---|---|---|
+| `ui_input()` sola, pantalla quieta | 2 005 – 2 141 ns | **392 – 441 ns** (−80 %) |
+| cuerpo del bucle (input + LEDs + dibujo) | 3 462 – 3 528 ns | **1 714 – 1 748 ns** (−50 %) |
+
+**Lo que se midió y no se tocó.** `tests/isr_bench`, el tick de TIMER5 (una columna de 11, su 595, sus
+teclas, cada 11 ticks el frame): **25,3 ns/tick quieto, 26,8 con LEDs encendidos y uno respirando, 28,5 con
+una columna de teclas cerrada** (0,03 % del tick de 100 µs en este host). El escaneo ya venía optimizado
+(FASE 1 anteriores: el módulo una vez, el pulso de brillo medido con TIMER4, la respiración sin divisiones) y
+no hay nada que quitar sin cambiar la tasa de escaneo, el brillo o el debounce: no se tocó. El test de teclas
+y LEDs (`tests/input_test.c`) sigue pasando entero.
+
+**Lo que se midió y se devolvió.** Unificar los dos relojes de 250 ms de `autosave_poll` (el aviso de sección
+llena y el autoguardado) en un solo recorrido de la música: el bench (`autosave_poll` por frame) da **697–751 ns
+antes y 692–708 ns después** — neutro, el compilador ya calculaba una sola firma por tick. Devuelto, sin
+commitear: la regla de la fase es no quedarse con lo que no se demuestra.
+
+**Concurrencia y núcleos.** Revisado y sin cambios, con la razón: el bucle de core 1 (`fm1_multicore.h`) gira
+sobre la caja de correo y core 0 espera en `fm1_mc_wait` con un tope de 8 ms; pasar el giro a WFE exigiría una
+señal SEV desde cada escritura de la caja (audio incluido) y su efecto no es medible en este entorno — no se
+inventa. La comprobación de arranque (`fm1_mc_selftest`) sigue siendo la puerta antes de darle audio a core 1.
+
+**Regresión.** Barrido 196 pantallas × 22 paletas: 0 lint, 0 tintas sobre su color, 0 alineaciones fuera de
+1 px; **3 129 tomas de píxeles idénticas** a la base (el cambio no dibuja nada distinto). `ui_test` entero,
+incluidos los siete checks de SOUND EDITED (el knob marca, guardar limpia, una carga de proyecto es la
+referencia, la automatización no es una edición). `ui_flicker_test` y `ui_render --idle` (29 952 px escritos,
+0 cambiados) sin cambio.
+
+**Nuevo instrumento.** `tests/frame_bench` (construido por la suite, no ejecutado por ella, como `isr_bench`):
+mide `ui_input`, `ui_leds`, `ui_draw`, el cuerpo entero con una tecla pulsada y `autosave_sig`/`autosave_poll`,
+para que la próxima fase compare con números.
+
+**Límite declarado.** Son nanosegundos de host x86-64 sobre el C que corre el bucle; no son ciclos del AC791N
+ni una lectura de la FM-1. El ahorro en la unidad no está medido aquí.
+
 ## v1.8.7 — la tarjeta de presets: una pantalla que parpadeaba, y lo que se midió
 
 Fase 1/9 del ciclo nuevo: una optimización medida, la UI repasada entera y el parpadeo de la pantalla transitoria

@@ -3960,3 +3960,30 @@ las filas del navegador) y `pcat_of` está acotado a `PCAT_N`; el sitio en la li
 
 **Límite declarado.** Nada medido en la FM-1 física; el parpadeo percibido se explica por el reenvío idéntico,
 no por una captura en el panel real.
+
+## §76 · Pase de CPU del bucle principal (v1.8.8)
+
+**Perfil.** gprof sobre `tests/frame_bench` (pantalla asentada, sin entrada, host x86-64): 78 % del tiempo en
+`snd_hash` — seis sonidos completos por **llamada** de `ui_input`, y `ui_input` se llama muchas veces por
+frame desde la espera de 15 ms del bucle principal.
+
+**Cambio.** `ui_notices` hashea la pista seleccionada en cada llamada y una de las otras cinco por llamada
+(turno); `snd_hash` combina dos valores de 16 bits por paso de FNV (sin lecturas de 32 bits: `p[]` está
+alineado a 2 en pi32v2).
+
+**Medido (host, `cc -O2`, 60 000 llamadas × 3 corridas).** `ui_input()`: 2 005–2 141 → **392–441 ns** (−80 %).
+Cuerpo del bucle: 3 462–3 528 → **1 714–1 748 ns** (−50 %).
+
+**No tocado, con número.** Tick de TIMER5 (`tests/isr_bench`): 25,3 ns quieto / 26,8 LEDs / 28,5 teclas
+(0,03 % del tick); ya optimizado en fases anteriores y sin margen sin cambiar escaneo, brillo o debounce.
+
+**Devuelto.** Relojes gemelos de 250 ms de `autosave_poll` unificados: bench 697–751 → 692–708 ns por frame,
+neutro (el compilador ya fusionaba la firma). Revertido.
+
+**Concurrencia.** `fm1_mc_wait` (core 0) y el bucle de core 1 revisados; el giro no pasa a WFE sin SEV en cada
+escritura de la caja y sin forma de medirlo aquí. Sin cambios.
+
+**Salida de la fase.** `ui_pixels` 3 129 idénticas; barrido 196 × 22 sin hallazgos; `ui_test` completo
+con los siete checks de SOUND EDITED; `--idle` 29 952/0.
+
+**Límite.** Nanosegundos de host; no ciclos del AC791N ni lectura de la unidad.

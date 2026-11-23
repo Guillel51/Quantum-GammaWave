@@ -485,6 +485,8 @@ if [ -f build/gen/felucca_tables.h ]; then
         "$OUT/audio_stress" 8
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_bench" tests/fx_bench.c -lm      # (7.0) built, not run: it measures
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/isr_bench" tests/isr_bench.c          # (FASE 1) the TIMER5 tick: built, not run
+    $CC -O2 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests \
+        -o "$OUT/frame_bench" tests/frame_bench.c -lm                                     # (FASE 2/9) the idle main loop: built, not run
     $CC -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o "$OUT/eng_bench" tests/eng_bench.c -lm  # (FASE 7) one engine at polyphony: built, not run
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/tempo_test" tests/tempo_test.c -lm
     run "tempo: the cached beat, div_samples and div_by_n equal the divisions they replaced" "$OUT/tempo_test"

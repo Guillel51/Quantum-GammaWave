@@ -1802,14 +1802,29 @@ static void ui_notices(void)
          * Skipped while the transport runs: an automation or a parameter lock writes p[] for its step
          * and puts it back, which is not an edit of the sound. */
         uint32_t k;
+        static uint32_t snd_next;
+        /* (FASE 2/9) THE SELECTED SOUND EVERY CALL, ONE OTHER.Two of six walks instead of six. ui_input runs
+         * again and again inside the loop's 15 ms wait (main.c), and this walked every track's whole parameter
+         * table on every one of those calls -- the biggest thing an idle call spent. The selected track is the
+         * one the dot and the footer are drawn for, so it is hashed on every call (a change is marked in the
+         * call that sees it, as before); the other five take turns, one per call, so a change on them is marked
+         * within six calls -- under a frame in the loop, and the dot for a track that is not selected is only
+         * drawn when the page shows that track (a press that selects it marks it on that call). */
         if (snd_first) {                              /* the power-on sound is the reference */
             snd_first = 0;
             snd_dirty = 0;
             for (k = 0; k < NTRK; k++) snd_ref[k] = snd_hash(&trk[k]);
-        } else if (!song.playing)
-            for (k = 0; k < NTRK; k++)
-                if (!((snd_dirty >> k) & 1u) && snd_hash(&trk[k]) != snd_ref[k])
-                    snd_dirty = (uint8_t)(snd_dirty | (1u << k));
+        } else if (!song.playing) {
+            uint32_t sel = snd_trk(TSEL), oth;
+            if (!((snd_dirty >> sel) & 1u) && snd_hash(TSEL) != snd_ref[sel])
+                snd_dirty = (uint8_t)(snd_dirty | (1u << sel));
+            oth = snd_next % (NTRK - 1u);
+            oth = oth < sel ? oth : oth + 1u;         /* every track but the selected one, in turn */
+            if (++snd_next >= NTRK - 1u)
+                snd_next = 0;
+            if (!((snd_dirty >> oth) & 1u) && snd_hash(&trk[oth]) != snd_ref[oth])
+                snd_dirty = (uint8_t)(snd_dirty | (1u << oth));
+        }
     }
     if (motion_full) { motion_full = 0; ui_message("AUTOMATION FULL"); }
     if (midi_hint) {                                    /* MIDI notes into a track that is not selected */

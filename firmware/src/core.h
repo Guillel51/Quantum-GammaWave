@@ -889,15 +889,21 @@ static uint8_t snd_dirty;                       /* bit per track */
 static uint8_t snd_first = 1;                   /* the boot sound is the starting point, not an edit */
 static uint32_t snd_ref[NTRK];                  /* the sound as the last load / save left it */
 static inline uint32_t snd_trk(const track_t *t) { return (uint32_t)(t - trk) % NTRK; }
+/* (FASE 2/9) A WORD AT A TIME. p[] and mx[] are 16-bit, so the byte walk this used to do stepped twice per
+ * value it was actually hashing -- and it runs every frame on all six tracks (ui_notices). Two values go into
+ * one FNV step now, built from 16-bit loads (p is 2-byte aligned, not 4: a 32-bit read would be an unaligned
+ * access on pi32v2 and a fault). The hash is only ever compared with another of its own (snd_ref), so its
+ * values are nobody else's business; what is hashed is the same sound, value for value. */
 static uint32_t snd_hash(const track_t *t)
 {
-    const uint8_t *b = (const uint8_t *)t->p;
     uint32_t h = 2166136261u, i;
-    for (i = 0; i < sizeof t->p; i++)
-        h = (h ^ b[i]) * 16777619u;
-    b = (const uint8_t *)t->mx;
-    for (i = 0; i < sizeof t->mx; i++)
-        h = (h ^ b[i]) * 16777619u;
+    for (i = 0; i + 1u < (uint32_t)P_COUNT; i += 2u)
+        h = (h ^ ((uint32_t)(uint16_t)t->p[i] | ((uint32_t)(uint16_t)t->p[i + 1u] << 16))) * 16777619u;
+    if (P_COUNT & 1)
+        h = (h ^ (uint32_t)(uint16_t)t->p[P_COUNT - 1]) * 16777619u;
+    for (i = 0; i < 4u * 3u; i += 2u)
+        h = (h ^ ((uint32_t)(uint16_t)t->mx[i / 3u][i % 3u] |
+                  ((uint32_t)(uint16_t)t->mx[(i + 1u) / 3u][(i + 1u) % 3u] << 16))) * 16777619u;
     return (h ^ (uint32_t)t->eng_req * 2654435761u ^ (uint32_t)t->preset * 40503u) * 16777619u;
 }
 static void snd_clean(track_t *t)
