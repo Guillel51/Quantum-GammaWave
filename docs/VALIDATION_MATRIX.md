@@ -4033,3 +4033,29 @@ RAM 4 328 libres (suelo 4 096, verde tras `pc_orig` a `.lowbuf`); POOL 9 248; LO
 cambio: +728 B de código, +60 B de constantes.
 
 **Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.
+
+## §79 · La perilla grabada sobre la automatización (v1.9.1)
+
+**Lo que había.** `motion.c`: 64 registros por proyecto (260 B con cabecera), AUTO y LOCK, `motion_capture` ya
+cuantizada al paso, `motion_step` en el hilo de audio, la AUTO LIST para editar y borrar, `motion_sound_loaded` para
+cambiar de motor sin arrastrar curvas. `project.c` ya guardaba los 4 B de cabecera con `rsv`.
+
+**Cambio.** Rejilla por pista (1/2/4 pasos) en los dos bits reservados de `motion.rsv[0]` (0 = 1 paso: los proyectos
+viejos se leen igual, sin migración ni formato nuevo); el redondeo dentro de `motion_capture`; `graph_motion`
+(`ui_graph.c`) dibuja la curva del parámetro elegido con su nombre y `GRID n`; KNOB 2 rejilla, KNOB 3 parámetro,
+KNOB 4 CLEAR como estaba.
+
+**Retirado por medida.** REPLACE (borrar la curva del parámetro una vez por PLAY, bitmap `mo_take[6][16]`): probado
+y quitado por dejar el slot en 28 B libres. `rsv[1]` queda reservado; el comportamiento es overdub, como antes.
+
+**Comprobado.** `ui_test`, cuatro checks nuevos: rejilla (paso 5 → 4 con rejilla 2, → 8 con rejilla 4), overdub
+(cinco registros antes/después, LOCK y otros parámetros intactos, el mismo paso se reemplaza), página (1 → 2 → 4 → 1,
+parámetro grabado, frame con el gráfico, CLEAR en pie) y 200 movimientos en una pasada dentro de los 64 registros.
+Barrido 196 × 22: 0 hallazgos, 0 alineaciones. `ui_pixels`: 100 cambiados (48 versión, 52 página AUTOMATION), 0
+perdidos, 0 nuevos.
+
+**Presupuesto.** Imagen 583 156 / 583 612 B (456 libres; **suelo de XIP de 2 048 no cumplido, faltan 1 592 B**,
+736 de ellos heredados de la fase 4); RAM 4 328 libres; POOL 9 248; LOWBUF 1 716; NOINIT 124. Coste medido:
++856 B de imagen.
+
+**Límite.** Host x86-64 y emulador; nada medido en la FM-1 física.

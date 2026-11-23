@@ -11769,6 +11769,112 @@ static int test_preset_compare(void)
     return bad;
 }
 
+/* (FASE 5/9) THE RECORDER: the grid it takes a move on (1, 2 or 4 steps, kept in the project's spare bytes), the take
+ * that replaces a parameter's curve instead of overdubbing onto it, the page that draws the movement, and what a fast
+ * hand does to a store of 64 records. */
+static int test_motion_recorder(void)
+{
+    int bad = 0, ok;
+    track_t *t;
+    uint32_t i, n;
+    ui_power_on();
+    t = TSEL;
+    t->p[P_SLEN] = 16;
+    motion_clear(t);
+    song.playing = 1;
+    song.rec = 1u << song.sel;
+    ok = !motion_count(t) && motion_res_steps(0) == 1u;
+    motion_set_res(t, 1);                            /* a record every 2 steps */
+    t->seq_idx = 5; t->seq_pos = 0;
+    (void)motion_capture(t, P_LEVEL, 40);
+    ok &= motion_count(t) == 1u && motion_find(t, 4, P_LEVEL) >= 0 && motion_find(t, 5, P_LEVEL) < 0;
+    t->seq_idx = 7; t->seq_pos = 0;
+    (void)motion_capture(t, P_LEVEL, 60);
+    ok &= motion_count(t) == 2u && motion_find(t, 6, P_LEVEL) >= 0;
+    motion_set_res(t, 2);                            /* and every 4 */
+    t->seq_idx = 9; t->seq_pos = 0;
+    (void)motion_capture(t, P_PAN, 10);
+    ok &= motion_find(t, 8, P_PAN) >= 0;
+    motion_set_res(t, 0);
+    ok &= motion_res_steps(song.sel) == 1u;
+    bad += check("MOTION REC: the grid takes a move on the step it belongs to (1, 2 or 4), not where the knob was", ok);
+
+    /* OVERDUB joins the curve it finds: the records already there, the locks and the other parameters all stay. No
+     * take mode is offered: the app slot has no room for one, and the recorder's take is an overdub, as it was. */
+    motion_clear(t);
+    (void)motion_set_event(t, 0, P_LEVEL, 20);
+    (void)motion_set_event(t, 8, P_LEVEL, 90);
+    (void)motion_set_lock(t, 12, P_LEVEL, 50);
+    (void)motion_set_event(t, 8, P_PAN, 33);
+    t->seq_idx = 4; t->seq_pos = 0;
+    (void)motion_capture(t, P_LEVEL, 70);
+    ok = motion_count(t) == 5u && motion_find(t, 0, P_LEVEL) >= 0 && motion_find(t, 8, P_LEVEL) >= 0 &&
+         motion_find(t, 4, P_LEVEL) >= 0 && motion_find(t, 12, P_LEVEL) >= 0 && motion_find(t, 8, P_PAN) >= 0;
+    t->seq_idx = 4; t->seq_pos = 0;                  /* the same step again: the take replaces that one record */
+    (void)motion_capture(t, P_LEVEL, 75);
+    ok &= motion_count(t) == 5u && motion_find(t, 4, P_LEVEL) >= 0;
+    bad += check("MOTION REC: a take joins the curve it finds (locks and other parameters stay), one record a step", ok);
+
+    /* the page: KNOB 2 the grid, KNOB 3 the parameter the movement is drawn for, KNOB 4 the action */
+    ui_power_on();
+    t = TSEL;
+    t->p[P_SLEN] = 16;
+    motion_clear(t);
+    go_page(GR_MOTION);
+    frame();
+    turn(EN_K2, 1);
+    ok = motion_res_steps(song.sel) == 2u;           /* (the page draws it: GRID 2) */
+    turn(EN_K2, 1);
+    ok &= motion_res_steps(song.sel) == 4u;
+    turn(EN_K2, -1);
+    turn(EN_K2, -1);
+    ok &= motion_res_steps(song.sel) == 1u;
+    turn(EN_K3, 1);                                  /* nothing recorded: the pick stays where it was */
+    ok &= ui.mo_id == 0u;
+    (void)motion_set_event(t, 2, P_LEVEL, 40);
+    (void)motion_set_event(t, 6, P_LEVEL, 90);
+    frame();
+    turn(EN_K3, 1);
+    ok &= ui.mo_id == P_LEVEL;
+    ui.force = 1;
+    frame();                                         /* (the movement drawn: a frame that must not fault) */
+    ok &= ui.page == ui.page && str_eq(cur_page()->title, "AUTOMATION");
+    turn(EN_K4, 1);                                  /* the first detent picks CLEAR, as it always did */
+    ok &= ui.act == 4u && str_eq(act_name(3), "CLEAR");
+    ui.act = 0;
+    bad += check("MOTION page: KNOB 2 the grid, KNOB 3 the parameter drawn, KNOB 4 CLEAR in force", ok);
+
+    /* a fast hand: 200 moves over 40 parameters in one pass stay inside the 64 records, and the step plays back
+     * what it stored */
+    ui_power_on();
+    t = TSEL;
+    t->p[P_SLEN] = 16;
+    song.playing = 1;
+    song.rec = 1u << song.sel;
+    motion_clear(t);
+    for (i = 0; i < 200u; i++) {
+        t->seq_idx = (uint16_t)(i % 16u);
+        t->seq_pos = 0;
+        (void)motion_capture(t, P_LEVEL + i % 40u, (int16_t)(20 + i % 60u));
+    }
+    n = motion_count(t);
+    ok = motion.count <= MOTION_MAX && n > 0u;
+    {
+        int32_t at = motion_find(t, 0, P_LEVEL);
+        int16_t v = at >= 0 ? MOTION_VAL(&motion.event[at]) : 0;
+        motion_begin();
+        motion_step(t, 0, &motion, 1);
+        ok &= at >= 0 && t->p[P_LEVEL] == v;
+        motion_end();
+    }
+    motion_clear(t);
+    song.playing = 0;
+    song.rec = 0;
+    bad += check("MOTION REC: 200 moves in a pass keep inside the 64 records and play back what they stored", ok);
+    ui_power_on();
+    return bad;
+}
+
 /* (FASE 4) ANIM OFF MEANS THE SCREEN DOES NOT MOVE. The report named a continuous flicker in the header of
  * OVERVIEW, MIXER and PERFORMANCE "regardless of FLAT/LINE or ANIM ON/OFF": the breathing bar under the lit page
  * icon kept stepping from ui.frame with ANIM OFF, and the body's signature hashed that same phase, so the three
@@ -12049,7 +12155,8 @@ int main(void)
     bad += test_screen_off();
     bad += test_fm6_charts();
     bad += test_sound_edited();
-    bad += test_preset_compare();      /* (FASE 4/9) the preset against the edit, one tap each way */
+    bad += test_preset_compare();
+    bad += test_motion_recorder();     /* (FASE 5/9) the recorder: grid, take, the page, a fast hand */      /* (FASE 4/9) the preset against the edit, one tap each way */
     bad += test_still_when_anim_off();
 #if FELUCCA_FM4
     bad += test_fm_charts();                        /* (DIGITAL's charts: built with FELUCCA_FM4=1 only) */

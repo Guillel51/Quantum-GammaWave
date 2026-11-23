@@ -978,10 +978,25 @@ static void edit_param(uint32_t slot, int32_t steps)
         ev_knob(slot, steps);
         return;
     }
-    if (pg->graph == GR_MOTION) {
-        if (chain_busy()) { ui_message("STOP TO EDIT"); return; }
-        if (slot == 0u) motion_set_enabled(TSEL, steps > 0);
-        else if (slot == 3u) ui.act = steps > 0 ? 4u : 0u;
+    if (pg->graph == GR_MOTION) {                    /* (FASE 5/9) PLAY, the recorder's GRID, the parameter drawn, the
+                                                      * page's action. The grid and the view answer while it plays: a
+                                                      * take is set up in the middle of one */
+        if (slot == 0u) {
+            if (chain_busy()) { ui_message("STOP TO EDIT"); return; }
+            motion_set_enabled(TSEL, steps > 0);
+        } else if (slot == 1u) {                     /* the grid a record spans (the page says which) */
+            int32_t r = (int32_t)motion_res(trk_index(TSEL)) + (steps > 0 ? 1 : -1);
+            motion_set_res(TSEL, (uint32_t)clamp(r, 0, 2));
+        } else if (slot == 2u) {                     /* the parameter the movement is drawn for: the next one the
+                                                      * track records; with none after it, 0 and the page picks the
+                                                      * first it has (the whole point is to SEE the movement) */
+            uint32_t id = (uint32_t)ui.mo_id + 1u;
+            while (id < P_COUNT && !motion_has_id(TSEL, id))
+                id++;
+            ui.mo_id = (uint8_t)(id < P_COUNT ? id : 0u);
+        } else {
+            ui.act = steps > 0 ? 4u : 0u;
+        }
         return;
     }
     if (pg->graph == GR_SONG) {

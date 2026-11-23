@@ -2628,7 +2628,14 @@ static uint32_t graph_signature(void)
         for (i = 0; i < CHAIN_ROWS; i++)
             h = (h ^ (chain_config.row[i].slot + 4u * chain_config.row[i].bars)) * 16777619u;
     }
-    if (pg->graph == GR_MOTION) h ^= motion_count(t) * 131u + motion_enabled(t);
+    if (pg->graph == GR_MOTION) {                    /* (FASE 5/9) the counts, the parameter drawn, the grid, the mode,
+                                                      * and the records themselves: the movement is what it shows */
+        h ^= motion_count(t) * 131u + motion_enabled(t) + ui.mo_id * 4093u + motion_res_steps(trk_index(t)) * 1021u;
+        if (!song.playing) h ^= 0x5EEDu;             /* (the step sounding, while it plays) */
+        for (i = 0; i < motion.count; i++)
+            h = (h ^ ((uint32_t)motion.event[i].place << 24 | (uint32_t)motion.event[i].param << 16 |
+                      (uint16_t)motion.event[i].value)) * 16777619u;
+    }
     if (pg->graph == GR_EVENTS) {                    /* AUTO LIST: the rows, the one selected, + ADD LOCK's place */
         uint8_t idx[MOTION_MAX];
         uint32_t n = ev_rows(idx);
@@ -3142,6 +3149,50 @@ static void graph_pats(void)
 }
 /* SEQ > AUTO LIST (ui_events.c): the track's records around the one selected, a row each: the kind (LOCK in the
  * accent, AUTO), the step, the parameter's name, the value at the right; the last row + ADD LOCK */
+/* (FASE 5/9) SEQ > AUTOMATION: the movement itself. One parameter (KNOB 3 walks the ones the track records), its
+ * automation drawn as it sounds -- the sound's own value until the first record, each record held to the next --
+ * with its locks as ticks on the step they belong to, the recorder's grid under it (KNOB 2) and, while the song
+ * plays, the step sounding. The counts stay in the columns above, the page's actions in KNOB 4. */
+static void graph_motion(void)
+{
+    const track_t *t = TSEL;
+    uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), k = trk_index(t), id = ui.mo_id, i, step;
+    uint32_t r = motion_res_steps(k), span;
+    int32_t x0 = 10, x1 = 230, y0 = 24, y1 = 112, px = -1, py = -1, lo, hi, v;
+    char b[24], nm[12];
+    const param_desc_t *d;
+    if (id >= P_COUNT || !motion_has_id(t, id))
+        for (id = 0; id < P_COUNT && !motion_has_id(t, id); id++)
+            ;                                        /* (the first one it does record: the movement is the point) */
+    span = len > 1u ? len - 1u : 1u;
+    if (id >= P_COUNT) {                             /* (no parameter to draw: the columns' counts say the rest) */
+        cv_line(x0, (y0 + y1) / 2, x1, (y0 + y1) / 2, T_SURF);
+        return;
+    }
+    d = track_desc(t, id);
+    str_cpy(nm, d->label, sizeof nm);
+    cv_text_on(14, LIST_Y(0) + CAP_IN(S, 16), &AF_S, nm, T_ACCENT, T_BG);
+    str_cpy(b, "GRID ", sizeof b);                   /* the grid the recorder takes a move on: 1, 2 or 4 steps */
+    b[5] = (char)('0' + r);
+    b[6] = 0;
+    cv_text_r(226, LIST_Y(0) + CAP_IN(S, 16), &AF_S, b, T_DIM, T_BG);
+    lo = d->min;
+    hi = d->max > d->min ? d->max : d->min + 1;
+    v = motion_base_value(t, id);
+    for (step = 0; step < len; step++) {             /* the value as it sounds, step by step */
+        int32_t x = x0 + (int32_t)((x1 - x0) * (int32_t)step / (int32_t)span), y;
+        for (i = 0; i < motion.count; i++) {
+            const motion_event_t *e = &motion.event[i];
+            if (MOTION_TRK(e) != k || MOTION_ID(e) != id || MOTION_STEP(e) != step) continue;
+            if (!(e->param & MOTION_LOCK)) v = MOTION_VAL(e);   /* (a lock holds its step only: not the curve) */
+        }
+        y = y1 - (int32_t)((y1 - y0) * (v - lo) / (hi - lo));
+        y = y < y0 ? y0 : y > y1 ? y1 : y;
+        if (py >= 0) cv_line(px, py, x, y, T_THEME);
+        cv_rect(x, y - 1, 2, 3, T_ACCENT);
+        px = x; py = y;
+    }
+}
 static void graph_events(void)
 {
     const track_t *t = TSEL;
@@ -4228,6 +4279,10 @@ static void draw_graph(void)
         case GR_PATS:
             cv_oy = 0;
             graph_pats();
+            break;
+        case GR_MOTION:                              /* (FASE 5/9) the recorded movement, over the steps */
+            cv_oy = 0;
+            graph_motion();
             break;
         case GR_EVENTS:
             cv_oy = 0;

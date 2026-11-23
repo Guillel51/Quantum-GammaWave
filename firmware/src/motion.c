@@ -31,6 +31,34 @@ static void motion_unguard(uint32_t f)
     (void)f;
 #endif
 }
+
+/* (FASE 5/9) THE RECORDER'S GRID AND ITS TAKE MODE, in the project's spare bytes: motion_store_t rsv has travelled in
+ * the 260 B layout (and in every project) since 1.1 without one reader. rsv[0]: two bits a track, how many steps one
+ * automation record spans (0 = 1 step, 1 = 2, 2 = 4 -- a slow sweep costs a quarter of the records); rsv[1] bit 0: a
+ * (rsv[1] stays spare: the take mode that would have used it does not fit the app slot.) Both are 0 in every older
+ * project, which is what the recorder did: one step a record, overdub. No format moves and nothing is duplicated. */
+static uint32_t motion_res(uint32_t k)
+{
+    uint32_t r = k < NTRK ? (motion.rsv[0] >> (2u * k)) & 3u : 0u;
+    return r > 2u ? 2u : r;                          /* (a stray 3 is the coarsest grid, never a wild shift) */
+}
+static uint32_t motion_res_steps(uint32_t k) { return 1u << motion_res(k); }
+static void motion_set_res(track_t *t, uint32_t r)
+{
+    uint32_t k = trk_index(t), f = motion_guard();
+    if (r > 2u) r = 2u;
+    motion.rsv[0] = (uint8_t)((motion.rsv[0] & ~(3u << (2u * k))) | (r << (2u * k)));
+    motion_unguard(f);
+}
+/* track t has a record (of either kind) for parameter id */
+static int motion_has_id(const track_t *t, uint32_t id)
+{
+    uint32_t i, k = trk_index(t);
+    for (i = 0; i < motion.count; i++)
+        if (MOTION_TRK(&motion.event[i]) == k && MOTION_ID(&motion.event[i]) == id)
+            return 1;
+    return 0;
+}
 static int motion_param(uint32_t id)
 {
     /* Sound only: transport, routing, voice allocation and discrete engine
@@ -224,7 +252,7 @@ static uint32_t motion_clear_locks(track_t *t, uint32_t step)
 }
 static int motion_capture(track_t *t, uint32_t id, int16_t value)
 {
-    uint32_t k = trk_index(t), idx, len, period, f;
+    uint32_t k = trk_index(t), idx, len, period, f, r;
     if (!motion_param(id)) return 0;
     if (!rec_on(t) || t != TSEL) {
         /* A live edit becomes a new base, even when an earlier motion value is
@@ -239,6 +267,11 @@ static int motion_capture(track_t *t, uint32_t id, int16_t value)
     f = motion_guard();
     idx = t->seq_idx % len;
     if (t->seq_pos < 0x7FFFFFFFu && t->seq_pos > step_samples(t, period, idx) / 2u) idx = (idx + 1u) % len;
+    r = motion_res_steps(k);                         /* (FASE 5/9) the grid: the step it belongs to, 1 / 2 / 4 */
+    if (r > 1u) {
+        idx -= idx % r;
+        if (idx >= len) idx = (len - 1u) - (len - 1u) % r;
+    }
     /* Mark the immediate knob value transient too, so a stop before its next
      * quantized step still restores the original patch. */
     if ((motion_base_valid >> k) & 1u) motion_active[k][id / 32u] |= 1u << (id % 32u);

@@ -1,3 +1,40 @@
+## v1.9.1 — la perilla que se mueve, grabada sobre la automatización que ya había
+
+Fase 5/9: el Motion Recorder, auditado y completado donde cabía, sin un segundo sistema de automatización.
+
+**Lo que había, revisado antes de empezar.** `motion.c` (64 registros por proyecto, `motion_store_t`: cabecera
+`count`/`on`/`rsv[2]` y 260 B en total), dos tipos de registro (AUTO, que se mantiene, y LOCK, de un solo paso),
+captura ya cuantizada al paso (`motion_capture`), reproducción en `motion_step`, la lista AUTO LIST (`ui_events.c`)
+para editar y borrar, y `motion_sound_loaded` para no arrastrar curvas al cambiar de motor. Nada de eso se duplica:
+esta fase escribe sobre ello.
+
+**La rejilla.** Una toma ya caía en el paso en que estaba el transporte; ahora cae en el paso de su **rejilla**
+(1, 2 o 4 pasos, por pista): `motion_res`, `motion_set_res`, `motion_res_steps`, y el redondeo dentro de
+`motion_capture`. Se guarda en los **dos bits ya reservados** de la cabecera (`motion.rsv[0]`, dos bits por pista):
+cero es la rejilla de un paso, así que **todos los proyectos antiguos se leen igual, sin migración y sin formato
+nuevo**, y `project.c` ya guardaba esos cuatro bytes.
+
+**El movimiento, dibujado.** La página AUTOMATION gana un gráfico (`ui_graph.c` → `graph_motion`): el nombre del
+parámetro, `GRID n`, y la curva que el recorder tiene para él, sostenida entre registros sobre el rango real del
+parámetro. KNOB 2 gira la rejilla, KNOB 3 elige el parámetro que se dibuja (los que la pista tiene grabados; con
+ninguno, la página toma el primero que encuentre, para que el movimiento se vea sin tocar nada), KNOB 4 sigue siendo
+CLEAR con su confirmación de siempre — los checks que ya existían siguen pasando sin cambios.
+
+**El overdub.** Una toma **se suma** a la curva que encuentra: los registros de otros pasos, los LOCK (que son del
+paso, no de la toma) y los de otros parámetros quedan intactos; el mismo paso se reemplaza a sí mismo. Es lo que el
+recorder hacía, ahora escrito y probado.
+
+**Lo que se midió y no cupo.** Un modo de toma REPLACE (borrar la curva del parámetro una vez por PLAY, con un
+bitmap de 6 × 16 B) se llegó a implementar y a probar: costaba ~400 B de código y dejaba el slot de aplicación en
+**28 B libres**. Se retiró: el byte reservado `motion.rsv[1]` sigue libre para cuando la fase de tamaño devuelva
+espacio, y el comportamiento es el de siempre (overdub). Queda anotado, no escondido.
+
+**Pruebas (host x86-64, `tests/ui_test`, cuatro checks nuevos).** La rejilla (un movimiento en el paso 5 con rejilla
+2 cae en el 4, con rejilla 4 en el 8; el parámetro y el paso no se pierden), el overdub (cinco registros antes y
+después de una toma: nada se va, el mismo paso se reemplaza), la página (KNOB 2 recorre 1 → 2 → 4 y vuelve, KNOB 3
+elige el parámetro grabado, un frame con el gráfico no falla, KNOB 4 deja CLEAR en pie), y el caso extenso: 200
+movimientos en una pasada dejan los registros dentro de los 64 que caben y suenan con lo que se guardó.
+
 ## v1.9.0 — el preset guardado contra la edición, una tecla cada vez
 
 Fase 4/9: comparación real en el instrumento, sin duplicar el A/B que ya existía ni un solo preset.

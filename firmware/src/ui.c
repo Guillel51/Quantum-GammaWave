@@ -251,6 +251,8 @@ static struct {
     uint8_t song_row;            /* SONG: row selected, count selects the next empty row */
     uint8_t ev_row;              /* SEQ > AUTO LIST (ui_input.c ev_*): the row selected (the track's count: + ADD LOCK) */
     uint8_t ev_step, ev_id;      /* .. + ADD LOCK: the step and the parameter a lock is added on */
+    uint8_t mo_id;               /* (FASE 5/9) SEQ > AUTOMATION: the parameter whose movement the page draws (KNOB 3
+                                  * walks the ones the track records; a stale one falls back to the first) */
     uint8_t uboot;               /* main.c: seconds left before UPDATE MODE (OCT- + OCT+ held), 0 = none */
     uint32_t preset_pop_ms;      /* non-blocking 1.5s popup timer for PRESET knob browser */
     uint8_t home_viz;            /* 1 = full-screen integrated music visualizer on HOME -> HOME */
@@ -1054,19 +1056,15 @@ static uint8_t pc_ok;                                /* there is a reference */
 static uint8_t pc_trk;                               /* the track it belongs to */
 static uint8_t pc_on;                                /* the track is holding the preset side */
 
-static __attribute__((noinline)) void pc_take(ab_snd_t *s, const track_t *t)
-{
-    memcpy(s->p, t->p, sizeof s->p);
-    memcpy(s->mx, t->mx, sizeof s->mx);
-    memcpy(s->patch, fm6_patch[snd_trk(t)], sizeof s->patch);
-    s->engine = t->eng_req;
-    s->preset = t->preset;
-    s->used = 1;
-}
 /* (core.h, snd_clean) the sound as the load or the save left it: the side the first tap comes back to */
 static __attribute__((noinline)) void pc_arm(track_t *t)
 {
-    pc_take(&pc_orig, t);
+    memcpy(pc_orig.p, t->p, sizeof pc_orig.p);
+    memcpy(pc_orig.mx, t->mx, sizeof pc_orig.mx);
+    memcpy(pc_orig.patch, fm6_patch[snd_trk(t)], sizeof pc_orig.patch);
+    pc_orig.engine = t->eng_req;
+    pc_orig.preset = t->preset;
+    pc_orig.used = 1;
     pc_trk = (uint8_t)snd_trk(t);
     pc_ok = 1;
     pc_on = 0;
