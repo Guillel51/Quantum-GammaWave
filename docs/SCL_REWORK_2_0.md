@@ -43,7 +43,8 @@ also a small, measurable size optimisation:
   with the SCL pages.
 - The SCALE page's third row became a column, not a row.
 
-Result: **AC791N image 583 524 B → 581 812 B (−1 712 B)**, **1 800 B free** in the app slot (it had 88), while adding
+Result: **AC791N image 583 524 B → 581 476 B (−2 048 B)**, **2 136 B free** in the app slot (it had 88; the floor is
+2 048), while adding
 the taller keybed, the hit animation and the ruler taps; `.data+.bss` unchanged at **92 688 / 98 304**, pool spare
 8 384 B, LOWBUF 31 648/32 768. This is a code-size measurement, not a speed claim: `tests/target_budget.py` and the
 render sweep are what say the audio paths and the frames are where they were.

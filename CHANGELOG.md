@@ -28,9 +28,11 @@ tabla, ni un parámetro, ni el guardado: cambia lo que la pantalla de SCL muestr
   rings follow the bus's return") —que fue el test que lo cazó— vuelve a pasar.
 - **Mini optimización, medida:** `scl_key()`, el bisel privado de la capa SCL (29 líneas), era una segunda copia de
   `scl_pkey()`, el que dibujan las páginas de SCL; se eliminó, y con él los cuatro gráficos FX duplicados. Con el
-  teclado más alto, la animación y los taps nuevos, la **imagen AC791N baja de 583 524 a 581 812 B (−1 712 B)**,
-  con **1 800 B libres** en el slot de aplicación (antes 88): `.data+.bss` intacto en 92 688/98 304, pool con
-  8 384 B de holgura, LOWBUF 31 648/32 768.
+  teclado más alto, la animación y los taps nuevos, la **imagen AC791N baja de 583 524 a 581 476 B (−2 048 B)**,
+  con **2 136 B libres** en el slot de aplicación (antes 88, suelo 2 048): `.data+.bss` intacto en 92 688/98 304,
+  pool con 8 384 B de holgura, LOWBUF 31 648/32 768. Las tres tablas de notas y el escaneo de voces duplicados en la
+  capa SCL, el doble recorrido de voces de ENV y el destello de la tecla tocada (que repetía el borde de acento) se
+  fueron en el mismo pase: 4 recortes medidos, ninguna función perdida.
 - **Barrido de UI:** las 196 pantallas × 22 paletas con **0 hallazgos de lint, 0 desalineaciones**, 0 tintas sobre su
   propio color; no aparecieron superposiciones, textos cortados ni elementos fuera de su caja en las pantallas
   afectadas. `tests/scl_test` verifica la geometría del teclado, la de la regla y cuatro toques reales;
