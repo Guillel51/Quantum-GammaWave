@@ -64,28 +64,6 @@ static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
      * loop is gfx.c's ux_ground_bands, the same primitive HOME's views use. */
     ux_ground_rows(x, y, w, h, 22, 62, 10, 45, y, y + h, 100);   /* (FASE 3) row by row, solid, no checker */
 }
-/* (4.1) the sheen: one narrow column of light crossing a block's drawing while its bus carries signal, so a busy
- * block reads busy before a meter is read. ui.frame, not a timer: a silent page draws a still frame. */
-static void fxb_sheen(int32_t x, int32_t y, int32_t w, int32_t h, int32_t live)
-{
-    int32_t p, k;
-    if (!live || w < 24)
-        return;
-    p = (int32_t)((ui.frame / 3u) % (uint32_t)(w + 28)) - 14;
-    for (k = -6; k <= 6; k++) {
-        int32_t xx = p + k, xx2 = xx < 0 ? -xx : xx, a = (7 - xx2) * 9;
-        if (xx < 0 || xx >= w || a <= 0)
-            continue;
-        cv_rect(x + xx, y, 1, h, ux_mix(T_SURF, T_TEXT, a));
-    }
-}
-/* (FASE 4) the bus's two levels as a pair of meters at the block's right edge: what goes in (SEND) above the
- * line, what comes back (RET) below it. Both are fx_vu's peaks, so a bus with nothing sent draws two dark wells
- * and the page says exactly which side of the effect the signal is on. */
-/* one 3 px column of cells, bottom up: the cells under the level take the ramp (cold at the foot, the accent at
- * the top of the level) and the ones over it stay wells, so a meter says how much of the bus is used and in which
- * direction without a second reading. A solid fill was one grey block: the four cards read as flat next to a page
- * that is a gradient. */
 static void fxb_col(int32_t x, int32_t y, int32_t h, int32_t lvl, int32_t lo, int32_t hi)
 {
     int32_t seg = 3, q = h / (seg + 1), k, n;
@@ -107,160 +85,142 @@ static void fxb_meters(int32_t x, int32_t y, int32_t h, int32_t snd, int32_t wet
     cv_rect(x, y + hh, 3, 1, T_LINE);               /* (a tick between the two, so they never read as one bar) */
 }
 
+/* (v2.1) THE CONSOLE. The page was a 2 x 3 list of wide, short blocks: a graphic 16 px tall inside a 116 px card
+ * is a thumbnail, and the six effects read as one page of text with little pictures between the words. This is the
+ * console: three columns by two rows, each block 76 x 53, with its own header, a drawing half the block's height and
+ * the value that matters underneath -- the composition the reference uses, and the room to make each effect's
+ * picture its own thing rather than a variation of the cell it lives in. Nothing new is measured: every drawing is
+ * still fed by the same fx_vu peaks, the same song.g values and the same seq_src step the DSP publishes. */
 static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
 {
-    static const int32_t BX[2] = {3, 121}, BY[3] = {18, 54, 90};
-    static const int32_t BW = 116, BH = 34, IN = 15;   /* IN: the header, so a drawing starts at y + IN */
+    static const int32_t BX[3] = {3, 82, 161}, BY[2] = {17, 69};
+    static const int32_t BW = 76, BH = 52, IN = 13, FT = 13;   /* IN: header, FT: the value's row */
     uint32_t i;
     int32_t sel = fxb_sel();
-    int32_t snd[FXB_NB], wet[FXB_NB], live;
-    /* the chain, one row: eight cells, the selected link lit, KNOB 1 walking them, and the signal's own dot
-     * running the row while anything is moving through it */
-    gw_dither(2, 1, 240 - 4, 14, ux_mix(T_BG, T_SURF, 30), ux_mix(T_BG, T_ACCENT, 12), 50);   /* (4.1) the road */
+    int32_t snd[FXB_NB], wet[FXB_NB];
     for (i = 0; i < FXB_N; i++) {
         int32_t x = 2 + (int32_t)i * 29, on = (int32_t)i == sel;
         uint16_t bg = on ? T_ACCENT : T_SURF, ink = on ? T_INK : (i < 2 ? T_MID : T_DIM);
         cv_rrect(x, 1, 27, 14, 3, bg, T_SURF);
-        cv_icon_on(x + 7, 2, 12, i < 2 ? (i ? ICON_X_BUS : ICON_X_CHAIN) : FXB_BLOCKI[i - 2u], ink, bg);   /* (the blocks' own) */
+        cv_icon_on(x + 7, 2, 12, i < 2 ? (i ? ICON_X_BUS : ICON_X_CHAIN) : FXB_BLOCKI[i - 2u], ink, bg);
         if (i)
-            cv_rect(x - 2, 7, 1, 3, T_LINE);          /* the link between two cells of the chain */
+            cv_rect(x - 2, 7, 1, 3, T_LINE);
     }
-    /* the six blocks, each a panel with its own icon, its meters and its drawing of what it does */
-    {
-        snd[FXB_DLY] = fx_vu[1]; wet[FXB_DLY] = fx_vu[4];
-        snd[FXB_REV] = fx_vu[2]; wet[FXB_REV] = fx_vu[5];
-        snd[FXB_CHO] = fx_vu[0]; wet[FXB_CHO] = fx_vu[3];
-        snd[FXB_SLI] = 0;        wet[FXB_SLI] = fx_vu[0];
-        snd[FXB_PCH] = fx_vu[6]; wet[FXB_PCH] = fx_vu[7];
-        snd[FXB_MST] = fx_vu[6]; wet[FXB_MST] = fx_vu[7];
-        live = 0;
-        for (i = 0; i < 8u; i++)
-            live |= fx_vu[i];
-        for (i = 0; i < 6u; i++) {
-            int32_t x = BX[i & 1u], y = BY[i / 2u], on, dx = x + 3, dy = y + IN, dw = BW - 12, dh = BH - IN - 3;
-            uint16_t head;
-            /* (3.9) the block is part of the page now: a bezel warmed by the theme, a top edge that catches the
-             * light, the header band flat so the title keeps its own ground, and the ramp running from under it
-             * to the bottom rim -- the box's own gradient, not the page's seen through a window. */
-            cv_rrect(x, y, BW, BH, 3, ux_mix(T_SURF, T_THEME, 22), T_BG);
-            cv_rect(x + 3, y, BW - 6, 1, ux_mix(T_SURF, T_TEXT, 26));
-            cv_rect(x + 2, y + 2, BW - 4, IN - 2, T_BG);
-            fxb_grad(x + 2, y + IN, BW - 4, BH - IN - 2);
-            cv_rect(x + 2, y + IN - 1, BW - 4, 1, ux_mix(T_BG, T_ACCENT, 26));
-            switch (i) {
-            case FXB_DLY: on = (t->p[P_DLY] != 0 || wet[FXB_DLY] > 64) && sys_load != LOAD_ECO; break;
-            case FXB_REV: on = t->p[P_REV] != 0 || wet[FXB_REV] > 64; break;
-            case FXB_CHO: on = (t->p[P_CHOR] != 0 || wet[FXB_CHO] > 64) && sys_load != LOAD_ECO; break;
-            case FXB_SLI: on = song.g[G_SLMODE] != 0 && sys_load != LOAD_ECO; break;
-            case FXB_PCH: on = song.g[G_PUNCH] > 0 || song.g[G_DUCK] > 0; break;
-            default: on = 1; break;
-            }
-            head = on ? T_THEME : T_DIM;
-            fxb_head(x, y, BW, FXB_BLOCKI[i], FXB_BLOCKN[i], head, on ? wet[i] : 0);
-            fxb_meters(dx + dw + 2, dy, dh, on ? snd[i] : 0, on ? wet[i] : 0);
-            fxb_sheen(dx, dy, dw, dh, on ? snd[i] + wet[i] : 0);      /* (4.1) and shows its signal moving */
-            switch (i) {
-            case FXB_DLY: {                           /* the repeats, TIME apart, each FEEDBK softer */
-                int32_t fb = clamp(song.g[G_DFDBK], 0, 127), k;
-                int32_t amp = (clamp(wet[FXB_DLY] + snd[FXB_DLY] / 2, 0, 7000) * dh) / 7000;
-                int32_t sp = 9 + 30 * (32 - clamp(song.g[G_DTIME], 0, 32)) / 32;
-                for (k = 0; k < 3; k++) {
-                    int32_t h = amp - amp * fb * k / 260;
-                    if (h <= 0)
-                        break;
-                    cv_rect(dx + 4 + k * sp, dy + dh - h, 5, h,
-                            on ? ux_mix(T_ACCENT, T_THEME, 40 + k * 18) : T_RAISE);
-                    if (k < 2)
-                        cv_rect(dx + 10 + k * sp, dy + dh - 1, sp - 7, 1, T_LINE);   /* the tap's own time line */
-                }
-                break;
-            }
-            case FXB_REV: {                           /* the tail: SIZE sets how far it rings, the wet peak how high */
-                int32_t size = clamp(song.g[G_RSIZE], 0, 127), k;
-                int32_t amp = (clamp(wet[FXB_REV] + snd[FXB_REV] / 2, 0, 7000) * dh) / 7000;
-                int32_t len = 10 + size * (dw - 8) / 127;
-                for (k = 0; k < len; k++) {
-                    int32_t h = amp * (len - k) / len;
-                    if (h <= 0)
-                        continue;
-                    cv_rect(dx + 2 + k, dy + dh - h, 1, h, ux_mix(T_THEME, T_ACCENT, h * 160 / (dh ? dh : 1)));
-                }
-                /* (v1.12) NO RULE UNDER THE TAIL. This block was the only one of the six that laid a full-width T_LINE
-                 * across its floor, one row under the tail's own baseline: nothing else on the page draws one, and as
-                 * the tail's height followed the bus it read as a line sliding up and down behind the drawing. The
-                 * reverb itself -- SIZE for the length, the wet peak for the height -- is untouched. */
-                break;
-            }
-            case FXB_CHO: {                           /* three taps as waves, their phase running with the sound */
-                static const int16_t SIN16[16] = {0, 98, 181, 236, 256, 236, 181, 98, 0, -98, -181, -236, -256, -236, -181, -98};
-                int32_t k, depth = clamp(song.g[G_CDEPTH], 0, 127), ph = (int32_t)(fm1_ms / 12u);
-                int32_t amp = 1 + depth * 3 / 127;
-                for (k = 0; k < 3; k++) {
-                    int32_t j, yy0 = dy + dh / 2;
-                    for (j = 0; j < dw - 4; j++) {
-                        int32_t yy = dy + dh / 2 + SIN16[(j / 2 + ph + k * 5) & 15] * amp / 256;
-                        if (j)
-                            cv_line(dx + 2 + j - 1, yy0, dx + 2 + j, yy,
-                                    on ? ux_mix(T_THEME, T_ACCENT, k * 30) : T_RAISE);
-                        yy0 = yy;
-                    }
-                }
-                break;
-            }
-            case FXB_SLI: {                           /* the pattern's eight gates, the step's own lit */
-                int32_t pat = clamp(song.g[G_SLPAT], 0, 127), dep = clamp(song.g[G_SLDEP], 0, 127);
-                int32_t step = song.playing ? (int32_t)(seq_src(t, t->seq_idx) & 7u) : -1, k;
-                for (k = 0; k < 8; k++) {
-                    int32_t gate = (pat >> (k & 7)) & 1, h = gate ? 3 + dep * (dh - 4) / 127 : 2;
-                    uint16_t col = !on ? T_RAISE : gate ? (k == step ? T_ACCENT : T_THEME) : T_LINE;
-                    cv_rect(dx + 2 + k * ((dw - 2) / 8), dy + dh - h, (dw - 2) / 8 - 2, h, col);
-                }
-                if (step >= 0 && on)                 /* (Solar Heat) the sequencer's line under the gates */
-                    cv_rect(dx + 2, dy + dh + 1, 2 + step * ((dw - 2) / 8), 1, ux_mix(T_ACCENT, T_BG, 40));
-                break;
-            }
-            case FXB_PCH: {                           /* the drum bus's transient, and the dip it ducks */
-                int32_t pk = fx_vu[6] > fx_vu[7] ? fx_vu[6] : fx_vu[7];
-                int32_t punch = clamp(song.g[G_PUNCH], 0, 127), duck = clamp(song.g[G_DUCK], 0, 127), k;
-                int32_t amp = clamp(punch * dh / 127 + fxb_px(pk) / 4, 0, dh);
-                for (k = 0; k < dw - 10; k++) {
-                    int32_t h = amp * ((dw - 10) - k) / (dw - 10);
-                    if (h <= 0)
-                        break;
-                    cv_rect(dx + 2 + k, dy + dh - h, 1, h, on ? ux_mix(T_ACCENT, T_THEME, 120 + h * 6) : T_RAISE);
-                }
-                {
-                    int32_t dh2 = duck * (dh - 4) / 127;
-                    cv_rect(dx + dw - 6, dy + 1, 3, dh - 1, T_LINE);
-                    cv_rect(dx + dw - 6, dy + 1 + dh2, 3, dh - 1 - dh2, on ? T_THEME : T_RAISE);
-                }
-                break;
-            }
-            default: {                                /* the master: the gain stage, the output peak, the clip lamp */
-                int32_t g = clamp(fx_master_g(), 0, 32767) * (dw - 2) / 32767;
-                int32_t pk = audio_out_peak(0) > audio_out_peak(1) ? audio_out_peak(0) : audio_out_peak(1);
-                cv_rect(dx + 1, dy + dh - 2 - g, g, 2, ux_mix(T_THEME, T_SURF, 40));   /* (on the gradient) */
-                cv_rect(dx + 1, dy + dh - 2 - fxb_px(pk) * (dh - 2) / 56, dw - 2, 1, T_TEXT);   /* the output peak */
-                if (pk >= 32700)
-                    cv_rect(dx + dw - 9, dy + 2, 4, 4, T_ACCENT);
-                else
-                    cv_rect(dx + dw - 9, dy + 2, 4, 4, T_LINE);
-                break;
-            }
-            }
-            if (sel >= 2 && sel - 2 == (int32_t)i)   /* (the links after TRACK and BUSES are the six blocks) */
-                cv_frame(x, y, BW, BH, T_ACCENT);     /* the block these knobs belong to */
-            else if (i == FXB_MST && sel >= 1 && sel <= 7)
-                cv_frame(x, y, BW, BH, T_LINE);       /* the master is every bus's way out: always in the chain */
+    snd[FXB_DLY] = fx_vu[1]; wet[FXB_DLY] = fx_vu[4];
+    snd[FXB_REV] = fx_vu[2]; wet[FXB_REV] = fx_vu[5];
+    snd[FXB_CHO] = fx_vu[0]; wet[FXB_CHO] = fx_vu[3];
+    snd[FXB_SLI] = 0;        wet[FXB_SLI] = fx_vu[0];
+    snd[FXB_PCH] = fx_vu[6]; wet[FXB_PCH] = fx_vu[7];
+    snd[FXB_MST] = fx_vu[6]; wet[FXB_MST] = fx_vu[7];
+    for (i = 0; i < 6u; i++) {
+        int32_t x = BX[i % 3u], y = BY[i / 3u], on, dx = x + 3, dy = y + IN, dw = BW - 10, dh = BH - IN - FT;
+        char b[12];
+        uint16_t head;
+        cv_rrect(x, y, BW, BH, 3, ux_mix(T_SURF, T_THEME, 26), T_BG);        /* the block's bezel */
+        cv_rect(x + 2, y + 2, BW - 4, IN - 2, T_BG);                         /* the header's own ground */
+        fxb_grad(x + 2, y + IN, BW - 4, BH - IN - 2);
+        cv_rect(x + 2, y + IN - 1, BW - 4, 1, ux_mix(T_BG, T_ACCENT, 30));
+        switch (i) {
+        case FXB_DLY: on = (t->p[P_DLY] != 0 || wet[FXB_DLY] > 64) && sys_load != LOAD_ECO; break;
+        case FXB_REV: on = t->p[P_REV] != 0 || wet[FXB_REV] > 64; break;
+        case FXB_CHO: on = (t->p[P_CHOR] != 0 || wet[FXB_CHO] > 64) && sys_load != LOAD_ECO; break;
+        case FXB_SLI: on = song.g[G_SLMODE] != 0 && sys_load != LOAD_ECO; break;
+        case FXB_PCH: on = song.g[G_PUNCH] > 0 || song.g[G_DUCK] > 0; break;
+        default: on = 1; break;
         }
-        /* (FASE 4) the signal's own dot running the chain: it is the only thing here that says the audio is
-         * moving, and it only exists while one of the eight buses carries a peak */
-        if (live > 64) {
-            int32_t k = (int32_t)((fm1_ms / 24u) % (uint32_t)FXB_N), j;
-            int32_t x = 2 + k * 29 + (int32_t)((fm1_ms / 6u) % 24u) % 25;
-            for (j = 3; j > 0; j--)                   /* (4.1) the trail: where the signal just was */
-                cv_rect(x - j * 2, 15, 2, 1, ux_mix(T_ACCENT, T_BG, 20 + j * 25));
-            cv_rect(x, 15, 3, 2, ux_mix(T_ACCENT, T_TEXT, 60));
+        head = on ? T_THEME : T_DIM;
+        fxb_head(x, y, BW, FXB_BLOCKI[i], FXB_BLOCKN[i], head, on ? wet[i] : 0);
+        b[0] = 0;
+        switch (i) {
+        case FXB_DLY: {
+            /* the echo tunnel, small: the same picture the DLY page draws large */
+            int32_t fb = clamp(song.g[G_DFDBK], 0, 127), k, cx = dx + dw / 2, cy = dy + dh / 2;
+            for (k = 3; k >= 0; k--) {
+                int32_t rx = (dw / 3) - k * 3, ry = dh / 2 - k * 2;
+                if (rx < 2 || ry < 2)
+                    continue;
+                cv_frame(cx - rx, cy - ry, rx * 2, ry * 2,
+                         on ? ux_mix(T_BG, ux_mix(T_THEME, T_ACCENT, 30 + k * 22), 60 + fb * k / 6) : T_RAISE);
+            }
+            fmt_int(b, clamp(song.g[G_DFDBK], 0, 127));
+            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            break;
         }
+        case FXB_REV: {
+            /* the tail as bars, longer with SIZE and lit by what the bus returns */
+            int32_t size = clamp(song.g[G_RSIZE], 0, 127), k, n = 4 + size * 5 / 127;
+            int32_t amp = clamp(wet[FXB_REV] + snd[FXB_REV] / 2, 0, 7000);
+            for (k = 0; k < n; k++) {
+                int32_t h = (dh - 2) * (n - k) / n * (300 + amp * 970 / 7000) / 1000;
+                if (h > 0)
+                    cv_rect(dx + k * dw / n, dy + dh - h, dw / n - 1, h,
+                            on ? ux_mix(T_ACCENT, T_THEME, clamp(k * 26, 0, 100)) : T_RAISE);
+            }
+            fmt_int(b, clamp(song.g[G_RSIZE], 0, 127));
+            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            break;
+        }
+        case FXB_CHO: {
+            /* the two lanes, small: left above the line, right below */
+            int32_t k, cy = dy + dh / 2, amp = 1 + clamp(song.g[G_CDEPTH], 0, 127) * (dh / 2 - 3) / 127;
+            for (k = 0; k <= dw - 4; k++) {
+                int32_t w1 = (k * 1400 / (dw > 1 ? dw : 1) + (int32_t)(ui.frame * 4u)) & 255, w2 = (w1 + 128) & 255;
+                int32_t s1 = w1 < 128 ? w1 : 255 - w1, s2 = w2 < 128 ? w2 : 255 - w2;
+                int32_t yl = cy - 1 - ((s1 - 64) * (128 - (s1 - 64 < 0 ? 64 - s1 : s1 - 64)) * amp) / 8192;
+                int32_t yr = cy + 1 + ((s2 - 64) * (128 - (s2 - 64 < 0 ? 64 - s2 : s2 - 64)) * amp) / 8192;
+                cv_rect(dx + 2 + k, clamp(yl, dy, dy + dh - 1), 1, 1, on ? T_THEME : T_RAISE);
+                cv_rect(dx + 2 + k, clamp(yr, dy, dy + dh - 1), 1, 1, on ? T_ACCENT : T_RAISE);
+            }
+            fmt_int(b, clamp(song.g[G_CDEPTH], 0, 127));
+            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            break;
+        }
+        case FXB_SLI: {
+            /* the pattern's eight gates, the one playing lit */
+            int32_t pat = clamp(song.g[G_SLPAT], 0, 127), dep = clamp(song.g[G_SLDEP], 0, 127);
+            int32_t step = song.playing ? (int32_t)(seq_src(t, t->seq_idx) & 7u) : -1, k;
+            for (k = 0; k < 8; k++) {
+                int32_t gate = (pat >> (k & 7)) & 1, h = gate ? 3 + dep * (dh - 4) / 127 : 2;
+                cv_rect(dx + 1 + k * (dw - 1) / 8, dy + dh - h, (dw - 1) / 8 - 1, h,
+                        !on ? T_RAISE : gate ? (k == step ? T_ACCENT : T_THEME) : T_LINE);
+            }
+            str_cpy(b, !on ? "OFF" : song.g[G_SLMODE] == 2 ? "STUT" : "GATE", sizeof b);
+            break;
+        }
+        case FXB_PCH: {
+            /* the transient and the dip it ducks */
+            int32_t punch = clamp(song.g[G_PUNCH], 0, 127), duck = clamp(song.g[G_DUCK], 0, 127), k;
+            int32_t amp = clamp(punch * dh / 127 + fxb_px(wet[FXB_PCH]) / 4, 0, dh);
+            for (k = 0; k < dw - 8; k++) {
+                int32_t h = amp * ((dw - 8) - k) / (dw - 8);
+                if (h <= 0)
+                    break;
+                cv_rect(dx + k, dy + dh - h, 1, h, on ? ux_mix(T_ACCENT, T_THEME, clamp(h * 5, 0, 100)) : T_RAISE);
+            }
+            cv_rect(dx + dw - 4, dy + duck * (dh - 2) / 127, 2, dh - duck * (dh - 2) / 127, on ? T_THEME : T_RAISE);
+            fmt_int(b, punch);
+            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            break;
+        }
+        default: {
+            /* the master: its meter, the output peak and the clip lamp */
+            int32_t pk = audio_out_peak(0) > audio_out_peak(1) ? audio_out_peak(0) : audio_out_peak(1);
+            int32_t g = clamp(fx_master_g(), 0, 32767) * (dw - 2) / 32767;
+            cv_rect(dx, dy + dh / 2 - 2, dw - 2, 5, T_RAISE);                              /* the meter's well */
+            cv_rect(dx, dy + dh / 2 - 2, g, 5, ux_mix(T_THEME, T_SURF, 40));
+            cv_rect(dx, dy + dh - 3 - fxb_px(pk) * (dh - 6) / 56, dw - 2, 1, T_TEXT);        /* the output peak */
+            cv_rect(dx, dy + 1, dw - 2, 1, pk >= 32700 ? T_ACCENT : T_LINE);
+            str_cpy(b, pk >= 32700 ? "CLIP 1" : "CLIP 0", sizeof b);
+            break;
+        }
+        }
+        if (b[0])
+            cv_text_on(dx, y + BH - FT, &AF_S, b, on ? T_TEXT : T_DIM, T_BG);
+        fxb_meters(x + BW - 6, dy, dh, on ? snd[i] : 0, on ? wet[i] : 0);
+        if (sel >= 2 && sel - 2 == (int32_t)i)
+            cv_frame(x, y, BW, BH, T_ACCENT);
+        else if (i == FXB_MST && sel >= 1 && sel <= 7)
+            cv_frame(x, y, BW, BH, T_LINE);
     }
 }
+

@@ -223,6 +223,17 @@ static void scl_field(int32_t x, int32_t y, const char *s, uint16_t fg, uint16_t
 }
 /* a key of the keyboard strip: rounded, a lit top and a contour, drawn from rows (no registered cell: the
  * accidentals sit over the naturals) */
+/* (v2.1) EVERY DEGREE HAS ITS OWN COLOUR. The keybed marked the scale with one hue (T_THEME) and the root with
+ * another, so a scale and its inversions read as "on/off" and a chord's degrees could not be told apart. The degree
+ * now walks the palette between the theme and the accent -- the root keeps the accent, the octave comes back to it --
+ * and the same colour tints the natural's face and the accidental's strip, so a note's function is read off the key
+ * itself. It is a colour of the palette mixed by ux_mix, so GREY / MONO keep working: their tokens are neutral. */
+static uint16_t scl_degcol(uint32_t deg)
+{
+    if (deg == 0u)
+        return T_ACCENT;
+    return ux_mix(T_THEME, T_ACCENT, (int32_t)(deg < 6u ? deg * 14u : (12u - deg) * 14u));
+}
 static void scl_pkey(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t brd)
 {
     {   /* (FASE 4) each key carries its own light: a three-step ramp from the lit top to the body instead of a flat
@@ -446,8 +457,8 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         int32_t kx = b.x0 + (int32_t)i * (b.kw + b.gap);
         int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
         int sound = (live >> note) & 1u, picked = (sel >> note) & 1u;
-        uint16_t         face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 40);
-        uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        uint16_t         face = in ? ux_mix(T_KEYW, scl_degcol(deg), 22) : ux_mix(T_KEYW, T_BG, 40);
+        uint16_t strip = in ? (is_root ? T_ACCENT : scl_degcol(deg)) : 0;
         uint16_t brd;
         if (sound)                                         /* (v2.0) the note is sounding NOW: the key is lit, which
                                                             * is a different thing from being picked */
@@ -487,10 +498,10 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         is_root = in && deg == 0u;
         sound = (live >> i) & 1u;
         picked = (sel >> i) & 1u;
-        face = sound ? ux_mix(T_KEYB, T_THEME, 58 + ((hit >> i) & 1u) * 24) : T_KEYB;
+        face = sound ? ux_mix(T_KEYB, scl_degcol(deg), 58 + ((hit >> i) & 1u) * 24) : (in ? ux_mix(T_KEYB, scl_degcol(deg), 26) : T_KEYB);
         if (picked)
             face = ux_mix(T_KEYB, T_ACCENT, 60);
-        strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        strip = in ? (is_root ? T_ACCENT : scl_degcol(deg)) : 0;
         scl_pkey(kx, b.y0, b.bw, b.bh, face, picked ? T_ACCENT : ux_mix(T_KEYB, T_TEXT, 24));
         /* (FASE 7) THE ACCIDENTALS ARE NAMED TOO. The five black keys carried a strip and no name, so a scale
          * with F# or Bb in it could not be read off the keyboard at all. The 12 px face fits an 18 x 15 key:

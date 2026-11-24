@@ -118,138 +118,67 @@ static void tech_dist(const track_t *t)
     }
 }
 
-/* DLY: the echo train, as the bus really produces it. Six windows one delay time apart, each holding
- * the peak the delay line returned inside it (fx.c fx_dly_rep: repeat 1 .. 6 of the last hit);
- * fx_dly_gen is the repeat sounding now and fx_dly_frac how far into it the line has come.
- * It is not a level meter and it is not inferred from the mix level: a hit starts the train, repeat
- * n appears in window n whether or not anything else is playing, a repeat that came back softer
- * shows a shorter bar, and with no echoes there are no bars at all. Nothing here feeds the DSP: it
- * reads three published numbers and song.g the frame the buses write them. */
-static int32_t dly_bh(int32_t pk, int32_t h)      /* 0..32767 -> 0..h, 6 dB a step: a train falls by
-                                                   * FEEDBK, and a linear bar would hide that */
+/* (v2.1) THE ECHO TUNNEL. The page drew six bars on an axis: the repeats were there, but a delay is depth, and a
+ * row of columns does not read as depth. This is the one picture the effect has always had in every piece of gear
+ * that printed it: a dry frame and, inside it, the repeats -- each one smaller, dimmer, shifted by SPREAD, tilted by
+ * PITCH, thrown side to side when PING-PONG is on, and coloured along the palette instead of one tone. The number of
+ * frames is the number the sound actually has: the feedback decayed to 1 % of the dry hit, counted, not guessed. The
+ * repeat that is sounding now is the one drawn at full accent, so the tunnel moves with the train. */
+static int32_t dly_echoes(int32_t fb)
 {
-    int32_t b = 0;
-    if (pk < 32)
-        return 0;
-    while (pk > 63) {                             /* 10 steps of an octave, then full */
-        pk >>= 1;
-        b++;
-    }
-    return clamp((h * (b + 1)) / 10, 2, h);
+    int32_t n = 1, amp = 1000;                      /* 1 = the dry hit; the repeats follow while they are audible */
+    if (fb < 6)
+        return 1;
+    while (n < 12 && (amp = amp * fb / 127) > 10)
+        n++;
+    return n;
 }
-/* (3.2) The six bars, drawn the way the owner asked for: they are always there -- a 3 px rest when
- * no repeat has come back -- they grow with the peak the line returned, they carry a small bounce on
- * a new hit, their tops are rounded and they are 7 px wide instead of 5. The state is six bytes: a
- * rise lands at once (the bounce is 2..3 px above it), a fall eases by one pixel a frame, so the train
- * settles visibly instead of snapping. Six compares and six adds a DRAWN frame; the peaks come from
- * the bus (fx_dly_rep), nothing here runs per sample and nothing feeds the DSP. */
-#define DLY_MIN 3                                     /* the rest height of a bar with no signal */
-static uint8_t dly_h[6], dly_b[6];                    /* drawn height, bounce on top of it */
-static uint32_t dly_fr = 0xFFFFFFFFu;
-static void dly_tick(int32_t h)
-{
-    uint32_t i;
-    if (dly_fr == ui.frame)
-        return;
-    dly_fr = ui.frame;
-    for (i = 0; i < 6u; i++) {
-        int32_t t = dly_bh(clamp((int32_t)fx_dly_rep[i], 0, 32767), h);
-        if (t < DLY_MIN)
-            t = DLY_MIN;                                           /* (3.2) the rest: a bar is always there */
-        if (t >= (int32_t)dly_h[i] + 2) {                          /* a hit: the bar jumps, then springs back */
-            dly_h[i] = (uint8_t)t;
-            dly_b[i] = 3;
-        } else if (t > (int32_t)dly_h[i]) {
-            dly_h[i] = (uint8_t)t;
-        } else if (dly_h[i] > DLY_MIN) {
-            dly_h[i]--;                                             /* the fall: a pixel a frame */
-        }
-        if (dly_b[i])
-            dly_b[i]--;
-    }
-}
-static void dly_bar(int32_t x, int32_t base, int32_t bh, uint16_t c, uint16_t cap)
-{
-    /* 7 px wide (x - 3 .. x + 3), the top two rows inset: a rounded head, not a cut post */
-    int32_t top = base - bh;
-    if (bh > 2) {
-        cv_rect(x - 1, top, 2, 1, c);
-        cv_rect(x - 2, top + 1, 5, 1, c);
-        cv_rect(x - 3, top + 2, 7, bh - 2, c);
-        cv_rect(x - 3, top + 2, 7, 1, cap);
-    } else if (bh > 0) {
-        cv_rect(x - 1, top, 2, 1, c);
-        cv_rect(x - 2, top + 1, 5, bh - 1, c);
-    }
-}
-static void tech_dly(void)
-{
-    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, base = TK_Y1 - 4, h = 84, n;
-    int32_t gen = (int32_t)fx_dly_gen, frac = (int32_t)fx_dly_frac, on = song.g[G_DMIX] > 0;
-    tk_axes(x0, TK_Y0, x0 + w, base);
-    dly_tick(h);
-    cv_rect(x0, base - h, 1, h, T_RAISE);         /* the hit the train starts from */
-    cv_rect(x0 - 1, base - h, 3, 1, T_MID);
-    int32_t ys[6];
-    for (n = 0; n < 6; n++) {
-        int32_t pk = clamp((int32_t)fx_dly_rep[n], 0, 32767);
-        int32_t x = x0 + (n + 1) * w / 7, lit = on && gen == n + 1;
-        int32_t bh = (int32_t)dly_h[n] + (on ? (int32_t)dly_b[n] : 0);
-        uint16_t bc, cap;
-        cv_rect(x - 3, base - 1, 7, 1, T_RAISE);                     /* the seat: six slots, always */
-        if (bh > h)
-            bh = h;
-        ys[n] = base - bh;
-        bc = !on ? ux_mix(T_BG, T_LINE, 80)
-                  : lit ? T_TEXT
-                        : ux_mix(T_BG, T_ACCENT, 70 + pk * 100 / 32767);
-        cap = ux_mix(bc, lit ? T_TEXT : T_BG, lit ? 60 : 45);
-        dly_bar(x, base, bh, bc, cap);
-        if (lit) {                                                   /* the repeat sounding now */
-            cv_rect(x - 3, base - bh - 3, 7, 1, T_ACCENT);
-            cv_rect(x - 3, base - 1, 7, 1, T_ACCENT);
-        }
-    }
-    if (!on)
-        return;
-    {   /* (8.0) THE TRAIN'S ENVELOPE. The six bars said where each repeat stands; the panel still read as an empty
-         * frame above them. These are the same peaks (fx_dly_rep, published by fx.c) joined at their tops and
-         * filled to the axis, so the decay has a shape instead of six columns. One line segment and one column per
-         * pixel: no per-sample work, and it is the effect's own measured level, not a curve drawn from FDBK. */
-        int32_t j;
-        for (n = 1; n < 6; n++) {
-            int32_t xa = x0 + n * w / 7, xb = x0 + (n + 1) * w / 7;
-            cv_line_t(xa, ys[n - 1], xb, ys[n], T_ACCENT, 1);
-        }
-        for (j = 0; j < w; j++) {
-            int32_t seg = j * 7 / w, k2 = seg + 1 > 5 ? 5 : seg + 1, fr = seg < 5 ? (j * 7 % w) * 256 / w : 0;
-            int32_t ya = seg > 5 ? ys[5] : ys[seg], yb = ys[k2];
-            int32_t yv = seg > 5 ? ya : ya + (yb - ya) * fr / 256;
-            if (yv < base - 1)
-                cv_rect(x0 + j, yv, 1, base - yv, ux_mix(T_BG, T_ACCENT, 26));
-        }
-        for (n = 0; n < 6; n++)
-            cv_rect(x0 + (n + 1) * w / 7 - 1, ys[n] - 1, 3, 3, T_TEXT);
-    }
-    {   /* the beat of the train: a tick on the axis where the line is now, nothing taller */
-        int32_t sx = x0 + (int32_t)((int64_t)(gen * 256 + frac) * w / (7 * 256));
-        cv_rect(sx, base - 4, 1, 4, T_TEXT);
-        cv_rect(sx - 1, base - 4, 3, 1, T_TEXT);
-    }
-}
+static void dly_tunnel(int32_t split);
+static void tech_dly(void) { dly_tunnel(0); }
 
-/* DLY 2: left echoes on top, right below */
-static void tech_dly2(void)
+/* (v2.1) DLY 2: THE SAME TUNNEL, ONE PER SIDE. The pitch grains were six bars over a centre line; the tunnel is
+ * the same picture the main DLY page draws, split in two, with PITCH tilting each side the way the grains detune
+ * them (left up, right down) and WIDTH deciding how far the two sides are thrown apart. One function draws both,
+ * so the pair can never say different things about the same effect. */
+static void dly_tunnel(int32_t split)
 {
-    int32_t wd = tk(0), pit = song.g[G_DPIT], spry = tk(2), n, x0 = TK_X0 + 6, w = PANEL_W - 12, mid = (TK_Y0 + TK_Y1) / 2;
-    cv_rect(x0, mid, w, 1, T_RAISE);
-    for (n = 1; n <= 6; n++) {
-        int32_t jit = (int32_t)((n * 2654435761u) >> 27) - 16, x = x0 + n * w / 7 + jit * spry / 1000;
-        int32_t up = clamp(pit * n * 2, -36, 36), hot = 220 - n * 26;
-        cv_rect(x - 2, mid - 8 - 30 + up / 2, 4, 30, heat_col(hot));                        /* left */
-        cv_rect(x - 2 + wd * 18 / 1000, mid + 8 - up / 2, 4, 30, heat_col(hot - 10));        /* right, WIDTH later */
+    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, top = TK_Y0 + 2, base = TK_Y1 - 2;
+    int32_t gen = (int32_t)fx_dly_gen, on = song.g[G_DMIX] > 0;
+    int32_t fb = clamp(song.g[G_DFDBK], 0, 127), tms = clamp(song.g[G_DTIME], 0, 57);
+    int32_t spr = clamp(song.g[G_DSPRY], -64, 63), pit = clamp(song.g[G_DPIT], -24, 24);
+    int32_t ping = song.g[G_DPING] > 0, i, side;
+    int32_t nf = dly_echoes(fb);
+    
+    for (side = 0; side < (split ? 2 : 1); side++) {
+        int32_t cx = split ? x0 + w / 4 + side * (w / 2) : x0 + w / 2;
+        int32_t cy = split ? (top + base) / 2 : (top + base) / 2;
+        int32_t mx = (split ? w / 4 : w / 2) - 3, my = (base - top) / 2 - 2;
+        int32_t sgn = side ? -1 : 1;
+        for (i = nf - 1; i >= 0; i--) {
+            int32_t ix = mx * (nf - i) / nf + i, iy = my * (nf - i) / nf + i / 2;
+            int32_t dx = 0, dy = 0, live = on && gen == i;
+            uint16_t ink;
+            if (ix < 3 || iy < 2)
+                continue;
+            if (ping && i)
+                dx = ((i & 1) ? 1 : -1) * ix / 3;
+            dx += spr * i * (split ? 1 : 2) / 90;
+            dy += sgn * pit * i * (split ? 2 : 3) / 24;
+            ink = !on ? T_RAISE
+                : live ? T_TEXT
+                       : ux_mix(T_BG, i == 0 ? T_THEME : heat_col(clamp(120 + i * 26, 40, 236)),
+                                90 + (nf - i) * 60 / nf);
+            cv_frame(cx - ix + dx, cy - iy + dy, ix * 2, iy * 2, ink);
+            if (live) {
+                cv_rect(cx - ix + dx, cy - iy + dy, ix * 2, 1, T_ACCENT);
+                cv_rect(cx - ix + dx, cy + iy + dy - 1, ix * 2, 1, T_ACCENT);
+            }
+        }
     }
+    if (split && on)
+        cv_rect(x0 + w / 2 - 1, top + 2, 1, base - top - 4, T_LINE);   /* the split between left and right */
 }
+static void tech_dly2(void) { dly_tunnel(1); }
 
 /* (3.1) THE REVERB ANSWERS THE NOTES. fx_vu[5] is the peak the reverb bus actually returned this
  * frame (fx.c publishes it), so the picture follows the effect, not a timer: a note starts a tail,
@@ -402,7 +331,11 @@ static void tech_rev(void)
         }
     }
     cv_rect(x0, base - h, 3, h, T_TEXT);                /* the dry hit */
-    for (i = 0; i < len && x0 + 6 + gap + i < x0 + w; i += 2) {
+    /* (v2.1) THE TAIL AS A STAIRCASE. The decay was a cloud of 1 px columns: a texture, not a shape, and at 240 px
+     * the eye cannot follow it. The same envelope is now a row of 3 px bars with a 1 px gap -- the bars of the
+     * reference -- so the slope of the decay, its length with SIZE and its brightness with DAMP read straight off
+     * the picture. Nothing about the maths changed: same envelope, same breathing with the bus, same SPRING ripple. */
+    for (i = 0; i < len && x0 + 6 + gap + i < x0 + w - 3; i += 4) {
         int32_t env = 1000 - i * 1000 / len, r = (int32_t)(((uint32_t)(i + 7) * 2654435761u) >> 22) % 1000;
         int32_t bh = env * (400 + r * 6 / 10) / 1000 * h / 1000;
         int32_t heat = clamp(env * 230 / 1000 - i * damp / (len + 1) + (int32_t)rev_act / 8, 6, 246);
@@ -410,8 +343,10 @@ static void tech_rev(void)
             bh += bh * (int32_t)rev_act / 900;
         if (spring)
             bh = bh * (600 + (bg_sin((uint32_t)(i * i * 9)) >> 6) * 400 / 512) / 1000;
-        if (bh > 0)
-            cv_rect(x0 + 6 + gap + i, base - bh, 1, bh, heat_col(heat));
+        if (bh > 0) {
+            cv_rect(x0 + 6 + gap + i, base - bh, 3, bh, heat_col(heat));
+            cv_rect(x0 + 6 + gap + i, base - bh, 3, 1, ux_mix(heat_col(heat), T_TEXT, 55));   /* the bar's head */
+        }
         if (ty == 2 && mod && i % 4 == 0 && bh > 4) {   /* SHIMMER: sparks an octave (+ AIR) over the tail, denser
                                                          * and animated; a second layer lifts them further on a note */
 
@@ -437,11 +372,6 @@ static void tech_rev(void)
             cv_rect(cx - 1, base - ch / 2, 3, ch / 2, ux_mix(T_BG, bg_col(95 + k * 14), 14 + (int32_t)rev_act / 8));   /* ghost */
             cv_rect(cx, base - ch, 1, ch, ux_mix(T_BG, bg_col(120 + k * 20), 35 + (int32_t)rev_act / 5));
             cv_rect(cx + 2, base - (2 + k) - wob / 2, 1, 2 + k, ux_mix(T_BG, bg_col(150 + k * 12), 28 + (int32_t)rev_act / 6));
-        }
-        if (rev_act > 12) {                             /* a note: the room's air rings once, low and slow */
-            int32_t rad = 6 + (rev_ph & 31);
-            gw_orbit_ring(x0 + 6 + gap + len / 2, base - 26, rad, rad * 3 / 4,
-                          ux_mix(T_BG, bg_col(130 + rev_act / 4), 30 + (int32_t)rev_act / 6), 1);
         }
     }
     if (ty == 1) {                                               /* SPRING: a coil that wobbles while it sounds, and a
@@ -469,46 +399,59 @@ static void tech_rev(void)
     }
 }
 
-/* REVERB 2: the tail left (up) and right (down) */
+/* (v2.1) REVERB 2: THE SAME TAIL, ONE PER SIDE. The bar row of the REVERB page, split over the centre line: the
+ * left channel's decay up, the right channel's down, WIDE deciding how far apart the two rows start and FILT how
+ * warm they are. The wobble is one offset a bar, not a sine a column, so the page costs less than the columns did. */
 static void tech_rev2(void)
 {
-    int32_t mod = tk(0), wide = tk(3), filt = song.g[G_RFILT], x0 = TK_X0 + 6, w = PANEL_W - 12, mid = (TK_Y0 + TK_Y1) / 2;
-    int32_t i, ph = bg_energy() > 2 ? (int32_t)ui.frame * (8 + tk(1) / 20) : 0;
+    int32_t mod = tk(0), wide = tk(3) * 8 / 1000, filt = song.g[G_RFILT];
+    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, mid = (TK_Y0 + TK_Y1) / 2, i;
+    int32_t wob = (int32_t)((bg_sin((uint32_t)(ui.frame * 900u)) * mod) >> 12) * 4 / 1000;
     rev_tick();
     cv_rect(x0, mid, w, 1, T_RAISE);
-    if (rev_act > 10) {                                 /* REVERB 2 answers the note as REVERB does */
-        int32_t rad = 8 + (rev_ph & 63);
-        gw_orbit_ring(x0 + w / 2, mid, rad, rad / 2, ux_mix(T_BG, bg_col(150 + rev_act / 3), 90), 0);
-    }
-    for (i = 0; i < w; i += 2) {
-        int32_t env = 1000 - i * 1000 / w, wob = (bg_sin((uint32_t)(i * 700 + ph * 64)) * mod / 1000) >> 12;
-        int32_t bh = env * (44 + (int32_t)rev_act * 26 / 255) / 1000, off = wide * 6 / 1000;
+    for (i = 0; i + 3 < w; i += 4) {
+        int32_t env = 1000 - i * 1000 / w;
+        int32_t bh = env * (44 + (int32_t)rev_act * 26 / 255) / 1000;
         int32_t heat = clamp(env * 200 / 1000 + filt + (int32_t)rev_act / 8, 6, 246);
-        if (bh <= 0) continue;
-        cv_rect(x0 + i + wob, mid - 2 - off - bh, 1, bh, heat_col(heat));
-        cv_rect(x0 + i - wob, mid + 2 + off, 1, bh, heat_col(heat - 12));
+        if (bh <= 0)
+            continue;
+        cv_rect(x0 + i, mid - 2 - wide - bh - wob / 4, 3, bh, heat_col(heat));
+        cv_rect(x0 + i, mid + 2 + wide + wob / 4, 3, bh, heat_col(heat - 12));
     }
 }
 
-/* CHORUS: three taps' delay modulation */
+
+
+/* (v2.1) THE CHORUS'S TWO CHANNELS, AS TWO FIGURES. Three parallel sines say "it modulates"; they do not say which
+ * side is ahead, how far apart the voices sit, or how wide the bus is. A chorus' data is two delay lanes sweeping in
+ * quadrature, and a figure-eight is exactly that pair plotted against each other: X is the lane, Y is the sweep. Left
+ * is drawn on the left of the panel and right on the right, their phase offset is STEREO (0: one line, exactly as the
+ * DSP's taps line up at 0), RATE turns the sweep, DEPTH its height. Both are read from the same parameters the effect
+ * runs, and both stop moving when nothing is sounding -- the same rule as every other graph here. */
 static void tech_chorus(void)
 {
-    int32_t rate = tk(0), depth = tk(1), x0 = TK_X0 + 6, w = PANEL_W - 12, mid = (TK_Y0 + TK_Y1) / 2, k, i;
-    int32_t spread = 64 + song.g[G_CSTER];              /* (0.6.12) STER: the taps fanned out, left up, right down
-                                                         * (-64: one line, mono; 63: twice as far apart) */
+    int32_t rate = tk(0), depth = tk(1), ster = clamp(song.g[G_CSTER], -64, 63);
+    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, top = TK_Y0 + 2, base = TK_Y1 - 2, k;
+    int32_t cy = (top + base) / 2;
+    int32_t amp = ((base - top) / 2 - 16) * (300 + depth * 700 / 1000) / 1000;   /* tk() is per-mille */
     uint32_t ph = bg_energy() > 2 ? ui.frame * (uint32_t)(40 + rate) * 8u : 0u;
-    cv_rect(x0, mid, w, 1, T_RAISE);
-    for (k = 0; k < 3; k++) {
-        int32_t py = mid, off = (k - 1) * spread * 9 / 64;
-        for (i = 0; i <= w; i++) {
-            int32_t y = mid - off - ((bg_sin((uint32_t)(i * (60 + rate / 4)) + ph + (uint32_t)(k * 21845 * spread / 64)) *
-                                      depth / 1000 * 30) >> 15) * (spread + 64) / 128;
-            y = clamp(y, TK_Y0, TK_Y1);
-            if (i)
-                cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y, mid - 40, mid + 40, T_THEME), k ? 1 : 2);
+    cv_rect(x0, cy, w, 1, T_RAISE);                     /* the zero line, quiet under both figures */
+    for (k = 0; k < 2; k++) {                           /* k 0 = left, 1 = right */
+        int32_t lane = cy + (k ? 1 : -1) * (6 + ster * 22 / 63);   /* STEREO: how far apart the two lanes sit */
+        int32_t po = (int32_t)(ph / 40) + (k ? ster * 9 / 16 : 0); /* and how far ahead the right one is */
+        uint16_t ink = k ? T_ACCENT : T_THEME;
+        int32_t px = 0, py = lane, i2;
+        cv_text_on(x0 + 2 + k * 14, top + 12, &AF_S, k ? "R" : "L", ux_mix(T_SURF, ink, 70), T_SURF);
+        for (i2 = 0; i2 <= w; i2++) {
+            uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + (uint32_t)po * 1024u;
+            int32_t y = lane - ((bg_sin(a) * amp) >> 15) * (k ? 3 : 4) / 4;
+            if (i2)
+                cv_line_t(x0 + px, clamp(py, top, base), x0 + i2, clamp(y, top, base), ink, k ? 1 : 2);
+            px = i2;
             py = y;
         }
     }
+    cv_rect(x0 + w / 2 - 1, top + 2, 1, base - top - 4, T_LINE);   /* the split between the two channels */
 }
 
 

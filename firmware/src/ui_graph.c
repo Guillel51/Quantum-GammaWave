@@ -77,7 +77,10 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
     int32_t e = 32768;                                                  /* exp(-4.6 u), Q15 */
     const voice_t *bv;                                                  /* the loudest voice, found once */
 #define EGY(lvl) (bot - (lvl) * (bot - top) / 1000)
+#define ENVF(x, y) cv_rect((x), (y) + 1, 1, bot - (y), ux_mix(T_BG, c, 20))   /* (v2.1) the shape's own body */
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
+    for (i = 0; i <= a; i++)                                  /* (v2.1) the attack's body, a column at a time */
+        ENVF(x0 + i, bot - (bot - top) * i / (a > 0 ? a : 1));
     cv_line_t(x0, bot, x1, top, heat_y((bot + top) / 2, top, bot, c), 2);                                  /* attack: linear */
     px = x1;
     py = top;
@@ -85,16 +88,19 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
         int32_t lvl;
         e = (e * ENV_K(d)) >> 15;                       /* k^d = exp(-4.6) */
         lvl = sus + ((1000 - sus) * e >> 15);
+        ENVF(x1 + i, EGY(lvl));
         cv_line_t(px, py, x1 + i, EGY(lvl), heat_y(py, top, bot, c), 2);
         px = x1 + i;
         py = EGY(lvl);
     }
     cv_line_t(px, py, x3, EGY(sus), heat_y(py, top, bot, c), 2);                               /* sustain */
+    cv_rect(px, EGY(sus) + 1, x3 - px, bot - EGY(sus), ux_mix(T_BG, c, 20));                   /* its body */
     px = x3;
     py = EGY(sus);
     e = 32768;
     for (i = 1; i <= r; i++) {                                          /* release: exponential to 0 */
         e = (e * ENV_K(r)) >> 15;
+        ENVF(x3 + i, EGY(sus * e >> 15));
         cv_line_t(px, py, x3 + i, EGY(sus * e >> 15), heat_y(py, top, bot, c), 2);
         px = x3 + i;
         py = EGY(sus * e >> 15);
@@ -121,6 +127,17 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
             cv_rect(x, EGY(lvl), 1, bot + 2 - EGY(lvl), T_MID);
             cv_rrect(x - 3, EGY(lvl) - 3, 7, 7, 3, T_TEXT, T_SURF);
         }
+    }
+    /* (v2.1) THE FOUR CORNERS. The stage's start and end points are on the curve as small lit pips, so the shape has
+     * joints and not only a silhouette: the attack's peak, the decay's arrival, the release's start and its foot. */
+    {
+        int32_t cx4[4], cy4[4], q;
+        cx4[0] = x1; cy4[0] = top;
+        cx4[1] = x1 + d; cy4[1] = EGY(sus);
+        cx4[2] = x3; cy4[2] = EGY(sus);
+        cx4[3] = x3 + r; cy4[3] = bot;
+        for (q = 0; q < 4; q++)
+            cv_rrect(cx4[q] - 2, cy4[q] - 2, 5, 5, 2, q == 1 || q == 2 ? T_ACCENT : T_TEXT, T_SURF);
     }
     /* (v1.12.8) THE STAGES ARE ON THE CURVE. The page drew the shape and nothing else: the four segments of the
      * envelope, which is the one thing the cards cannot say at a glance, had no mark at all. A quiet guide stands

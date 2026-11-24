@@ -1,3 +1,39 @@
+## v2.1.0 — ENV, FX, BUSES Y SCL REDISEÑADOS: CADA PANTALLA TIENE SU PROPIO DIBUJO
+
+**La línea 2.1, primera versión.** Cambia la composición y el dibujo de ENV, DLY, DLY 2, REVERB, REVERB 2,
+CHORUS, BUSES y SCL; no cambia un parámetro, una tecla ni una muestra de audio (`tests/regress` da los **311**
+renders idénticos). Los píxeles de la UI sí cambian a propósito: **166 de 3 129** frames, y el baseline se
+regeneró con este motivo.
+
+- **DELAY: el túnel de ecos.** Las seis barras sobre un eje se fueron: ahora la página dibuja un marco seco y,
+  dentro, un rectángulo por repetición audible -- más pequeño, más frío y desplazado por SPREAD, PITCH y
+  PING-PONG. El número de marcos no es una constante: `dly_echoes()` cuenta las repeticiones que el feedback
+  deja por encima del 1 % del golpe seco, que es el número de ecos que el DSP produce. DLY 2 es el mismo túnel
+  partido en dos, uno por canal, con PITCH inclinando cada lado y WIDTH separándolos.
+- **REVERB: la cola como escalera.** La cola era una nube de columnas de 1 px; ahora son barras de 3 px con
+  1 px de aire y la cabeza de cada barra más clara, así la pendiente, el largo con SIZE y el brillo con DAMP
+  se leen de un vistazo. REVERB 2 es la misma escalera partida en dos (izquierda arriba, derecha abajo), con
+  WIDE y FILT.
+- **CHORUS: dos carriles.** Cuatro sinusoides finas se convirtieron en dos ondas grandes, L y R, con la
+  amplitud de DEPTH, la separación y el desfase de STEREO y el movimiento sólo cuando el motor tiene señal.
+- **BUSES: la consola.** Los seis bloques eran 2 × 3 de 116 × 34 con dibujos de 16 px; ahora son **3 × 2 de
+  76 × 52**, con cabecera (icono, nombre, lámpara), el dibujo propio de cada efecto y su valor en el pie, y
+  los medidores de envío/retorno a la derecha. DELAY dibuja el túnel, REVERB la escalera, CHORUS los dos
+  carriles, SLICER las ocho compuertas con el paso actual, PUNCH la transitoria contra la caída que DUCK le
+  hace y MASTER su medidor con la línea de pico y la lámpara de clip.
+- **ENV: la forma, no la silueta.** La envolvente se dibuja rellena hasta el eje, con las cuatro esquinas
+  marcadas sobre la curva (el pico del ataque, la llegada del decay, el inicio y el pie del release) y el
+  playhead de la voz más fuerte. La curva sigue saliendo de `ENV_K()`, la misma exponencial que corre el DSP.
+- **SCL: cada grado con su color.** El teclado marcaba la escala con un solo tono; ahora la tónica va en
+  acento y los demás grados recorren la paleta entre tema y acento, con el mismo color en la cara de la tecla
+  natural y en la franja del accidental, así la función de cada nota se lee en la tecla y no en una leyenda.
+- **Y la imagen no creció.** `[TARGET]` **581 476 / 583 612** (2 136 B libres, suelo 2 048) y `.data+.bss`
+  **92 636 / 98 304** (5 668 libres): 80 B menos de imagen y 16 B menos de RAM que v2.0.3, porque el rediseño
+  borró lo que reemplazaba (el estado del tren de ecos, el brillo móvil de la consola, los anillos de aire de
+  las dos páginas de reverb, el wobble por columna de REVERB 2). `[HOST]` el dibujo sube ~100 ns por frame
+  (+6.2 % en `draw`, +12.3 % en el lazo) con el camino de audio intacto. Detalle y clases de cada medición en
+  `docs/FASE2_IDENTIDAD_VISUAL_v2.1.0.md`. Sin unidad FM-1: ninguna compuerta de instalación cambia.
+
 ## v2.0.3 — CPU, DSP Y RAM MEDIDOS CON UN ARNÉS REPRODUCIBLE, Y EL MARGEN DE PILA POR PRIMERA VEZ
 
 **La línea 2.0, parche 3.** No cambia una sola muestra de audio ni un pixel: `tests/regress` da los **311**
