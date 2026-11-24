@@ -579,7 +579,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
        GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT,
-       GR_SCENES, GR_DLYP, GR_REVP, GR_CHOP, GR_MSTP};   /* (v1.12.8) the delay, reverb, chorus and master pages' own graphs */   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
+       GR_SCENES};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
                                      * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
@@ -691,19 +691,19 @@ static const page_t PAGES[] = {
                                      * KNOB 1 the link, 2..4 its parameters (page_desc) */
     {"DIST", FAM_FX, SC_TRACK, GR_NONE, {P_DIST, P_DTYPE, P_DTONE, 0xFF}},   /* JIANT: the drive's type and tone */
     {"AUTO PAN", FAM_FX, SC_TRACK, GR_NONE, {P_APDEP, P_APRATE, P_APSYNC, P_APWAVE}},   /* (JIANT 0.6.9) the track's pan swung */
-    {"DLY", FAM_FX, SC_GLOBAL, GR_DLYP, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},
-    {"DLY 2", FAM_FX, SC_GLOBAL, GR_DLYP, {G_WIDTH, G_DPIT, G_DSPRY, G_DMOD}},
-    {"DLY 3", FAM_FX, SC_GLOBAL, GR_DLYP, {G_DTYPE, G_DPING, 0xFF, 0xFF}},   /* (0.6.90) ANALOG / DIGITAL, PING-PONG */   /* JIANT: width, the grains (0.4: the low cut
+    {"DLY", FAM_FX, SC_GLOBAL, GR_NONE, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},
+    {"DLY 2", FAM_FX, SC_GLOBAL, GR_NONE, {G_WIDTH, G_DPIT, G_DSPRY, G_DMOD}},
+    {"DLY 3", FAM_FX, SC_GLOBAL, GR_NONE, {G_DTYPE, G_DPING, 0xFF, 0xFF}},   /* (0.6.90) ANALOG / DIGITAL, PING-PONG */   /* JIANT: width, the grains (0.4: the low cut
                                                                                  * in DLY's TONE; G_DHPF stored, unused) */
-    {"REVERB", FAM_FX, SC_GLOBAL, GR_REVP, {G_RTYPE, G_RSIZE, G_RDAMP, G_RPRE}},   /* TYPE: ROOM / SPRING */
+    {"REVERB", FAM_FX, SC_GLOBAL, GR_NONE, {G_RTYPE, G_RSIZE, G_RDAMP, G_RPRE}},   /* TYPE: ROOM / SPRING */
     {"REVERB 2", FAM_FX, SC_GLOBAL, GR_NONE, {G_RMOD, G_RRATE, G_RFILT, G_RWIDE}},   /* JIANT: modulation, tone, width */
-    {"CHORUS", FAM_FX, SC_GLOBAL, GR_CHOP, {G_CRATE, G_CDEPTH, G_CSTER, G_CTYPE}},   /* (0.6.9: STEREO; QG-1: TYPE) */
+    {"CHORUS", FAM_FX, SC_GLOBAL, GR_NONE, {G_CRATE, G_CDEPTH, G_CSTER, G_CTYPE}},   /* (0.6.9: STEREO; QG-1: TYPE) */
     /* (0.6.81) the SLICER after the buses, before MASTER: DELAY, REVERB and CHORUS nearer at hand */
     {"SLICER", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLMODE, G_SLPAT, G_SLRATE, G_SLDEP}},   /* (0.6.3) one, on a bus */
     {"SL BUS", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLT1, G_SLT1 + 1, G_SLT1 + 2, G_SLT1 + 3}},   /* what goes in */
     {"SL BUS 2", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLT1 + 4, G_SLT6, G_SLFX, 0xFF}},
     {"SL PITCH", FAM_FX, SC_GLOBAL, GR_SLPIT, {0xFF, G_SLP0, G_SLPLEN, G_SLPQ}},   /* KNOB 1 the step (sl_ui_step) */
-    {"MASTER", FAM_FX, SC_GLOBAL, GR_MSTP, {G_CLIP, G_PUNCH, G_DUCK, G_DREL}},   /* JIANT: clipper, drum bus, ducking */
+    {"MASTER", FAM_FX, SC_GLOBAL, GR_NONE, {G_CLIP, G_PUNCH, G_DUCK, G_DREL}},   /* JIANT: clipper, drum bus, ducking */
     {"MASTER EQ", FAM_FX, SC_GLOBAL, GR_NONE, {G_EQMODE, G_EQFREQ, G_EQGAIN, G_EQQ}},   /* QG-1 v1.4: Peak/Notch/Shelf Parametric EQ */
     {"STEREO M/S", FAM_FX, SC_GLOBAL, GR_NONE, {G_MWIDTH, 0xFF, 0xFF, 0xFF}},            /* QG-1 v1.4: Dedicated Master Stereo Width */
     {"SCALE", FAM_SCL, SC_TRACK, GR_SCL_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (6.1) the note circle and

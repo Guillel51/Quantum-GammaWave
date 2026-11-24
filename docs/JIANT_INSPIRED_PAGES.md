@@ -1,4 +1,11 @@
-# JIANT-inspired pages (v1.13.0): ENV's stages and the FX pages that had no picture
+# JIANT-inspired pages (v1.13.0 / corrected in v2.0.1): ENV's stages and the FX pages that had no picture
+
+> **Correction (v2.0.1).** The section below said `DLY`, `DLY 2`, `DLY 3`, `REVERB`, `CHORUS` and `MASTER` drew an
+> empty panel. They did not: `ui_tech.c` already draws all six from the page id (`tech_dly`, `tech_rev`,
+> `tech_chorus`, `tech_master`), with animation driven by the real bus peaks, and the `GR_NONE` in the table is what
+> hands the page to them. The four static graphs this document describes **were removed in v2.0.1** and the pages are
+> `GR_NONE` again; the test that caught it is `tests/ui_test`'s *"REVERB graph: the rings follow the bus's return"*.
+> Only the ENV part of this document (the stage markers) is still in the firmware. See `docs/SCL_REWORK_2_0.md` §3b.
 
 The reference was the ENV/STAGE and FX sheets of JIANT FM. What was taken is the *organisation* — a page that
 shows what its knobs do — and not its palette, its layout or its wording: every graph here is drawn in Quantum

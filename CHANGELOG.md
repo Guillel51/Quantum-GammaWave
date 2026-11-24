@@ -20,13 +20,21 @@ tabla, ni un parámetro, ni el guardado: cambia lo que la pantalla de SCL muestr
 - **La regla de CHORD es un teclado más.** Los chips del eje son las notas del acorde y ahora responden al toque: un
   tap elige o quita ese semitono con la misma geometría con la que se dibuja (`scl_ruler_geo()`), sin duplicar la
   función de los controles que ya están en las tarjetas.
+- **Regresión de la fase anterior, corregida:** `DLY`, `DLY 2`, `DLY 3`, `REVERB`, `CHORUS` y `MASTER` estaban
+  declaradas `GR_NONE` porque **ya tenían gráfico propio**: `ui_tech.c` dibuja `tech_dly`, `tech_rev`,
+  `tech_chorus`, `tech_master` desde el id de la página, con animación real (los anillos de la reverb siguen
+  `fx_vu[5]`). La fase 1.13.0 las envió a cuatro dibujos estáticos añadidos en `ui_graph.c` y tapó esos gráficos.
+  Esas cuatro funciones se eliminaron, las seis páginas vuelven a `GR_NONE` y `tests/ui_test` ("REVERB graph: the
+  rings follow the bus's return") —que fue el test que lo cazó— vuelve a pasar.
 - **Mini optimización, medida:** `scl_key()`, el bisel privado de la capa SCL (29 líneas), era una segunda copia de
-  `scl_pkey()`, el que dibujan las páginas de SCL. Se eliminó y `graph_scale` usa el único que queda, con lo que el
-  teclado de la capa y el de las páginas se ven igual. Con el teclado más alto, la animación y los taps nuevos, la
-  **imagen AC791N baja de 583 524 a 583 444 B (−80 B)**: `.data+.bss` intacto en 92 688/98 304, pool con 8 384 B.
+  `scl_pkey()`, el que dibujan las páginas de SCL; se eliminó, y con él los cuatro gráficos FX duplicados. Con el
+  teclado más alto, la animación y los taps nuevos, la **imagen AC791N baja de 583 524 a 581 812 B (−1 712 B)**,
+  con **1 800 B libres** en el slot de aplicación (antes 88): `.data+.bss` intacto en 92 688/98 304, pool con
+  8 384 B de holgura, LOWBUF 31 648/32 768.
 - **Barrido de UI:** las 196 pantallas × 22 paletas con **0 hallazgos de lint, 0 desalineaciones**, 0 tintas sobre su
   propio color; no aparecieron superposiciones, textos cortados ni elementos fuera de su caja en las pantallas
-  afectadas. `tests/scl_test` verifica la geometría del teclado, la de la regla y cuatro toques reales.
+  afectadas. `tests/scl_test` verifica la geometría del teclado, la de la regla y cuatro toques reales;
+  `tests/ui_test` entero vuelve a pasar (18 000+ comprobaciones), incluida la de la reverb que delató la regresión.
 
 **Nada de esto se probó en una FM-1 física.** Sin unidad en este entorno: no se tocó el teclado del instrumento, no se
 miró el panel y no se conectó ningún controlador MIDI. El feedback de notas y el golpe de tecla son el renderer

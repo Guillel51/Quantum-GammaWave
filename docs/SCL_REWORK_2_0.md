@@ -28,6 +28,7 @@ touch behaviour or its audio is made.
 | Hit animation | the live mask is compared with the previous frame: a note that **starts** takes 24 % more accent for ten frames. Driven by `voice_t` (the voices the engine sounds), so it covers a held key, a MIDI note, a sequencer step and the arpeggiator, and nothing pulses when nothing plays |
 | Interaction | on CHORD, the ruler's chips are a keybed too: a tap picks or drops that semitone, from `scl_ruler_geo()` — the same geometry the chips are drawn with |
 | Renderer | `scl_key()` (the SCALE layer's private bevel) is gone: `graph_scale` draws with `scl_pkey()`, the one the SCL pages use |
+| FX pages | the four static graphs v1.13.0 added for DLY/REVERB/CHORUS/MASTER are gone: those pages keep `ui_tech.c`'s animated technical graphs |
 
 No new DSP, no new parameter, no new persisted state: the picture is a function of `scale_mask()`, `scl_selm[]`,
 `voice_t` and `ui.frame`.
@@ -42,10 +43,22 @@ also a small, measurable size optimisation:
   with the SCL pages.
 - The SCALE page's third row became a column, not a row.
 
-Result: **AC791N image 583 524 B → 583 444 B (−80 B)** while adding the taller keybed, the hit animation and the ruler
-taps; `.data+.bss` unchanged at **92 688 / 98 304**, pool spare 8 384 B, LOWBUF 31 648/32 768. This is a code-size
-measurement, not a speed claim: `tests/target_budget.py` and the render sweep are what say the audio paths and the
-frames are where they were.
+Result: **AC791N image 583 524 B → 581 812 B (−1 712 B)**, **1 800 B free** in the app slot (it had 88), while adding
+the taller keybed, the hit animation and the ruler taps; `.data+.bss` unchanged at **92 688 / 98 304**, pool spare
+8 384 B, LOWBUF 31 648/32 768. This is a code-size measurement, not a speed claim: `tests/target_budget.py` and the
+render sweep are what say the audio paths and the frames are where they were.
+
+## 3b. What paid for it: a regression, found by the suite
+
+While measuring the first build of this phase, `tests/ui_test` failed on *"REVERB graph: the rings follow the bus's
+return and fall with the tail"*. The cause was v1.13.0, not this phase: `DLY`, `DLY 2`, `DLY 3`, `REVERB`, `CHORUS` and
+`MASTER` were declared `GR_NONE` **because `ui_tech.c` already draws them from the page id** — `tech_dly`,
+`tech_rev`, `tech_chorus`, `tech_master`, with animation driven by the real bus peaks. v1.13.0 pointed those six pages
+at four static graphs added in `ui_graph.c`, hiding the animated ones.
+
+That is fixed here: the four functions and their four `GR_*` ids are gone, the pages are `GR_NONE` again, `ui_tech.c`
+answers them, and the test that caught it passes again. It is also most of the size win above: the duplicate
+drawings were ~2.6 KB of code.
 
 ## 4. Tests run
 

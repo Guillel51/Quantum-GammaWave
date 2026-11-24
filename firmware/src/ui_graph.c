@@ -64,117 +64,10 @@ static int32_t env_x_of(int32_t lvl, int32_t n, int32_t from, int32_t to)
     return px < 0 ? 0 : (px > n * 100 ? n * 100 : px);   /* hundredths of a sample: the caller divides */
 }
 
-/* (v1.12.8) THE FX PAGES THAT HAD NO PICTURE. DLY, DLY 2, DLY 3, REVERB, CHORUS and MASTER were four cards over an
- * empty panel: the routing console drew those same blocks 34 px tall while the page that owns the effect showed
- * nothing at all. These four graphs are the console's readings at full panel size, and every number in them is the
- * one the engine runs: the delay's taps are its TIME spacing and FEEDBK decay, the reverb's tail is SIZE and DAMP,
- * the chorus's waves are its own rate and depth, the master's curve is CLIP/PUNCH/DUCK on the limiter's own scale.
- * No DSP is invented here; a page shows what fx.c does with the knob. */
-static int32_t fx_dim(void) { return graph_ht < 60 ? 60 : graph_ht; }   /* (MENU > LARGE's strip never goes negative) */
-static uint16_t fx_ink(int32_t hot, uint16_t c) { return ux_mix(c, T_ACCENT, clamp(hot, 0, 100)); }
-
-/* DELAY: the repeats as taps, TIME apart and each FEEDBK softer, the last two thirds of the train dimmer; PING-PONG
- * puts the odd repeats under the axis (the two channels trading), TONE warms their colour and a bar under the train
- * is the delay bus's wet peak. The count is the number of taps that stay above -26 dB, the same decay the ear gets. */
-static __attribute__((noinline)) void graph_dly(const track_t *t, uint16_t c)
-{
-    int32_t gh = fx_dim(), bot = gh - 14, top = 12, mid = (top + bot) / 2, k, n = 0, x, lv;
-    int32_t fb = clamp(song.g[G_DFDBK], 0, 127), tm = clamp(song.g[G_DTIME], 0, 32);
-    int32_t tone = clamp(song.g[G_DCOLOR], 0, 127), ping = song.g[G_DPING] ? 1 : 0;
-    int32_t sp = 15 + tm * 9 / 2, span = bot - top;
-    for (lv = 1000, k = 1; k <= 12 && (lv = lv * fb / 127) > 45; k++)   /* the taps above -26 dB */
-        n++;
-    cv_rect(PANEL_X0, ping ? mid : bot, PANEL_W, 1, T_RAISE);           /* the axis the taps stand on */
-    cv_rect(12, bot - span, 2, span, T_MID);                            /* the dry hit, always there */
-    for (k = 0, lv = 1000; k <= n && k < 12; k++) {                     /* k = 0 is the dry hit */
-        int32_t h, y = ping ? mid : bot;
-        if (k)
-            lv = lv * fb / 127;
-        x = 14 + k * sp;
-        h = lv * span / 1000;
-        if (h < 2)
-            h = 2;
-        if (ping && (k & 1))                                            /* the right channel's repeat */
-            cv_rect(x, y, 4, h, fx_ink(30 + tone * 55 / 127, ux_mix(c, T_RAISE, k * 9)));
-        else
-            cv_rect(x, y - h, 4, h, fx_ink(30 + tone * 55 / 127, ux_mix(c, T_RAISE, k * 9)));
-        if (k < n)                                                      /* the time line to the next tap */
-            cv_rect(x + 5, ping ? mid : bot, sp - 6, 1, T_LINE);
-    }
-
-}
-
-/* REVERB: the tail, column by column: SIZE sets how far it rings, DAMP how fast it dies (the curve bends under its
- * own damping, not a straight ramp), PRE leaves the gap before the first reflection, and the dry hit stands at the
- * left edge. The colour is the level, so the tail cools as it decays. */
-static __attribute__((noinline)) void graph_rev(const track_t *t, uint16_t c)
-{
-    int32_t gh = fx_dim(), bot = gh - 12, top = 14, x0 = 16, k;
-    int32_t size = clamp(song.g[G_RSIZE], 0, 127), damp = clamp(song.g[G_RDAMP], 0, 127);
-    int32_t pre = clamp(song.g[G_RPRE], 0, 63), len = 26 + size * 170 / 127, hgt = bot - top;
-    int32_t x1 = x0 + pre * 2;                                          /* PRE: the gap before the room answers */
-    cv_rect(PANEL_X0, bot, PANEL_W, 1, T_RAISE);
-    cv_rect(x0 - 2, bot - hgt / 3, 2, hgt / 3, T_MID);                  /* the dry hit */
-    for (k = 0; k < len && x1 + k < 228; k += 3) {                        /* bars, not a wedge: the damping shows */
-        int32_t u = k * 1000 / len, h = hgt * (1000 - u) / 1000;
-        h = h * (1000 - damp * u / 1000) / 1000;                        /* the damping's own bend */
-        if (h <= 1)
-            break;
-        cv_rect(x1 + k, bot - h, 2, h, heat_y(bot - h, top, bot, c));
-    }
-}
-
-/* CHORUS / PHASER / FLANGER: the LFO the DSP runs, twice -- left and right -- with STEREO pulling the two apart in
- * phase, RATE setting the period across the panel and DEPTH the sweep. The type picks how many taps answer: CHORUS
- * two, PHASER three, FLANGER four, which is how many delayed copies each model mixes. */
-static __attribute__((noinline)) void graph_cho(const track_t *t, uint16_t c)
-{
-    static const int16_t SIN16[32] = {0, 50, 98, 142, 181, 214, 236, 250, 256, 250, 236, 214, 181, 142, 98, 50,
-                                      0, -50, -98, -142, -181, -214, -236, -250, -256, -250, -236, -214, -181, -142, -98, -50};
-    int32_t gh = fx_dim(), cy = gh / 2, span = gh * 30 / 100, j, k;
-    int32_t rate = clamp(song.g[G_CRATE], 0, 127), dep = clamp(song.g[G_CDEPTH], 0, 127);
-    int32_t st = clamp((int32_t)song.g[G_CSTER] - 64, -64, 63), taps = 2 + clamp(song.g[G_CTYPE], 0, 2);
-    int32_t a = 4 + dep * span / 127, per = 5 + (127 - rate) * 10 / 127, ph = (int32_t)(fm1_ms / 12u);
-    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
-    for (k = 0; k < taps; k++) {
-        int32_t off = k ? st * k / 8 : 0, y0 = cy;
-        for (j = 0; j < 212; j++) {
-            int32_t e = (j * 32) / per + (ph + k * 5 + off) * 32, i0 = (e >> 5) & 31, fr = e & 31;
-            int32_t y = cy + (SIN16[i0] + ((SIN16[(i0 + 1) & 31] - SIN16[i0]) * fr >> 5)) * a / 256;
-            if (j)
-                cv_line(PANEL_X0 + 4 + j - 1, y0, PANEL_X0 + 4 + j, y,
-                        heat_y(y, cy - span, cy + span, k ? ux_mix(c, T_THEME, 40) : c));
-            y0 = y;
-        }
-    }
-}
-
-/* MASTER: the limiter's transfer, input across and output up, on its own scale. CLIP bends the top (the knee the
- * clipper rounds), DUCK shelves everything above the drum bus's own threshold, PUNCH lifts the first instants, the
- * diagonal behind it is unity for reference and the dot is the real stereo peak coming out now. */
-static __attribute__((noinline)) void graph_mst(const track_t *t, uint16_t c)
-{
-    int32_t gh = fx_dim(), x, x0 = 14, x1 = 216, bot = gh - 14, top = 12;
-    int32_t clip = clamp(song.g[G_CLIP], 0, 127), duck = clamp(song.g[G_DUCK], 0, 127), peak = audio_out_peak(0) > audio_out_peak(1) ? audio_out_peak(0) : audio_out_peak(1);
-    int32_t ceil = 127 - clip * 46 / 127, floor = duck * 40 / 127;
-    cv_line(x0, bot, x1, top, T_RAISE);                                 /* unity, for reference */
-    cv_line(x0, bot, x1, bot, T_MID);
-    cv_line(x0, bot, x0, top, T_MID);
-    for (x = 0; x <= x1 - x0; x++) {
-        int32_t in = x * 127 / (x1 - x0), out = in;
-        if (out > ceil)                                                 /* the clipper's knee */
-            out = ceil + (out - ceil) / 4;
-        if (in > 96)
-            out -= (out * floor) / 127;                                 /* what the duck takes */
-        out = clamp(out, 0, 140);
-        cv_rect(x0 + x, bot - out * (bot - top) / 140, 1, 1, heat_y(bot - out * (bot - top) / 140, top, bot, c));
-    }
-    {   /* the stereo peak, on the same axis */
-        int32_t lv = clamp(clamp(peak, 0, 32767) * 127 / 32767, 0, 140);
-        cv_rect(x0 + lv * (x1 - x0) / 140, bot - lv * (bot - top) / 140, 5, 5, lv >= 126 ? T_ACCENT : T_TEXT);
-    }
-}
-
+/* (v2.0.1) THE FX PAGES KEEP ui_tech.c's GRAPHS. For a while these six pages were redirected to a set of static
+ * drawings added here, which hid the technical graphs (tech_dly, tech_rev, tech_chorus, tech_master) that already
+ * answered the same knobs with animation. They are back in charge: the pages are GR_NONE again, ui_tech.c draws
+ * them from the page id, and tests/ui_test's "the rings follow the bus's return" is the gate that caught it. */
 static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
 {
     const page_t *pg = cur_page();
@@ -4351,18 +4244,6 @@ static __attribute__((noinline)) void draw_graph(void)
         case GR_FX:
             cv_oy = 0;
             graph_fx(t, c);
-            break;
-        case GR_DLYP:                                /* (v1.12.8) DLY / DLY 2 / DLY 3: the repeats */
-            graph_dly(t, c);
-            break;
-        case GR_REVP:                                /* REVERB: the tail, PRE and DAMP */
-            graph_rev(t, c);
-            break;
-        case GR_CHOP:                                /* CHORUS / PHASER / FLANGER: its own LFO */
-            graph_cho(t, c);
-            break;
-        case GR_MSTP:                                /* MASTER: the limiter's transfer */
-            graph_mst(t, c);
             break;
         case GR_DIAG:
             graph_diag(c);
