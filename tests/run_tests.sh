@@ -511,7 +511,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/tempo_test" tests/tempo_test.c -lm
     run "tempo: the cached beat, div_samples and div_by_n equal the divisions they replaced" "$OUT/tempo_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/preset_audit_test" tests/preset_audit_test.c -lm
-    run "PRESETS: all 285 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
+    run "PRESETS: all of them loaded and rendered (structure, silence, level, duplicates, DC)" "$OUT/preset_audit_test"
     "$OUT/preset_audit_test" --fingerprint > "$OUT/preset_fingerprint.jsonl"
     run "PRESETS: no two of them measure as the same sound (ten bands, level and envelope, per engine)" \
         python3 tools/preset_audit.py --gate-sound 0.05 --fingerprint "$OUT/preset_fingerprint.jsonl"
