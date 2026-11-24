@@ -340,36 +340,58 @@ static void tilt_pass(uint16_t c, int32_t amt, int32_t sy, int32_t dy, int32_t t
  * so the one page that is entirely about a shape showed nothing. The curve is the part's own filter, read from the
  * page's own ids (ANALOG keeps CUT/RES in E4/E5, every other engine in FCUT/FRES), drawn four times: the curve and
  * three copies flatter, higher and darker behind it, the same depth MORPH and TILT have. */
-static int32_t flt_mag(int32_t type, int32_t u, int32_t uc, int32_t q)
+static int32_t flt_mag(int32_t type, int32_t u, int32_t uc, int32_t q, int32_t dr)
 {
-    int32_t d = u - uc, roll = d > 0 ? d : 0, g, bump;
+    int32_t d = u - uc, dabs = d < 0 ? -d : d, roll = d > 0 ? d : 0, g, bump;
+    int32_t lp = 1000 * 1000 / (1000 + roll * roll / 220);
     switch (type) {
-    case 1:                                          /* HP */
-        g = 1000 - 1000 * 1000 / (1000 + roll * roll / 220);
-        g = 1000 - g;
+    case 1:                                          /* HP: the mirror of LP */
+        g = 1000 - lp;
         break;
-    case 2:                                          /* BP */
-        g = 1000 * 1000 / (1000 + (roll * roll + (d < 0 ? d * d : 0)) / 160);
+    case 2:                                          /* BP: one peak at the cutoff, nothing either side */
+        g = lp * (1200 - lp) / 320;
         break;
     case 3:                                          /* COMB: the notch train, one every 160 units */
         g = 520 + 480 * (((u + uc) / 160) % 2 ? 1 : -1);
         break;
-    default:                                         /* LP */
-        g = 1000 * 1000 / (1000 + roll * roll / 220);
+    case 4: {                                        /* VOWEL: three formants, fixed, as a voice has them */
+        static const int16_t VF[3] = {250, 520, 780};
+        int32_t k, sum = 0;
+        for (k = 0; k < 3; k++) {
+            int32_t dd = u - VF[k];
+            dd = dd < 0 ? -dd : dd;
+            if (dd < 95)
+                sum += (95 - dd) * 380 / 95;
+        }
+        g = 170 + sum;
         break;
     }
-    bump = 120 - (d < 0 ? -d : d);                   /* the resonance, at the cutoff and nowhere else */
+    case 5:                                          /* SCREAM: a spike at the cutoff on a slope, no tail */
+        g = lp * 3 / 4 + (dabs < 150 ? 880 - dabs * 5 : 0);
+        break;
+    case 6:                                          /* NOTCH: one hole where the cutoff is */
+        g = 1000 - (dabs < 210 ? 820 - dabs * 3 : 0);
+        break;
+    case 7:                                          /* SHELF: flat, and a step down past the corner */
+        g = 400 + 600 * lp / 1000;
+        break;
+    default:                                         /* LP */
+        g = lp;
+        break;
+    }
+    bump = 150 - dabs;                               /* RESONANCE: at the cutoff and nowhere else */
     if (bump > 0)
-        g += q * bump / 120 * 3 / 10;
+        g += (q * bump / 150) * 5 / 10;
+    g += dr * 140 / 127;                             /* DRIVE: the hotter the part, the higher the curve */
     return clamp(g, 0, 1180);
 }
-static void filter_pass(int32_t type, int32_t uc, int32_t q, int32_t sy, int32_t dy, int32_t th, int back)
+static void filter_pass(int32_t type, int32_t uc, int32_t q, int32_t dr, int32_t sy, int32_t dy, int32_t th, int back)
 {
     int32_t x, cy = graph_ht * 42 / 100 + dy, top = graph_ht * 12 / 100, bot = graph_ht * 82 / 100;
     int32_t px = 0, py = 0;
     for (x = 0; x < PANEL_W; x++) {
         int32_t u = x * 1000 / (PANEL_W - 1);
-        int32_t g = flt_mag(type, u, uc, q) * sy / 1000;
+        int32_t g = flt_mag(type, u, uc, q, dr) * sy / 1000;
         int32_t y = bot - g * (bot - top) / 1180;
         y = clamp(y, top, bot);
         if (x) {
@@ -387,11 +409,11 @@ static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
     const page_t *pg = cur_page();
     int32_t type = (int32_t)t->p[pg->id[0]], cut = (int32_t)t->p[pg->id[1]], res = (int32_t)t->p[pg->id[2]], k;
     int32_t uc = 40 + clamp(cut, 0, 127) * 920 / 127;   /* 4 % .. 96 % of the sweep */
-    int32_t q = clamp(res, 0, 127);
+    int32_t q = clamp(res, 0, 127), dr = clamp((int32_t)t->p[pg->id[3]], 0, 127);
     cv_rect(PANEL_X0, graph_ht * 42 / 100, PANEL_W, 1, T_RAISE);
     for (k = 3; k >= 1; k--)
-        filter_pass(type, uc, q, 1000 - k * 80, -k * 4, 1, k);
-    filter_pass(type, uc, q, 1000, 0, 2, 0);
+        filter_pass(type, uc, q, dr, 1000 - k * 80, -k * 4, 1, k);
+    filter_pass(type, uc, q, dr, 1000, 0, 2, 0);
     (void)c;
 }
 static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
@@ -1676,11 +1698,11 @@ static __attribute__((noinline)) void graph_arp(const track_t *t, uint16_t c)
                 if (t->held[k] == note) down = 1;
             for (k = 0; k < 3u; k++)
                 if (t->arp_ch[k] && t->arp_ch[k] == note) snd = 1;
-            arp_key(x, 20, 14, 36, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20),
+            arp_key(x, 20, 14, 39, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20),
                     snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 58));
             /* (FASE 3) the name on the key's foot, in the ink the face takes: T_DIM on a light key left the
              * letters as grey on grey. Every one of the fourteen white keys is named, held or not. */
-            cv_text_in(x, 45, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
+            cv_text_in(x, 46, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
                        snd ? T_INK : ux_mix(T_KEYW, T_BG, down ? 96 : 88),
                        snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20));
         }
@@ -1743,22 +1765,22 @@ static __attribute__((noinline)) void graph_arp(const track_t *t, uint16_t c)
         for (i = 0; i < 8u && start + i < len; i++) {
             uint32_t idx = start + i, note = list[idx];
             int on = m == AM_CHORD || idx == cur;
-            int32_t x = 10 + (int32_t)i * 25;
+            int32_t x = 10 + (int32_t)i * 25, cy = 74;
             char n[6];
             str_cpy(n, N_NOTE[note % 12u], sizeof n);
             fmt_int(n + str_len(n), (int32_t)note / 12 - 1);
-            cv_rrect(x, 74, 24, 13, 2, on ? T_ACCENT : T_RAISE, T_SURF);
+            cv_rrect(x, cy, 24, 13, 2, on ? T_ACCENT : T_RAISE, T_SURF);
             /* (FASE 3) what the synth is sounding THIS step, not only the arp's place in the list: the note and
              * the three voices of a chord are marked on their chips, so the route and the keyboard tell the same
              * story at the same instant. */
             if (note == (uint32_t)t->arp_note || note == (uint32_t)t->arp_ch[0] ||
                 note == (uint32_t)t->arp_ch[1] || note == (uint32_t)t->arp_ch[2]) {
-                cv_rect(x, 74, 24, 1, T_TEXT);
-                cv_rect(x, 86, 24, 1, T_TEXT);
-                cv_rect(x, 74, 1, 13, T_TEXT);
-                cv_rect(x + 23, 74, 1, 13, T_TEXT);
+                cv_rect(x, cy, 24, 1, T_TEXT);
+                cv_rect(x, cy + 12, 24, 1, T_TEXT);
+                cv_rect(x, cy, 1, 13, T_TEXT);
+                cv_rect(x + 23, cy, 1, 13, T_TEXT);
             }
-            cv_text_in(x, 74 + CAP_IN(S, 13), 24, &AF_S, n, on ? T_INK : T_MID, on ? T_ACCENT : T_RAISE);
+            cv_text_in(x, cy + CAP_IN(S, 13), 24, &AF_S, n, on ? T_INK : T_MID, on ? T_ACCENT : T_RAISE);
         }
         /* (FASE 8) the clock, right above the notes: the slot of the step being played fills as its time runs and the
          * tick is where GATE closes the note. arp_pos and arp_off are the sequencer's own counters (samples into the

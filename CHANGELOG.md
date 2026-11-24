@@ -1,3 +1,20 @@
+## v2.3.7 — los tipos de filtro, y el teclado del ARP
+
+- **FILTER 5/9: siete tipos, siete curvas.** La gráfica que entró en v2.3.4 sólo distinguía LP, HP, BP y COMB;
+  VOWEL, SCREAM, NOTCH y SHELF caían los cuatro en la rama LP, así que SHOW, NOTCH, SCREAM y VOWEL se veían
+  **idénticas**. Ahora cada tipo tiene su forma: **LP** rolloff, **HP** espejo, **BP** una cresta, **COMB** el
+  tren de muescas, **VOWEL** tres formantes fijos (250 / 520 / 780), **SCREAM** un pico estrecho sobre una
+  pendiente, **NOTCH** un pozo donde está el corte, **SHELF** un escalón.
+- **RES y DRIVE ya mueven la curva.** La resonancia suma sobre el corte (`q · bump / 150 · 0,5`, hasta +75 de
+  1 180) y **DRIVE** levanta la curva entera (`dr · 140 / 127`): girar cualquiera de los dos se ve en el panel,
+  que era lo que faltaba.
+- **ARP: teclado más alto y sin solapes.** Las teclas blancas crecen de 36 a 39 px y su nombre pasa a la fila
+  46, dentro de la tecla y **por debajo** del pie de las negras, que era el solape que se veía; ROUTE, la fila de
+  notas, los medidores y el pie quedan exactamente donde estaban, así que nada se sale del panel.
+- **`[HOST]`**: `ui_render` 0 hallazgos de lint, **0 desvíos de alineación** en 3 964 841 medidas; cuatro
+  pantallas nuevas del barrido (`filter_shelf`, `filter_notch`, `filter_vowel`, `filter_scream`) para ver cada
+  tipo.
+
 ## v2.3.6 — cierre de la auditoría final
 
 **Sin cambios de firmware de sonido ni de dibujo.** Esta versión empaqueta la auditoría de la fase 9: la suite
