@@ -1,3 +1,30 @@
+## v2.0.3 — CPU, DSP Y RAM MEDIDOS CON UN ARNÉS REPRODUCIBLE, Y EL MARGEN DE PILA POR PRIMERA VEZ
+
+**La línea 2.0, parche 3.** No cambia una sola muestra de audio ni un pixel: `tests/regress` da los **311**
+golden renders idénticos y `tests/ui_pixels` los **3 129** frames idénticos. Lo que cambia es lo que el
+proyecto puede demostrar sobre sí mismo.
+
+- **Arnes reproducible: `tools/dsp_bench.py`.** Un solo comando mide y compara, por clases: `[HOST]` CPU por
+  muestra de las escenas de mezcla (`tests/regress`), ns por tick de la TIMER5 (`tests/isr_bench`), ns por
+  frame del lazo principal y por firma de autoguardado (`tests/frame_bench`); `[TARGET]` instrucciones de
+  los lazos de render y divides de `build/felucca.dis` (`tests/target_budget.py`), las cinco ventanas de
+  memoria (`tools/mem_budget.py`) y el tamaño de la imagen; y el margen de pila. `--record` escribe
+  `tests/bench_baseline.json`; `--compare` lo diffa con las tolerancias del propio proyecto (+25 % host,
+  +3 % target) y **falla si un golden render cambia**, porque eso no es una optimización invisible.
+- **Margen de pila medido: `tests/stack_watermark.c`.** El compilador del AC791N no acepta `-fstack-usage`,
+  así que no había número de pila en ninguna parte. Ahora cada escena corre en un hilo cuyo stack es un
+  buffer asignado y pintado con un patrón, y se lee la frontera que el C pisó: **mezcla a 6 pistas con todos
+  los buses abiertos 1 783 B**, captura/empaquetado de proyecto < 256 B, y **40 frames de UI 4 815 B**
+  (host x86-64, frames de este ABI, no de la unidad) contra las ventanas de 13.75 KiB / 7.75 KiB de
+  `app.ld` y un presupuesto de 24 KiB: la cadena profunda es la de la UI, no la de audio, y no hay recursión
+  en ninguna de las tres. Corre en la suite y falla si una cadena se hunde más.
+- **Auditado y rechazado con números** (no con opinión): compartir `proj_scratch` con `sec_stage` sigue sin
+  ser demostrable (un guardado durante la reproducción tendría que parar la cadena); `gen_keep` no es
+  disjunto de la sesión de backup del editor; el tick de 10 kHz mide **25.7–35 ns** en `isr_bench` (0.03 %
+  de sus 100 µs), así que su contabilidad de diagnóstico no justifica tocar la ISR más caliente; y la ruta
+  de audio está a **320 ns/muestra** en host (10.2 µs por bloque de los 725 µs de presupuesto), con las
+  rampas de DRUM-X aún rechazadas por el presupuesto de instrucciones del objetivo.
+
 ## v2.0.2 — EL LAZO PRINCIPAL DEJA DE HASHEAR DOS VECES, Y LA SUITE DEJA DE SALTARSE EL EMULADOR
 
 **La línea 2.0, parche 2.** Reparación y optimización medidas sobre v2.0.1; ningún camino de audio, tabla,
