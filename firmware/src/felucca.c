@@ -42,7 +42,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v2.0.3" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+#define FELUCCA_VERSION "v2.1.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
                                     * editor. This define is the single source of the version: the package name, its
                                     * manifest, the site, the installer and the tag all derive from it
                                     * (docs/VERSIONING.md). FASE 9 is a patch on the 1.11 line: no new sound path,
