@@ -636,32 +636,50 @@ static __attribute__((noinline)) void graph_dximg(const track_t *t)
     }
 }
 
-/* (FASE 5) one pass of MORPH's wave. pos/f say which wave it is, sy the height (per-mille of the panel's 34 px),
- * dy the lift and th the line, so the two ends of the travel can stand behind the sound in depth. `back`: a wave
- * of the travel, drawn dim. */
-static void morph_pass(const track_t *t, uint32_t e, const pd_t *pa, const pd_t *pb, const an_dirt_t *dt,
-                       int dirt, int pmw, uint32_t a0, uint32_t a1, int32_t pos, int32_t f,
-                       int32_t sy, int32_t dy, int32_t th, int back)
+/* (FASE 5) what MORPH's panel is about to draw, worked out once: pos/f the wave, a0/a1 its two ends, and the
+ * state each engine's wave needs. graph_morph fills it and draws from it; tests/morph_depth.c fills the same one
+ * and reads the geometry straight out of the same function, so the bench measures what the panel paints and not a
+ * second copy of the maths. */
+typedef struct {
+    int32_t pos, f, sy, dy;
+    uint32_t a0, a1, e;
+    int dirt, pmw;
+    pd_t pa, pb;
+    an_dirt_t dt;
+} morph_st;
+static morph_st morph_last[3];    /* the passes of the last draw: front first (see graph_morph) */
+static int32_t morph_n;           /* how many were drawn (1: no travel) */
+/* (FASE 5) the y of one column (0..110) of the wave this state describes: the height scaled by sy (per-mille of
+ * the panel's 34 px) about the line at 46, lifted by dy. Invisible: no colour, no canvas. */
+static int32_t morph_y(const track_t *t, const morph_st *st, uint32_t i)
+{
+    const uint32_t e = st->e;
+    uint32_t ph = (i % 110u) * (0xFFFFFFFFu / 110u), inc = 0xFFFFFFFFu / 220u;
+    int32_t s;
+    if (ENGINES[e] == &ENG_PHASE) {
+        s = pd_wave(&st->pa, ph >> 16);
+        if (st->f) s += ((pd_wave(&st->pb, ph >> 16) - s) * st->f) >> 8;
+    } else if (ENGINES[e] == &ENG_LOFI) {
+        s = lofi_mto(st->a0, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u);
+        if (st->f) s += ((lofi_mto(st->a1, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u) - s) * st->f) >> 8;
+    } else if (st->pmw) {
+        int32_t mo = osc_saw(ph * 2u, inc);
+        s = osc_sine(ph + (uint32_t)mo * (uint32_t)(16384u + (uint32_t)t->p[P_MORPH] * 128u));
+    } else if (st->dirt)
+        s = an_dirt((uint32_t)t->p[P_E0], ph, &st->dt);
+    else
+        s = an_morph(st->pos, ph, inc);
+    return 46 + st->dy - s * 34 * st->sy / (32768 * 1000);
+}
+/* (FASE 5) one pass drawn: the same y morph_y gives, joined up. `back`: a wave of the travel, drawn dim. */
+static void morph_pass(const track_t *t, const morph_st *st, int32_t th, int back)
 {
     int32_t px = 0, py = 0;
     uint32_t i;
     for (i = 0; i <= 110u; i++) {
-        uint32_t ph = (uint32_t)(i % 110u) * (0xFFFFFFFFu / 110u), inc = 0xFFFFFFFFu / 220u;
-        int32_t s, x = PANEL_X0 + (int32_t)i * 2, y;
-        if (ENGINES[e] == &ENG_PHASE) {
-            s = pd_wave(pa, ph >> 16);
-            if (f) s += ((pd_wave(pb, ph >> 16) - s) * f) >> 8;
-        } else if (ENGINES[e] == &ENG_LOFI) {
-            s = lofi_mto(a0, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u);
-            if (f) s += ((lofi_mto(a1, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u) - s) * f) >> 8;
-        } else if (pmw) {
-            int32_t mo = osc_saw(ph * 2u, inc);
-            s = osc_sine(ph + (uint32_t)mo * (uint32_t)(16384u + (uint32_t)t->p[P_MORPH] * 128u));
-        } else if (dirt)
-            s = an_dirt((uint32_t)t->p[P_E0], ph, dt);
-        else
-            s = an_morph(pos, ph, inc);
-        y = 46 + dy - s * 34 * sy / (32768 * 1000);
+        uint32_t ph = (uint32_t)(i % 110u) * (0xFFFFFFFFu / 110u);
+        int32_t x = PANEL_X0 + (int32_t)i * 2, y = morph_y(t, st, i);
+        (void)ph;
         if (i)
             cv_line_t(px, py, x, y, back ? ux_mix(T_BG, heat_col(80 + (uint32_t)(46 - y + 34) * 2u), 80)
                                          : heat_col(80 + (uint32_t)(46 - y + 34) * 2u), th);
@@ -719,11 +737,26 @@ static __attribute__((noinline)) void graph_morph(const track_t *t)
     }
     f = pos & 255;
     cv_rect(PANEL_X0, 46, PANEL_W, 1, T_RAISE);
-    if (f && a1 != a0) {
-        morph_pass(t, e, &pa, &pb, &dt, dirt, pmw, a0, a1, (int32_t)a1 * 256, 0, 760, -10, 1, 1);
-        morph_pass(t, e, &pa, &pb, &dt, dirt, pmw, a0, a1, (int32_t)a0 * 256, 0, 880, -5, 1, 1);
+    {
+        morph_st st;
+        st.pos = pos; st.f = f; st.a0 = a0; st.a1 = a1; st.e = e;
+        st.dirt = dirt; st.pmw = pmw; st.dt = dt;
+        st.pa = pa; st.pb = pb;
+        /* the state of each pass, kept for tests/morph_depth.c: it reads the geometry the panel just drew from,
+         * instead of working the maths out a second time and drifting from it */
+        morph_n = 1;
+        if (f && a1 != a0) {
+            st.sy = 760; st.dy = -10; st.pos = (int32_t)a1 * 256; st.f = 0;
+            morph_last[morph_n++] = st;
+            morph_pass(t, &st, 1, 1);
+            st.sy = 880; st.dy = -5; st.pos = (int32_t)a0 * 256;
+            morph_last[morph_n++] = st;
+            morph_pass(t, &st, 1, 1);
+        }
+        st.pos = pos; st.f = f; st.sy = 1000; st.dy = 0;
+        morph_last[0] = st;
+        morph_pass(t, &st, 2, 0);
     }
-    morph_pass(t, e, &pa, &pb, &dt, dirt, pmw, a0, a1, pos, f, 1000, 0, 2, 0);
     if (0)
     for (i = 0; i <= 110u; i++) {
         uint32_t ph = (uint32_t)(i % 110u) * (0xFFFFFFFFu / 110u), inc = 0xFFFFFFFFu / 220u;

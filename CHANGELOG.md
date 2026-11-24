@@ -1,3 +1,25 @@
+## v2.3.2 — el stack de MORPH, probado donde se dibuja
+
+**Sin cambio visual.** El único motivo de esta versión es que la prueba que faltaba exista en el repo y se
+ejecute en la suite.
+
+- **`tests/morph_depth.c`**: banco headless que dibuja el panel real y lee, **columna a columna (0..110)**, la
+  `y` de cada una de las tres pasadas, más el rango visible del panel (x 10..229, y 12..80, lienzo 122 px).
+  La geometría no se recalcula: `graph_morph` guarda el estado de cada pasada (`morph_last`) y `morph_y` es la
+  función que usa el dibujo, así que el banco mide lo pintado y no una segunda copia de las matemáticas.
+- **Lo que comprueba**: `[HOST]` con SAW→SQR al 50 % hay **3 pasadas**, la frontal aparece en el lienzo en
+  **110 de 110** columnas y la frontal junto a una trasera en **110 de 110**; la separación con la trasera más
+  cercana es de **4 px en la mediana** (0 donde las ondas se cruzan, que es geometría) y **91 de 110** columnas
+  muestran un hueco ≥ 2 px. Con SQR→TRI al 25 %: mediana 6 px, 104 de 110. Con MORPH en 0 o en 127 (exactamente
+  sobre una onda) hay **una sola pasada**, como antes del stack.
+- **Píxeles frente a geometría**: el banco busca un píxel encendido a ±1 px de la `y` que dice cada pasada; si
+  la geometría y el lienzo no coincidieran, el check falla. Los 48 fotogramas que cambian en el baseline son
+  `about`, `about_rec` y `splash` de las 16 paletas — el número de versión, no una curva.
+- **Coste `[TARGET]`**: **580 596 B, 3 016 libres**; el estado de las pasadas son **144 B de `.bss`** y el
+  refactor dejó la imagen 48 B por debajo de v2.3.1 (580 644 → 580 596).
+- **Refactor**: `morph_y()` (geometría, sin color) separado de `morph_pass()` (color y trazo). Una sola
+  implementación de la fórmula, usada por el panel y por el banco.
+
 ## v2.3.1 — la profundidad llega a MORPH y TILT
 
 **Dos curvas más con el stack de ENV, ninguna copia de JIANT y ninguna decorativa.** Cada capa es un valor real

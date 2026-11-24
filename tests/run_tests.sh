@@ -493,6 +493,12 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/isr_bench" tests/isr_bench.c          # (FASE 1) the TIMER5 tick: built, not run
     $CC -O2 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests \
         -o "$OUT/frame_bench" tests/frame_bench.c -lm                                     # (FASE 2/9) the idle main loop: built, not run
+    $CC -O2 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests \
+        -o "$OUT/morph_depth" tests/morph_depth.c -lm                                   # (FASE 5) reads the depth off the panel
+    # (FASE 5) MORPH's depth stack, proved on the panel it is drawn on: the geometry each pass drew (the state
+    # graph_morph keeps and morph_y computes) against the pixels that came out of it, column by column.
+    run "MORPH DEPTH: three passes, the back waves 3 px away at the median, and the pixels where the geometry says" \
+        "$OUT/morph_depth"
     # (v2.0.3) HOW DEEP THE STACK GOES, measured: the plumbing the firmware's compiler cannot report
     # (the JieLi clang rejects -fstack-usage). Host x86-64 frames, not the unit's -- the number is the
     # shape of the C and a gate against a change that deepens it. Each scene runs in a thread whose
