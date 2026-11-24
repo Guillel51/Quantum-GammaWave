@@ -820,8 +820,8 @@ static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t
  * twelve spokes of two pixels and the column six texts, which is what an edit page can spend. */
 static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
 {
-    uint32_t k, slot, cur;
-    int32_t ct, all, ax, bx;
+    uint32_t k, slot, cur, held = 0, nh = 0;
+    int32_t ct, all, ax, bx, bass = -1;
     char l[20], v[8];
     (void)t;
     tune_ui_sync(ui.frame);                                 /* the knobs' numbers, into the table */
@@ -830,6 +830,19 @@ static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
     slot = (uint32_t)clamp((int32_t)tune_ui_slot, 0, (int32_t)TUNE_SLOTS - 1);
     ct = tune_get((int32_t)cur);
     all = tune_live.all;
+    /* (v2.3.12) WHAT THE TRACK IS PLAYING. The page answered "how far from equal is this note" and nothing about
+     * the hand: the spokes of the notes being held are lit and the foot line names them -- a note by its letter,
+     * a hand by its chord, the same scl_recognise / scl_chord_name the CHORD page uses. It is read from the keys
+     * the track holds, so it follows a touch on the panel and a note from MIDI alike. */
+    for (k = 0; k < (uint32_t)t->nheld && k < 16u; k++) {
+        uint32_t pc = (uint32_t)((t->held[k] % 12 + 12) % 12);
+        if (!((held >> pc) & 1u)) {
+            held |= 1u << pc;
+            nh++;
+        }
+        if (bass < 0 || (int32_t)t->held[k] < bass)
+            bass = (int32_t)t->held[k];
+    }
 
     cv_rect(8, 12, 224, 100, T_SURF);
     /* the header: which temperament, and whether it still is the one it was picked from */
@@ -844,10 +857,15 @@ static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
     for (k = 0; k < 12u; k++) {
         int32_t c = TUNE_CX + ((TUNE_RN * SCL_COS[k]) >> 8), y = TUNE_CY + ((TUNE_RN * SCL_SIN[k]) >> 8);
         int32_t d = clamp(tune_get((int32_t)k) + all, -50, 50);
-        int32_t r1 = TUNE_RB + (d > 0 ? d * 16 / 50 : 0), r0 = TUNE_RB + (d < 0 ? d * 16 / 50 : 0);
-        uint16_t col = k == cur ? T_ACCENT : d ? T_THEME : T_LINE;
+        /* (v2.3.12) 12 px, not 16: the sharp end of the travel reached the note's own letter, and the spokes
+         * crossed the names they point at (the report). 20 + 12 leaves the letter's ring 8 px of air. */
+        int32_t r1 = TUNE_RB + (d > 0 ? d * 12 / 50 : 0), r0 = TUNE_RB + (d < 0 ? d * 12 / 50 : 0);
+        uint16_t col = k == cur ? T_ACCENT : ((held >> k) & 1u) ? T_KEY : d ? T_THEME : T_LINE;
         cv_line(TUNE_CX + ((r1 * SCL_COS[k]) >> 8), TUNE_CY + ((r1 * SCL_SIN[k]) >> 8),
                 TUNE_CX + ((r0 * SCL_COS[k]) >> 8), TUNE_CY + ((r0 * SCL_SIN[k]) >> 8), col);
+        if ((held >> k) & 1u)                            /* a note the track is playing: the mark goes on the
+                                                          * spoke, never on its letter */
+            cv_rect(TUNE_CX + ((8 * SCL_COS[k]) >> 8) - 1, TUNE_CY + ((8 * SCL_SIN[k]) >> 8) - 1, 3, 3, T_ACCENT);
         cv_text_in(c - 9, y - 5, 18, &AF_S, N_NOTE[k], k == cur ? T_ACCENT : T_TEXT, T_SURF);
     }
     cv_rect(TUNE_CX - 1, TUNE_CY - 1, 3, 3, tune_dirty ? T_ACCENT : T_DIM);
@@ -876,7 +894,18 @@ static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
     v[0] = all < 0 ? '-' : '+';
     fmt_int(v + 1, all < 0 ? -all : all);
     scl_field(ax + 34, 70, v, T_MID, T_SURF);
-    scl_field(ax, 84, slot < TUNE_FACT ? "TAP HUB: EQUAL" : "KEPT IN THIS SLOT", T_DIM, T_SURF);
+    if (nh) {                                            /* what is sounding, in the words a player uses */
+        scl_rec_t rec;
+        char pb[16];
+        scl_recognise((uint16_t)held, bass < 0 ? -1 : (bass % 12 + 12) % 12,
+                      (int32_t)((t->p[P_ROOT] % 12 + 12) % 12), &rec);
+        scl_chord_name(&rec, pb, sizeof pb);
+        str_cpy(l, "PLAY ", sizeof l);
+        str_cpy(l + str_len(l), pb, sizeof l - str_len(l));
+        scl_field(ax, 84, l, T_ACCENT, T_SURF);
+    } else {
+        scl_field(ax, 84, slot < TUNE_FACT ? "TAP HUB: EQUAL" : "KEPT IN THIS SLOT", T_DIM, T_SURF);
+    }
 }
 
 /* SCL > CHORD: the chord a key plays on this track (CHRD's shape on ROOT, laid out by VOICING and strummed by

@@ -1,3 +1,27 @@
+## v2.3.12 — la Página 3 de SCL dice lo que tocas, los mini-knobs crecen, la barra de STORED entra y la batería al cargar
+
+- **SCL > TUNE (3/4) responde a la mano.** Los doce radios de la rueda encienden las notas que la pista tiene
+  sonando —con un punto en el radio, nunca encima de la letra— y la línea del pie nombra lo que suena con las mismas
+  `scl_recognise` / `scl_chord_name` de la página CHORD: `PLAY C` para un Do, `PLAY C` para un Do mayor, `PLAY Cm7`
+  para el acorde. Se lee de las teclas que la pista sostiene, así que sigue igual un toque en el panel que una nota
+  por MIDI. El toque en la rueda ya elegía la nota editada y el hub ya volvía a temperamento igual: eso queda.
+- **Los radios ya no cruzan las notas.** El recorrido hacia arriba era de 16 px desde `TUNE_RB` 20 y la letra vive
+  en el radio 40: el extremo agudo terminaba *sobre* el nombre que señala. Son 12 px (máximo 32 contra 40), con 8 px
+  de aire hasta la letra.
+- **LFO > SCENES 10/10: la barra de A SCENE / B SCENE entra de una vez.** `PANEL_X0` es 10, no 4: la fila que insetiné
+  en 2.3.10 medía 228 desde 12 y terminaba en la columna 239 — un píxel fuera del panel, que es lo que se veía como
+  barra salida por los dos laterales. Ahora mide 218 (12..229) y el `STORED` / `KNOB 4: STORE` va alineado a la
+  derecha del panel (`cv_text_r`), así que ningún estado del texto puede volver a tocar el marco.
+- **EDIT 1..3: los cuatro mini-knobs del módulo WAVE 1, más grandes.** Radio 9 → **11** (diámetro 19 → 23 px, +58 % de
+  área): el paso de 26 px deja 4 px entre aros, y la fila guarda 5 filas de aire con la raya de arriba y 5 con el pie
+  del módulo. Nada se superpone.
+- **El icono de batería al cargar (USB) se lee como un rayo.** Los tres tramos se tocaban esquina con esquina y el
+  resultado era un bloque con una barra cruzada. Ahora la cabeza va arriba a la derecha (5x4), el cuello es una celda
+  de solape y el pie cae ancho a la izquierda (5x5): la diagonal es lo que lee el ojo.
+- **`[HOST]` el barrido de render cubre la Página 3 de SCL**: `scl_tune` y `scl_tune_play` (con C-E-G sostenidos)
+  entran en la barrida, que pasa de 202 a **204 pantallas × 22 paletas**; 4 267 hallazgos de lint (la constante), 264
+  textos elipsados, **0 desvíos de alineación en 3 968 509 medidas**, y `tests/ui_pixels.txt` regenerado (3 257 fotogramas).
+
 ## v2.3.11 — el slot legacy de DRUM vuelve a ser su alias
 
 - **`CYBER DRUM` vuelve al id 11, con `.legacy = 1`.** En v2.3.8 la colección curada sustituyó ese alias por `CONCRETE KIT`

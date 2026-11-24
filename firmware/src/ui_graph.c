@@ -2114,14 +2114,17 @@ static __attribute__((noinline)) void graph_scenes(void)
     cv_rect(mx - 1, 18, 3, 30, msc_on ? T_ACCENT : T_DIM);            /* the position */
     for (k = 0; k < 2; k++) {                                         /* what each end holds */
         int32_t y = 54 + k * 24, c = (int32_t)hv[k];
-        cv_rrect(PANEL_X0 + 2, y, 228, 20, 3, T_SURF, T_BG);   /* (v2.3.10) inside the border: the row used to
+        cv_rrect(PANEL_X0 + 2, y, 218, 20, 3, T_SURF, T_BG);   /* (v2.3.12) 218, not 228: PANEL_X0 is 10, so
+                                                               * 228 ended on column 239 -- one past the panel,
+                                                               * which is the bar the report saw over the frame
+                                                               * on both sides. 12..229 is the page's own area */   /* (v2.3.10) inside the border: the row used to
                                                                 * start on the panel's own rounded edge and end on
                                                                 * it, so its bar ran into the frame on both sides */
         cv_text_on(PANEL_X0 + 8, y + 4, &AF_M, k ? "B" : "A", c ? T_MID : T_DIM, T_SURF);
         fmt_int(b, (int32_t)(k ? msc_b : msc_a) + 1);
         cv_text_on(PANEL_X0 + 28, y + 5, &AF_S, "SCENE", T_DIM, T_SURF);
         cv_text_on(PANEL_X0 + 84, y + 4, &AF_M, b, c ? T_MID : T_DIM, T_SURF);
-        cv_text_on(PANEL_X0 + 102, y + 5, &AF_S, c ? "STORED" : "KNOB 4: STORE", c ? T_KEY : T_DIM, T_SURF);
+        cv_text_r(PANEL_X0 + 212, y + 5, &AF_S, c ? "STORED" : "KNOB 4: STORE", c ? T_KEY : T_DIM, T_SURF);   /* its right edge, so no state of it can reach the frame */
     }
     /* the footline: what a pair does, and the controllers that move it -- the page documents itself */
     cv_text_on(PANEL_X0, 101, &AF_S, msc_on ? "CC 78: MORPH   CC 79/80: STORE" : "STORE BOTH ENDS TO MORPH",

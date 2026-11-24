@@ -2563,10 +2563,10 @@ static __attribute__((noinline)) void graph_being(const track_t *t)
     /* 4 Mini Bakelite Rotary Knobs for Wave 1 (Pitch, Fine, PWM, Drift) */
     for (c = 0; c < 4u; c++) {
         int32_t kx = 24 + (int32_t)c * 26;
-        /* (FASE 7) 9 px, not 8: the four mini knobs of an EDIT module read a little small next to the cards
-         * above them. The 26 px pitch leaves 8 px of air between rims at this radius (and 13 px to the module's
-         * own edges), so nothing touches and nothing moves. */
-        gw_mini_bakelite_knob(kx, 66, 9, k[c], (c & 1u) ? T_ACCENT : T_THEME);
+        /* (v2.3.12) 11 px, not 9: asked twice, the four mini knobs still read small against the cards above.
+         * The 26 px pitch leaves 4 px between rims (26 - 2 * 11) and the row keeps 5 rows of air to the rule
+         * above (56 against 51) and 5 to the module's foot (77 against 82): bigger, and nothing touches. */
+        gw_mini_bakelite_knob(kx, 66, 11, k[c], (c & 1u) ? T_ACCENT : T_THEME);
     }
 
     /* 2. Upper-Right Module (x=122..232, y=2..82): WAVE 2 + MIXER (Wave 1/2/Sub/Noise/FM/Ring/Grain) */
