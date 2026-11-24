@@ -261,8 +261,8 @@ static const preset_t FORMANT_PRESETS[] = {
      {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_M1AMT, 22), XP(P_HARM, 10)}},
 
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"HALO CHORUS", {8, 32, 0, 0, 50, 34, 70, 10}, {56, 90, 104, 92}, 8, 0, FX(0, 64, 28, 84), PAT(5),
-     {XP(P_LRATE, 13), XP(P_LD_AMP, 8), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},  /* B: choir */
+    {"VEIL PAD", {14, 45, 20, 0, 60, 45, 78, 18}, {70, 95, 120, 106}, 0, 0, FX(0, 60, 26, 88), PAT(5),
+     {XP(P_LRATE, 14), XP(P_LD_AMP, 7), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* B: texture */
     {"ASHRAM", {16, 44, 6, -3, 62, 28, 76, 12}, {90, 92, 116, 100}, 4, 0, FX(0, 56, 24, 90), PAT(5),
      {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LSHP, 18)}},  /* B: drone */
     {"TALK BOX WIRE", {40, 96, 72, 4, 96, 8, 80, 20}, {0, 78, 54, 40}, 24, 1, FX(22, 0, 36, 22), PAT(1),

@@ -1,3 +1,25 @@
+## v2.3.8 — la colección curada, y el DC de MERCURY BLOOM
+
+**Seis presets casi duplicados dan su plaza a seis sonidos nuevos.** No se borró la entrada: se **sustituyó en su
+mismo índice**, así que ningún proyecto guardado cambia de número y el flash no crece ni un byte.
+
+| Se va | Por qué | Llega |
+|---|---|---|
+| `TRAP 808` | el 808 lo da `808 SUB`; esto era el mismo con más drive | **`SUB FLOOR`** — el grave limpio, con la cabeza del env recortada para no saturar |
+| `CYBER DRUM` | `HEARTH KIT` ya es el kit completo; esto era una variación de niveles | **`CONCRETE KIT`** — kit seco, con más cuerpo de bombo y caja |
+| `DEEP MARIMBA` | `MARIMBA` + mono + chorus | **`FERROUS PAD`** (textura) — FM con ataque lento, algorithm 6 |
+| `GAMELAN MET` | misma algorithm y misma dosis de HARM que `GLASS KEYS` | **`IRON PLUCK`** (performance) — púa FM brillante, cola corta |
+| `TINE EP` (FM6) | **mismo nombre** que el `TINE EP` aditivo | **`SILT KEYS`** (híbrido) — FM con segunda onda de anillo |
+| `HALO CHORUS` | `MYSTIC CHOIR` ya es el coro | **`VEIL PAD`** (textura) — formantes altos, sin vibrato de coro |
+
+- **`MERCURY BLOOM`, DC corregido:** 12,8 % → **por debajo del 2 %**, ya no aparece en la lista de DC. El desvío venía de la segunda onda de la distorsión de fase
+  (`WAVE2 = 4`), que es asimétrica: con la principal en `WAVE 2` las dos mitades del render caían a −27,8 % / −19,4 %.
+  Pasa a `WAVE 0` con el mismo `DCW`, conservando el pad. El máximo de la casa baja a **3,64 %** (era 12,8 %).
+- **Audit de presets:** 293 presets, **0 silenciosos, 0 calientes, 0 nombres repetidos, 0 duplicados exactos,
+  0 fuera de rango**, 5 con DC real por encima del 2 % pero señalando las dos mitades (bytebeats asimétricos por
+  diseño, reportados y no fallados): **PASSED**.
+- **`[HOST]`**: `ui_render` 0 hallazgos, 0 desvíos de alineación.
+
 ## v2.3.7 — los tipos de filtro, y el teclado del ARP
 
 - **FILTER 5/9: siete tipos, siete curvas.** La gráfica que entró en v2.3.4 sólo distinguía LP, HP, BP y COMB;

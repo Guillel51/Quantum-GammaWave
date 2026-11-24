@@ -487,8 +487,8 @@ _Static_assert(NELEM(N_FM6_PATCH) == FM6_OWN + FM6_NBANK + 2u, "a SLOT name per 
 
 /* {ALG, FB, MLVL, MRAT, MEG, VMOD, DTUN, SLOT}: the factory patch F1..F8 as it is, DTUN on the pad */
 static const preset_t FM6_PRESETS[] = {
-    {"TINE EP", {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 127, 0}, 0, 0, FX(0, 44, 26, 34), PAT(6),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_HARM, 14)}},
+    {"SILT KEYS", {0, 4, 0, 0, 0, 0, 10, 12}, {6, 74, 116, 58}, 0, 0, FX(0, 58, 34, 62), PAT(6),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_HARM, 16)}},  /* C: hybrid */
     {"BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 30, 72), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 22)}},
     {"FM BASS", {0, 0, 0, 0, 0, 0, 0, 2}, {0, 0, 127, 0}, 0, 1, FX(16, 0, 8, 8), PAT(2),
@@ -543,8 +543,8 @@ static const preset_t FM6_PRESETS[] = {
      * and the matrix's RES destination, so the velocity opens the resonance of that shelf instead of its cut. */
     {"SITAR RESON", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(16, 28, 36, 58), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 26), XP(P_M1AMT, 24), XP(P_FTYPE, 7), XP(P_FCUT, 44), XP(P_HARM, 14)}},
-    {"GAMELAN MET", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 22, 38, 76), PAT(7),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 20)}},
+    {"IRON PLUCK", {0, 0, 62, 0, 0, 0, 0, 5}, {0, 0, 112, 18}, 0, 0, FX(0, 18, 40, 54), PAT(3),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 30), XP(P_HARM, 22)}},  /* C: performance */
     {"STEEL DRUM", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 26, 48), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119), XP(P_ELOOP, 2)}},
 
@@ -563,8 +563,8 @@ static const preset_t FM6_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_HARM, 10)}},  /* C: EP */
     {"FROST MUSIC", {0, -3, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 10, 0, FX(0, 24, 44, 72), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 24)}},  /* C: music box */
-    {"DEEP MARIMBA", {0, 1, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 22, 0, FX(0, 12, 28, 34), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_LEVEL, 113), XP(P_ELOOP, 2)}},  /* C: mallet */
+    {"FERROUS PAD", {0, 0, 0, 0, 0, 0, 0, 6}, {46, 84, 108, 92}, 0, 0, FX(0, 48, 30, 80), PAT(6),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 96)}},  /* C: texture */
     {"ALLOY BASS", {0, 6, 0, 0, 0, 0, 0, 2}, {0, 62, 72, 22}, 30, 1, FX(22, 0, 6, 6), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -6)}},  /* E: FM bass */
     {"SUBMARINE BELL", {0, 0, 0, 0, 0, 0, 14, 13}, {0, 0, 127, 0}, 8, 0, FX(0, 28, 48, 88), PAT(6),

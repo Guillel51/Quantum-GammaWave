@@ -323,7 +323,7 @@ static const preset_t PHASE_PRESETS[] = {
      {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LFADE, 60), XP(P_LD_FLT, 18), XP(P_LD_AMP, 10)}},
 
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"MERCURY BLOOM", {2, 4, 58, 72, 10, 0, 18, 0}, {66, 90, 108, 94}, 20, 0, FX(0, 56, 26, 72), PAT(5),
+    {"MERCURY BLOOM", {0, 4, 46, 72, 10, 0, 12, 0}, {66, 90, 108, 94}, 20, 0, FX(0, 56, 26, 72), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LEVEL, 86)}},  /* B: pad */
     {"IRON FILAMENT", {5, 7, 74, 86, 24, 1, 30, 50}, {40, 88, 96, 70}, 36, 0, FX(20, 40, 34, 58), PAT(5),
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_LD_FLT, 20), XP(P_LD_SHP, 10)}},  /* D: texture */
