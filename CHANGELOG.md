@@ -1,3 +1,28 @@
+## v2.3.4 — la profundidad de las gráficas, en todas y a cualquier valor
+
+**Cambio visual deliberado** en ENV, LFO, MORPH, TILT y FILTER. Baseline de píxeles regenerado por esto.
+
+- **MORPH ya tiene profundidad a 0.** El stack dibujaba los dos EXTREMOS del crossfade, y sólo mientras el knob
+  estaba entre ellos: en MORPH 0 había una línea y nada detrás, y al girar el knob la frontal se movía mientras
+  las dos de atrás quedaban clavadas. Ahora son **cuatro capas de la misma curva**, cada una 6,4 % más plana,
+  5 px más alta y más oscura que la anterior: el efecto existe en 0, en 127 y en todo el recorrido, y **las
+  cuatro se mueven juntas** cuando gira el knob.
+- **TILT igual que MORPH**: cuatro capas de la curva en la que está el knob (antes: las dos puntas del recorrido,
+  con una sola línea cuando el valor caía sobre un extremo).
+- **ENV: una capa más** (seis, antes cinco), con el degradado repartido sobre la pila entera
+  (`58 % … 14 %`) en vez de un paso fijo.
+- **FILTER (5/9) ya tiene gráfica.** La página era cuatro knobs y un panel vacío: la única pantalla que va
+  entera de una forma no mostraba ninguna. Dibuja la **respuesta del filtro de la pista** leída de sus propios
+  ids (LP/HP/BP/COMB, corte y resonancia; en ANALOG desde `E4/E5`, en el resto desde `FCUT/FRES`), en **cuatro
+  capas** con el mismo degradado de profundidad que el resto.
+- **LFO S&H legible.** Al echar atrás una onda sample-and-hold un tercio de ciclo, los valores aleatorios son
+  OTROS: cuatro escaleras sin relación cruzándose, la pantalla ilegible del reporte. El eco conserva la fase de
+  la frontal (los mismos escalones) y sube 2–3 px por capa en vez de un sexto del panel; LFO pasa de tres a
+  **cuatro capas**.
+- **`[HOST]`**: `ui_render` 0 hallazgos de lint, **0 desvíos de alineación** en 3 955 127 medidas; el banco
+  `morph_depth` pasa sus cinco comprobaciones con **4 capas en 0, 64 y 127**, la trasera a **3 px** de mediana y
+  la frontal junto a una trasera en **110 de 110** columnas.
+
 ## v2.3.3 — los gráficos en profundidad: la misma curva, cada vez más oscura
 
 **Cambio visual deliberado** en las cuatro páginas con stack (ENV, LFO, MORPH, TILT). El baseline de píxeles se

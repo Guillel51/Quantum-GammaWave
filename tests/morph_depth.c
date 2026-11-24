@@ -117,11 +117,10 @@ static void run(int wave, int morph, int engi, int verbose)
            wave, morph, (int)morph_n, (int)sep_min, (int)sep_med, (int)cols2);
     printf("  front line on the glass in %d of 110 columns, front and back together in %d\n", (int)nfront_px,
            (int)nback_px);
-    if (morph_n == 1) {
-        /* exactly on a wave (MORPH at an end, or an engine with no travel): one pass, as before the stack */
-        mcheck("no travel: a single pass and nothing behind", nfront_px > 100, (double)nfront_px, 100.0);
-    } else {
-        mcheck("a travel draws three passes", morph_n == 3, (double)morph_n, 3.0);
+    {
+        /* (v2.3.4) FOUR LAYERS AT EVERY VALUE. The stack used to wait for a crossfade to be in progress -- at MORPH 0
+         * the page drew one line and no depth -- so the bench now asks for the stack at 0, at 64 and at 127 alike. */
+        mcheck("the stack is four layers at every value", morph_n == QMD_N, (double)morph_n, (double)QMD_N);
         mcheck("the front wave is on the glass", nfront_px > 100, (double)nfront_px, 100.0);
         mcheck("front and a back wave are both visible", nback_px > 99, (double)nback_px, 99.0);
         mcheck("the nearest back wave is 3 px away at the median", sep_med >= 3, (double)sep_med, 3.0);
@@ -152,7 +151,7 @@ int main(void)
     run(0, 64, ENGI_ANALOG, 1);        /* SAW -> SQR, half way */
     run(1, 32, ENGI_ANALOG, 0);        /* SQR -> TRI, a third */
     run(0, 127, ENGI_ANALOG, 0);       /* the far end of the travel */
-    run(0, 0, ENGI_ANALOG, 0);         /* no travel: one pass */
+    run(0, 0, ENGI_ANALOG, 0);         /* at 0 the stack is there too */
     run(0, 64, ENGI_PHYS, 0);   /* another engine entirely */         /* the phase-distortion engine's own waves */
     run(0, 64, ENGI_LOFI, 0);
     printf("morph_depth: %s\n", bad ? "FAILED" : "all checks ok");

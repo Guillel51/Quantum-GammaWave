@@ -497,7 +497,7 @@ if [ -f build/gen/felucca_tables.h ]; then
         -o "$OUT/morph_depth" tests/morph_depth.c -lm                                   # (FASE 5) reads the depth off the panel
     # (FASE 5) MORPH's depth stack, proved on the panel it is drawn on: the geometry each pass drew (the state
     # graph_morph keeps and morph_y computes) against the pixels that came out of it, column by column.
-    run "MORPH DEPTH: three passes, the back waves 3 px away at the median, and the pixels where the geometry says" \
+    run "MORPH DEPTH: four layers at every value, the back waves 3 px away at the median, and the pixels where the geometry says" \
         "$OUT/morph_depth"
     # (v2.0.3) HOW DEEP THE STACK GOES, measured: the plumbing the firmware's compiler cannot report
     # (the JieLi clang rejects -fstack-usage). Host x86-64 frames, not the unit's -- the number is the

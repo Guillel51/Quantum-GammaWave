@@ -82,7 +82,7 @@ static int32_t env_x_of(int32_t lvl, int32_t n, int32_t from, int32_t to)
                                                      * twice the 41 the stack had, so the arm of an attack is an
                                                      * arm and not a staircase; not more, because at 111 the
                                                      * compiler unrolls these loops and the image grows 1 776 B */
-#define QZ_LAYERS 5                                 /* the most layers a page has asked for */
+#define QZ_LAYERS 6                                 /* (v2.3.4) the most layers a page has asked for */
 static int16_t qz_v[QZ_N];                          /* one layer's levels, 0..1000 (82 B, shared by every page) */
 typedef struct {
     int32_t x0, y0, w, h;                           /* the FRONT layer's box: x0,y0 its left foot, w x h */
@@ -104,7 +104,7 @@ static uint16_t qz_ink(const qz_t *q, int32_t k)
     (void)q->back;
     if (k <= 0 || q->n < 2)
         return q->front;
-    pct = 58 - (k - 1) * 14;                        /* 58, 44, 30, 16: nearly half the ink's light each step */
+    pct = 58 - (k - 1) * 44 / (q->n - 1);           /* 58 % down to 14 % over however deep the stack is */
     return ux_mix(T_BG, q->front, pct < 14 ? 14 : pct);
 }
 /* (v2.3.3) A LAYER FURTHER BACK IS DRAWN DARKER, NOT MERELY THINNER. MORPH and TILT keep the pass state of the two
@@ -336,6 +336,64 @@ static void tilt_pass(uint16_t c, int32_t amt, int32_t sy, int32_t dy, int32_t t
     if (!back)
         cv_rrect(xp - band + 2, right - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the top's level, where the knob puts it */
 }
+/* (v2.3.4) THE FILTER PAGE DRAWS ITS RESPONSE, IN DEPTH. It had no graph at all -- four knobs and an empty panel --
+ * so the one page that is entirely about a shape showed nothing. The curve is the part's own filter, read from the
+ * page's own ids (ANALOG keeps CUT/RES in E4/E5, every other engine in FCUT/FRES), drawn four times: the curve and
+ * three copies flatter, higher and darker behind it, the same depth MORPH and TILT have. */
+static int32_t flt_mag(int32_t type, int32_t u, int32_t uc, int32_t q)
+{
+    int32_t d = u - uc, roll = d > 0 ? d : 0, g, bump;
+    switch (type) {
+    case 1:                                          /* HP */
+        g = 1000 - 1000 * 1000 / (1000 + roll * roll / 220);
+        g = 1000 - g;
+        break;
+    case 2:                                          /* BP */
+        g = 1000 * 1000 / (1000 + (roll * roll + (d < 0 ? d * d : 0)) / 160);
+        break;
+    case 3:                                          /* COMB: the notch train, one every 160 units */
+        g = 520 + 480 * (((u + uc) / 160) % 2 ? 1 : -1);
+        break;
+    default:                                         /* LP */
+        g = 1000 * 1000 / (1000 + roll * roll / 220);
+        break;
+    }
+    bump = 120 - (d < 0 ? -d : d);                   /* the resonance, at the cutoff and nowhere else */
+    if (bump > 0)
+        g += q * bump / 120 * 3 / 10;
+    return clamp(g, 0, 1180);
+}
+static void filter_pass(int32_t type, int32_t uc, int32_t q, int32_t sy, int32_t dy, int32_t th, int back)
+{
+    int32_t x, cy = graph_ht * 42 / 100 + dy, top = graph_ht * 12 / 100, bot = graph_ht * 82 / 100;
+    int32_t px = 0, py = 0;
+    for (x = 0; x < PANEL_W; x++) {
+        int32_t u = x * 1000 / (PANEL_W - 1);
+        int32_t g = flt_mag(type, u, uc, q) * sy / 1000;
+        int32_t y = bot - g * (bot - top) / 1180;
+        y = clamp(y, top, bot);
+        if (x) {
+            uint16_t ink = heat_y(y, top, bot, T_THEME);
+            cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y, back ? qz_back_ink(ink, sy) : ink, th);
+        }
+        px = PANEL_X0 + x;
+        py = y;
+    }
+    (void)cy;
+    (void)px;
+}
+static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
+{
+    const page_t *pg = cur_page();
+    int32_t type = (int32_t)t->p[pg->id[0]], cut = (int32_t)t->p[pg->id[1]], res = (int32_t)t->p[pg->id[2]], k;
+    int32_t uc = 40 + clamp(cut, 0, 127) * 920 / 127;   /* 4 % .. 96 % of the sweep */
+    int32_t q = clamp(res, 0, 127);
+    cv_rect(PANEL_X0, graph_ht * 42 / 100, PANEL_W, 1, T_RAISE);
+    for (k = 3; k >= 1; k--)
+        filter_pass(type, uc, q, 1000 - k * 80, -k * 4, 1, k);
+    filter_pass(type, uc, q, 1000, 0, 2, 0);
+    (void)c;
+}
 static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
 {
     int32_t cy = graph_ht / 2, a = 38 * graph_ht / 100, amt = t->p[P_HARM];
@@ -345,11 +403,15 @@ static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
     /* (FASE 5) the two ends of TILT's travel behind, the setting it is on in front: the page says how far the
      * knob has gone, not only where it is. At the ends themselves the same curve is already in front, so the
      * pass equal to the current one is skipped and nothing is drawn twice. */
-    if (amt < 60)
-        tilt_pass(c, 63, 880, -5, 1, 1);
-    if (amt > -60)
-        tilt_pass(c, -64, 760, -10, 1, 1);
-    tilt_pass(c, amt, 1000, 0, 1, 0);
+    /* (v2.3.4) THE SAME DEPTH MORPH HAS: the curve TILT is set to, four times, each one flatter, higher and darker
+     * than the last. It used to put the two ENDS of the knob's travel behind (and skipped the near one at the ends),
+     * which left a single line at either extreme and layers that did not move with the knob. */
+    {
+        int32_t k;
+        for (k = 3; k >= 1; k--)
+            tilt_pass(c, amt, 1000 - k * 80, -k * 5, 1, k);
+        tilt_pass(c, amt, 1000, 0, 1, 0);
+    }
 }
 
 /* (v2.2) THE LFO IN DEPTH. The page drew one wave; a modulation is a wave AND where it has been, which is what the
@@ -375,18 +437,25 @@ static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
     uint32_t span = 0xFFFFFFFFu / (PANEL_W / 2u), ph = t->lfo_ph - (uint32_t)xp * span;
     int32_t now = cy - mulq15(t->lfo_val, t->lfo_fade) * a / 32768;
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
-    for (g = 2; g >= 0; g--) {                       /* (v2.2) the wave and where it has been: three layers in depth */
+    for (g = 3; g >= 0; g--) {                       /* (v2.3.4) four layers: the wave and three behind it */
         /* (v2.3.3) the echo goes DARK, not cool, and stands further back: a layer one step behind is the same wave
          * earlier in its cycle, lifted a sixteenth of the panel and mixed further towards the page's ground, so the
-         * three read as one wave receding instead of three strands of one colour. */
-        int32_t lift = g * (graph_ht / 16 + 2);
-        uint16_t gi = g ? ux_mix(T_BG, heat_y(cy, cy - a, cy + a, c), 58 - (g - 1) * 18)
+         * three read as one wave receding instead of three strands of one colour.
+         * (v2.3.4) S&H IS NOT PHASE-SHIFTED BEHIND. Stepping a sample-and-hold wave back by a fraction of its cycle
+         * gives a DIFFERENT random value, so the four layers read as four unrelated staircases crossing each other --
+         * the illegible screen of the report. The echoed layers keep the front's phase there: the same steps, lifted
+         * and darker, which is what depth looks like on a staircase. */
+        int32_t sh = t->p[P_LWAVE] == 4;
+        /* a staircase lifted a sixth of the panel per layer becomes four staircases in the same picture; the S&H echo
+         * sits a couple of pixels above the front instead and lets the darker ink do the depth */
+        int32_t lift = g * (sh ? graph_ht / 40 + 1 : graph_ht / 16 + 2);
+        uint16_t gi = g ? ux_mix(T_BG, heat_y(cy, cy - a, cy + a, c), 56 - (g - 1) * 14)
                         : heat_y(cy, cy - a, cy + a, c);
         py = cy - lift;
         for (x = 0; x < PANEL_W; x++) {              /* (lfo_wave only reads the track) */
-            uint32_t px = ph + (uint32_t)x * span + (uint32_t)g * (span * (uint32_t)xp / 2u);
+            uint32_t px = ph + (uint32_t)x * span + (uint32_t)(sh ? 0 : g) * (span * (uint32_t)xp / 2u);
             int32_t y = cy - lift - lfo_wave((track_t *)t, px) * a / 32768;
-            if (t->p[P_LWAVE] == 4)                  /* S&H: a value per cycle part, held */
+            if (sh)                                  /* S&H: a value per cycle part, held */
                 y = cy - lift - ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768) * a / 32768;
             if (x)
                 cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y,
@@ -674,8 +743,9 @@ typedef struct {
     pd_t pa, pb;
     an_dirt_t dt;
 } morph_st;
-static morph_st morph_last[3];    /* the passes of the last draw: front first (see graph_morph) */
-static int32_t morph_n;           /* how many were drawn (1: no travel) */
+#define QMD_N 4                   /* (v2.3.4) the layers MORPH draws: the curve and three copies behind it */
+static morph_st morph_last[QMD_N];  /* the passes of the last draw: front first (see graph_morph) */
+static int32_t morph_n;           /* how many were drawn */
 /* (FASE 5) the y of one column (0..110) of the wave this state describes: the height scaled by sy (per-mille of
  * the panel's 34 px) about the line at 46, lifted by dy. Invisible: no colour, no canvas. */
 static int32_t morph_y(const track_t *t, const morph_st *st, uint32_t i)
@@ -771,18 +841,24 @@ static __attribute__((noinline)) void graph_morph(const track_t *t)
         st.pa = pa; st.pb = pb;
         /* the state of each pass, kept for tests/morph_depth.c: it reads the geometry the panel just drew from,
          * instead of working the maths out a second time and drifting from it */
-        morph_n = 1;
-        if (f && a1 != a0) {
-            st.sy = 760; st.dy = -10; st.pos = (int32_t)a1 * 256; st.f = 0;
-            morph_last[morph_n++] = st;
-            morph_pass(t, &st, 1, 1);
-            st.sy = 880; st.dy = -5; st.pos = (int32_t)a0 * 256;
-            morph_last[morph_n++] = st;
-            morph_pass(t, &st, 1, 1);
-        }
+        /* (v2.3.4) THE DEPTH IS THERE AT EVERY VALUE, AND IT FOLLOWS THE KNOB. The stack used to be the two ENDS of
+         * the crossfade, drawn only while the knob sat between them: at MORPH 0 there was one line and no depth at
+         * all, and turning the knob moved the front while the two ends stayed where they were. The four layers are
+         * the same curve at four depths now -- flatter and higher the further back, each in a darker ink -- so the
+         * stack exists at 0, at 127 and everywhere between, and all of it moves when the knob turns. */
         st.pos = pos; st.f = f; st.sy = 1000; st.dy = 0;
-        morph_last[0] = st;
-        morph_pass(t, &st, 2, 0);
+        {
+            int32_t k;
+            morph_n = QMD_N;
+            for (k = 0; k < QMD_N; k++) {
+                morph_last[k] = st;
+                morph_last[k].sy = 1000 - k * 80;    /* 6.4 % flatter a layer */
+                morph_last[k].dy = -k * 5;           /* and 5 px higher */
+            }
+            for (k = QMD_N - 1; k >= 1; k--)
+                morph_pass(t, &morph_last[k], 1, k);
+            morph_pass(t, &morph_last[0], 2, 0);
+        }
     }
     if (0)
     for (i = 0; i <= 110u; i++) {
@@ -4434,6 +4510,9 @@ static __attribute__((noinline)) void draw_graph(void)
             break;
         case GR_TILT:
             graph_tilt(t, c);
+            break;
+        case GR_FILTER:                              /* (v2.3.4) the part's filter response, in depth */
+            graph_filter(t, c);
             break;
         case GR_STEPS:
             graph_steps(t, c);

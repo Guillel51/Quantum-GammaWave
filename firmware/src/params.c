@@ -579,7 +579,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
        GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP, GR_TILT,
-       GR_SCENES};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
+       GR_SCENES, GR_FILTER};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
                                      * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
@@ -727,13 +727,13 @@ static const page_t PAGES[] = {
     {"OPERATOR", FAM_EDIT, SC_TRACK, GR_FMOP, {0xFF, 0xFF, 0xFF, 0xFF}},    /* FM6 only: KNOB 1 the operator, then its */
     {"OP ENV", FAM_EDIT, SC_TRACK, GR_FMENV, {0xFF, 0xFF, 0xFF, 0xFF}},     /* bytes of the track's patch (ui_fm6op.c): */
     {"OPERATOR 2", FAM_EDIT, SC_TRACK, GR_FMOP2, {0xFF, 0xFF, 0xFF, 0xFF}}, /* CRS FINE LEVEL / STG RATE LEVEL / MODE DTUN VEL */
-    {"FILTER", FAM_EDIT, SC_TRACK, GR_NONE, {P_FTYPE, P_E4, P_E5, P_E6}},   /* (JIANT 0.5) ANALOG: TYPE CUT RES DRV */
+    {"FILTER", FAM_EDIT, SC_TRACK, GR_FILTER, {P_FTYPE, P_E4, P_E5, P_E6}},   /* (JIANT 0.5) ANALOG: TYPE CUT RES DRV */
     {"TILT", FAM_EDIT, SC_TRACK, GR_TILT, {P_HARM, 0xFF, 0xFF, 0xFF}},   /* (v1.12.4) the voice's own spectral tilt:
                                      * below 0 leans the voice dark (the top goes away), above 0 bright (the top comes
                                      * forward): every engine, including the drums and FM6, whose parts do not own the
                                      * filter above. It is not the FILTER: the pole is fixed, DC stays at unity and
                                      * nothing resonates -- it rides on the note, so a chord tilts as twelve voices */
-    {"FILTER", FAM_EDIT, SC_TRACK, GR_NONE, {P_FTYPE, P_FCUT, P_FRES, P_DIST}},   /* .. every other engine's (on the part;
+    {"FILTER", FAM_EDIT, SC_TRACK, GR_FILTER, {P_FTYPE, P_FCUT, P_FRES, P_DIST}},   /* .. every other engine's (on the part;
                                                          * DRV: the part's DIST, after it) */
     {"SOUND", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},   /* DRUM: a sound of the kit (ui_dx.c) */
     {"SOUND 2", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},
