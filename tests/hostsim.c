@@ -40,14 +40,6 @@ static struct { volatile uint32_t notes, buttons; } fm1_in;
 #include "../firmware/src/slicer.c"
 #include "../firmware/src/fx.c"
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
-/* (FASE 8, #105) THE SCREEN READER IN THE EMULATOR. felucca.c includes announce.c before usb.c and ui.c; this
- * host does not, so FELUCCA_ANNOUNCE was 0 here and the emulator's device never spoke (the protocol was
- * measured on the firmware and on the host capture, not through the browser). One include, in the same order,
- * turns it on: announce.c's own default is 1, usb.c's ring carries the frames and ui.c's ann_ui says them.
- * A test that brings its own announce.c (ui_test.c's SAY capture) defines FELUCCA_ANNOUNCE first. */
-#ifndef FELUCCA_ANNOUNCE
-#include "../firmware/src/announce.c"
-#endif
 #include "../firmware/src/usb.c"
 #include "../firmware/src/midi_uart.c"                /* TRS MIDI IN: its parser (um_byte) feeds midi_in_q */
 #include "../firmware/src/song_chain.c"

@@ -39,6 +39,10 @@ static uint8_t nor[0x100000];            /* the SPI NOR (erased: 0xFF) */
  * a buffer the page reads; usb.c asks it before queueing anything. */
 static int web_ann_hook(const uint8_t *p, uint32_t n);
 #define USB_WIRE_HOOK(p, n) web_ann_hook((p), (n))
+/* (FASE 8, #105) the reader itself: felucca.c includes announce.c before usb.c and ui.c, and this build did not,
+ * so FELUCCA_ANNOUNCE was 0 and the emulator's device never spoke. Same order here, and the frames go to the hook
+ * above instead of a ring that nothing drains. */
+#include "../../firmware/src/announce.c"
 #include "../../tests/hostsim.c"
 #undef main
 
