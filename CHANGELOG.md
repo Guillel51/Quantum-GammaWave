@@ -1,3 +1,19 @@
+## v2.3.6 — cierre de la auditoría final
+
+**Sin cambios de firmware de sonido ni de dibujo.** Esta versión empaqueta la auditoría de la fase 9: la suite
+completa en verde y el último hueco de cobertura cerrado.
+
+- **Suite completa `[HOST]` en verde**: `NO_PACKAGE=1 bash tests/run_tests.sh` termina en
+  **`ALL HOST TESTS PASSED`**, con ASan/UBSan, los dos fuzzers (20 000 iteraciones de proyectos, 5 000 de
+  editor), los renders golden, la CPU, el DSP, el emulador y las 3 161 imágenes de píxeles.
+- **Matriz de modulación audible**: nuevo `test_slots_audible()` en `tests/mod_test.c`. Los cuatro slots
+  almacenados (LFO → CUT, profundidad 90) **cambian la frase renderizada** respecto de la misma frase sin
+  matriz. Hasta ahora se probaban la matemática y la caché por bloque, pero ningún test movía la profundidad de
+  un slot contra una nota: un routing que resolviera la fuente y nunca llegara al destino habría pasado todo.
+  Era el hueco que la matriz de validación declaraba abierto.
+- **El pendiente de `drumx` PUNCH y `live`** que la matriz arrastraba **no se reproduce** en este árbol: la
+  suite entera pasa. Quedaba anotado como «falla en `main` antes de tocar nada»; hoy no falla.
+
 ## v2.3.5 — OP ENV entra en la profundidad
 
 **Cambio visual deliberado** en la página OP ENV de FM6. Baseline de píxeles regenerado por esto.

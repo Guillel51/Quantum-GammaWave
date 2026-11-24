@@ -1338,6 +1338,27 @@ static void test_noise_src(void)
           maxstep < 65536 / 16 && lo < -16384 && hi > 16384 && crossed && other_same);
 }
 
+/* (v2.3.6) EVERY STORED SLOT IS AUDIBLE. The matrix had its maths and its per-block cache tested, and the CC and
+ * aftertouch routing measured, but nothing moved a slot's DEPTH against a rendered note: a routing that resolves a
+ * source and never reaches a destination would have passed all of it. Four slots, LFO -> CUT at depth 90, each one
+ * against the same phrase with no matrix. */
+static void test_slots_audible(void)
+{
+    uint32_t ea = eng_by_name("ANALOG"), k, changed = 0;
+    uint64_t base, h;
+    fresh(ea, 0);
+    base = phrase();
+    for (k = 0; k < 4u; k++) {
+        fresh(ea, 0);
+        slot(&trk[0], k, MS_LFO, MD_CUT, 90);
+        h = phrase();
+        if (h != base)
+            changed++;
+    }
+    check("AUDIBLE: each of the four stored matrix slots, LFO -> CUT at depth 90, changes the rendered phrase",
+          changed == 4u);
+}
+
 /* (FASE 8) the matrix has eight slots a track: 1..4 are the stored parameters, 5..8 track_t.mx. A slot of the
  * second half must do exactly what the same routing does in the first, and the live value the MOD page shows must
  * be the source's. */
@@ -1499,6 +1520,7 @@ int main(int argc, char **argv)
     test_noise_src();
     test_eight_slots();
     test_contrib();
+    test_slots_audible();
     test_src_cache();
     test_fase3();
     if (argc > 1)

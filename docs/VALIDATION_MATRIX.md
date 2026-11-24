@@ -4182,3 +4182,25 @@ documentado en `docs/ACCESSIBILITY.md`.
 **Gates.** `announce_test` 0 fallos (con el enlace de palabras en la respuesta al HELLO), `gen_words --check` ok
 (60 palabras, 1 091 B, huella `2ab0d08f`), `ui_render --announce` 0 fallos, `ui_test` verde, `emu_test` verde con
 los cuatro chequeos nuevos del lector, `target_budget` 0 líneas fuera, `resource_map --check` ok.
+
+---
+
+## 31. Cierre de la fase 9 en la línea 2.3 (2026-11-24)
+
+Esta pasada auditó el árbol completo **v2.3.5** y publica **v2.3.6**. Clases: `[HOST]`, `[TARGET]`, `[WASM]`,
+`[STATIC]`. **Sigue sin unidad FM-1**: nada de aquí es una medición de hardware, y la fila «FM-1 física»
+permanece `NO-GO`.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Suite completa | **PASS** | `NO_PACKAGE=1 bash tests/run_tests.sh` → `ALL HOST TESTS PASSED`; incluye ASan/UBSan, `fuzz_proj` (20 000 iteraciones), `fuzz_ed` (5 000), renders golden, CPU, DSP, emulador | host |
+| Matriz de modulación audible | **CLOSED** | `tests/mod_test.c::test_slots_audible()`: los cuatro slots almacenados, LFO → CUT a profundidad 90, cambian la frase renderizada | host |
+| `drumx` PUNCH y `live` | **PASS hoy** | La suite entera pasa; el fallo anotado en §21 no se reproduce en este árbol | host |
+| Presets: silencio, duplicados, rango | **PASS** | `preset_audit_test`: 293 presets, 0 silenciosos, 0 nombres repetidos, 0 parámetros idénticos, 0 fuera de rango | host |
+| Presets: offset DC | **REPORTED** | Siete presets por encima del 2 %, todos con signo constante en las dos mitades del render (DC real); MERCURY BLOOM 12,8 %. Reportado, no fallado: un bytebeat es asimétrico por diseño | host |
+| Alineación de UI | **PASS** | `ui_render`: 0 hallazgos de lint, 0 desvíos de alineación en 3 957 005 medidas, 22 paletas | host |
+| Presupuesto de imagen | **PASS, justo** | 581 348 B de 583 612 (2 264 libres, suelo 2 048) | AC791N |
+| Presupuesto de RAM | **PASS** | `.data+.bss` 93 376 B de 98 304 (4 928 libres) | AC791N |
+| Instalador, hashes, coherencia | **PASS** | `make_release --check` y `coherence_check` en verde para el paquete publicado | host + URLs públicas |
+| WASM y emulador | **PASS** | `web/emu/build.sh` con el mismo commit; la suite ejecuta el emulador y compara 88 200 frames contra el build nativo, bit a bit | WASM |
+| Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
