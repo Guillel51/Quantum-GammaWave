@@ -1,3 +1,27 @@
+## v2.3.0 — FX BUSES: la cola del reverb deja de saltar
+
+**Incremental, de una sola cosa y medida.** No cambia ni una muestra de audio: los 311 renders dorados salen
+idénticos y la suite de FX (`reverb_test`, `fx_meter_test`) pasa entera. Cambia un dibujo que mentía.
+
+- **El fallo.** El bloque REVERB de FX > BUSES dibujaba la cola con **`4 + size·5/127` barras**: cinco anchos
+  y cinco alturas para todo el recorrido de SIZE. Al girar el knob, el dibujo se re-cuantizaba de golpe —cuatro
+  barras se volvían cinco, con todas sus anchuras y alturas cambiando a la vez— y eso es lo que se leía como
+  la línea dando un salto al tocarla.
+- **El arreglo.** Nueve barras fijas y **SIZE como pendiente**: `fall = 300 − size·250/127` por mil por barra,
+  multiplicado barra a barra. SIZE 0 llega muerta al final del bloque (0,7⁹ ≈ 4 %), SIZE 127 sigue sonando
+  (0,95⁹ ≈ 63 %): la cola se desliza de una barra a la siguiente en vez de multiplicarse, y el recorrido del
+  knob se lee continuo.
+- **Coste `[TARGET]`**: **0 B**. La imagen queda en **580 180 / 583 612 B** (3 432 libres): el compilador saca
+  el mismo tamaño que la versión de cinco escalones.
+- **Verificación `[HOST]`**: barrido de UI 196 pantallas × 22 paletas, **0 hallazgos de lint**, **0** desvíos de
+  alineación en 3 953 168 medidas; el baseline de píxeles se regeneró para esa pantalla con este motivo.
+  `reverb_test` y `fx_meter_test` enteros; lazo `[HOST]` 1 655 ns y mezcla 277,7 ns/muestra (sin cambio).
+- **Auditoría de la fase**: el resto de lo pedido ya estaba — reverb con 5 modelos (ROOM SPRING SHIMR RESO
+  CLOUD), delay ANALOG/DIGITAL con saturación, bus de chorus con CHORUS / PHASER / FLANGER, sends y retornos
+  por bus con sus vúmetros (`fx_vu`), DIST con 6 modelos, y los 127 ids de parámetro **agotados**, así que un
+  efecto nuevo tendría que entrar como valor dentro de un parámetro existente. Se detalla en
+  `docs/FASE4_FX_BUSES_v2.3.0.md`.
+
 ## v2.2.0 — MOTOR DE PROFUNDIDAD QUANTUM: ENV, LFO Y CHORUS EN TRES DIMENSIONES
 
 **La línea 2.2, primera versión.** No cambia una muestra de audio (`tests/regress` da los **311** renders

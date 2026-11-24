@@ -147,14 +147,21 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
             break;
         }
         case FXB_REV: {
-            /* the tail as bars, longer with SIZE and lit by what the bus returns */
-            int32_t size = clamp(song.g[G_RSIZE], 0, 127), k, n = 4 + size * 5 / 127;
+            /* the tail as a decay, and CONTINUOUS in SIZE. It used to be 4 + size * 5 / 127 bars, so the drawing
+             * re-quantised itself five times over the knob's whole travel: turning SIZE made the tail jump from
+             * four bars to five with their widths and heights all changing at once, which is what read as the
+             * line leaping when it was touched. Nine bars now, always, and SIZE sets the slope between them, so
+             * the tail slides a bar at a time and never multiplies. */
+            int32_t size = clamp(song.g[G_RSIZE], 0, 127), k, h;
             int32_t amp = clamp(wet[FXB_REV] + snd[FXB_REV] / 2, 0, 7000);
-            for (k = 0; k < n; k++) {
-                int32_t h = (dh - 2) * (n - k) / n * (300 + amp * 970 / 7000) / 1000;
+            int32_t top = (dh - 2) * (300 + amp * 970 / 7000) / 1000;      /* the tail's head, from the return */
+            int32_t fall = 300 - size * 250 / 127;                         /* per-mille per bar: SIZE 0 gone at the end, 127 still ringing */
+            h = top;
+            for (k = 0; k < 9; k++) {
                 if (h > 0)
-                    cv_rect(dx + k * dw / n, dy + dh - h, dw / n - 1, h,
+                    cv_rect(dx + k * dw / 9, dy + dh - h, dw / 9 - 1, h,
                             on ? ux_mix(T_ACCENT, T_THEME, clamp(k * 26, 0, 100)) : T_RAISE);
+                h = h * (1000 - fall) / 1000;
             }
             fmt_int(b, clamp(song.g[G_RSIZE], 0, 127));
             str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
