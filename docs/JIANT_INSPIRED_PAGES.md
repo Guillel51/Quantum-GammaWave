@@ -1,4 +1,4 @@
-# JIANT-inspired pages (v1.12.0): ENV's stages and the FX pages that had no picture
+# JIANT-inspired pages (v1.12.1): ENV's stages and the FX pages that had no picture
 
 The reference was the ENV/STAGE and FX sheets of JIANT FM. What was taken is the *organisation* — a page that
 shows what its knobs do — and not its palette, its layout or its wording: every graph here is drawn in Quantum
