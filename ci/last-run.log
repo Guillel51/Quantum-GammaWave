@@ -1,0 +1,512 @@
+# emulator run 45502349894 (failure) at 5a0ca44f4023c1ce45f9710d8cb5a6dfeb85c3be
+
+## jobs
+- build: completed / success
+- deploy: completed / failure
+    step FAILED: 6 the published site serves the signed release (root) and this build (/preview) -> failure
+
+## publish job
+
+## failed steps, any job
+build	Set up job	2026-11-24T22:35:29.5768310Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261116.376/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-24T22:35:30.5793195Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4636911Z  * [new branch]        ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4686991Z  * [new branch]        ci/log/42914036626-failure -> origin/ci/log/42914036626-failure
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4689950Z  * [new branch]        ci/log/42934304046-failure -> origin/ci/log/42934304046-failure
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4708688Z  * [new branch]        ci/log/42960254048-success -> origin/ci/log/42960254048-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4713110Z  * [new branch]        ci/log/42964034323-cancelled -> origin/ci/log/42964034323-cancelled
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4732568Z  * [new branch]        ci/log/43052403602-cancelled -> origin/ci/log/43052403602-cancelled
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4736173Z  * [new branch]        ci/log/43055422733-success -> origin/ci/log/43055422733-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4811033Z  * [new branch]        ci/log/43422452557-success -> origin/ci/log/43422452557-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4813229Z  * [new branch]        ci/log/43448840392-success -> origin/ci/log/43448840392-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4816281Z  * [new branch]        ci/log/43474037096-failure -> origin/ci/log/43474037096-failure
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4824441Z  * [new branch]        ci/log/43600042299-success -> origin/ci/log/43600042299-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4883816Z  * [new branch]        ci/log/44033689569-success -> origin/ci/log/44033689569-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4884355Z  * [new branch]        ci/log/44037558449-success -> origin/ci/log/44037558449-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4884892Z  * [new branch]        ci/log/44047765514-failure -> origin/ci/log/44047765514-failure
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4896811Z  * [new branch]        ci/log/44186140393-success -> origin/ci/log/44186140393-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4898988Z  * [new branch]        ci/log/44200842253-success -> origin/ci/log/44200842253-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4924225Z  * [new branch]        ci/log/44336434121-success -> origin/ci/log/44336434121-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4952422Z  * [new branch]        ci/log/44484351058-failure -> origin/ci/log/44484351058-failure
+build	Run actions/checkout@v4	2026-11-24T22:35:38.4974047Z  * [new branch]        ci/log/44532055281-success -> origin/ci/log/44532055281-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.5067051Z  * [new branch]        ci/log/44997204034-success -> origin/ci/log/44997204034-success
+build	Run actions/checkout@v4	2026-11-24T22:35:38.5140380Z  * [new branch]        ci/log/45438839220-failure -> origin/ci/log/45438839220-failure
+build	Run actions/checkout@v4	2026-11-24T22:35:38.5168073Z  * [new branch]        feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run actions/checkout@v4	2026-11-24T22:35:38.5240396Z  * [new tag]           v1.5.22                 -> v1.5.22
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-24T22:35:39.1564225Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-24T22:35:41.8787403Z Downloading numpy-2.5.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (15.7 MB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-24T22:35:46.9373403Z 
+build	generated headers (fonts, icons, palettes, shapes, tables, samples)	﻿2026-11-24T22:35:47.0340374Z ##[group]Run python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
+build	Run mymindstorm/setup-emsdk@v14	2026-11-24T22:35:53.0992225Z Downloading: /home/runner/work/_temp/c8ace11f-4625-4192-9715-08f8a16fd393/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	the emulator	2026-11-24T22:36:24.6329422Z shell: /usr/bin/bash -e {0}
+build	the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)	2026-11-24T22:36:54.9964037Z emu: SAVE, OCT+, OCT+: user preset 1 written (3 sectors kept)                     ok
+build	JieLi toolchain and SDK files	2026-11-24T22:36:58.4734038Z ^[[36;1m# gitee resets connections from the runners now and then: retries with backoff; the cache above keeps them^[[0m
+build	the package, the installer and the editor	2026-11-24T22:36:58.4936422Z   EMSDK_NODE: /home/runner/work/_temp/c8ace11f-4625-4192-9715-08f8a16fd393/emsdk-main/node/24.19.0_64bit/bin/node
+build	the package, the installer and the editor	2026-11-24T22:37:13.3927404Z In file included from firmware/src/ui_graph.c:4377:
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-24T22:37:16.9404817Z target: wheel_block       162 instructions,   32 in loops, 0 divides,  1 calls there: cost    32 (budget 32) ok (+0 % of the baseline, limit +10 %)
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-24T22:37:16.9422481Z target: fm6_op_fb          36 instructions,   17 in loops, 0 divides,  1 calls there: cost    17 (budget 17) ok (+0 % of the baseline, limit +10 %)
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-24T22:37:16.9784040Z package: a zero-size flash.bin is refused                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:37:22.6404232Z DRUM: E0 is MRPH (DRUM-X's morph; Felucca's KIT retired)         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:37:27.5774048Z grid: malformed preset extension rejected without changing saved data ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:37:31.4044397Z SONG: older firmware has no capability                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:37:31.4064046Z editor: old completion cannot release new connection's busy count ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:12.1403026Z ok   every checklist row and state has words in the three languages
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:20.5360760Z verify only: 179 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:21.6382505Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:22.6445278Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:22.6469369Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:22.6471537Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:22.6477092Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:22.6482201Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:26.7045257Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:32.4943800Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:32.6960404Z no MIDI frame is claimed for an external read                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:32.6973404Z a programmer operation other than two reads is refused by restore        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:32.6976532Z flash read: 16 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-24T22:38:32.8840395Z two identical backups complete the archive                                 ok
+build	the emulator of the signed release's commit	﻿2026-11-24T22:38:32.9422862Z ##[group]Run REL="542d049b0a60ad415bcd74876edc6640d4cf719e"
+build	the emulator of the signed release's commit	2026-11-24T22:38:32.9429065Z ^[[36;1m  test -s ../release-tree/build/emu/felucca.wasm || { echo "::error::the release emulator did not build"; exit 1; }^[[0m
+build	the site (root = the signed release, /preview = this build)	2026-11-24T22:39:00.4525071Z ^[[36;1m  test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	﻿2026-11-24T22:39:00.6807063Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-24T22:39:00.6807930Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-24T22:39:00.6808619Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-24T22:39:00.6912894Z ^[[36;1mtest -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-24T22:39:00.7004224Z -rw-r--r--  1 runner runner     840 Nov 24 22:37 data.bin
+build	the site is the one its records name	2026-11-24T22:39:00.7776843Z site: 20 ids, 10 images, 31 links, 0 FAILED
+build	Run actions/upload-pages-artifact@v3	2026-11-24T22:39:00.8181422Z ./preview/i18n.js
+build	Run actions/upload-pages-artifact@v3	2026-11-24T22:39:00.8207404Z ./firmware/LICENSES/index.html
+build	Run actions/upload-pages-artifact@v3	2026-11-24T22:39:00.8224220Z ./emulator/fonts/
+deploy	Set up job	2026-11-24T22:39:09.3270664Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261116.133/images/ubuntu/Ubuntu2404-Readme.md
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-24T22:39:11.3494615Z ^[[36;1m  echo "::error::GitHub Pages is not enabled for Guillel51/Quantum-GammaWave: deploy-pages would fail with HTTP 404. Enable it once, Settings > Pages > Build and deployment > Source: GitHub Actions (no workflow change is needed)."^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-24T22:39:13.2572863Z Pages: {"url":"https://api.github.com/repos/Guillel51/Quantum-GammaWave/pages","status":null,"cname":null,"custom_404":false,"html_url":"https://guillel51.github.io/Quantum-GammaWave/","build_type":"workflow","source":{"branch":"main","path":"/"},"public":true,"protected_domain_state":null,"pending_domain_unverified_at":null,"https_enforced":true}
+deploy	Run actions/deploy-pages@v4	2026-11-24T22:39:17.4913403Z Creating Pages deployment with payload:
+deploy	Run actions/checkout@v4	2026-11-24T22:39:23.7404879Z [command]/usr/bin/git config --local gc.auto 0
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2663466Z ^[[36;1m[ -n "$REL" ] || { echo "::error::no signed release manifest in the tree: the root would serve an unsigned build"; exit 1; }^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2674023Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3101154Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4925243Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6770979Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8552289Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0194220Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0196466Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1827016Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3590056Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5238323Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6974225Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6985725Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8691163Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2390567Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4073742Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5651540Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7671584Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9440370Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9443064Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1074182Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3032431Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4840382Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4847350Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6418203Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7937960Z site: 2 FAILED
+
+## tail
+deploy	Run actions/checkout@v4	2026-11-24T22:39:28.2473432Z Switched to a new branch 'main'
+deploy	Run actions/checkout@v4	2026-11-24T22:39:28.2483066Z branch 'main' set up to track 'origin/main'.
+deploy	Run actions/checkout@v4	2026-11-24T22:39:28.2496472Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-24T22:39:28.2538995Z [command]/usr/bin/git log -1 --format=%H
+deploy	Run actions/checkout@v4	2026-11-24T22:39:28.2559903Z 5a0ca44f4023c1ce45f9710d8cb5a6dfeb85c3be
+deploy	the published site serves the signed release (root) and this build (/preview)	﻿2026-11-24T22:39:28.2653944Z ##[group]Run # the root installs the signed release, so what it must serve is that release's commit, not this
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2654609Z ^[[36;1m# the root installs the signed release, so what it must serve is that release's commit, not this^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2655096Z ^[[36;1m# run's: main moves, the signature does not.^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2655542Z ^[[36;1m# (FASE 8) THE COMMIT IS THE BUILD's, NOT THE PACKAGE MANIFEST's. The signed .fwsc carries the^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2656044Z ^[[36;1m# record it was cut at, and a byte-identical rebuild keeps that record while every other file^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2656547Z ^[[36;1m# in release/ moves to the new build; versions.json -- which is what site_check reads -- names^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2657084Z ^[[36;1m# the build that produced the site and its emulator. Reading the package manifest here compared^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2657519Z ^[[36;1m# those two different facts and called a correct site stale.^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2657878Z ^[[36;1mREL=$(python3 - <<'EOF'^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2658198Z ^[[36;1mimport glob, json^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2658457Z ^[[36;1mdef key(v):^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2659384Z ^[[36;1m    try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2659804Z ^[[36;1m    except (TypeError, ValueError): return (0,)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2660108Z ^[[36;1mbest = None^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2660399Z ^[[36;1mfor m in glob.glob("release/build-manifest-*.json"):^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2660768Z ^[[36;1m    try: d = json.load(open(m))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2661058Z ^[[36;1m    except (OSError, ValueError): continue^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2661347Z ^[[36;1m    k = key(d.get("version"))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2661645Z ^[[36;1m    if best is None or k > best[0]: best = (k, d)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2662069Z ^[[36;1mprint((best[1].get("commit") or (best[1].get("build") or {}).get("commit", "")) if best else "")^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2662474Z ^[[36;1mEOF^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2662679Z ^[[36;1m)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2662957Z ^[[36;1mecho "the signed release was built from '${REL:-nothing}'"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2663466Z ^[[36;1m[ -n "$REL" ] || { echo "::error::no signed release manifest in the tree: the root would serve an unsigned build"; exit 1; }^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2664021Z ^[[36;1m# (FASE 8) AND THE BYTES, NOT ONLY THE COMMIT. A commit is a claim about a build; the SHA-256 is^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2664576Z ^[[36;1m# the artefact. The site served a package whose record named one build while the bytes were^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2665145Z ^[[36;1m# another run's, and a commit-only check cannot see that: this session's own SHA256SUMS line was^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2665635Z ^[[36;1m# carrying an annotation that made `sha256sum -c` fail for the package as well.^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2666049Z ^[[36;1mSHA=$(python3 - <<'EOF'^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2666296Z ^[[36;1mimport glob, json^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2666576Z ^[[36;1mdef key(v):^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2666887Z ^[[36;1m    try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2667276Z ^[[36;1m    except (TypeError, ValueError): return (0,)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2667598Z ^[[36;1mbest = None^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2667858Z ^[[36;1mfor m in glob.glob("release/*.fwsc.manifest.json"):^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2668217Z ^[[36;1m    try: d = json.load(open(m))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2668506Z ^[[36;1m    except (OSError, ValueError): continue^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2669075Z ^[[36;1m    k = key(d.get("version"))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2669388Z ^[[36;1m    if best is None or k > best[0]: best = (k, d)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2669785Z ^[[36;1mprint(str((best[1].get("sha256") or "")).lower()) if best else print("")^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2670137Z ^[[36;1mEOF^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2670346Z ^[[36;1m)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2670620Z ^[[36;1mecho "the signed package is ${SHA:-unsigned in this tree}"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2671044Z ^[[36;1msleep 20                                   # Pages switches after the deploy reports, not during it^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2671540Z ^[[36;1mfor i in $(seq 1 20); do^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2672000Z ^[[36;1m  if python3 tools/site_check.py --expect-emu-commit "$REL" --expect-commit "$REL" ${SHA:+--expect-sha256 "$SHA"}; then^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2672443Z ^[[36;1m    exit 0^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2672655Z ^[[36;1m  fi^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2673016Z ^[[36;1m  echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2673447Z ^[[36;1m  sleep 15^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2673682Z ^[[36;1mdone^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2674023Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2674401Z ^[[36;1mexit 1^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2702435Z shell: /usr/bin/bash -e {0}
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2702792Z ##[endgroup]
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.2948486Z the signed release was built from '5abb73d6ed073674eca1a207fd9dab34ab02e5c5'
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:28.3160164Z the signed package is 05dc3d78c970c30419de4716edd8c8841407c42609a4d13e0f9f621dc7e8db52
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3094577Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3095231Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3095896Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3096372Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3096822Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3097317Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3097797Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3098192Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3098582Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3099181Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3099635Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3100017Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3100409Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3100796Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3101154Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:39:49.3198324Z ##[notice]the site is not serving the expected artefacts yet (attempt 1/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4917037Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4917864Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4919020Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4919537Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4919994Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4920606Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4921662Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4922174Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4922625Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4923045Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4923497Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4924116Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4924527Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4924917Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.4925243Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:04.5010515Z ##[notice]the site is not serving the expected artefacts yet (attempt 2/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6764476Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6765105Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6765768Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6766223Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6766615Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6767146Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6767626Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6768035Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6768457Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6769052Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6769449Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6769810Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6770216Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6770641Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6770979Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:19.6852688Z ##[notice]the site is not serving the expected artefacts yet (attempt 3/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8541498Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8542881Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8544302Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8545307Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8546192Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8546918Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8547562Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8548097Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8548649Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8549355Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8549857Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8550816Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8551350Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8551876Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8552289Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:34.8634648Z ##[notice]the site is not serving the expected artefacts yet (attempt 4/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0189776Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0190872Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0191504Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0191944Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0192328Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0192852Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0193427Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0193830Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0194220Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0194582Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0194964Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0195361Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0195757Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0196147Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0196466Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:40:50.0279761Z ##[notice]the site is not serving the expected artefacts yet (attempt 5/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1816690Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1818204Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1819672Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1820727Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1821663Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1822426Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1823077Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1823654Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1824153Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1824585Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1825085Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1825564Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1826112Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1826620Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1827016Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:05.1904964Z ##[notice]the site is not serving the expected artefacts yet (attempt 6/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3583030Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3583754Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3584644Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3585065Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3585478Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3586049Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3586677Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3587068Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3587469Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3587856Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3588274Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3588665Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3589308Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3589740Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3590056Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:20.3676326Z ##[notice]the site is not serving the expected artefacts yet (attempt 7/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5231396Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5232210Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5233145Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5233620Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5234052Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5234580Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5235072Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5235497Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5235919Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5236342Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5236728Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5237102Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5237520Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5237951Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5238323Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:35.5321465Z ##[notice]the site is not serving the expected artefacts yet (attempt 8/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6972852Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6974225Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6975428Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6976466Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6977331Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6978099Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6979502Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6980075Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6980579Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6981098Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6981614Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6982107Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6984777Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6985264Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.6985725Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:41:50.7061803Z ##[notice]the site is not serving the expected artefacts yet (attempt 9/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8681172Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8682772Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8683984Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8684920Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8685500Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8686221Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8686927Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8687441Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8687929Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8688450Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8689120Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8689686Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8690185Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8690723Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8691163Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:05.8772481Z ##[notice]the site is not serving the expected artefacts yet (attempt 10/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2381652Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2382545Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2383091Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2383529Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2383924Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2384434Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2384954Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2385358Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2385751Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2386153Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2386516Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2386917Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2389787Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2390208Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2390567Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:21.2469747Z ##[notice]the site is not serving the expected artefacts yet (attempt 11/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4066667Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4067568Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4068523Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4069160Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4069645Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4070180Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4070690Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4071073Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4071436Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4071847Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4072254Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4072636Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4073019Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4073401Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4073742Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:36.4154538Z ##[notice]the site is not serving the expected artefacts yet (attempt 12/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5641511Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5642911Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5644154Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5645088Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5645971Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5646670Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5647330Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5647839Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5648385Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5649042Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5649576Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5650062Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5650566Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5651121Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5651540Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:42:51.5730248Z ##[notice]the site is not serving the expected artefacts yet (attempt 13/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7663946Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7664904Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7665964Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7666373Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7666758Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7667288Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7667909Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7668299Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7668697Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7669371Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7669893Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7670358Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7670831Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7671267Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7671584Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:06.7750911Z ##[notice]the site is not serving the expected artefacts yet (attempt 14/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9436358Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9437299Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9437809Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9438191Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9438646Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9439426Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9439984Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9440370Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9440745Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9441163Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9441538Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9441955Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9442331Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9442706Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9443064Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:21.9521176Z ##[notice]the site is not serving the expected artefacts yet (attempt 15/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1063504Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1064973Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1066162Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1067126Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1067970Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1068617Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1070022Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1070518Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1071007Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1071549Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1072023Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1072504Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1073168Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1073664Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1074182Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:37.1149610Z ##[notice]the site is not serving the expected artefacts yet (attempt 16/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3022362Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3023830Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3025173Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3026083Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3026911Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3027677Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3028358Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3029070Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3029556Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3030042Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3030555Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3031044Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3031513Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3032020Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3032431Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:43:52.3114128Z ##[notice]the site is not serving the expected artefacts yet (attempt 17/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4837862Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4838947Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4839674Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4840382Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4840867Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4841527Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4842126Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4842505Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4843016Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4843382Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4843762Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4844154Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4846564Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4847026Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4847350Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:07.4925046Z ##[notice]the site is not serving the expected artefacts yet (attempt 18/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6411467Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6412145Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6413213Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6413656Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6414063Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6414586Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6415089Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6415483Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6415887Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6416262Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6416708Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6417089Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6417465Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6417875Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6418203Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:22.6495640Z ##[notice]the site is not serving the expected artefacts yet (attempt 19/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7928354Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7930213Z site: the published package is the commit asked for                      FAIL  542d049 vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7931390Z site: the published package is the signed artefact                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7932151Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7932709Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7933368Z site: the emulator is the build this run copied up                       FAIL  '542d049b0a60' vs 5abb73d6ed073674eca1a207fd9dab34ab02e5c5
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7934060Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7934532Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7935027Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7935505Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7936006Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7936539Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7937023Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7937537Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.7937960Z site: 2 FAILED
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:37.8017419Z ##[notice]the site is not serving the expected artefacts yet (attempt 20/20); waiting 15 s
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:52.8039068Z ##[error]the deployed site still does not serve the expected artefacts after 5 minutes
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-24T22:44:52.8042052Z ##[error]Process completed with exit code 1.
+deploy	Post Run actions/checkout@v4	﻿2026-11-24T22:44:52.8136792Z Post job cleanup.
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8786696Z [command]/usr/bin/git version
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8817216Z git version 2.56.1
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8846423Z Temporarily overriding HOME='/home/runner/work/_temp/80303f6f-c91b-4e46-b1ec-19bcfdad51cd' before making global git config changes
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8847313Z Adding repository directory to the temporary git global config as a safe directory
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8851456Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8885535Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.8911780Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.9092524Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.9117434Z http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.9123245Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.9144766Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.9358263Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Post Run actions/checkout@v4	2026-11-24T22:44:52.9390234Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Complete job	﻿2026-11-24T22:44:52.9724754Z Cleaning up orphan processes
+deploy	Complete job	2026-11-24T22:44:52.9956080Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/deploy-pages@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
