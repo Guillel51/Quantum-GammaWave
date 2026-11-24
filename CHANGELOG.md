@@ -1,3 +1,18 @@
+## v2.3.10 — el degradado hasta el suelo, las barras de SCENE dentro del panel y CENTS sin solape
+
+- **El degradado de la página llega al suelo.** `graph_ground_ramp()` terminaba en el 97 % de la altura del panel: en
+  las pantallas de cuerpo corto —todas las de SCL, el kit— quedaba una banda de fondo liso debajo del degradado. Ahora
+  baja hasta la última fila del panel (`graph_h() - 2`), en todas las pantallas a la vez.
+- **LFO > SCENES 10/10: las barras de A SCENE y B SCENE entran en el panel.** La fila se dibujaba desde `PANEL_X0`
+  con 232 px, así que su barra arrancaba sobre el borde redondeado del panel y terminaba encima del otro: ahora se
+  insetá 2 px por lado (228 px) y el texto acompaña.
+- **SCL > TUNE: el indicador de CENTS ya no se pisa.** El número grande en `AF_L` bajaba hasta la fila de la barra;
+  sube dos filas (17 en vez de 20) y la barra baja tres (43 en vez de 40), con su marca de cero corrida igual.
+- **`[HOST]`**: `ui_render` 202 pantallas × 22 paletas, 4 267 hallazgos de lint, **0 desvíos de alineación**.
+
+Pendiente de esta tanda, sin hacer: el diagrama de SCL Página 3 (que reaccione al toque y nombre el acorde que suena,
+y las líneas azules que se cruzan con las notas) y los mini-knobs de EDIT 1/2/3 más grandes.
+
 ## v2.3.9 — profundidad donde no había curvas, el chorus legible y dos recortes de flash
 
 - **Las páginas de diagrama ganan profundidad sin apilar copias.** OPERATOR / OPERATOR 2 (las cajas del algoritmo

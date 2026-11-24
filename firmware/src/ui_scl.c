@@ -857,15 +857,16 @@ static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
     scl_field(ax, 20, "CENTS", T_DIM, T_SURF);
     v[0] = ct < 0 ? '-' : '+';
     fmt_int(v + 1, ct < 0 ? -ct : ct);
-    cv_text_on(ax + 40, 20 + CAP_IN(S, 16), &AF_L, v, T_ACCENT, T_SURF);
+    cv_text_on(ax + 40, 17 + CAP_IN(S, 16), &AF_L, v, T_ACCENT, T_SURF);   /* (v2.3.10) two rows up: the large
+                                                                            * digits' descender row landed on the bar */
     /* the deviation as a bar either side of zero: 99 cents is the knob's end and the bar's end */
     bx = 170;
-    cv_rect(ax, 40, 116, 7, T_LINE);
-    cv_rect(bx, 38, 1, 11, T_DIM);
+    cv_rect(ax, 43, 116, 7, T_LINE);
+    cv_rect(bx, 41, 1, 11, T_DIM);
     if (ct > 0)
-        cv_rect(bx + 1, 40, ct * 58 / 99, 7, T_ACCENT);
+        cv_rect(bx + 1, 43, ct * 58 / 99, 7, T_ACCENT);
     else if (ct < 0)
-        cv_rect(bx - (-ct) * 58 / 99, 40, (-ct) * 58 / 99, 7, T_ACCENT);
+        cv_rect(bx - (-ct) * 58 / 99, 43, (-ct) * 58 / 99, 7, T_ACCENT);
     /* the twelve as numbers do not fit across 124 px without setting one note on the next (the lint said so
      * when they tried): the circle is the list. What the column adds is the note being edited and the profile's
      * whole offset. */

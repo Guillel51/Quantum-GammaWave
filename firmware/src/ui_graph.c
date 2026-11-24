@@ -2114,12 +2114,14 @@ static __attribute__((noinline)) void graph_scenes(void)
     cv_rect(mx - 1, 18, 3, 30, msc_on ? T_ACCENT : T_DIM);            /* the position */
     for (k = 0; k < 2; k++) {                                         /* what each end holds */
         int32_t y = 54 + k * 24, c = (int32_t)hv[k];
-        cv_rrect(PANEL_X0, y, 232, 20, 3, T_SURF, T_BG);
-        cv_text_on(PANEL_X0 + 6, y + 4, &AF_M, k ? "B" : "A", c ? T_MID : T_DIM, T_SURF);
+        cv_rrect(PANEL_X0 + 2, y, 228, 20, 3, T_SURF, T_BG);   /* (v2.3.10) inside the border: the row used to
+                                                                * start on the panel's own rounded edge and end on
+                                                                * it, so its bar ran into the frame on both sides */
+        cv_text_on(PANEL_X0 + 8, y + 4, &AF_M, k ? "B" : "A", c ? T_MID : T_DIM, T_SURF);
         fmt_int(b, (int32_t)(k ? msc_b : msc_a) + 1);
-        cv_text_on(PANEL_X0 + 26, y + 5, &AF_S, "SCENE", T_DIM, T_SURF);
-        cv_text_on(PANEL_X0 + 82, y + 4, &AF_M, b, c ? T_MID : T_DIM, T_SURF);
-        cv_text_on(PANEL_X0 + 100, y + 5, &AF_S, c ? "STORED" : "KNOB 4: STORE", c ? T_KEY : T_DIM, T_SURF);
+        cv_text_on(PANEL_X0 + 28, y + 5, &AF_S, "SCENE", T_DIM, T_SURF);
+        cv_text_on(PANEL_X0 + 84, y + 4, &AF_M, b, c ? T_MID : T_DIM, T_SURF);
+        cv_text_on(PANEL_X0 + 102, y + 5, &AF_S, c ? "STORED" : "KNOB 4: STORE", c ? T_KEY : T_DIM, T_SURF);
     }
     /* the footline: what a pair does, and the controllers that move it -- the page documents itself */
     cv_text_on(PANEL_X0, 101, &AF_S, msc_on ? "CC 78: MORPH   CC 79/80: STORE" : "STORE BOTH ENDS TO MORPH",
@@ -3501,7 +3503,10 @@ static __attribute__((noinline)) void graph_ground_ramp(void)
     int32_t span = graph_h() - 4;
     /* (7.4) from under the bezel's shade to the panel's own floor: one ramp a page, ten bands, and the accent
      * arrives at the bottom edge instead of stopping a quarter of the panel short and starting again below. */
-    int32_t y0 = 2 + span * 10 / 100, y1 = 2 + span * 97 / 100;
+    int32_t y0 = 2 + span * 10 / 100, y1 = graph_h() - 2;   /* (v2.3.10) to the panel's own floor: at 97 % the
+                                                            * gradient stopped a few rows short and every page with
+                                                            * a short body (SCL's, the kit's) read as a band of
+                                                            * background under the panel instead of a fall */
     uint16_t warm = ux_mix(T_ACCENT, T_TEXT, 12);
     int32_t top = ux_luma(T_SURF) > 150 ? 8 : 22;                /* a light page takes a lighter hand */
     if (y1 - y0 < 12)
