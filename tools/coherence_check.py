@@ -81,6 +81,26 @@ def version_of(root):
     return None
 
 
+def check_changelog(root, version, problems):
+    """The notes tag-and-publish publishes are cut from the CHANGELOG block that names the version.
+
+    A version without one tags the commit and then dies in "the notes, from the changelog entry for this
+    version" -- which is how v1.11.2 got a tag at 43dca0b, three red runs and no release at all. The job
+    checks coherence before it tags, so the contradiction belongs here, before anything is published.
+    """
+    path = os.path.join(root, "CHANGELOG.md")
+    if not os.path.exists(path):
+        problems.append("CHANGELOG.md is missing: the release notes are cut from it")
+        return
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read()
+    for block in re.split(r"(?m)^## ", text)[1:]:
+        if version in block.split("\n", 1)[0]:
+            return
+    problems.append(f"CHANGELOG.md has no `## {version}` section: tag-and-publish would tag this commit "
+                    f"and fail before publishing, because the release notes come from that section")
+
+
 def check_package(root, version, problems):
     """The package the version names exists, and its manifest describes exactly those bytes."""
     pkg = os.path.join(root, "release", f"felucca-{version}.fwsc")
@@ -216,6 +236,7 @@ def main():
     if not version:
         problems.append("firmware/src/felucca.c defines no FELUCCA_VERSION")
     else:
+        check_changelog(root, version, problems)
         pkg, digest = check_package(root, version, problems)
         record = check_build_record(root, version, problems)
         check_emulator(root, version, record, problems)
