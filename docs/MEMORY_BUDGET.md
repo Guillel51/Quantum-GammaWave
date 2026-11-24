@@ -1,4 +1,4 @@
-# Presupuestos de RAM del FM-1 (v1.5.12)
+# Presupuestos de RAM del FM-1 (v1.11.2)
 
 Clase de cada cifra: **build AC791N real**, `build/felucca.map` (linker de pi32v2), leído por
 `tools/mem_budget.py`. Es memoria del firmware, no una simulación; no mide pilas ni el uso en ejecución.
@@ -7,9 +7,9 @@ Clase de cada cifra: **build AC791N real**, `build/felucca.map` (linker de pi32v
 
 | ventana | qué guarda | usado | tamaño | libre | piso que vigila la suite |
 |---|---|---|---|---|---|
-| LOWBUF | staging del lazo principal | 30 564 B | 32 768 | 2 204 | 1 024 |
-| RAM | `.data+.bss`, el presupuesto de 96 KiB | 91 628 B | 98 304 | 6 676 | 4 096 |
-| POOL | líneas de FX, canvas y pilas del core 1 | 311 256 B | 327 680 | 16 424 | 4 096 |
+| LOWBUF | staging del lazo principal | 31 648 B | 32 768 | 1 120 | 1 024 |
+| RAM | `.data+.bss`, el presupuesto de 96 KiB | 92 652 B | 98 304 | 5 652 | 4 096 |
+| POOL | líneas de FX, canvas y pilas del core 1 | 312 124 B | 327 680 | 15 556 | 4 096 |
 | RAMTEXT | código que corre con la flash ocupada | 3 792 B | 24 576 | 20 784 | 1 024 |
 | NOINIT | datos que sobreviven al reinicio | 15 572 B | 15 696 | **124** | 0 |
 

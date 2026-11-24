@@ -19,7 +19,11 @@ enum { ED_INFO = 1, ED_GET, ED_SET, ED_DUMP, ED_DESC, ED_STEP_GET, ED_STEP_SET, 
        ED_UI_STATE, ED_UI_SET, ED_UI_PALETTES, ED_FAV_GET, ED_FAV_SET,
        ED_MOTION = 64, ED_BACKUP_LIST, ED_BACKUP_GET, ED_BACKUP_PUT };                              /* v6: song chain */
 
-static uint8_t ed_out[600];
+/* (FASE 1/2) the reply being built, main-loop only (nothing here runs in an ISR: ed_service and ed_bk_service are
+ * called from the main loop, and ota_wire_send copies the frame into the USB ring before it returns), so it lives in
+ * the LOWBUF window, which had 1 720 B idle, instead of the 96 KiB RAM window, which had 4 160 B free against a
+ * 4 096 B floor. It is written from byte 0 before every send: LOWBUF is not zeroed at boot. */
+static uint8_t ed_out[600] __attribute__((section(".lowbuf")));
 static uint32_t ed_n;
 
 static void ed_begin(uint32_t cmd)

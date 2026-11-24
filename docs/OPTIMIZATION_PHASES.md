@@ -123,3 +123,55 @@ accompanies them, because none of the candidates survived its own measurement.
 3. **The UI frame cost** (FASE 5): unmeasured, therefore untouchable — first make the counter run.
 4. **Memory** (FASE 2): only worth work as part of a decision that needs the bytes (12 voices), and that
    decision is refused on evidence.
+
+## FASE 1/2 (v1.11.2) — the idle headroom of POOL and LOWBUF
+
+Class: AC791N build (`tools/build.py`, sections and the four budgets) plus `tools/mem_budget.py`. Nothing
+here is a measurement on an FM-1; `INSTALL BLOCKED` stands.
+
+The starting point was the v1.11.1 build: `.data+.bss` **94 144 of 98 304 B, 4 160 B free against the
+4 096 B floor** — 64 B of real margin in the window that binds every feature. At the same time two other
+windows were paying for floors they did not need: LOWBUF kept 1 720 B idle above its 1 024 B floor and
+POOL kept 9 248 B above the 8 KiB AGENTS.md requires. Neither can host audio state (they are not zeroed
+at boot and the ISR never reads them), but cold main-loop staging fits by construction.
+
+Three editor buffers, all fully written from their first byte before every use and unreachable from any
+ISR (`ed_service` / `ed_bk_service` run in the main loop; `ota_wire_send` copies the frame into the USB
+ring before it returns) were moved out of the 96 KiB window:
+
+| buffer | size | was | now | why it is safe there |
+|---|---:|---|---|---|
+| `ed_out` (editor.c) | 600 B | `.bss` | `.lowbuf` | header + body written from byte 0 on every reply |
+| `ed_bk_settings` (editor_backup.c) | 612 B | `.bss` | `.pool` | assigned in `ed_bk_capture` (persist_saved or memset) before `ed_bk_object` hands it out |
+| `ed_bk_buf` (editor_backup.c) | 256 B | `.bss` | `.pool` | `ed_unpack7` writes the chunk before it is read |
+
+Measured, same toolchain, same sources otherwise:
+
+| window | v1.11.1 | v1.11.2 | floor |
+|---|---:|---:|---:|
+| `.data+.bss` | 94 144 B used / 4 160 free | **92 688 B used / 5 616 free** | 4 096 |
+| LOWBUF | 31 048 / 1 720 free | 31 648 / **1 120 free** | 1 024 |
+| POOL | 311 256 / 9 248 spare | 312 124 / **8 384 spare** | 8 KiB (AGENTS.md) |
+| XIP code + constants | 576 708 B | 576 708 B | — |
+| image | 581 508 of 583 612 | 581 508 of 583 612 | — |
+
+**+1 456 B (35 %) more free RAM in the binding window**, and the margin over that window's floor goes from
+64 B to 1 520 B; every floor in `tests/mem_budget.json` and the 8 KiB POOL rule still pass. No render,
+instrument, preset, FX, UI, MIDI or sequencer path changed: the moved objects are not read by the audio
+ISR and their contents are rebuilt on every use, so the 220 goldens and the whole host suite are expected
+to stay bit-identical (and did, see the release record).
+
+### What was audited and refused in this pass
+
+| candidate | measurement | verdict |
+|---|---|---|
+| alignment padding in `.bss` | 274 B over 777 symbols (largest gap 12 B) | not movable without disturbing struct layout |
+| identical constant blobs in XIP | 4 blobs, 128 B total | below noise |
+| linker ICF (`--icf=all`) | this toolchain is **GNU ld 2.26**, which has no ICF; the firmware is one TU, so string/constant merging already happened | impossible |
+| `step_t` packing | 15 B exactly, no padding, 6 x 64 steps | already minimal |
+| `WT_GEN` | 6 192 B: already one half cycle per frame (was 12 288 B) | already done (1.5.22) |
+| `SINE` / `fm6_exp2_tab` | 2 050 / 4 100 B, decoded at boot from 1 025 / 2 054 B of deltas | already done; storing them whole in XIP costs 7 199 B more than the app slot has |
+| `midi_sel_on` | 1 024 B = 16 ch x 128 notes x 4 bits; track+1 and the pedal bit need exactly 4 | minimal |
+| `song_idx`, `msc_p`, `motion_base`, `vpool`, `drw_v` | feature state, not copies | refused |
+| `abuf`, `ua_ring`, `sx_frame`, `fm6_note`, `drum_kit`, `gen_keep` | audio DMA / USB ring / ISR / per-voice state | out of bounds by the phase's own rule |
+| OTA staging (2 048 B) | main-loop only, but LOWBUF's and POOL's remaining slack after this move is 96 B and 188 B | does not fit the floors |

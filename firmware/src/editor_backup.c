@@ -20,9 +20,14 @@ static uint32_t ed_bk_song_obj(uint32_t s, uint32_t k) { return s ? OBJ_SONG1 + 
 #define ED_BK_N ((uint32_t)sizeof ED_BK_IDS)
 #define ED_BK_MAX ((uint32_t)sizeof proj_wire_u.raw)
 #define ED_BK_RAW (proj_wire_u.raw)  /* reuse the existing serialized main-loop scratch */
-static uint8_t ed_bk_buf[256];       /* a PUT's chunk, unpacked */
+/* (FASE 1/2) two main-loop staging buffers that no ISR touches: the settings snapshot a transfer walks across
+ * frames (fully assigned in ed_bk_capture -- persist_saved or a memset -- before ed_bk_object hands it out) and a
+ * PUT's unpacked chunk (written by ed_unpack7 before it is read). They live in the POOL window, which keeps 9 248
+ * B spare against its 8 KiB floor, instead of the 96 KiB RAM window, which had 4 160 B free against a 4 096 B
+ * floor. Neither is zero at boot there: both are written from their first byte before every use. */
+static uint8_t ed_bk_buf[256] __attribute__((section(".pool")));       /* a PUT's chunk, unpacked */
 _Static_assert(sizeof proj_wire_u.raw >= sizeof(upf_t) && sizeof proj_wire_u.raw >= sizeof(fm6_bank_t), "backup staging");
-static persist_t ed_bk_settings;
+static persist_t ed_bk_settings __attribute__((section(".pool")));
 static uint8_t ed_bk_valid, ed_bk_put, ed_bk_id, ed_bk_gen;
 static uint32_t ed_bk_len, ed_bk_crc, ed_bk_pos, ed_bk_ms, ed_bk_usb;
 static void ed_bk_u32(uint32_t n) { for (uint32_t i = 0; i < 5u; i++) ed_b((n >> (i * 7u)) & 127u); }
