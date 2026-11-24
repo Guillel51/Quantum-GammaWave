@@ -1,3 +1,40 @@
+## v1.12.0 — JIANT INSPIRED: LAS ETAPAS DE ENV Y LAS PÁGINAS DE FX QUE NO TENÍAN IMAGEN
+
+**Una versión de presentación, no de DSP.** 1.11.2 → 1.12.0 (`docs/VERSIONING.md`). No cambia ningún camino de
+audio, ni una tabla, ni un parámetro, ni el guardado: los mismos valores suenan igual. Lo que cambia es lo que la
+pantalla dice de ellos.
+
+- **ENV: las cuatro etapas, marcadas sobre la curva.** La página ya dibujaba la envolvente real (ataque lineal,
+decaimiento y release recorridos con el mismo `ENV_K` que corre la voz) y desde v1.12 un punto que camina esa
+misma recurrencia, así que el punto cae sobre la tinta. Faltaba nombrar los tramos: ahora hay una guía callada en
+cada límite, `ATK` `DEC` `SUS` `REL` bajo su propio segmento (con el de la etapa viva en acento) y el punto de
+posición donde ya estaba. Todo sale de `P_ATK/P_DEC/P_SUS/P_REL` y de `voice_t.stage/env`: ninguna etapa se
+inventa. Vale para ENV y para OP1..OP4 ENV, que comparten el mismo trazado.
+- **DLY / DLY 2 / DLY 3: las repeticiones, dibujadas.** Las tres páginas eran cuatro tarjetas sobre un panel vacío
+(`GR_NONE`). Ahora cada eco es una barra: `TIME` fija su separación, `FEEDBK` su decaimiento (la cuenta se corta a
+−26 dB), `TONE` su color y PING-PONG pone los impares debajo del eje, que es lo que hace el motor con los dos
+canales.
+- **REVERB: la cola con su amortiguación.** `SIZE` da la longitud, `DAMP` la curvatura real de la caída (no una
+recta) y `PRE` el silencio antes de que la sala conteste; la cola son barras, no una cuña, para que el damping se
+lea.
+- **CHORUS / PHASER / FLANGER: el LFO del modelo.** Dos a cuatro taps según el tipo, `RATE` el período, `DEPTH` el
+barrido y `STEREO` la fase entre taps, con interpolación lineal para que la onda no salga escalonada.
+- **MASTER: la transferencia del limitador.** Diagonal de unidad, rodilla de `CLIP`, estante de `DUCK` y el pico
+estéreo real (`audio_out_peak`) como punto; cuando llega a fondo el punto va en acento.
+- **Lo que se reutilizó**: el mismo motor, los mismos parámetros que editan las tarjetas y los mismos `fx_vu` de
+  `FX > BUSES`. **Lo que no se tocó**: SCL (sus tres páginas, el círculo, el teclado con grados y los voices ya
+  existen desde 6.1), `SEQ > TOOLS` (6.2) y las páginas que sí tenían gráfico. **Cero estado nuevo**: los cuatro
+gráficos son funciones de `song.g[]`, `t->p[]`, `voice_t` y `fx_vu[]`; la firma de la página ya los redibuja.
+- **El coste, y lo que hubo que quitar para pagarlo.** La imagen AC791N queda en **583 524 B de 583 612** —88 B de
+  margen, el más ajustado del árbol— con `.data+.bss` en **92 688 B de 98 304** (sin cambios) y el pool con 8 384 B
+  de holgura. El primer enlace se pasó 584 B de XIP: se quitaron los cuatro rótulos que repetían los títulos de las
+  tarjetas, la guía punteada de ENV pasó a una línea y la onda del chorus a interpolación. El barrido
+  `tests/ui_render` da **196 pantallas × 22 paletas con 0 hallazgos de lint y 0 desalineaciones**.
+
+**Nada de esto se probó en una FM-1 física.** Sin unidad en este entorno: ni transferencia, ni arranque, ni
+lectura de flash. `INSTALL BLOCKED` sigue en pie. El emulador corre el mismo C; se reconstruyó para esta versión y
+la paridad bit a bit la comprueba la suite, no el oído.
+
 ## v1.11.2 — FASE 1/2: LA VENTANA DE RAM QUE LIMITA TODO, CON HOLGURA
 
 **Un parche de memoria, no de sonido.** 1.11.1 → 1.11.2, sin renumerar (`docs/VERSIONING.md`). No cambia
