@@ -116,5 +116,37 @@ int main(int argc, char **argv)
         fm1_ms = ms0;
         (void)acc2;
     }
+    /* (FASE 6) HOME's five screens, each timed twice: `full` forces the page to be painted (ui.force every frame:
+     * the whole body, its bands and its graph), `live` is the same screen with nothing forced (only what changes
+     * in it), which is what the panel spends on a screen that is merely running. The gap between the two numbers
+     * is what a redraw costs; the ratio is why the signature caches exist at all. Host x86-64: not the unit. */
+    {
+        static const struct { const char *n; uint32_t s; } H[5] = {
+            {"main", S_HOME}, {"visualizer", S_HOME_VIZ}, {"overview", S_HOME_OVERVIEW},
+            {"mixer", S_HOME_MIX}, {"performance", S_HOME_PERF}};
+        uint32_t k, m = n / 8u ? n / 8u : 1u;
+        double t_full[5], t_live[5];
+        printf("frame_bench: HOME's five screens, ns CPU per frame (force: the page painted every frame)\n");
+        for (k = 0; k < 5u; k++) {
+            setup(H[k].s);
+            frames(4);
+            c0 = fb_cpu();
+            for (i = 0; i < m; i++) {
+                ui.force = 1;
+                ui_draw();
+            }
+            t_full[k] = (fb_cpu() - c0) * 1e9 / (double)m;
+            setup(H[k].s);
+            frames(4);
+            c0 = fb_cpu();
+            for (i = 0; i < m; i++)
+                ui_draw();
+            t_live[k] = (fb_cpu() - c0) * 1e9 / (double)m;
+        }
+        for (k = 0; k < 5u; k++)
+            printf("  %-12s force %7.1f   settled %7.1f   (x%.1f)\n", H[k].n, t_full[k], t_live[k],
+                   t_live[k] > 0.0 ? t_full[k] / t_live[k] : 0.0);
+    }
+
     return 0;
 }
