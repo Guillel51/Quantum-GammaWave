@@ -1,36 +1,26 @@
 [
  {
-  "version": "1.11.0",
-  "file": "felucca-1.11.0.fwsc",
-  "sha256": "ec48cf9c59e180ee31698db986d3590e7f6caced27e96e0e3756ffc8a8b78e0e",
+  "version": "1.11.1",
+  "file": "felucca-1.11.1.fwsc",
+  "sha256": "cae3e5a43b3904722e7f3a46cea88fd2627d8f1aa30dd14b4ca6990a47a231e9",
   "size": 610933,
   "build": {
    "artifacts": {
-    "felucca-1.11.0.fwsc": {
+    "felucca-1.11.1.fwsc": {
      "bytes": 610933,
-     "sha256": "ec48cf9c59e180ee31698db986d3590e7f6caced27e96e0e3756ffc8a8b78e0e"
+     "sha256": "cae3e5a43b3904722e7f3a46cea88fd2627d8f1aa30dd14b4ca6990a47a231e9"
     },
     "felucca.bin": {
      "bytes": 581508,
-     "sha256": "1939f7d66a7578fbdb357529eaf4ce9616cfd66e9958a5900fc3b69c959a6c9f"
+     "sha256": "55f40951982d2709011a3cecf98c4ee8c02abd69a5f3a1e30c7b9486939a1ab3"
     },
     "loader/ota.bin": {
      "bytes": 7777,
      "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"
     }
    },
-   "checks": {
-    "checks": "ok",
-    "identity": "FM-1_965",
-    "notes": [
-     ".ram_text: 1193 insns, no calls",
-     "image 581508 B; RAM .data+.bss 94144 B of 98304; pool 311256 B, spare 9248 B; LOWBUF 31048 B of 32768",
-     "XIP code 446556 B, constants 130152 B",
-     "RAM code 3940 B of 24576; calls reach 13956 B past the code's end",
-     "register access: hal/ only (src/, loader/ clean)"
-    ]
-   },
-   "commit": "4c7890e4556e8b0bdfa0c2d78377aa9f6c95c240",
+   "checks": {},
+   "commit": "2c5563ac1526c804c1807dfe34e1ce53a5d254e9",
    "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -51,13 +41,13 @@
    },
    "dirty": [],
    "emulator": {
-    "commit": "340983ac9b6c",
-    "version": "v1.11.0",
+    "commit": "2c5563ac1526",
+    "version": "v1.11.1",
     "wasm_bytes": 1316630,
-    "wasm_sha256": "367b29b1027fe01aa0f92e65fa535434cc5bf3962e3e9e547411d41128da3090"
+    "wasm_sha256": "e417d568eb714c8ab9b7e0d09268e8e3ee1c2846b4a4627a7eb816f20ccc31a1"
    },
    "identity": "FM-1_965",
-   "package": "felucca-1.11.0.fwsc",
+   "package": "felucca-1.11.1.fwsc",
    "schema": "qg1-build-1",
    "sdk": {
     "commit": "unknown",
@@ -66,19 +56,19 @@
      "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
      "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
     },
-    "path": "/workspace/homes/5c4f25ac55a61d136c164907/fw-AC79_AIoT_SDK"
+    "path": "/workspace/homes/6fdb48ce0b78dc462a0cfe7f/fw-AC79_AIoT_SDK"
    },
    "toolchain": {
     "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
     "name": "jieli-linux-toolchains-20260730.1",
-    "path": "/workspace/homes/5c4f25ac55a61d136c164907/.jieli/toolchain",
+    "path": "/workspace/homes/6fdb48ce0b78dc462a0cfe7f/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
    },
-   "version": "v1.11.0"
+   "version": "v1.11.1"
   },
   "emulator": {
-   "built": "2026-11-24T02:13:39Z",
-   "commit": "340983ac9b6c",
+   "built": "2026-11-24T02:38:38Z",
+   "commit": "2c5563ac1526",
    "config": {
     "EMU_CFLAGS": "",
     "EMU_OPT": "-O2",
@@ -88,10 +78,18 @@
    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
    "identity": "FM-1_965",
    "schema": "qg1-emu-1",
-   "version": "v1.11.0",
+   "version": "v1.11.1",
    "wasm_bytes": 1316630,
-   "wasm_sha256": "367b29b1027fe01aa0f92e65fa535434cc5bf3962e3e9e547411d41128da3090"
+   "wasm_sha256": "e417d568eb714c8ab9b7e0d09268e8e3ee1c2846b4a4627a7eb816f20ccc31a1"
   },
+  "manifest": "felucca-1.11.1.fwsc.manifest.json"
+ },
+ {
+  "version": "1.11.0",
+  "file": "felucca-1.11.0.fwsc",
+  "sha256": "ec48cf9c59e180ee31698db986d3590e7f6caced27e96e0e3756ffc8a8b78e0e",
+  "size": 610933,
+  "build": null,
   "manifest": "felucca-1.11.0.fwsc.manifest.json"
  },
  {
@@ -125,13 +123,5 @@
   "size": 610933,
   "build": null,
   "manifest": "felucca-1.9.2.fwsc.manifest.json"
- },
- {
-  "version": "1.9.1",
-  "file": "felucca-1.9.1.fwsc",
-  "sha256": "bcf3551b0599654a1e3b137dee612587a775929aa81652820a23f097b2a22c77",
-  "size": 610933,
-  "build": null,
-  "manifest": "felucca-1.9.1.fwsc.manifest.json"
  }
 ]
