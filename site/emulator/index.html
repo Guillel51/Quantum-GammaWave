@@ -89,7 +89,7 @@ footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <strong style="color:#3adfff;letter-spacing:.08em;font-size:14px">☀️ QUANTUM GAMMAWAVE (QG-1)</strong>
     <span style="font-size:12px;color:#aaa">Web Emulator · M-VAVE FM-1 Synthesizer &amp; Groovebox (12 Voices • Q24 Master EQ • 283 Factory Presets • Stereo M/S)</span>
-    <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">3820dd88df10</code></span>
+    <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">43264ec804ab</code></span>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
     <a href="../webapp/editor/" style="padding:6px 14px;background:rgba(58,223,255,.10);color:#8fd8ff;border:1px solid #24395e;border-radius:999px;text-decoration:none;font-weight:700">🎛️ Open Web Studio (Tape &amp; HUD)</a>
@@ -126,7 +126,7 @@ footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces
 </section>
 
 <footer>
-  <small class="version">v1.11.2 · build <code id="build-commit">3820dd88df10</code> · built <code id="build-date">2026-11-24T04:50:28Z</code> · engine <code id="wasm-hash">d34eb43d1c78c1166d65fcc733948c41794450911adfbc98ccdb3b70653140b0</code> · 1316630 B</small><br>
+  <small class="version">v1.12.0 · build <code id="build-commit">43264ec804ab</code> · built <code id="build-date">2026-11-24T06:30:47Z</code> · engine <code id="wasm-hash">58ba1ad0c368cf8fe7d18db0b90e0bda5e3e86c9fff804663cc1a51d32bb0476</code> · 1324648 B</small><br>
   <strong>QUANTUM GAMMAWAVE (QG-1)</strong> · <a href="https://github.com/Guillel51/Quantum-GammaWave">Official Repository</a> · Lineage: Pocket GammaWave, <a href="https://github.com/juanjiant-bit/JIANT">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
   <nav><a href="https://github.com/Guillel51/Quantum-GammaWave">GitHub Source</a> · <a href="../webapp/editor/">Web Studio</a> · <a href="../webapp/installer/">USB Web Installer</a></nav>
   <small>M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is not affiliated with or endorsed by them, nor with Hügelton Instruments.</small>
@@ -529,10 +529,10 @@ async function midiOn() {
 // ------------------------------------------------------------------ switching on
 const status = document.getElementById("status");
 const say = (t) => { status.textContent = t; status.hidden = !t; };
-const EXPECTED_WASM_SHA = "d34eb43d1c78c1166d65fcc733948c41794450911adfbc98ccdb3b70653140b0";
-const EXPECTED_VERSION = "v1.11.2";
-const BUILD_COMMIT = "3820dd88df10";
-const BUILD_DATE = "2026-11-24T04:50:28Z";
+const EXPECTED_WASM_SHA = "58ba1ad0c368cf8fe7d18db0b90e0bda5e3e86c9fff804663cc1a51d32bb0476";
+const EXPECTED_VERSION = "v1.12.0";
+const BUILD_COMMIT = "43264ec804ab";
+const BUILD_DATE = "2026-11-24T06:30:47Z";
 // GitHub Pages caches the HTML for a few minutes. The page may be old even when the new
 // manifest is already live; ask for the manifest without a cache and reload once with
 // the manifest's commit as a query. The WASM already has its own ?v=<sha>.
@@ -575,7 +575,7 @@ async function switchOn() {
     if (!AudioCtx) throw new Error("Web Audio API is not supported in this browser.");
     const ac = new AudioCtx({ sampleRate: 44100, latencyHint: "interactive" });
     const [wasm] = await Promise.all([
-      fetch("felucca.wasm?v=d34eb43d1c78c1166d65fcc733948c41794450911adfbc98ccdb3b70653140b0", { cache: "no-store" }).then(async (r) => {
+      fetch("felucca.wasm?v=58ba1ad0c368cf8fe7d18db0b90e0bda5e3e86c9fff804663cc1a51d32bb0476", { cache: "no-store" }).then(async (r) => {
         if (!r.ok) {
           if (r.status === 404) throw new Error("felucca.wasm not found (HTTP 404). Compile the emulator binary with 'sh web/emu/build.sh' or run 'python tools/emu_dev.py'.");
           throw new Error(`felucca.wasm: HTTP ${r.status}`);
