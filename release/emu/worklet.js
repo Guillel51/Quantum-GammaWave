@@ -72,6 +72,8 @@ if (typeof registerProcessor === "function") {
       else if (m.type === "tap") { if (typeof ex.web_tap === "function") ex.web_tap(m.x | 0, m.y | 0); }
       else if (m.type === "master") ex.web_master(m.value | 0);
       else if (m.type === "midi") ex.web_midi(m.data[0] | 0, m.data[1] | 0, m.data[2] | 0);
+      // (FASE 8) a screen reader's frame, byte by byte, as the USB device would deliver it
+      else if (m.type === "sysex") { if (typeof ex.web_sysex_byte === "function") for (const b of m.data) ex.web_sysex_byte(b & 0xff); }
       else if (m.type === "visible") this.period = m.on ? 1 / 30 : 1 / 4;
     }
 
@@ -104,7 +106,13 @@ if (typeof registerProcessor === "function") {
         this.sentWrites = writes;
         msg.sectors = storeSectors(new Uint8Array(mem, ex.web_nor(), ex.web_nor_size()));
       }
-      if (msg.leds || msg.fb || msg.sectors || msg.load !== undefined) this.port.postMessage(msg, transfer);
+      // (FASE 8, #105) the screen reader's frames the device would have sent (F0 7D 53 52 ... F7), raw, so the
+      // page can say them itself or hand them to a reader
+      if (ex.web_ann_take) {
+        const n = ex.web_ann_take();
+        if (n) msg.ann = Array.from(new Uint8Array(mem, ex.web_ann_buf(), n));
+      }
+      if (msg.leds || msg.fb || msg.sectors || msg.ann || msg.load !== undefined) this.port.postMessage(msg, transfer);
     }
 
     // A click's down and up can arrive within one render quantum, but the FM-1's contacts never close for less than
