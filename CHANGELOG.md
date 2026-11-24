@@ -1,3 +1,30 @@
+## v1.11.2 — FASE 1/2: LA VENTANA DE RAM QUE LIMITA TODO, CON HOLGURA
+
+**Un parche de memoria, no de sonido.** 1.11.1 → 1.11.2, sin renumerar (`docs/VERSIONING.md`). No cambia
+ningún camino de audio, ni una tabla, ni el layout de la UI, ni una compuerta de instalación: los 311
+golden renders, el emulador bit a bit contra el build nativo y los 3 129 frames de píxeles quedan
+idénticos.
+
+- **La ventana que se quedaba sin aire.** `.data+.bss` tenía **4 160 B libres contra un suelo de 4 096**
+  —64 B de margen real— mientras LOWBUF guardaba 1 720 B ociosos por encima de su suelo y POOL 9 248 B
+  por encima de los 8 KiB que exige `AGENTS.md`. Tres buffers del editor, de lazo principal y reescritos
+  desde su primer byte en cada uso (`ed_out`, `ed_bk_settings`, `ed_bk_buf`), se movieron a esas dos
+  ventanas: **92 688 B usados y 5 616 B libres** (+1 456 B, +35 %), margen sobre el suelo de 64 B a
+  1 520 B. LOWBUF queda con 1 120 B (suelo 1 024) y POOL con 8 384 B de holgura (suelo 8 KiB).
+- **Lo que se auditó y se rechazó, con números.** 274 B de padding en `.bss` (777 símbolos), 128 B de
+  constantes idénticas en XIP, este linker es **GNU ld 2.26 sin ICF** y el firmware ya es una sola TU;
+  `step_t` mide 15 B exactos, `WT_GEN` ya guarda media onda (6 192 B), `SINE` y `fm6_exp2_tab` ya se
+  decodifican desde deltas, y `midi_sel_on` necesita exactamente 4 bits por nota. Nada de eso se tocó
+  porque nada de eso se podía demostrar más pequeño sin cambiar el sonido o la UI.
+- **Los artefactos.** `felucca-v1.11.2.fwsc` **610 933 B**, sha256
+  `7b04f44dd18db254f28d35bd826d34b6c844441e3191d4e8d9288dbdd5ec76f0`; `qg1-emulator-v1.11.2.zip`
+  **521 813 B**, sha256 `bbfc322128cdf846ef70d044465f3086cd8f268dfc4f9248f2d3fa5673910dd6`. Imagen
+  **581 508 B** con 2 104 B libres; XIP 446 556 B de código + 130 152 B de constantes, sin cambios.
+  Construido desde `3820dd8` con el toolchain JieLi `20260730.1` y el SDK `AC79NN_SDK_V1.2.1_2023-12-13`.
+
+**Nada de esto se probó en una FM-1 física.** No hay unidad en este entorno: ni transferencia, ni arranque,
+ni lectura de flash, ni recuperación. `INSTALL BLOCKED` sigue en pie.
+
 ## v1.11.1 — FASE 9: EL CIERRE INTEGRAL, LA SEGURIDAD AUDITADA Y EL RELEASE REAL
 
 **Un parche sobre la línea 1.11, no un redesign.** 1.11.0 → 1.11.1, sin renumerar y sin saltar números
