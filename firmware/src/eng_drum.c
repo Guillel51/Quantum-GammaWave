@@ -541,7 +541,7 @@ static const preset_t DRUM_PRESETS[] = {
     /* (QG-1 1.6 audit) retired from browsing, kept at indices 10 and 11 so a project, a favorite or a user preset
      * made before 1.6 loads the exact kit it saved. Not in the 200-sound library (core.h engine_library). */
     {"HEARTH KIT", {80, 55, 80, 70, 40, 30, 25, 20}, {0, 100, 127, 100}, 0, 0, FX(15, 10, 20, 30), PAT(12), .legacy = 1},
-    {"CONCRETE KIT", {60, 70, 75, 65, 55, 35, 40, 30}, {0, 100, 127, 100}, 0, 0, FX(18, 4, 22, 30), PAT(12)},
+    {"CYBER DRUM", {45, 80, 65, 50, 70, 10, 35, 15}, {0, 100, 127, 100}, 0, 0, FX(20, 0, 25, 35), PAT(12), .legacy = 1},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
     {"CONCRETE KICK", {18, 52, 58, 104, 22, 6, 0, 26}, {0, 72, 60, 30}, 0, 1, FX(16, 0, 0, 10), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* F: kick */

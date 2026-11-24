@@ -1,3 +1,23 @@
+## v2.3.11 — el slot legacy de DRUM vuelve a ser su alias
+
+- **`CYBER DRUM` vuelve al id 11, con `.legacy = 1`.** En v2.3.8 la colección curada sustituyó ese alias por `CONCRETE KIT`
+  «en el mismo índice, para que ningún proyecto guardado se mueva» — y era justo al contrario: el alias existe para que
+  un proyecto, un favorito o un preset de usuario guardado antes de 1.6 cargue **ese** kit, y al volverse navegable la
+  librería DRUM pasó de 16 a 17 sonidos y `eng_preset_nth` desplazó uno a todos los que vienen después del 11.
+  `CONCRETE KIT` se retira: nunca tuvo un slot propio, se había metido en el de un alias.
+- **`[HOST]` primera suite completa desde v2.3.7** (`NO_PACKAGE=1 bash tests/run_tests.sh`): **2 fallos, los dos este**.
+  Arreglado, `tests/ui_test.c` (y su variante `FELUCCA_FM4=1`) pasan enteros, incluido el check que lo cazó.
+- **Auditoría MIDI y de ajustes sin hallazgos nuevos:** `midi_control_test` 96 checks (CC, learn, canales, bend, clock,
+  panic CC120/121/123, RPN/NRPN) y `midi_uart_test` 14 (running status, realtime, SysEx, ring lleno y timeout) en verde;
+  `settings_test` (PER1/2/3, paletas, calibración, HOLD, LEDS, CLICK, COUNT-IN) y `persistence_test` (fallo de flash,
+  reintento al cruzar el reloj, proyecto intacto) en verde. Nada que corregir en esos dos subsistemas con la cobertura
+  que ya tienen.
+- **`[HOST]`** `ui_render`: 202 pantallas × 22 paletas, 4 267 hallazgos de lint, 0 desvíos de alineación; audit de presets
+  `passed` (293 presets, 0 silenciosos, 0 duplicados).
+
+Sin hacer de la fase 10: la segunda ronda de optimización de CPU y la mejora del diagrama de SCL Página 3 siguen
+pendientes; esta entrega es el bug funcional que la fase pedía resolver primero, más los pendientes cerrados en v2.3.10.
+
 ## v2.3.10 — el degradado hasta el suelo, las barras de SCENE dentro del panel y CENTS sin solape
 
 - **El degradado de la página llega al suelo.** `graph_ground_ramp()` terminaba en el 97 % de la altura del panel: en
