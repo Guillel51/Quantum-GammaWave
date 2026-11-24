@@ -5,8 +5,13 @@
   un proyecto, un favorito o un preset de usuario guardado antes de 1.6 cargue **ese** kit, y al volverse navegable la
   librería DRUM pasó de 16 a 17 sonidos y `eng_preset_nth` desplazó uno a todos los que vienen después del 11.
   `CONCRETE KIT` se retira: nunca tuvo un slot propio, se había metido en el de un alias.
-- **`[HOST]` primera suite completa desde v2.3.7** (`NO_PACKAGE=1 bash tests/run_tests.sh`): **2 fallos, los dos este**.
-  Arreglado, `tests/ui_test.c` (y su variante `FELUCCA_FM4=1`) pasan enteros, incluido el check que lo cazó.
+- **`[HOST]` primera suite completa desde v2.3.7** (`NO_PACKAGE=1 bash tests/run_tests.sh`), 3 480 checks verdes y
+  **4 en rojo**, ninguno de audio o de motor: los dos del alias de DRUM (`tests/ui_test.c` y su variante `FELUCCA_FM4=1`,
+  arreglados aquí), el índice de evidencia (`docs/EVIDENCE.md`, regenerado con `tools/evidence_index.py`) y los dos
+  checks de `tests/ui_render.c` — estos últimos **rojos por construcción**: el binario devuelve 1 si `nfind` no es cero,
+  y su lint reporta 4 267 hallazgos conocidos (etiquetas de dos letras que sobresalen de su celda a propósito, partes de
+  FM6 medidas sobre su caja). Esa condición es anterior a esta versión y no la cambio aquí: arreglarla exige decidir
+  cuáles de los 4 267 son aceptables y ligar el check a una línea base, no relajarlo.
 - **Auditoría MIDI y de ajustes sin hallazgos nuevos:** `midi_control_test` 96 checks (CC, learn, canales, bend, clock,
   panic CC120/121/123, RPN/NRPN) y `midi_uart_test` 14 (running status, realtime, SysEx, ring lleno y timeout) en verde;
   `settings_test` (PER1/2/3, paletas, calibración, HOLD, LEDS, CLICK, COUNT-IN) y `persistence_test` (fallo de flash,
