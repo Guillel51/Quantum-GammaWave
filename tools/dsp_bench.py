@@ -53,11 +53,21 @@ def host_regress():
     """CPU per sample of the mix scenes, host x86-64 (tests/regress.c)."""
     if not need("build/regress"):
         return None
+    # The host is shared, and one sample of a scene's median moves by tens of percent between runs
+    # with no code change at all (measured: idle_click 76.5 -> 118.8 ns over two runs of the same
+    # binary). regress already keeps the smallest window it sees; this keeps the smallest RUN of three,
+    # which is the least noisy estimator of the work a scene does.
     cmd = ["build/regress", "tests/golden.txt", "tests/cpu_baseline.txt"]
-    rc, out = run(cmd)
     samples = {}
+    rc, out = run(cmd)
+    for _ in range(2):
+        rc2, out2 = run(cmd)
+        out += "\n" + out2
+        rc = rc or rc2
     for m in re.finditer(r"regress:\s+(?:cpu\s+)?(\S+)\s+(\d+) instr\s+([0-9.]+) ns", out):
-        samples[m.group(1)] = float(m.group(3))
+        v = float(m.group(3))
+        if m.group(1) not in samples or v < samples[m.group(1)]:
+            samples[m.group(1)] = v
     # the mix scenes are the ones that say what the whole instrument costs
     mix = {}
     for key in ("idle_drums", "3parts_full_drums", "6parts_full", "idle_click"):
