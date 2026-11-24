@@ -715,8 +715,22 @@ else
     echo "== skip web tests (no node)"
 fi
 
+# (v2.0.2) THE EMULATOR GROUP IS NO LONGER SILENTLY SKIPPED HERE. emcc is not on PATH in this project's own
+# setup -- it lives in $HOME/emsdk and is reached by sourcing emsdk_env.sh -- so the suite used to print
+# "skip the browser emulator" on a machine that has Emscripten installed, and the parity check ("= native",
+# 88 200 frames bit for bit) never ran as part of the suite. A skipped group is a gap in the evidence, not a
+# green result: if emcc is not on PATH but an SDK is where this repository puts it, source it and run the group.
 if ! command -v emcc >/dev/null 2>&1; then
-    echo "== skip the browser emulator (no emcc: Emscripten builds web/emu)"
+    for sdk in "${EMSDK:-}" "$HOME/emsdk" "/opt/emsdk"; do
+        [ -n "$sdk" ] && [ -f "$sdk/emsdk_env.sh" ] || continue
+        # shellcheck disable=SC1090
+        . "$sdk/emsdk_env.sh" >/dev/null 2>&1 || true
+        command -v emcc >/dev/null 2>&1 && break
+    done
+fi
+
+if ! command -v emcc >/dev/null 2>&1; then
+    echo "== skip the browser emulator (no emcc and no emsdk: Emscripten builds web/emu)"
 elif ! command -v node >/dev/null 2>&1 || [ ! -f build/gen/felucca_tables.h ]; then
     echo "== skip the browser emulator (needs node and build/gen)"
 else

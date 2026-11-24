@@ -2106,9 +2106,23 @@ static struct {
     uint8_t wrote, err;                          /* a write since power-on (last is valid); the last one failed */
 } as __attribute__((section(".pool")));
 
-static uint32_t as_mix(uint32_t h, const void *p, uint32_t n)   /* FNV-1a, continued */
+/* (v2.0.2) FNV-1a, four bytes at a time. This hash runs over every parameter, every step and every FM6 patch of
+ * the six tracks (about 9 KB) once every AS_POLL_MS, and it was the most expensive single call of an idle loop:
+ * 12 137 ns on the host, four times a whole frame (tests/frame_bench, cc -O2). The value it produces is RAM-only --
+ * as.saved / as.seen are compared with one another inside one power-on (project_load seeds them) -- so the width
+ * of the fold is free to change: what a signature has to do is answer "the same bytes?", not reproduce an old
+ * number. Covering four bytes per multiply is the same bytes in a quarter of the loop, and the tail keeps the
+ * one-byte fold so nothing is skipped. It still walks memory a byte at a time (the target has no unaligned load
+ * to rely on), which is why the gain is in the arithmetic, not in the reads. */
+static uint32_t as_mix(uint32_t h, const void *p, uint32_t n)
 {
     const uint8_t *b = p;
+    while (n >= 4u) {
+        uint32_t w = (uint32_t)b[0] | (uint32_t)b[1] << 8 | (uint32_t)b[2] << 16 | (uint32_t)b[3] << 24;
+        h = (h ^ w) * 16777619u;
+        b += 4;
+        n -= 4u;
+    }
     while (n--) {
         h ^= *b++;
         h *= 16777619u;
@@ -2122,10 +2136,20 @@ static uint32_t autosave_sig(void)
     uint32_t h = 2166136261u, i, j;
     for (i = 0; i < NTRK; i++) {
         const track_t *t = &trk[i];
+        int16_t w[8];                                /* (v2.0.2) one mix per eight parameters, not one per parameter:
+                                                      * the same bytes, an eighth of the calls (P_COUNT is the bulk
+                                                      * of the signature). The window is bounded and lives on this
+                                                      * stack frame -- the main loop only, never the audio ISR. */
+        uint32_t k = 0;
         for (j = 0; j < P_COUNT; j++) {
-            int16_t v = motion_base_value(t, j);
-            h = as_mix(h, &v, sizeof v);
+            w[k++] = motion_base_value(t, j);
+            if (k == 8u) {
+                h = as_mix(h, w, sizeof w);
+                k = 0;
+            }
         }
+        if (k)
+            h = as_mix(h, w, k * 2u);
         h = as_mix(h, &t->eng_req, 1);
         h = as_mix(h, &t->preset, 1);
         h = as_mix(h, t->step, sizeof t->step);
@@ -2179,19 +2203,32 @@ static void proj_fill_poll(uint32_t sig)
         proj_fill.said = (uint8_t)(pct > 100u ? 2u : pct >= 90u ? (proj_fill.said ? proj_fill.said : 1u) : pct < 85u ? 0u : proj_fill.said);
     }
 }
+/* (v2.0.2) ONE HASH, TWO READERS. The fullness warning and the autosave were both on the same 250 ms cadence and
+ * each called autosave_sig() on its own, so the whole project was hashed twice every quarter second -- the most
+ * expensive single call of an idle loop (tests/frame_bench), paid twice for the same answer. They now share the one
+ * value, computed once per poll; each reader keeps its own clock (fill_poll / as.poll), so a poll that only one of
+ * them is due for still costs one hash, and a poll neither is due for costs nothing at all. */
 static void autosave_poll(void)
 {
     static uint32_t fill_poll;
-    if (fm1_ms - fill_poll >= 250u) {                   /* (JIANT 0.6) how full the music is, flash or not */
-        fill_poll = fm1_ms;
-        proj_fill_poll(autosave_sig());
-    }
+    int fill_due = fm1_ms - fill_poll >= 250u;          /* (JIANT 0.6) how full the music is, flash or not */
 #if FELUCCA_FLASH
+    int as_due = flash_ok && fm1_ms - as.poll >= AS_POLL_MS;
+#else
+    int as_due = 0;
+#endif
     uint32_t sig;
-    if (!flash_ok || fm1_ms - as.poll < AS_POLL_MS)
+    if (!fill_due && !as_due)
         return;
-    as.poll = fm1_ms;
     sig = autosave_sig();
+    if (fill_due) {
+        fill_poll = fm1_ms;
+        proj_fill_poll(sig);
+    }
+    if (!as_due)
+        return;                                     /* !FELUCCA_FLASH leaves as_due at 0: no autosave without flash */
+#if FELUCCA_FLASH
+    as.poll = fm1_ms;
     if (sig != as.seen || !autosave_quiet()) {
         as.seen = sig;
         as.t = fm1_ms;

@@ -1,3 +1,28 @@
+## v2.0.2 — EL LAZO PRINCIPAL DEJA DE HASHEAR DOS VECES, Y LA SUITE DEJA DE SALTARSE EL EMULADOR
+
+**La línea 2.0, parche 2.** Reparación y optimización medidas sobre v2.0.1; ningún camino de audio, tabla,
+parámetro, preset ni pantalla cambia de contenido. Clases de medida: `[HOST]` x86-64 nativo, `[TARGET]` build
+AC791N real. No hubo unidad FM-1 física.
+
+- **La firma del autoguardado se calculaba dos veces cada 250 ms.** `autosave_poll()` tenía dos lectores del
+  mismo hash — el aviso de llenado (`proj_fill_poll`) y el autoguardado — y cada uno llamaba a `autosave_sig()`
+  por su cuenta: los ~9 KB del proyecto (6 pistas × todos sus parámetros, pasos y parches FM6) se recorrían
+  **dos veces por cuarto de segundo** para responder lo mismo. Ahora se calcula una vez por sondeo y ambos
+  lectores la comparten; cada uno conserva su propio reloj, así que un sondeo que sólo le toca a uno cuesta un
+  hash y uno que no le toca a ninguno no cuesta nada. `[HOST]`
+- **La propia firma es un 66 % más barata.** Era FNV-1a byte a byte; ahora pliega cuatro bytes por multiplicación
+  (el valor es de RAM: `as.saved`/`as.seen` se comparan dentro de un mismo encendido, así que el ancho del
+  plegado es libre) y agrupa los parámetros de ocho en ocho antes de mezclarlos. Medido con `tests/frame_bench`
+  (`cc -O2`, 1 200 llamadas, mínimo de seis series, mismo host): **`autosave_sig()` 10 904 → 3 661 ns (−66 %)**
+  y, con la deduplicación de arriba, **una sola firma por sondeo en vez de dos (−50 % de llamadas)**.
+- **La suite ya no se salta el emulador cuando Emscripten está instalado.** `tests/run_tests.sh` sólo comprobaba
+  `command -v emcc`; en este proyecto `emcc` vive en `$HOME/emsdk` y se alcanza con `emsdk_env.sh`, así que la
+  suite imprimía "skip the browser emulator" y la comprobación de paridad (`= native`, 88 200 frames bit a bit)
+  **nunca corría como parte de la suite**. Ahora, si `emcc` no está en `PATH`, la suite busca el SDK donde el
+  proyecto lo instala y lo carga: un grupo saltado es un hueco en la evidencia, no un resultado verde.
+- **Coste en el slot:** imagen AC791N **581 556 B** (583 612), **2 056 B libres** sobre el suelo de 2 048; RAM
+  `.data+.bss` 92 688/98 304, pool 8 384 de holgura, LOWBUF 31 648/32 768, NOINIT 124 libres. Todo `[TARGET]`.
+
 ## v2.0.1 — SCL: EL TECLADO QUE OCUPA SU SITIO, LAS NOTAS QUE SUENAN Y EL RATÓN QUE TOCA EL ACORDE
 
 **La línea 2.0, parche 1.** v2.0.0 ya está publicado desde un commit anterior del historial, así que esta fase —que
