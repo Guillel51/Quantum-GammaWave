@@ -1,4 +1,4 @@
-## v2.4.0 — la profundidad llega a MORPH y TILT
+## v2.3.1 — la profundidad llega a MORPH y TILT
 
 **Dos curvas más con el stack de ENV, ninguna copia de JIANT y ninguna decorativa.** Cada capa es un valor real
 del mismo parámetro, no una repetición de la misma forma.
