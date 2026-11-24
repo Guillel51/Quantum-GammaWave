@@ -181,9 +181,16 @@ static volatile uint8_t midi_in_overflow;               /* audio ISR discards a 
 /* (FASE 3, #105) one complete F0..F7 message for the screen reader, as USB-MIDI SysEx event packets, or 1
  * when the ring has no room for all of it (the message is then dropped: the protocol says the device never
  * waits, and a half sentence is worse than none). Never blocks, never allocates, never touches flash. */
+/* (FASE 8) a build with no USB device (the browser emulator) takes the frame here instead of putting it in the
+ * ring ep1_tx drains: same bytes, same place in the code, and the target build's macro expands to 0. */
+#ifndef USB_WIRE_HOOK
+#define USB_WIRE_HOOK(p, n) 0
+#endif
 static int ann_wire_send(const uint8_t *p, uint32_t n)
 {
     uint32_t pkt[8u + ANN_MAX / 3u], k = ann_pack(p, n, pkt, 8u + ANN_MAX / 3u), i;
+    if (USB_WIRE_HOOK(p, n))
+        return 0;
     if (so_w - so_r + k > SXQ)
         return 1;
     for (i = 0; i < k; i++) {

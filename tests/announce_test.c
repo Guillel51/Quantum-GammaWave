@@ -68,11 +68,22 @@ int main(void)
 
     /* HELLO -> the answer (name, version, 0, link), and the screen is due */
     check("HELLO frame accepted", hello(1, 10) == 1);
-    check(".. the answer is HELLO version, name, 0, (empty link)",
+    check(".. the answer is HELLO version, name, 0, the words link",
           wire_c == 1 && wire[0][0] == 0xF0 && wire[0][1] == 0x7D && wire[0][2] == 0x53 && wire[0][3] == 0x52 &&
           wire[0][4] == ANN_HELLO && wire[0][5] == ANN_VER && memcmp(&wire[0][6], ANN_NAME, strlen(ANN_NAME)) == 0 &&
-          wire[0][6 + strlen(ANN_NAME)] == 0 && wire[0][7 + strlen(ANN_NAME)] == 0xF7 &&
-          last_len() == 8 + strlen(ANN_NAME));
+          wire[0][6 + strlen(ANN_NAME)] == 0 &&
+          memcmp(&wire[0][7 + strlen(ANN_NAME)], ANN_WORDS_URL, strlen(ANN_WORDS_URL)) == 0 &&
+          wire[0][7 + strlen(ANN_NAME) + strlen(ANN_WORDS_URL)] == 0xF7 &&
+          last_len() == 8 + strlen(ANN_NAME) + strlen(ANN_WORDS_URL));
+    /* (FASE 8) the pronunciations: the link names the file tools/gen_words.py publishes for words.tsv, and
+     * it fits one frame -- a link that does not fit is dropped whole rather than cut into a dead URL. */
+    check(".. the link is the site's published words file",
+          strlen(ANN_WORDS_URL) > 20 && strstr(ANN_WORDS_URL, "https://guillel51.github.io/") &&
+          strstr(ANN_WORDS_URL, "/sr/w/") && strstr(ANN_WORDS_URL + strlen(ANN_WORDS_URL) - 5, ".json"));
+    /* the answer is one frame: name, the 0 separator, the link, inside ANN_MAX (tools/gen_words.py --check
+     * fails the build-time version of this same sum, so the two cannot drift apart) */
+    check(".. name + separator + link fit one frame",
+          strlen(ANN_NAME) + strlen(ANN_WORDS_URL) + 2u <= (size_t)ANN_MAX);
     check("a new reader means WHERE: the screen is due once", ann_where() && !ann_where());
 
     /* SAY: text, and NOW cuts, KEEP is a warning */

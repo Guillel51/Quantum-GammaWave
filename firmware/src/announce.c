@@ -43,7 +43,12 @@
 #endif
 #endif
 #ifndef ANN_WORDS_URL
-#define ANN_WORDS_URL ""                /* no words file published yet: the reader says the text as it is */
+/* (FASE 8) the words this build was made with: firmware/words.tsv, turned into this file by
+ * tools/gen_words.py and published with the site. The name is the fingerprint of its content, so it never
+ * moves and a reader that kept it keeps being right; `gen_words.py --check` fails if the two disagree. */
+#ifndef ANN_WORDS_URL
+#define ANN_WORDS_URL "https://guillel51.github.io/Quantum-GammaWave/sr/w/2ab0d08f.json"
+#endif
 #endif
 #define ANN_VER 1u
 #define ANN_H0 0x7Du                    /* the non-commercial manufacturer id */

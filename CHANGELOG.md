@@ -1,3 +1,38 @@
+## v1.11.0 — FASE 8: LA PANTALLA EN PALABRAS, COMPLETA; Y UNA AUDITORÍA CON PRUEBAS
+
+**El lector de pantalla (issue #105) cubre lo que le faltaba.** Hasta la 1.10 solo se decía la pantalla, la fila
+de MENU y el valor de las tarjetas de HOME. Ahora:
+
+- **Los valores de cualquier página**, no solo HOME: la línea que ya existía se pide con `page_desc()` (lo mismo
+  que dibujan las tarjetas y leen los encoders), así que EDIT, SEQ, FX, SCL y el resto dicen `CUTOFF 96` igual
+  que HOME decía `LEVEL 96`. Se dice cuando el giro lleva ~120 ms quieto, nunca un mensaje por paso.
+- **La fila de las listas, con su lugar**: `PATTERN 5 OF 40` en SEQ > PHRASES y `STEP 7 OF 16` en el cursor del
+  secuenciador, dichas al moverse y otra vez cuando el lector pregunta WHERE. El nombre del patrón se sigue
+  diciendo entero al cargarlo (`LOADED 03 NIGHT BASS`); repetirlo en la fila costaba 96 B de un slot que tenía 40.
+- **WHERE vuelve a decir la página y la fila** en cualquier pantalla, no solo en HOME y MENU.
+- **Las pronunciaciones, publicadas**: `firmware/words.tsv` (60 abreviaturas que la pantalla muestra de verdad,
+  comprobadas contra `params.c`), `tools/gen_words.py` las convierte en el JSON que pide el protocolo, lo nombra
+  con la huella de su propio contenido y lo publica en el sitio (`site/sr/w/2ab0d08f.json`). El HELLO del
+  instrumento lleva ese enlace exacto (`ANN_WORDS_URL`), y `gen_words.py --check` falla si los dos dejan de
+  coincidir o si el nombre + el enlace no caben en un frame.
+- **El emulador habla, por fin.** La página del emulador compilaba con `FELUCCA_ANNOUNCE` en 0 (su unidad no
+  incluía `announce.c`), así que el dispositivo del navegador nunca decía nada. Ahora hay un panel "Screen
+  reader" con su casilla, un botón "Read the whole screen" y dos regiones `aria-live` (una educada y una
+  asertiva para los avisos), y los frames van y vuelven por la misma puerta que en el cable: `web_sysex_byte`
+  para el HELLO/WHERE del lector y `USB_WIRE_HOOK` en `usb.c` para tomar lo que el aparato contesta.
+  `emu_test.mjs` lo mide: silencio antes de HELLO, la respuesta con nombre y enlace, `HOME MAIN`, y WHERE.
+
+**Auditoría y estabilidad.** Se re-corrieron las pruebas de las fases anteriores que cubren lo que se pidió
+revisar (voice stealing y polifonía, la nota diferida entre núcleos, las colas MIDI y el soak), y la suite
+completa quedó en verde. Los dos defectos que aparecieron estaban en el camino del lector y son los dos
+arreglados arriba: el emulador sin `announce.c`, y un HELLO que podía cortar el enlace de palabras a media URL.
+
+**Lo que se midió y lo que no cupo.** Imagen **581 508 B**, **2 104 B libres** (suelo 2 048), RAM 4 196 libres.
+Entraron el aviso de valores, la fila con su lugar, WHERE y el enlace de palabras; **no** entró el aviso
+`QUEUE FULL` en la barra cuando se llena la cola MIDI/SysEx (~60 B, medido, y el slot quedó en 56): queda como
+pendiente documentado, con los contadores que ya existen (`midi_in_overflow`) y la fila CPU LOAD de
+GLO > MONITOR como diagnóstico de carga. Nada de esto se probó en la FM-1 física.
+
 ## v1.10.0 — FASE 7: QUANTUM TUNING, y los mini knobs un pixel más grandes
 
 **Lo que no existía y ahora sí.** La FM-1 no tenía temperamentos: `cents` existía como *detune* de un oscilador

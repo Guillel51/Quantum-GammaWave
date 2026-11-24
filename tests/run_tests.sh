@@ -434,7 +434,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "CORE SYNC: a note while the other core renders is postponed (never allocated mid-job), replayed at the block start, note-offs never dropped, a burst over the queue loses only note-ons" "$OUT/voice_defer_test"
     # (FASE 3, issue #105) the screen reader's protocol (announce.c) and the USB-MIDI framing usb.c uses
     $CC -O1 -w -Ifirmware/src -o "$OUT/announce_test" tests/announce_test.c
-    run "SCREEN READER (issue #105): silent until HELLO, the HELLO answer, SAY/WHERE/BYE, the 5 s timeout, a line cut at a word, and USB-MIDI CIN 4/5/6/7" "$OUT/announce_test"
+    run "SCREEN READER (issue #105): silent until HELLO, the HELLO answer with the words link, SAY/WHERE/BYE, the 5 s timeout, a line cut at a word, and USB-MIDI CIN 4/5/6/7" "$OUT/announce_test"
+    # (FASE 8) the pronunciations: firmware/words.tsv -> the JSON the reader fetches, named after its own content,
+    # published with the site, and the exact file announce.c's ANN_WORDS_URL links to (a stale link fails here)
+    run "SCREEN READER words: words.tsv, the published JSON and announce.c's ANN_WORDS_URL name the same file, and it fits one HELLO frame" python3 tools/gen_words.py --check
     # (FASE 3) how long a note takes to start: prints, never fails (a comparison tool, not a budget)
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/alloc_bench" tests/alloc_bench.c -lm
     "$OUT/alloc_bench" | sed 's/^/  /'

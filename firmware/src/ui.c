@@ -1751,9 +1751,68 @@ static void menu_ann_row(char *out, uint32_t n, uint32_t row);   /* menu_items.c
 static char ann_page_was[16];
 static char ann_row_was[48];
 static uint8_t ann_row_i = 0xFFu;              /* the row last said; 0xFF: none (the menu is not open) */
+static uint16_t ann_pick_key = 0xFFFFu;        /* (FASE 8) the row or step a page had selected, last said */
+/* (FASE 8) append s at k in b (n bytes): the length after it, always 0-terminated */
+static uint32_t ann_add(char *b, uint32_t k, const char *s)
+{
+    for (; s && *s && k + 2u < 96u; s++)
+        b[k++] = *s;
+    b[k] = 0;
+    return k;
+}
+/* (FASE 8) THE ROW A PAGE HAS SELECTED, IN WORDS, with its place in the list ("PATTERN 5 OF 40", "STEP 7 OF 16"):
+ * 1 when the page keeps one. The pages that do not are simply not spoken here -- their knobs still are, by
+ * ann_ui's value line, which now covers every page and not HOME alone. The row says where it is, not what it is
+ * called: the pattern's own name is already said, in full, when it is LOADED ("LOADED 03 NIGHT BASS"), and a
+ * second copy of pat_label here cost 96 B of a slot that had 40. */
+static int ann_pick(char *b, uint16_t *key)
+{
+    uint32_t g = cur_page()->graph, i = 0, cnt = 0, k;
+    const char *word = 0;
+    char t[8];
+    if (g == GR_PATS) {                         /* SEQ > PHRASES: the pattern loader's list */
+        i = pat_pick();
+        cnt = pat_count();
+        word = "PATTERN";
+    } else if (g == GR_ROLL) {                  /* SEQ > STEP: the step the cursor is on */
+        i = ui.bank * 16u + ui.cursor;
+        cnt = 16u;
+        word = "STEP";
+    }
+    if (!word)
+        return 0;
+    *key = (uint16_t)(g * 256u + (i & 255u));
+    k = ann_add(b, 0, word);
+    k = ann_add(b, k, " ");
+    fmt_int(t, (int32_t)(i + 1u));
+    k = ann_add(b, k, t);
+    k = ann_add(b, k, " OF ");
+    fmt_int(t, (int32_t)cnt);
+    ann_add(b, k, t);
+    return 1;
+}
+/* (FASE 8) ONE CARD, IN WORDS: its label, its value and its unit, appended at k (sep goes before it, if
+ * anything is there already). The knob line and WHERE's four-value line are the same sentence said one and four
+ * times, so they are one function: the page's own numbers through page_desc, the format through param_format. */
+static uint32_t ann_card(char *b, uint32_t k, const param_desc_t *d, int16_t *vp)
+{
+    char val[12];
+    const char *unit;
+    if (!d || !vp || !d->label || !d->label[0] || d->label[0] == '-')
+        return k;
+    param_format(d, *vp, val, &unit);
+    k = ann_add(b, k, d->label);
+    k = ann_add(b, k, " ");
+    k = ann_add(b, k, val);
+    if (unit && unit[0]) {
+        k = ann_add(b, k, " ");
+        k = ann_add(b, k, unit);
+    }
+    return k;
+}
 static void ann_ui(void)
 {
-    char b[48];
+    char b[96];
     const char *nm;
     int where;
     if (!ann_on())
@@ -1783,21 +1842,20 @@ static void ann_ui(void)
         ann_row_i = 0xFFu;
         ann_row_was[0] = 0;
     }
-    if (ui.hot_t && ui.home && !ui.menu && !ui.confirm && !ui.home_viz) {   /* the card's value, as its knob turns */
-        int16_t *vp = 0;
-        const param_desc_t *d = home_param(ui.hot_col, &vp);
-        char val[12];
-        const char *unit;
-        if (d && vp) {
-            param_format(d, *vp, val, &unit);
-            b[0] = 0;
-            str_cpy(b, d->label, sizeof b);
-            str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
-            str_cpy(b + str_len(b), val, sizeof b - str_len(b));
-            if (unit)
-                str_cpy(b + str_len(b), unit, sizeof b - str_len(b));
-            ann_later(b, ANN_NOW, 120u, fm1_ms);
+    if (!ui.home && !ui.menu && !ui.confirm) {  /* (FASE 8) a list's row, a sequencer step: said when it moves */
+        uint16_t key = 0xFFFFu;
+        if (ann_pick(b, &key) && (where || key != ann_pick_key)) {
+            ann_pick_key = key;
+            ann_say(b, 0, ANN_NOW);
         }
+    }
+    /* (FASE 8) the value of the knob just turned: any page's, not HOME's alone (a page hands its own four
+     * numbers through page_desc, the same call the cards and the encoders use) */
+    if (ui.hot_t && !ui.menu && !ui.confirm && !(ui.home && (ui.home_viz || ui.home_view != HV_HOME))) {
+        int16_t *vp = 0;
+        const param_desc_t *d = ui.home ? home_param(ui.hot_col, &vp) : page_desc(cur_page(), ui.hot_col, &vp);
+        if (ann_card(b, 0, d, vp))
+            ann_later(b, ANN_NOW, 120u, fm1_ms);
     }
 }
 #else

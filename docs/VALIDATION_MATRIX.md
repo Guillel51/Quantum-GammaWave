@@ -4153,3 +4153,32 @@ XIP y los presupuestos de audio intactos.
 **Gates.** `tune_test` 0 fallos; `ui_test` en verde; `target_budget` 0 líneas fuera; render sweep 196 pantallas ×
 22 paletas con 0 hallazgos de lint y 0 desalineaciones; píxeles actualizados (página nueva + r=9). Nada medido en
 la FM-1 física.
+
+## §84 · EL LECTOR EN TODAS LAS PANTALLAS, Y EL EMULADOR QUE HABLA (v1.11.0)
+
+**Antes / después.** Imagen 581 156 → **581 508 B**; XIP libre 2 456 → **2 104 B** (suelo 2 048). RAM 94 108 de
+98 304 (**4 196 libres**, suelo 4 096). Clase: build AC791N (`tools/resource_map.py --check` en verde) + host
+x86-64 para el camino real del lector (`ui_render --announce`) y para el protocolo (`announce_test`) + Node para
+el emulador (`emu_test.mjs`, `build/emu/felucca.wasm`). Nada en la FM-1 física.
+
+**Lo que se añadió al lector.** El valor de la perilla en **cualquier** página (`page_desc`, la misma llamada que
+dibuja las tarjetas), la fila de las listas con su lugar (`PATTERN 5 OF 40`, `STEP 7 OF 16`), WHERE en todas las
+pantallas, y el archivo de palabras publicado con su enlace en el HELLO. Medido por el camino real: 0 líneas sin
+lector, `HOME MAIN` al HELLO, la fila de MENU al moverse y su valor al asentarse (0 líneas por paso, 1 a los
+400 ms), `PATTERN … OF …`, `STEP 7 OF 16`, `PROFILE EQUAL` al girar una perilla de una página, y WHERE repitiendo
+la página.
+
+**Los dos defectos que la auditoría encontró, y nada más.** (1) El emulador se compilaba sin `announce.c`
+(`FELUCCA_ANNOUNCE` = 0 en su unidad): el dispositivo del navegador nunca hablaba. (2) El HELLO podía cortar el
+enlace de palabras a media URL si el nombre crecía; ahora la suma nombre + enlace está sujeta por
+`gen_words.py --check`, y el corte por espacio de `ann_send` no puede alcanzarla. Ninguna regresión de las fases
+anteriores: la suite completa terminó en verde.
+
+**El coste, medido con tres builds de control.** El valor en todas las páginas + la fila + WHERE + el enlace son
+352 B. El nombre del patrón en la fila costaba otros 96 (pat_label completo) y el slot dejaba 40: se dice al
+cargar, no en cada movimiento. El aviso `QUEUE FULL` de la barra (~60 B) no cupo y quedó como pendiente
+documentado en `docs/ACCESSIBILITY.md`.
+
+**Gates.** `announce_test` 0 fallos (con el enlace de palabras en la respuesta al HELLO), `gen_words --check` ok
+(60 palabras, 1 091 B, huella `2ab0d08f`), `ui_render --announce` 0 fallos, `ui_test` verde, `emu_test` verde con
+los cuatro chequeos nuevos del lector, `target_budget` 0 líneas fuera, `resource_map --check` ok.

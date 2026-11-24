@@ -34,6 +34,11 @@
 
 static uint8_t nor[0x100000];            /* the SPI NOR (erased: 0xFF) */
 #define main hostsim_main
+/* (FASE 8, #105) the screen reader's frames, taken where they are made: this build has no USB device, so usb.c's
+ * ring would be drained by a main loop that sends to nothing. The hook copies each complete F0..F7 message into
+ * a buffer the page reads; usb.c asks it before queueing anything. */
+static int web_ann_hook(const uint8_t *p, uint32_t n);
+#define USB_WIRE_HOOK(p, n) web_ann_hook((p), (n))
 #include "../../tests/hostsim.c"
 #undef main
 
@@ -422,6 +427,54 @@ EXPORT uint32_t web_midi(uint32_t status, uint32_t d1, uint32_t d2)
     if (status < 0x80u || status >= 0xF0u)
         return 1;
     return (uint32_t)midi_enqueue((status >> 4) | status << 8 | (d1 & 127u) << 16 | (d2 & 127u) << 24, 1);
+}
+
+/* (FASE 8, #105) THE SCREEN READER, IN THE EMULATOR. On a device the reader's frames leave through usb.c's
+ * SysEx ring and ep1_tx; the emulator has no USB device, so the page drives the same two ends by hand:
+ *   web_sysex_byte(b)   one byte of a reader's F0..F7 frame, exactly what usb.c feeds sysex_byte() with;
+ *   web_ann_on()        1 while a reader hears the device (announce.c's own state, for the panel);
+ *   web_ann_buf()/web_ann_take()  the frames the device would have sent, drained out of the ring the firmware
+ *                       already fills. Take() returns how many bytes are waiting and leaves them in buf(),
+ *                       unpacked from the USB-MIDI event packets (CIN 4/5/6/7) back into F0..F7.
+ * Nothing here exists for the target build: this file is the emulator's own. */
+static uint8_t web_sy[40];
+static uint32_t web_sy_n;
+EXPORT void web_sysex_byte(uint32_t b)
+{
+    b &= 0xFFu;                                  /* the emulator has no USB device, so usb.c's sx_on never
+                                                  * comes up: the frame is framed here and handed to
+                                                  * announce.c exactly as sysex_byte() would hand it */
+    if (b == 0xF0u) {
+        web_sy_n = 0;
+        return;
+    }
+    if (b == 0xF7u) {
+        if (web_sy_n >= 4u && web_sy[0] == 0x7Du && web_sy[1] == 0x53u && web_sy[2] == 0x52u)
+            ann_frame(web_sy, web_sy_n, fm1_ms);
+        web_sy_n = 0;
+        return;
+    }
+    if (web_sy_n < sizeof web_sy)
+        web_sy[web_sy_n++] = (uint8_t)b;
+}
+EXPORT uint32_t web_ann_on(void) { return (uint32_t)ann.on; }
+static uint8_t ann_out_b[4096];
+static uint32_t ann_out_n;
+static int web_ann_hook(const uint8_t *p, uint32_t n)
+{
+    uint32_t i;
+    if (ann_out_n + n > sizeof ann_out_b)
+        ann_out_n = 0;                          /* the page did not read for a while: the oldest goes */
+    for (i = 0; i < n; i++)
+        ann_out_b[ann_out_n++] = p[i];
+    return 1;                                   /* taken: not into a ring that nothing drains */
+}
+EXPORT uint8_t *web_ann_buf(void) { return ann_out_b; }
+EXPORT uint32_t web_ann_take(void)
+{
+    uint32_t n = ann_out_n;
+    ann_out_n = 0;
+    return n;
 }
 
 /* the LEDs: bit b = the button labelled b lit (bit 14: PLAY's green), keys bit k; the dim glow and the breath alike */

@@ -71,6 +71,16 @@ footer { margin-top: 12px; font-size: 12px; }
 footer nav a { margin: 0 6px; }
 footer small { font-size: 11px; opacity: .8; }
 footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces to break at */
+/* (FASE 8, #105) the screen reader's panel: the device's own protocol, said by the page */
+.reader { margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--rule); border-radius: 8px; color: var(--fg); }
+.reader h2 { margin: 0 0 6px; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; }
+.reader p { margin: 6px 0; font-size: 13px; color: var(--dim); }
+.reader label { color: var(--fg); }
+.reader button { font: inherit; font-size: 13px; padding: 4px 12px; background: #fff; color: #000; border: 0; border-radius: 6px; cursor: pointer; }
+.reader button:disabled { opacity: .4; cursor: default; }
+.reader .said { min-height: 1.4em; font-size: 15px; color: var(--fg); }
+.reader ol { margin: 6px 0 0; padding-left: 20px; font-size: 12px; color: var(--dim); max-height: 180px; overflow: auto; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -102,6 +112,18 @@ footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces
   <span>Tap a planet on HOME: its own reaction</span>
   <span><kbd>Shift</kbd>-click holds a button (e.g. <kbd>Shift</kbd>+<kbd>OCT-</kbd> then <kbd>ARP</kbd> = Solar Macros, <kbd>PLAY</kbd> = 49-Genre Gen, <kbd>HOME</kbd> = 3D Visualizer)</span>
 </p>
+
+<section class="reader" aria-labelledby="reader-h">
+  <h2 id="reader-h">Screen reader</h2>
+  <p>The FM-1 Screen Reader protocol, in the browser: the same words the instrument sends over USB. Turn it on and the page says what the emulator's screen says; a screen reader of your own reads the lines as they arrive, warnings first.</p>
+  <p>
+    <label><input type="checkbox" id="reader-on"> Announce the emulator's screen</label>
+    <button type="button" id="reader-where" disabled>Read the whole screen</button>
+  </p>
+  <p class="said" id="reader-last" aria-live="polite" aria-atomic="true"></p>
+  <p class="visually-hidden" id="reader-urgent" aria-live="assertive" aria-atomic="true"></p>
+  <details><summary>What it said (newest first)</summary><ol id="reader-log" reversed></ol></details>
+</section>
 
 <footer>
   <small class="version">@VERSION@@PREVIEW@ · build <code id="build-commit">@COMMIT@</code> · built <code id="build-date">@BUILT@</code> · engine <code id="wasm-hash">@WASM_SHA@</code> · @WASM_SIZE@ B</small><br>
@@ -580,6 +602,7 @@ async function switchOn() {
         else if (m.type === "error") rej(new Error(m.message));
         else if (m.type === "frame") {
           if (m.fb) drawScreen(m.fb);
+          if (m.ann) readerFrames(m.ann);
           if (m.leds) drawLights(lastLeds = m.leds, m.anim);
           if (m.sectors && !saveFlash(m.sectors) && !warned) {
             warned = true;
@@ -607,6 +630,63 @@ async function switchOn() {
     say("Could not start: " + msg + " (" + advice + ")");
   }
 }
+// -------------------------------------------------- (FASE 8, #105) the screen reader
+// The device's protocol (fm1-reader PROTOCOL.md v1), driven from the page the way the reader drives the cable:
+// HELLO every 2 s while on, BYE when off, WHERE on demand; what comes back is SAY (16) and the HELLO answer
+// (1), read out here and, because the lines land in live regions, by the browser's own screen reader too.
+const readerOn = document.getElementById("reader-on");
+const readerWhere = document.getElementById("reader-where");
+const readerLast = document.getElementById("reader-last");
+const readerUrgent = document.getElementById("reader-urgent");
+const readerLog = document.getElementById("reader-log");
+let readerTimer = 0;
+const annBytes = (b) => { if (node) send({ type: "sysex", data: b }); };
+const annFrame = (cmd, args) => annBytes([0xF0, 0x7D, 0x53, 0x52, cmd, ...args, 0xF7]);
+function readerFrames(raw) {
+  let cur = null;
+  for (const v of raw) {
+    if (v === 0xF0) { cur = []; continue; }
+    if (v === 0xF7) {
+      if (cur && cur.length >= 4 && cur[0] === 0x7D && cur[1] === 0x53 && cur[2] === 0x52) readerSay(cur);
+      cur = null;
+      continue;
+    }
+    if (cur) cur.push(v);
+  }
+}
+function readerSay(f) {
+  const cmd = f[3];
+  const body = f.slice(4);                        // SAY: flags, text;  HELLO: version, name, 0, link
+  const text = (bytes) => bytes.map((c) => (c === 0 ? " " : String.fromCharCode(c))).join("").trim();
+  let line = "", urgent = false;
+  if (cmd === 16) {
+    urgent = (body[0] & 2) !== 0;                  // KEEP: a warning, heard whole
+    line = text(body.slice(1));
+  } else if (cmd === 1) {
+    const name = body.slice(1), z = name.indexOf(0);   // version, name, 0, link
+    line = "Connected: " + text(z < 0 ? name : name.slice(0, z));
+  }
+  if (!line) return;
+  (urgent ? readerUrgent : readerLast).textContent = line;
+  const li = document.createElement("li");
+  li.textContent = line;
+  readerLog.prepend(li);
+  while (readerLog.children.length > 200) readerLog.lastChild.remove();
+}
+function readerSet(on) {
+  clearInterval(readerTimer);
+  readerTimer = 0;
+  readerWhere.disabled = !on;
+  if (on) {
+    annFrame(1, [1]);                              // HELLO: start, and keep saying it every 2 s
+    readerTimer = setInterval(() => annFrame(1, [1]), 2000);
+  } else {
+    annFrame(2, []);                               // BYE
+    readerLast.textContent = "";
+  }
+}
+readerOn.addEventListener("change", () => readerSet(readerOn.checked));
+readerWhere.addEventListener("click", () => annFrame(3, []));
 document.getElementById("go").addEventListener("click", switchOn);
 document.addEventListener("visibilitychange", () => send({ type: "visible", on: !document.hidden }));
 </script>

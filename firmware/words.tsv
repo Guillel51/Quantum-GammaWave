@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Quantum GammaWave: how the screen's own text is said.
+#
+# One entry per line, the screen's text first and what to say second, separated by a tab. This is not a
+# translation and not a place for abbreviations the screen does not show: every left side below is a label
+# that params.c actually puts on a card (checked against PD("...")), so the reader's rendering of a knob
+# ("ATK 20") becomes a sentence ("attack 20").
+#
+# tools/gen_words.py turns this into the JSON file the fm1-reader protocol asks for, names it after a
+# fingerprint of its own content and writes it under site/sr/w/; announce.c's ANN_WORDS_URL links to that
+# exact file, and `gen_words.py --check` fails if the two ever stop agreeing. Numbers, dB, %, C#3 and
+# friends are read by the reader's own rules and are not listed here.
+ATK	attack
+REL	release
+SUS	sustain
+DEC	decay
+CUT	cutoff
+RES	resonance
+DLY	delay
+REV	reverb
+FEEDBK	feedback
+AMP	amplitude
+FILT	filter
+FILTER	filter
+FREQ	frequency
+LEN	length
+PAT	pattern
+PROB	probability
+OCT	octave
+DETUNE	detune
+DEPTH	depth
+GAIN	gain
+GATE	gate
+GLIDE	glide
+LEVEL	level
+MIX	mix
+MOD	modulation
+MORPH	morph
+NOTE	note
+OFFSET	offset
+PAN	pan
+PHASE	phase
+PITCH	pitch
+PRE	pre
+RATE	rate
+REF	reference
+ROOT	root
+SHAPE	shape
+SIZE	size
+SLEW	slew
+SLOT	slot
+SPRAY	spray
+STEREO	stereo
+SWING	swing
+TILT	tilt
+TIMES	times
+TONE	tone
+TRANS	transpose
+TUNE	tune
+WIDE	wide
+CURVE	curve
+DAMP	damping
+CLIP	clip
+AIR	air
+FADE	fade
+DUCK	ducking
+CHORUS	chorus
+DIST	distortion
+ALL	all
+BPM	beats per minute
+CENTS	cents
+CPU	CPU

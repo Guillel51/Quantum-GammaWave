@@ -2301,6 +2301,14 @@ static int ann_said(const char *t, uint32_t from)
             return 1;
     return 0;
 }
+static int ann_said_sub(const char *t, uint32_t from)
+{
+    uint32_t i;
+    for (i = from; i < ann_wire_log_n; i++)
+        if (strstr(ann_wire_log[i], t))
+            return 1;
+    return 0;
+}
 static void ann_flush(void)
 {
     ui.force = 1;
@@ -2372,6 +2380,67 @@ static int announce_main(void)
     ann_flush();
     printf("  al cerrar MENU: %s\n", ann_said("HOME MAIN", n0) ? "vuelve a HOME MAIN" : "NADA");
     if (!ann_said("HOME MAIN", n0)) bad++;
+    /* (FASE 8) THE PAGES THAT ARE NOT HOME. Until now only HOME's cards were read out: a list's row, a
+     * sequencer step and any other page's knobs were silent. Here, on the real path, on the pages the states
+     * build: the row with its place in the list, the step with its bank, the knob of the page (not HOME's,
+     * through page_desc), and WHERE saying the page and the four values it holds. */
+    setup(S_PHRASES);
+    f[3] = 1;                                        /* the reader says HELLO again (the device forgets one after 5 s) */
+    f[4] = 1;
+    (void)ann_frame(f, sizeof f, fm1_ms);
+    n0 = ann_wire_log_n;
+    ann_flush();
+    printf("  PHRASES (lista): %s\n", ann_said_sub("PATTERN ", n0) && ann_said_sub(" OF ", n0) ? "fila y lugar" : "NADA");
+    if (!ann_said_sub("PATTERN ", n0) || !ann_said_sub(" OF ", n0)) bad++;
+    setup(S_STEP);
+    n0 = ann_wire_log_n;
+    ann_flush();
+    printf("  STEP (cursor): %s\n", ann_said_sub("STEP 7 OF 16", n0) ? "el paso del cursor" : "NADA");
+    if (!ann_said_sub("STEP 7 OF 16", n0)) bad++;
+    go_title("TUNE");                                /* (FASE 7) a page with four knobs of its own (page_desc) */
+    {
+        uint32_t before = ann_wire_log_n, col = 0, c;
+        char val[12], want2[48];
+        const char *unit = 0;
+        int16_t *vp = 0;
+        const param_desc_t *d = 0;
+        for (c = 0; c < 4u; c++) {
+            int16_t *v2 = 0;
+            d = page_desc(cur_page(), c, &v2);
+            if (d && v2) {
+                vp = v2;
+                col = c;
+                break;
+            }
+            d = 0;
+        }
+        (void)ann_frame(f, sizeof f, fm1_ms);
+        ann_flush();                                 /* a fresh HELLO means WHERE: that answer goes out here */
+        before = ann_wire_log_n;
+        ui.hot_col = (uint8_t)col;
+        ui.hot_t = 40;
+        ann_flush();
+        printf("  perilla de una pagina: %u lineas en el acto (0 = espera a que pare)\n", ann_wire_log_n - before);
+        if (ann_wire_log_n != before) bad++;
+        ann_tick(fm1_ms + 400u);
+        want2[0] = 0;
+        if (d && d->label && d->label[0]) {
+            param_format(d, *vp, val, &unit);
+            snprintf(want2, sizeof want2, "%s %s%s%s", d->label, val, unit && unit[0] ? " " : "", unit && unit[0] ? unit : "");
+        }
+        printf("  .. y al asentarse: \"%s\" (%s)\n", want2, ann_said(want2, before) ? "dicha" : "NO");
+        if (!ann_said(want2, before)) bad++;
+        ui.hot_t = 0;
+    }
+    {   /* (FASE 8) WHERE on a page says the page and its row again (the four values are the panel's own,
+         * said as each knob turns; they are not repeated here) */
+        uint32_t before = ann_wire_log_n;
+        f[3] = 3;
+        (void)ann_frame(f, sizeof f, fm1_ms);
+        ann_flush();
+        printf("  WHERE en una pagina: %s\n", ann_said("TUNE", before) ? "la pagina otra vez" : "NADA");
+        if (!ann_said("TUNE", before)) bad++;
+    }
     printf("announce: %s\n", bad ? "FAILED" : "lo que se dice es lo que la pantalla tiene, y nada sin lector");
     return bad ? 1 : 0;
 }

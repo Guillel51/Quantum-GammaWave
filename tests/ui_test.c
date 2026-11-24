@@ -191,7 +191,7 @@ static struct { uint32_t stage; } felucca_dbg;
  * with a capture of the SAY texts in place of usb.c's USB-MIDI wire, so ui_render --announce can read what the
  * instrument would have said. Nothing else of the reader changes: the protocol itself is tests/announce_test.c. */
 #define FELUCCA_ANNOUNCE 1
-#define ANN_WIRE_LOG 16
+#define ANN_WIRE_LOG 64
 static char ann_wire_log[ANN_WIRE_LOG][64];
 static uint32_t ann_wire_log_n;
 static int ann_wire_send(const uint8_t *p, uint32_t n)

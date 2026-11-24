@@ -233,6 +233,45 @@ c.render(600);
 check("a fresh instance with the kept sectors has it; one without does not",
       b.ex.web_test_user_preset(0) === 1 && c.ex.web_test_user_preset(0) === 0);
 
+// ---- (FASE 8, #105) the screen reader, through the emulator's own door: the frames a reader on the cable would
+// send go in byte by byte (web_sysex_byte), and what the device answers comes out of the ring usb.c would have
+// drained (web_ann_take) as the raw F0..F7 messages. Silent before HELLO, then the HELLO answer with the words
+// link, then the screen.
+function said(d) {
+  const n = d.ex.web_ann_take();
+  const raw = Array.from(new Uint8Array(d.mem.buffer, d.ex.web_ann_buf(), n));
+  const out = [];
+  let cur = null;
+  for (const v of raw) {
+    if (v === 0xF0) cur = [];
+    else if (v === 0xF7) { if (cur && cur.length >= 4) out.push(cur); cur = null; }
+    else if (cur) cur.push(v);
+  }
+  return out;
+}
+const txt = (bytes) => bytes.map((c) => (c === 0 ? " " : String.fromCharCode(c))).join("");
+{
+  const d = await device(null);
+  d.render(splashMs + 200);
+  const pre = said(d);
+  check(`the reader is silent until a HELLO: no frame out (${pre.length} anyway${pre[0] ? ": " + pre[0].slice(0, 8).join(",") : ""})`, pre.length === 0);
+  const hello = [0xF0, 0x7D, 0x53, 0x52, 1, 1, 0xF7];
+  for (const b of hello) d.ex.web_sysex_byte(b);
+  d.render(200);
+  const f = said(d);
+  const answer = f.find((x) => x[3] === 1), say = f.filter((x) => x[3] === 16);
+  check("HELLO in: the answer comes out through the emulator (name, version, words link)",
+        !!answer && txt(answer.slice(5)).includes("Quantum GammaWave") && txt(answer.slice(5)).includes("/sr/w/"));
+  check(`.. and the screen is said (${say.length} SAY): "${say[0] ? txt(say[0].slice(5)) : ""}"`,
+        say.length > 0 && txt(say[0].slice(5)) === "HOME MAIN");
+  const before = f.length;
+  for (const b of [0xF0, 0x7D, 0x53, 0x52, 3, 0xF7]) d.ex.web_sysex_byte(b);   // WHERE
+  d.render(200);
+  const again = said(d);
+  check("WHERE in: the page is said again", again.some((x) => x[3] === 16 && txt(x.slice(5)) === "HOME MAIN"));
+  check("the take() drains: the next frame is new", before > 0 && again.length > 0);
+}
+
 // ---- deterministic: the same gestures, the same samples
 async function song() {
   const d = await device(null);
