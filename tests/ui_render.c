@@ -750,7 +750,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
        S_SCL_SCALE, S_SCL_CHORD, S_SCL_PROG, S_FX_BUSES, S_SEQ_TOOLS_EDITS,
-       S_TILT, S_LFO_CURVE, S_EDIT_FILTER,                       /* (v1.12.9) the two pages v1.12.4 and v1.12.5 added: they had no
+       S_TILT, S_LFO_CURVE, S_EDIT_FILTER, S_FM_OP_ENV,                       /* (v1.12.9) the two pages v1.12.4 and v1.12.5 added: they had no
                                                    * frame in this sweep at all, so neither the pixel baseline nor
                                                    * the alignment lint had ever seen them. BEFORE S_MOCK_HOME, which
                                                    * starts the mock branch: after it, setup() never reaches them */   S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
@@ -774,7 +774,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "edit_filter", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
+    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "edit_filter", "fm_op_env", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1179,6 +1179,8 @@ static void setup(int s)
     case S_EDIT_CHAR: eng(0); TSEL->p[P_X0] = 80; TSEL->p[P_X1] = 34; go_title("CHARACTER"); break;
     case S_EDIT_VOICE_CHAR: eng(5); TSEL->p[P_X0] = 96; TSEL->p[P_X1] = 44; TSEL->p[P_MORPH] = 70; go_title("CHARACTER"); break;
     case S_LFO_SHAPE: TSEL->p[P_X2] = 40; TSEL->p[P_X3] = 90; go_title("LFO SHAPE"); break;
+    case S_FM_OP_ENV:                                    /* (v2.3.5) OP ENV: the operator envelope, now in depth */
+        eng(ENGI_FM6); go_title("OP ENV"); break;
     case S_EDIT_FILTER:                                  /* (v2.3.4) the FILTER page draws its response now */
         TSEL->p[P_FTYPE] = 0; TSEL->p[P_E5] = 98; TSEL->p[P_E6] = 84; go_page(GR_FILTER); break;
     case S_TILT: TSEL->p[P_HARM] = 45; go_page(GR_TILT); break;         /* (v1.12.9) the page and its graph:

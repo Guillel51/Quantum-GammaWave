@@ -1,3 +1,28 @@
+## v2.3.5 — OP ENV entra en la profundidad
+
+**Cambio visual deliberado** en la página OP ENV de FM6. Baseline de píxeles regenerado por esto.
+
+La auditoría de las páginas de EDIT que dibujan una forma, una por una:
+
+| Página | Gráfica | Era plana | Qué se hizo |
+|---|---|---|---|
+| MORPH | `graph_morph` | no | cuatro capas desde v2.3.4 |
+| TILT | `graph_tilt` | no | cuatro capas desde v2.3.4 |
+| FILTER (dos variantes) | `graph_filter` | no | cuatro capas desde v2.3.4 |
+| OP1..4 ENV | `graph_adsr` | no | stack de ENV desde v2.3.3 |
+| **OP ENV** | `graph_fm6env` | **sí** | **cuatro capas ahora** |
+| OPERATOR / OPERATOR 2 | `graph_fm6` | sí | **no**: es un diagrama de algoritmo (cajas y rutas), no una curva; apilarlo no significaría nada |
+| SOUND / SOUND 2..4 / X-MOD | `graph_colony` | sí | **no**: son las 18 líneas del kit como barras, no una forma; el degradado de una curva ahí sería decoración |
+| STEREO / KIT 3 | `graph_dximg` / `graph_colony` | sí | **no**: puntos y colocación, sin forma que apilar |
+| EDIT 1/2, CHARACTER, RETRIG, LEVELS, VOICE, OP LEVEL | `GR_NONE` | — | no dibujan gráfica |
+
+- **OP ENV** (`graph_fm6env`): la envolvente del operador FM6 son seis puntos y cinco segmentos. Ahora se dibuja
+  **cuatro veces** —cada capa más plana sobre la línea base, 4 px más alta y más oscura (`qz_back_ink`)— con la
+  misma geometría (`1000 − k·80` per-mille, `−4k` px) y el mismo degradado que MORPH, TILT y la respuesta del
+  filtro. La etapa elegida sigue marcada **sólo en la frontal** (el acento y el punto), como estaba.
+- **`[HOST]`**: `ui_render` 0 hallazgos de lint, **0 desvíos de alineación** en 3 957 005 medidas; pantalla nueva
+  `fm_op_env` en el barrido para poder verificar la página.
+
 ## v2.3.4 — la profundidad de las gráficas, en todas y a cualquier valor
 
 **Cambio visual deliberado** en ENV, LFO, MORPH, TILT y FILTER. Baseline de píxeles regenerado por esto.

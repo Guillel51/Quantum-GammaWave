@@ -2550,6 +2550,19 @@ static __attribute__((noinline)) void graph_fm6(const track_t *t, uint16_t c, ui
  * there while the key is down (a RAISE mark where it is let go), back to L4 at R4. A stage's width grows as its rate
  * falls (4..48 px: 99 is a step, 0 the longest), the levels 0..99 linearly (dB). The curve THEME, the stage KNOB 3 / 4
  * edit (STAGE) ACCENT with a dot at its target; "OP3" top left, the stage's rate and level top right */
+/* (v2.3.5) THE OPERATOR'S ENVELOPE, IN THE SAME DEPTH. OP ENV was the last EDIT page that draws a CURVE and had no
+ * stack: five segments, one 2 px polyline, flat. The same six points are drawn four times now -- each layer flatter
+ * about the baseline, lifted, and darker -- the geometry and the ramp MORPH, TILT and the filter response use, so the
+ * page reads as one instrument with the rest. The stage picked stays on the front line (the accent), where it was. */
+static void fm6env_pass(const int32_t *x, const int32_t *y, int32_t bot, int32_t sy, int32_t dy, int32_t th, uint16_t ink)
+{
+    int32_t k;
+    for (k = 0; k < 5; k++) {
+        int32_t ya = bot + dy - (bot - y[k]) * sy / 1000;
+        int32_t yb = bot + dy - (bot - y[k + 1]) * sy / 1000;
+        cv_line_t(x[k], ya, x[k + 1], yb, ink, th);
+    }
+}
 static __attribute__((noinline)) void graph_fm6env(const track_t *t, uint16_t c)
 {
     static const char *const STG[4] = {"ATK", "DEC", "SUS", "REL"};
@@ -2573,8 +2586,13 @@ static __attribute__((noinline)) void graph_fm6env(const track_t *t, uint16_t c)
         cv_rect(PANEL_X0, top + k * (bot - top) / 4, PANEL_W, 1, T_GRID);
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
     cv_rect(x[4], top, 1, bot - top + 1, T_RAISE);   /* the key let go */
-    for (k = 0; k < 5; k++)                          /* (3: the hold, no stage of its own) */
-        cv_line_t(x[k], y[k], x[k + 1], y[k + 1], k != 3 && (uint32_t)(k < 3 ? k : 3) == sg ? T_ACCENT : c, 2);
+    {
+        int32_t sl;
+        for (sl = 3; sl >= 1; sl--)
+            fm6env_pass(x, y, bot, 1000 - sl * 80, -sl * 4, 1, qz_back_ink(c, 1000 - sl * 80));
+        for (k = 0; k < 5; k++)                      /* (3: the hold, no stage of its own) */
+            cv_line_t(x[k], y[k], x[k + 1], y[k + 1], k != 3 && (uint32_t)(k < 3 ? k : 3) == sg ? T_ACCENT : c, 2);
+    }
     k = sg < 3u ? (int32_t)sg + 1 : 5;
     fm_dot(x[k], y[k], T_ACCENT);
 #undef FEGY
