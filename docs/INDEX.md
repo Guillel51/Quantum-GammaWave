@@ -1,6 +1,6 @@
 # Índice de documentación — por dónde empezar
 
-182 documentos en `docs/`. Los de las fases viejas (1.x, 2.x, 3.x) son **históricos**: describen decisiones de su
+223 documentos en `docs/`. Los de las fases viejas (1.x, 2.x, 3.x) son **históricos**: describen decisiones de su
 momento y no siempre el estado de hoy. Esta página ordena lo que sigue vigente y, sobre todo, **qué clase de
 evidencia** respalda cada afirmación (AGENTS §4: build, host, emulador y unidad no son lo mismo).
 
@@ -10,8 +10,9 @@ evidencia** respalda cada afirmación (AGENTS §4: build, host, emulador y unida
 |---|---|
 | `OPTIMIZATION_PHASE1_AUDIT.md` | Presupuesto de recursos medido en el build AC791N (imagen, XIP, `.bss`, pool, código RAM), las funciones con más trabajo estático, y la tabla de compactaciones probadas con su coste en bytes (fuente S, píldoras de tecla, kerning, `ui_shapes`, banderas del compilador). |
 | `MEMORY_BUDGET.md` | El mapa de RAM: `.data+.bss`, pool, LOWBUF y sus reglas (96 KiB, holgura del pool ≥ 8 KiB). |
-| `PERFORMANCE_STATUS_v4.1.0.md` | El estado de rendimiento de esa versión: qué se midió y con qué instrumento. |
+| `OPTIMIZATION_BASELINE.md` | El estado de rendimiento vigente: qué se midió, con qué instrumento y contra qué versión. |
 | `VALIDATION_MATRIX.md` | La matriz de compuertas de instalación, requisito por requisito, con su evidencia y su estado. |
+| `FASE9_CIERRE_2026-11-24.md` | El cierre 9/9: auditoría de seguridad, limpieza, pruebas medidas y lo que queda pendiente por hardware. |
 
 ## Arranque y pantalla
 
@@ -19,7 +20,7 @@ evidencia** respalda cada afirmación (AGENTS §4: build, host, emulador y unida
 |---|---|
 | `AUDIT_BOOT_v1.4.11.md` | El pop de encendido (causa: el fade se gastaba con la salida en mute; corrección: silencio hasta después de las etapas con interrupciones apagadas) y la revisión de la ruta de pantalla. Host x86 + build. |
 | `BOOT_SPLASH_AND_POP.md` | Historia del splash y de los pops anteriores (1.4.2.1). |
-| `PANEL_*` / `panel_table_test.py` | La tabla de init del ST7789 y la prueba que la fija al driver publicado. |
+| `PANEL_*` / `tests/panel_table_test.py` | La tabla de init del ST7789 y la prueba que la fija al driver publicado. |
 
 ## Audio y motores
 

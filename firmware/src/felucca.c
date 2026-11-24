@@ -42,15 +42,11 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.11.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
-                                    * editor. 1.0.0 is the clean public numbering of the whole instrument: the six tracks,
-                                    * twelve voices and nine engines, the eight-slot modulation matrix with its MACROS
-                                    * page, the ARP page drawn against its own clock and the Web Studio's preset
-                                    * browser. It is not a downgrade of the internal 4.x line: the same tree, published
-                                    * once under a name that starts from the beginning.
-                                    * (1.6.0) ETAPA 1-8: PHASE wave 8 (SYNC), PEDAL and ALBERTI arp modes, HIJAZ and
-                                    * HUNG MINOR scales, dotted and fast LFO divisions, CHANCE's pattern graph, the MOD
-                                    * MAP destination band, and the audit's four fixes. */ /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v3.1.2: HOME redrawn from the frame instead of a private counter, so a page comes back the same. */
+#define FELUCCA_VERSION "v1.11.1" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+                                    * editor. This define is the single source of the version: the package name, its
+                                    * manifest, the site, the installer and the tag all derive from it
+                                    * (docs/VERSIONING.md). FASE 9 is a patch on the 1.11 line: no new sound path,
+                                    * no renumbering. */
 
 /* (v1.7.20) THE TWO FLICKERS OF THE REPORT -- HOME's visualizer and the preset menu -- and the third one the test
  * found on the way (a card's knob highlight living a single frame). v1.7.19 shipped them; this release is the fix,

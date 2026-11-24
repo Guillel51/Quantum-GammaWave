@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v1.8.6` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v1.11.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 Quantum GammaWave
 
@@ -216,8 +216,8 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
 2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
-   verifies the firmware hashes inside it. `v3.1.1` is the package this tree builds; `v2.9.7`
-   was published by the tag workflow on 2026-11-13. Both ship **unsigned by design**: that is integrity, not
+   verifies the firmware hashes inside it. `v1.11.1` is the package this tree builds; the installer names the
+   exact file, size and SHA-256 it is about to write. It ships **unsigned by design**: that is integrity, not
    authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
    disabled and the page says why.
 3. The loader reads the **real flash chip** on the unit and refuses anything but the two parts above.

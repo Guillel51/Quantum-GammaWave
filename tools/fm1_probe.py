@@ -28,7 +28,7 @@ CAP = 0x100000         # one 1 MiB part
 # JEDEC -> (part, capacity, page, sector, block). The device checks the same table.
 PARTS = {
     0x856014: ("P25Q80H", 0x100000, 256, 0x1000, 0x10000),
-    0xB36014: ("P25Q80H-2", 0x100000, 256, 0x1000, 0x10000),
+    0xB36014: ("UC25HQ80", 0x100000, 256, 0x1000, 0x10000),
 }
 
 STATUS = {
