@@ -928,35 +928,6 @@ static __attribute__((noinline)) void graph_grid(const track_t *t, uint16_t c)
  *     degree digit that sat beside it read as a key number, not as a scale degree;
  *   - the title (ROOT + SCALE, QUANTIZED) sits above the keys, never on one.
  * Every figure read here is the parameter the engine plays. */
-/* (3.1) a piano key: rounded, 1 px contour, drawn from rows and corner pixels. It is deliberately not
- * a cv_rrect: the keys overlap (the accidentals sit over the naturals) and a registered cell would be
- * reported as spilled by the very text the key owns. Same ink, no lint hook, identical on the panel. */
-static void scl_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t face, uint16_t brd, uint16_t under)
-{
-    /* (3.3) a corner, not a pill: 3 px (6 in 3.2 read as a lozenge on a 29 px key), a corner
-     * pixel blended into the card instead of a hard stair, a 1 px contour and one lit row on top.
-     * Still rows and single pixels only: nine rects and four corner loops, as before. */
-    int32_t i, j;
-    cv_rect(x + r, y, w - 2 * r, h, face);
-    cv_rect(x, y + r, r, h - 2 * r, face);
-    cv_rect(x + w - r, y + r, r, h - 2 * r, face);
-    for (j = 0; j < r; j++)
-        for (i = 0; i < r; i++) {
-            int32_t d2 = (r - i) * (r - i) + (r - j) * (r - j), rr = r * r;
-            uint16_t cc = d2 > rr + r ? under : d2 > rr - r ? ux_mix(brd, under, 50) : brd;
-            if (i + j + 1 < r)
-                continue;
-            cv_pset(x + r - i, y + r - j, cc);
-            cv_pset(x + w - 1 - (r - i), y + r - j, cc);
-            cv_pset(x + r - i, y + h - 1 - (r - j), cc);
-            cv_pset(x + w - 1 - (r - i), y + h - 1 - (r - j), cc);
-        }
-    cv_rect(x + r, y, w - 2 * r, 1, ux_mix(brd, face, 55));       /* the lit top: a bevel, not a frame */
-    cv_rect(x + r, y + h - 1, w - 2 * r, 1, brd);
-    cv_rect(x, y + r, 1, h - 2 * r, brd);
-    cv_rect(x + w - 1, y + r, 1, h - 2 * r, brd);
-}
-
 static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
 {
     static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
@@ -1002,7 +973,7 @@ static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
         uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         if (sound)
             face = ux_mix(face, T_THEME, 34);
-        scl_key(kx, y0, kw, kh, 3, face, brd, T_SURF);
+        scl_pkey(kx, y0, kw, kh, face, brd);
         if (strip)
             cv_rect(kx + 2, y0 + 1, kw - 4, 2, strip);
         cv_rect(kx + kw - 1, y0 + 3, 1, kh - 6, ux_mix(face, T_BG, 32));
@@ -1039,7 +1010,7 @@ static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
         face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
         ink = in ? T_TEXT : T_MID;
         strip = is_root ? T_ACCENT : in ? T_THEME : 0;
-        scl_key(kx, y0, bw, bh, 3, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
+        scl_pkey(kx, y0, bw, bh, face, ux_mix(T_KEYB, T_TEXT, 24));
         if (strip)
             cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, strip);
         cv_rect(kx, y0 + bh, bw, 2, T_BG);            /* its shadow on the naturals */

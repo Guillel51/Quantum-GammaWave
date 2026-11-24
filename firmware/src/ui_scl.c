@@ -394,8 +394,8 @@ typedef struct { int32_t x0, y0, w, h; } scl_rect_t;
 static scl_rect_t scl_bed_rect(int32_t graph)
 {
     scl_rect_t r;
-    if (graph == GR_SCL_SCALE) { r.x0 = 8; r.y0 = 92; r.w = 224; r.h = 26; }
-    else { r.x0 = 12; r.y0 = 90; r.w = 216; r.h = 26; }
+    if (graph == GR_SCL_SCALE) { r.x0 = 8; r.y0 = 84; r.w = 224; r.h = 38; }
+    else { r.x0 = 12; r.y0 = 86; r.w = 216; r.h = 36; }   /* the CHORD ruler keeps its interval names clear of it */
     return r;
 }
 
@@ -405,7 +405,7 @@ static void scl_ruler_geo(int32_t *ax0, int32_t *ax1, int32_t *ay, int32_t *hh)
 {
     *ax0 = 14;
     *ax1 = 226;
-    *ay = 72;
+    *ay = 68;                     /* (v2.0) 4 px up, so the interval names clear the taller keybed below */
     *hh = 13;
 }
 static int32_t scl_ruler_x(int32_t iv)
@@ -421,14 +421,31 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
 {
     static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
     scl_bed_t b;
-    uint32_t i, live = scl_live_mask(t), flash = 0;
+    uint32_t i, live = scl_live_mask(t), flash = 0, hit = 0;
     int names;
     scl_bed(x0, y0, w, h, &b);
     if (b.kw < 8)
         return;
     names = !small && b.h >= 18 && b.kw >= 24;                /* the key's foot holds a 9 px name */
+    {
+        /* (v2.0) THE KEYBED OWNS THE BOTTOM OF THE PAGE. It was a 26 px strip with 4 px of plate under it,
+         * and the natural's name was centred in the key itself, so on the taller bed its last row landed on
+         * the key's own edge. The bed is 38 px now (2.4 px per key-row more), the accidentals take 3/5 of it
+         * as a piano's do, and the name sits in the white part that is left, never on the shadow line. */
+    }
     if (scl_selt && ui.frame - scl_selt < 8u)                  /* (FASE 3) the key that was just touched lights */
         flash = SCL_PC(scl_selk);
+    {   /* (v2.0) A NOTE THAT STARTS IS A HIT: the key it lands on takes the accent for ten frames and lets it go,
+         * so a sequencer step, a MIDI note or a finger reads as an event and not as a lit key that was always
+         * there. Driven by the live mask -- the voices the engine is sounding -- never by a timer of its own. */
+        static uint32_t lprev, ltime;
+        if (live != lprev) {
+            lprev = live;
+            ltime = ui.frame | 1u;
+        }
+        if (ui.frame - ltime < 10u)
+            hit = live;
+    }
     /* the seven naturals */
     for (i = 0; i < 7u; i++) {
         uint32_t note = SCL_WNOTE[i], deg = (note + 12u - root) % 12u;
@@ -436,9 +453,12 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
         int sound = (live >> note) & 1u, picked = (sel >> note) & 1u;
         int hot = (flash >> note) & 1u;
-        uint16_t face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 40);
+        uint16_t         face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 40);
         uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         uint16_t brd;
+        if (sound)                                         /* (v2.0) the note is sounding NOW: the key is lit, which
+                                                            * is a different thing from being picked */
+            face = ux_mix(face, T_THEME, 52 + ((hit >> note) & 1u) * 24);
         if (picked)                                        /* (FASE 3) picked: the key's face takes the accent */
             face = ux_mix(face, T_ACCENT, hot ? 62 : 40);
         else if (hot)
@@ -455,12 +475,13 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
              * at 9..17 of a 26 px bed while the black keys own 0..15, so "C" and the "C#" above it shared the
              * middle band and the keybed read as a jumble: the name is centred in the white part that is left,
              * and only when that part can hold it. */
-            int32_t ny = (b.h - b.bh) >= 11 ? b.y0 + b.bh + (b.h - b.bh - 11) / 2 + 1 : b.y0 + CAP_IN(S, b.h);
+            int32_t band = b.h - b.bh;
+            int32_t ny = band >= 13 ? b.y0 + b.bh + (band - 12) / 2 : b.y0 + CAP_IN(S, b.h - 3);
             GFX_HOOK_ALIGN(kx, ny, kx + b.kw, ny + 12, AL_H, "SCL natural name in its key");
             cv_text_in(kx, ny, b.kw, &AF_S, N_NOTE[note], T_INK, face);
         }
         if (sound)                                          /* the note is sounding: a bar at its foot */
-            cv_rect(kx + 3, b.y0 + b.h - 3, b.kw - 6, 2, picked ? T_INK : T_TEXT);
+            cv_rect(kx + 3, b.y0 + b.h - 3, b.kw - 6, 2, T_ACCENT);
     }
     /* the five accidentals, over the seam they belong to */
     for (i = 0; i < 12u; i++) {
@@ -476,7 +497,7 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         sound = (live >> i) & 1u;
         picked = (sel >> i) & 1u;
         hot = (flash >> i) & 1u;
-        face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
+        face = sound ? ux_mix(T_KEYB, T_THEME, 58 + ((hit >> i) & 1u) * 24) : T_KEYB;
         if (picked)
             face = ux_mix(T_KEYB, T_ACCENT, hot ? 78 : 60);
         strip = is_root ? T_ACCENT : in ? T_THEME : 0;
@@ -495,7 +516,7 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
             cv_rect(kx + 3, b.y0 + b.bh - 2, b.bw - 6, 2, strip);
         cv_rect(kx, b.y0 + b.bh, b.bw, 2, T_BG);            /* its shadow on the naturals */
         if (sound)
-            cv_rect(kx + 1, b.y0 + b.bh - 1, b.bw - 2, 1, T_TEXT);
+            cv_rect(kx + 1, b.y0 + b.bh - 2, b.bw - 2, 2, T_ACCENT);
     }
 }
 /* (FASE 3) PICKING A NOTE. The keyboard the pages draw is one octave (C4..B4), so "the lowest note" a chord's
@@ -547,6 +568,20 @@ int scl_tap(int32_t graph, int32_t x, int32_t y)
             x >= SCL_CELL_X && x < SCL_CELL_X + SCL_CELLS * SCL_CELL_W) {
             /* (v1.12.11) a cell of the ladder, from the numbers the ladder is drawn with */
             n = (int32_t)((root + (uint32_t)((x - SCL_CELL_X) / SCL_CELL_W)) % 12u);
+        }
+        if (n < 0 && graph == GR_SCL_CHORD) {
+            /* (v2.0) THE RULER IS A KEYBED TOO. The chips on the CHORD page's axis are the chord's notes; a tap
+             * there picks or drops that note exactly as the key under it does, from the same geometry the page
+             * draws the ruler with, so the hand can build a chord on the ruler without leaving the page. */
+            int32_t ax0, ax1, ay, hh, iv;
+            scl_ruler_geo(&ax0, &ax1, &ay, &hh);
+            if (y >= ay - 1 - hh && y < ay + 14 && x >= ax0 - 8 && x <= ax1 + 8) {
+                iv = ((x - ax0) * 12 + (ax1 - ax0) / 2) / (ax1 - ax0);
+                if (iv >= 0 && iv < 12) {
+                    scl_toggle(ti, (root + (uint32_t)iv) % 12u);
+                    return 1;
+                }
+            }
         }
         if (n < 0)
             return 0;
@@ -639,6 +674,7 @@ static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t
     uint32_t sel = scl_selm[ti], live = scl_live_mask(t), sn, tn, ln = 0;
     uint8_t off[12], nt[12];
     int32_t bass = scl_selb[ti] == 0xFFu ? -1 : (int32_t)scl_selb[ti];
+    int32_t xiv = 124;
     scl_rec_t rec;
     char l[28], nm[16], row[44];
     (void)c;
@@ -696,15 +732,17 @@ static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t
         }
     }
 
-    /* --- the three rows under the ladder --- */
-    cv_text_on(12, 60 + CAP_IN(S, 16), &AF_S, tn ? nm : "CHORD", tn ? T_ACCENT : T_DIM, T_SURF);
+    /* --- two rows under the ladder, so the keybed can be 12 px taller: the chord, then its degrees beside its
+     * intervals. The third row (a line of its own for IVL) was mostly empty air over the keyboard; the pair
+     * reads together because they are the same notes said twice -- which one, and how far from the root. --- */
+    cv_text_on(12, 56 + CAP_IN(S, 16), &AF_S, tn ? nm : "CHORD", tn ? T_ACCENT : T_DIM, T_SURF);
     {
         int32_t x = 12 + text_w(&AF_S, tn ? nm : "CHORD") + 8;
         scl_notes(nt, tn, row, sizeof row);
-        cv_text_fit(x, 60 + CAP_IN(S, 16), &AF_S, tn ? row : "TAP A NOTE", tn ? T_TEXT : T_DIM, T_SURF,
+        cv_text_fit(x, 56 + CAP_IN(S, 16), &AF_S, tn ? row : "TAP A NOTE", tn ? T_TEXT : T_DIM, T_SURF,
                     232 - x);
         if (rec.amb > 1u)
-            cv_text_r(228, 60 + CAP_IN(S, 16), &AF_S, "AMB", T_MID, T_SURF);
+            cv_text_r(228, 56 + CAP_IN(S, 16), &AF_S, "AMB", T_MID, T_SURF);
     }
     row[0] = 0;
     if (tn) {
@@ -720,8 +758,6 @@ static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t
             } else
                 str_cpy(row + str_len(row), "-", sizeof row - str_len(row));
         }
-        scl_field(12, 72, "DEG", T_DIM, T_SURF);
-        cv_text_fit(52, 72 + CAP_IN(S, 16), &AF_S, row, T_THEME, T_SURF, 176);
     } else {
         /* nothing held: the key's own semitone steps, the thing the ladder is drawn from */
         uint32_t k;
@@ -732,11 +768,19 @@ static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t
             fmt_int(sb, (int32_t)off[k]);
             str_cpy(row + str_len(row), sb, sizeof row - str_len(row));
         }
-        scl_field(12, 72, "STEPS", T_DIM, T_SURF);
-        cv_text_fit(52, 72 + CAP_IN(S, 16), &AF_S, row, T_MID, T_SURF, 176);
+    }
+    scl_field(12, 68, tn ? "DEG" : "STEPS", T_DIM, T_SURF);
+    cv_text_fit(48, 68 + CAP_IN(S, 16), &AF_S, row, tn ? T_THEME : T_MID, T_SURF, tn ? 90 : 180);
+    {
+        int32_t w = text_w(&AF_S, row);            /* where the degrees end, so the intervals never sit on them */
+        if (w > 90)
+            w = 90;
+        xiv = 48 + w + 12;
     }
     row[0] = 0;
-    if (tn && rec.n > 1u) {
+    if (!tn) {
+        /* the key's semitone steps own the row when nothing is held: twelve numbers need its full width */
+    } else if (rec.n > 1u) {
         uint32_t k;
         for (k = 0; k < tn && str_len(row) + 5u < sizeof row; k++) {
             int32_t iv = ((int32_t)nt[k] - (int32_t)nt[0]) % 12;
@@ -746,15 +790,15 @@ static __attribute__((noinline)) void graph_scl_scale(const track_t *t, uint16_t
                 str_cpy(row + str_len(row), " ", 2);
             str_cpy(row + str_len(row), N_ITVN[iv], sizeof row - str_len(row));
         }
-        scl_field(12, 84, "IVL", T_DIM, T_SURF);
-        cv_text_fit(52, 84 + CAP_IN(S, 16), &AF_S, row, T_ACCENT, T_SURF, 176);
+        scl_field(xiv, 68, "IVL", T_DIM, T_SURF);
+        cv_text_fit(xiv + 32, 68 + CAP_IN(S, 16), &AF_S, row, T_ACCENT, T_SURF, 228 - (xiv + 32));
     } else {
         for (i = 0; i < 12u; i++)
             ln += (live >> i) & 1u;
         if (ln) {
             fmt_int(row, (int32_t)ln);
-            str_cpy(row + str_len(row), " LIVE", sizeof row - str_len(row));
-            scl_field(12, 84, row, T_TEXT, T_SURF);
+            scl_field(xiv, 68, "LIVE", T_DIM, T_SURF);
+            cv_text_fit(xiv + 32, 68 + CAP_IN(S, 16), &AF_S, row, T_TEXT, T_SURF, 228 - (xiv + 32));
         }
     }
     {

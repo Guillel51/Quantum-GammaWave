@@ -1,3 +1,37 @@
+## v2.0.1 — SCL: EL TECLADO QUE OCUPA SU SITIO, LAS NOTAS QUE SUENAN Y EL RATÓN QUE TOCA EL ACORDE
+
+**La línea 2.0, parche 1.** v2.0.0 ya está publicado desde un commit anterior del historial, así que esta fase —que
+sí es la renovación de SCL pedida— sale como 2.0.1 y no reutiliza ese tag. No cambia ningún camino de audio, ni una
+tabla, ni un parámetro, ni el guardado: cambia lo que la pantalla de SCL muestra y lo que deja tocar.
+
+- **El teclado ocupa el fondo de la página.** Era una tira de 26 px con 4 px de placa debajo y los nombres de las
+  naturales centrados en la tecla entera, así que su última fila caía sobre el borde de la tecla. Ahora mide **38 px
+  en SCALE (8,84)** y **36 en CHORD (12,86)**, y el nombre vive en la **banda blanca que queda bajo las alteradas**
+  (con respaldo al centro solo si esa banda no da para 12 px). Ningún nombre sale de su tecla.
+- **La fila que sobraba pasó a ser columna.** SCALE tenía tres renglones (nombre, DEG, IVL) con el tercero casi
+  siempre vacío: ahora son dos, y `IVL` empieza donde termina el texto de `DEG`, de modo que doce pasos cromáticos
+  caben en media línea cuando no hay nada seleccionado. El panel de CHORD subió su regla 4 px (`ay` 72 → 68) para
+  que los nombres de intervalo queden libres sobre el teclado.
+- **Una nota que suena no es una nota elegida.** La tecla que suena se enciende en la **cara** (mezcla al tema) y
+  lleva una barra de acento de 2 px al pie; la elegida conserva **borde de acento** y su tira superior. Además, la
+  máscara viva se compara con la del cuadro anterior: la nota que **empieza** toma un 24 % más de acento durante diez
+  cuadros, así que un paso del secuenciador, una nota MIDI o el arpegiador se leen como evento. Sale de `voice_t`
+  (las voces que el motor suena), de modo que no pulsa nada cuando no hay nada sonando.
+- **La regla de CHORD es un teclado más.** Los chips del eje son las notas del acorde y ahora responden al toque: un
+  tap elige o quita ese semitono con la misma geometría con la que se dibuja (`scl_ruler_geo()`), sin duplicar la
+  función de los controles que ya están en las tarjetas.
+- **Mini optimización, medida:** `scl_key()`, el bisel privado de la capa SCL (29 líneas), era una segunda copia de
+  `scl_pkey()`, el que dibujan las páginas de SCL. Se eliminó y `graph_scale` usa el único que queda, con lo que el
+  teclado de la capa y el de las páginas se ven igual. Con el teclado más alto, la animación y los taps nuevos, la
+  **imagen AC791N baja de 583 524 a 583 444 B (−80 B)**: `.data+.bss` intacto en 92 688/98 304, pool con 8 384 B.
+- **Barrido de UI:** las 196 pantallas × 22 paletas con **0 hallazgos de lint, 0 desalineaciones**, 0 tintas sobre su
+  propio color; no aparecieron superposiciones, textos cortados ni elementos fuera de su caja en las pantallas
+  afectadas. `tests/scl_test` verifica la geometría del teclado, la de la regla y cuatro toques reales.
+
+**Nada de esto se probó en una FM-1 física.** Sin unidad en este entorno: no se tocó el teclado del instrumento, no se
+miró el panel y no se conectó ningún controlador MIDI. El feedback de notas y el golpe de tecla son el renderer
+leyendo `voice_t`, ejercitado por el barrido y los tests, no por un dedo. `INSTALL BLOCKED` sigue en pie.
+
 ## v1.13.0 — JIANT INSPIRED: LAS ETAPAS DE ENV Y LAS PÁGINAS DE FX QUE NO TENÍAN IMAGEN
 
 **Una versión de presentación, no de DSP.** 1.11.2 → 1.13.0 (`docs/VERSIONING.md`). La línea 1.12.0..1.12.18 ya

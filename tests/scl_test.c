@@ -216,8 +216,8 @@ static void keybed_edge_tests(void)
          * moving the keybed means changing this line on purpose. */
         snprintf(what, sizeof what, "%s: the keybed is drawn at %d,%d %dx%d", g ? "CHORD" : "SCALE",
                  (int)r.x0, (int)r.y0, (int)r.w, (int)r.h);
-        ok(what, g ? (r.x0 == 12 && r.y0 == 90 && r.w == 216 && r.h == 26)
-                   : (r.x0 == 8 && r.y0 == 92 && r.w == 224 && r.h == 26));
+        ok(what, g ? (r.x0 == 12 && r.y0 == 86 && r.w == 216 && r.h == 36)
+                   : (r.x0 == 8 && r.y0 == 84 && r.w == 224 && r.h == 38));
         scl_bed(r.x0, r.y0, r.w, r.h, &b);
         setup(screens[g]);
         pal(UI_QUANTUM_INDEX);
@@ -308,8 +308,8 @@ static void ruler_tests(void)
     if (pg == 0xFFu)
         return;
     scl_ruler_geo(&ax0, &ax1, &ay, &hh);
-    ok("the ruler is drawn from x 14 to 226, its axis at 72, its chips 13 px tall",
-       ax0 == 14 && ax1 == 226 && ay == 72 && hh == 13);
+    ok("the ruler is drawn from x 14 to 226, its axis at 68, its chips 13 px tall",
+       ax0 == 14 && ax1 == 226 && ay == 68 && hh == 13);
     setup(S_SCL_CHORD);
     pal(UI_QUANTUM_INDEX);
     ui.page = (uint8_t)pg;
