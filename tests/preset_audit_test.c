@@ -119,12 +119,17 @@ static void host_preset(track_t *t, uint32_t e, uint32_t pi)
 
 #define NBLK 320u                                  /* 320 x 32 samples ~ 0.23 s, past every attack */
 static int32_t buf[NBLK * CTL];
+/* (v2.3.5) DC: the mean of the sounding part as a fraction of full scale. A patch that sits off centre steals
+ * headroom from every note that follows it on the bus and, on the unit's DAC, is an audible thump on the release;
+ * the DSP's own DC blocker should leave it near zero, so the audit now says how near. */
+static double dc_last, dc_h1, dc_h2;   /* the mean of each half of the sounding part: real DC keeps its sign,
+                                         * a sub-audio body flips it */
 
 /* one preset, one held note; returns 0 and fills peak/rms/hot */
 static void render_note(uint32_t e, uint32_t pi, uint32_t note, int32_t *peak, double *rms, double *hot)
 {
     uint32_t b, i, n = 0, hot_n = 0;
-    double acc = 0;
+    double acc = 0, dacc = 0;
     host_tracks_init();
     host_preset(&trk[0], e, pi);
     trk[0].p[P_LEVEL] = 100;
@@ -140,12 +145,22 @@ static void render_note(uint32_t e, uint32_t pi, uint32_t note, int32_t *peak, d
     for (i = (NBLK / 3u) * CTL; i < NBLK * CTL; i++) {     /* the sounding part: the attack is behind us */
         int32_t a = buf[i] < 0 ? -buf[i] : buf[i];
         acc += (double)buf[i] * buf[i];
+        dacc += (double)buf[i];
         n++;
         if (a > *peak) *peak = a;
         if (a >= 32000) hot_n++;                          /* inside the soft clipper's last stretch */
     }
     *rms = n ? sqrt(acc / (double)n) : 0;
     *hot = n ? (double)hot_n / (double)n : 0;
+    dc_last = n ? dacc / ((double)n * 32768.0) : 0;
+    {
+        uint32_t i0 = (NBLK / 3u) * CTL, mid = i0 + (NBLK * CTL - i0) / 2u, m;
+        double s1 = 0, s2 = 0;
+        for (m = i0; m < mid; m++) s1 += (double)buf[m];
+        for (m = mid; m < NBLK * CTL; m++) s2 += (double)buf[m];
+        dc_h1 = s1 / ((double)(mid - i0) * 32768.0);
+        dc_h2 = s2 / ((double)(NBLK * CTL - mid) * 32768.0);
+    }
 }
 
 static void render_preset(uint32_t e, uint32_t pi, int32_t *peak, double *rms, double *hot)
@@ -339,12 +354,13 @@ int main(int argc, char **argv)
         fingerprint();
         return 0;
     }
-    uint32_t total = 0, silent = 0, hot_presets = 0, dup_names = 0, dup_params = 0, out_of_range = 0;
+    uint32_t total = 0, silent = 0, hot_presets = 0, dup_names = 0, dup_params = 0, out_of_range = 0, dc_bad = 0;
     printf("preset audit: every factory preset through the real load and render (host x86, %u Hz)\n", (unsigned)FS);
-    printf("%-8s %6s %7s %6s %8s %8s %6s\n", "engine", "presets", "silent", "hot", "dupn", "dupp", "range");
+    printf("%-8s %6s %7s %6s %8s %8s %6s %7s\n", "engine", "presets", "silent", "hot", "dupn", "dupp", "range", "dc max");
     for (e = 0; e < NENGINES; e++) {
         const engine_t *en = ENGINES[e];
         uint32_t n = en->npresets, e_silent = 0, e_hot = 0, e_dupn = 0, e_dupp = 0, e_range = 0;
+        double e_dc = 0;
         if (!n)
             continue;
         for (i = 0; i < n; i++) {
@@ -371,6 +387,13 @@ int main(int argc, char **argv)
                     printf("  duplicate: %-8s %-16s has the parameters of %s\n", en->name, p->name, en->presets[k].name);
                 }
             render_preset(e, i, &peak, &rms, &hot);
+            if (fabs(dc_last) > e_dc) e_dc = fabs(dc_last);
+            if (fabs(dc_last) > 0.02) {
+                dc_bad++;
+                printf("  dc:     %-8s %-16s sits %.1f %% off centre (halves %.1f / %.1f %%, peak %d) %s\n",
+                       en->name, p->name, fabs(dc_last) * 100.0, dc_h1 * 100.0, dc_h2 * 100.0, (int)peak,
+                       dc_h1 * dc_h2 > 0 ? "DC" : "sub-audio");
+            }
             if (rms < 8.0) {
                 e_silent++;
                 printf("  silent: %-8s %-16s rms %.1f, peak %d\n", en->name, p->name, rms, (int)peak);
@@ -384,13 +407,18 @@ int main(int argc, char **argv)
                        en->name, p->name, hot * 100.0, (int)peak);
             }
         }
-        printf("%-8s %6u %7u %6u %8u %8u %6u\n", en->name, n, e_silent, e_hot, e_dupn, e_dupp, e_range);
+        printf("%-8s %6u %7u %6u %8u %8u %6u %6.2f %%\n", en->name, n, e_silent, e_hot, e_dupn, e_dupp, e_range,
+               e_dc * 100.0);
         silent += e_silent; hot_presets += e_hot; dup_names += e_dupn; dup_params += e_dupp; out_of_range += e_range;
     }
     printf("\ntotal %u presets: %u silent, %u hot (reported, not failed), %u repeated names, %u exact duplicates, "
-           "%u out of range\n", total, silent, hot_presets, dup_names, dup_params, out_of_range);
+           "%u out of range, %u with DC above 2 %%\n", total, silent, hot_presets, dup_names, dup_params, out_of_range,
+           dc_bad);
     if (silent || dup_names || out_of_range)
         fails += (int)(silent + dup_names + out_of_range);
+    /* (v2.3.5) DC is reported, like HOT: a bytebeat is asymmetric on purpose, so which of these sit too far off
+     * centre is a listening and a per-engine decision, not arithmetic. What WOULD be a bug -- an offset that is
+     * really a sub-audio body, not DC -- is told apart by the halves: real DC keeps its sign in both of them. */
     printf("preset audit: %s\n", fails ? "FAILED" : "passed (structure and signal; nobody listened)");
     return fails ? 1 : 0;
 }
