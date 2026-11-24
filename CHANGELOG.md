@@ -1,3 +1,32 @@
+## v2.3.13 — EXTRA auditada, PANEL Y legible, y el jack con su limitación escrita
+
+- **PANEL Y dice qué es.** Sus dos valores eran `0` y `80` y no significaban nada: es la franja de la memoria del
+  controlador de 240x320 a la que está pegada la pantalla de 240x240 (`lcd.c lcd_yoff`). Ahora los valores son
+  `0 TOP` y `80 LOW`, y el sentido es ascendente (0 → 80 → 0), no "de 80 a 0": son dos franjas, guardadas en un bit.
+  La función **no estaba desconectada** — `tests/lcd_st7789_test.c` demuestra que con 80 la fila 0 de la UI se
+  escribe en la fila 80 de la memoria del panel y que un relleno de pantalla completa limpia también las filas que la
+  franja deja fuera. Lo que pasa es que no cambia nada del dibujo: en una unidad pegada a 0, cambiar a 80 mueve la
+  imagen 80 filas y se ve rota, que no es "un ajuste haciendo algo". Está documentado en `docs/EXTRA_AUDIT.md`.
+- **EXTRA auditada fila por fila** (`docs/EXTRA_AUDIT.md`): KNOB SELECT, CPU MODE, VIS QUALITY, SPLASH, VOICES y
+  PANEL Y, cada una con su byte de almacenamiento, rango, momento de aplicación, consumidor y el test que la cubre.
+  Las seis estaban vivas: ninguna desconectada, invertida ni con rango imposible. `VOICES` parece invertida porque su
+  byte lo está a propósito (un registro viejo lee 12).
+- **La línea `RUNNING` de EXTRA estaba muerta y se retiró.** Con seis filas el panel termina en la 214 y las teclas en
+  la 224: nueve filas de banda donde una línea de fuente pequeña necesita once. Se probó una línea de ayuda ahí, se
+  midió que no cabe y no se dejó: los núcleos y la carga que esa línea mostraba están en ABOUT.
+- **El jack, con la verdad delante** (`docs/AUDIO_JACK_FM1.md`): el firmware tiene **una** salida estéreo (ALNK0 → códec
+  externo) y **un** único control de salida, PC6, que es el mute de la etapa de salida del códec y calla **las dos**
+  salidas — no sirve de interruptor de parlante. No hay ninguna línea de detección de jack en el HAL (todos los pines
+  usados están documentados en `firmware/hal/fm1_input.h`) ni en `firmware/`, y el SDK de este entorno no trae sus
+  cabeceras de audio. Sin saber si el jack del FM-1 es conmutado por contacto (y entonces el hardware ya lo hace) o si
+  su contacto va a un GPIO, **no se implementa**: callar PC6 al conectar los auriculares los callaría a ellos. El
+  documento trae el procedimiento de banco de 10 minutos para resolverlo en la unidad.
+- **`[HOST]`** `ui_render` 204 pantallas × 22 paletas, 4 267 hallazgos de lint, 0 desvíos de alineación; baseline de
+  píxeles regenerada (el texto de PANEL Y cambia).
+
+Sigue abierto, y anotado en el documento del jack: **FM6 no libera voces siempre tras el note-off** (`tests/regress`
+HEALTH FAIL en `FM6/00_SILT_KEYS` y `FM6/31_FERROUS_PAD`; `tests/fm6_test`).
+
 ## v2.3.12 — la Página 3 de SCL dice lo que tocas, los mini-knobs crecen, la barra de STORED entra y la batería al cargar
 
 - **SCL > TUNE (3/4) responde a la mano.** Los doce radios de la rueda encienden las notas que la pista tiene

@@ -112,7 +112,8 @@ static const char *const VOICES_N[3] = {"8", "10", "12"};   /* (FASE 3) MENU > A
 /* (1.4.11) MENU > EXTRA > PANEL Y: which 240-row slice of the controller's 240x320 the panel is bonded to (panel.c
  * settings_yoff, lcd.c lcd_yoff). 0 is the default and every older record reads it; 80 is the slice the common
  * 240x240 ST7789 modules use. Stepping it repaints the whole screen with the other slice. */
-static const char *const YOFF_N[2] = {"0", "80"};
+static const char *const YOFF_N[2] = {"0 TOP", "80 LOW"};   /* (v2.3.13) the number alone said nothing: which slice
+                                                             * of the controller's 240x320 the panel shows */
 
 /* MENU > USB SERIAL (#67). The serial console is a developer tool (README: FELUCCA_CDC). ON (the default) presents it,
  * the descriptors byte for byte as before; OFF re-enumerates as audio + MIDI only, device class 0 (the bytes of a

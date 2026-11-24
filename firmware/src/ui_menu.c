@@ -451,25 +451,6 @@ static uint32_t menu_split(uint32_t n)
         s = mr_y(--k) - 1;
     return (uint32_t)(s < 240 - 124 ? 240 - 124 : s);
 }
-/* (8.0) EXTRA answers the question its own CPU MODE row raises. The row picks what main.c asks for BEFORE core 1
- * starts, so a change can only apply at the next power-on -- which the row never said, and which looks exactly like
- * "it does nothing" when you flip it and the instrument keeps sounding the same. Under the rows: which cores are
- * running now (fx.c mc_status(), the same line ABOUT shows) and the audio ISR's own load (song.cpu_q8). Both are
- * measured by the firmware; nothing here is an estimate. */
-static void menu_extra_status(int32_t y)
-{   /* (FASE 3) one line, not two: EXTRA now carries five rows (VOICES joined it) and the second line fell into the
-     * footer's own row, where the lint caught it overlapping ALGO and PRESETS. CPU MODE no longer waits for the next
-     * power-on either -- fx.c cpu_mode_apply switches to one core at once and starts the second from the main loop --
-     * so the line that said so is gone with the space it took. Both numbers are the firmware's: the cores it is
-     * running (fx.c mc_status) and the audio ISR's load (song.cpu_q8). */
-    char b[40], n[12];
-    cv_text(14, y, &AF_S, "RUNNING", T_THEME);   /* (the value already starts with CORES) */
-    cv_text_r(226, y, &AF_S, mc_status(), T_TEXT, T_BG);
-    fmt_int(n, (int32_t)((song.cpu_q8 * 100u) >> 8));
-    str_cpy(b, n, sizeof b);
-    str_cpy(b + str_len(b), "% CPU", sizeof b - str_len(b));
-    cv_text(130, y, &AF_S, b, T_MID);
-}
 static void confirm_open(uint32_t kind, uint32_t trk);   /* (0.6.58) INIT SYSTEM: ui_input.c */
 static __attribute__((noinline)) void draw_menu(void)
 {
@@ -558,8 +539,6 @@ static __attribute__((noinline)) void draw_menu(void)
             if (mr_y(k) + mr_h() > top_y && mr_y(k) - 1 < top_y + (int32_t)cv_h)
                 menu_row(k, first + k);
         if (pass) {
-            if (menu_tab() == 4u && mr_y(n) + 20 < MK_Y - 4)     /* EXTRA: the two cores, under its rows */
-                menu_extra_status(mr_y(n) + 10);
             cv_key_row(8, 232, MK_Y, KEYS[ui.menu_sel >= MI_VALUES], 3, 7u, T_BG);
         }
         cv_oy = 0;
