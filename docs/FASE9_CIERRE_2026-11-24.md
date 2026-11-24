@@ -154,3 +154,25 @@ ninguna prueba de las dos partes de flash sobre hardware. `tests/memory_map_test
 3. `DRUM_PATH` 2 instrucciones sobre su presupuesto nominal (dentro del 10 % permitido).
 4. El aviso `QUEUE FULL` de la cola MIDI/SysEx sigue fuera del firmware por tamaño (documentado en
    v1.11.0).
+
+---
+
+## 6. La publicación, verificada contra las URLs públicas
+
+Se descargó lo publicado y se comparó con el árbol, no se leyó el repositorio y se dio por bueno.
+
+| Qué | Valor comprobado | Clase |
+|---|---|---|
+| Tag | `v1.11.1` anotado → commit `8607d8fa8a11ce9966b3b5db62e3f5f54937fb86` | `[PUBLIC]` (`git ls-remote`) |
+| Release | *Quantum GammaWave v1.11.1*, marcada **Latest**, cinco assets | `[PUBLIC]` |
+| Asset del paquete | `felucca-v1.11.1.fwsc`, **610 933 B**, sha256 `cae3e5a4…a231e9`, idéntico al árbol (`cmp`) | `[PUBLIC]` |
+| Asset del emulador | `qg1-emulator-v1.11.1.zip`, **521 811 B**, sha256 `5d594abc…3cd698`, idéntico al árbol | `[PUBLIC]` |
+| Assets de registro | `felucca-v1.11.1.fwsc.manifest.json`, `build-manifest-v1.11.1.json` (`dc5080e5…`), `SHA256SUMS` (`8586ebcb…`) | `[PUBLIC]` |
+| Sitio (portal) | sirve **v1.11.1**; el paquete servido es `cae3e5a4…` | `[PUBLIC]` |
+| Sitio (emulador) | `felucca.wasm` **1 316 630 B**, sha256 `e417d568…ccc31a1`, registro `v1.11.1` / `2c5563ac1526` | `[PUBLIC]` |
+| `tools/site_check.py` | **all checks passed** (14 comprobaciones, incluidas versión de emulador y hashes del WASM) | `[PUBLIC]` |
+| Installer en el sitio | ofrece la versión publicada (comprobado por `site_check`) | `[PUBLIC]` |
+
+**Sin verificar (no se declara):** la atestación de build de GitHub (`actions/attest-build-provenance`) y el
+resultado de los jobs de Actions no se pudieron leer desde aquí sin credencial; el release y sus assets sí se
+verificaron por sus URLs públicas y por hash. No hubo ninguna prueba en una FM-1 física.
