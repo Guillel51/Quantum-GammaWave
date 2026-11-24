@@ -436,20 +436,28 @@ static void tech_chorus(void)
     int32_t amp = ((base - top) / 2 - 16) * (300 + depth * 700 / 1000) / 1000;   /* tk() is per-mille */
     uint32_t ph = bg_energy() > 2 ? ui.frame * (uint32_t)(40 + rate) * 8u : 0u;
     cv_rect(x0, cy, w, 1, T_RAISE);                     /* the zero line, quiet under both figures */
+    /* (v2.3.9) THE DEPTH IS THE SAME STACK THE CURVES USE. The lane used to be drawn three times with a per-copy
+     * phase nudge and a fixed lift: three bright lines of the same weight a few pixels apart, which at this height
+     * read as one thick smear -- the figure said "it moves" and nothing about where it sits. It is now the stack
+     * MORPH, TILT and FILTER wear: four passes of the SAME sweep, each one flatter (sy = 1000 - k*80) and lifted
+     * (dy = -k*5), inked through qz_back_ink so the far ones sink towards the page's own ground. The front pass,
+     * the one that is the effect's data, is the only one at full ink and two pixels thick. */
     for (k = 0; k < 2; k++) {                           /* k 0 = left, 1 = right */
         int32_t lane = cy + (k ? 1 : -1) * (6 + ster * 22 / 63);   /* STEREO: how far apart the two lanes sit */
         int32_t po = (int32_t)(ph / 40) + (k ? ster * 9 / 16 : 0); /* and how far ahead the right one is */
         uint16_t ink = k ? T_ACCENT : T_THEME;
-        int32_t px = 0, py = lane, i2, g;
+        int32_t g;
         cv_text_on(x0 + 2 + k * 14, top + 12, &AF_S, k ? "R" : "L", ux_mix(T_SURF, ink, 70), T_SURF);
-        for (g = 2; g >= 0; g--) {                  /* (v2.2) the lane and where it has been: depth, not a line */
-            uint16_t gi = g ? ux_mix(ink, ux_mix(T_THEME, T_ACCENT, 78), 40 + g * 22) : ink;
+        for (g = 3; g >= 0; g--) {                      /* back to front, so the near sweep is never covered */
+            int32_t sy = 1000 - g * 80, dy = -g * 5;
+            int32_t a_k = amp * sy / 1000, lane_k = lane + dy;
+            uint16_t gi = g ? qz_back_ink(ink, sy) : ink;
+            int32_t px = 0, py = lane_k, i2;
             for (i2 = 0; i2 <= w; i2++) {
-                uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + (uint32_t)po * 1024u
-                           + (uint32_t)g * 2400u;
-                int32_t y = lane - ((bg_sin(a) * amp) >> 15) * (k ? 3 : 4) / 4 - g * 4;
+                uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + (uint32_t)po * 1024u;
+                int32_t y = lane_k - ((bg_sin(a) * a_k) >> 15) * (k ? 3 : 4) / 4;
                 if (i2)
-                    cv_line_t(x0 + px, clamp(py, top, base), x0 + i2, clamp(y, top, base), gi, g ? 1 : (k ? 1 : 2));
+                    cv_line_t(x0 + px, clamp(py, top, base), x0 + i2, clamp(y, top, base), gi, g ? 1 : 2);
                 px = i2;
                 py = y;
             }
@@ -457,7 +465,6 @@ static void tech_chorus(void)
     }
     cv_rect(x0 + w / 2 - 1, top + 2, 1, base - top - 4, T_LINE);   /* the split between the two channels */
 }
-
 
 /* MASTER EQ: the response of the same Q24 biquad the audio path runs, on a logarithmic
  * 20 Hz .. 20 kHz X axis. (1.8.6) The old graph plotted the parameter index as if it were

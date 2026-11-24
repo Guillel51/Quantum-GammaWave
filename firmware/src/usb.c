@@ -1090,14 +1090,14 @@ static __attribute__((noinline)) void uac_tap48(const int32_t *out, uint32_t n)
             int64_t al = 0, ar = 0;
             int32_t yl, yr;
             if (ph < UAC_FIR_L / 2u) {
-                const int32_t *c = UAC_FIR[ph];
+                const int16_t *c = UAC_FIR[ph];
                 for (j = UAC_FIR_N; j; j--, x++) {
                     int32_t t = *c++;
                     al += (int64_t)t * x[0];
                     ar += (int64_t)t * x[2u * RS_H];
                 }
             } else {
-                const int32_t *c = &UAC_FIR[UAC_FIR_L - 1u - ph][UAC_FIR_N - 1u];
+                const int16_t *c = &UAC_FIR[UAC_FIR_L - 1u - ph][UAC_FIR_N - 1u];
                 for (j = UAC_FIR_N; j; j--, x++) {
                     int32_t t = *c--;
                     al += (int64_t)t * x[0];

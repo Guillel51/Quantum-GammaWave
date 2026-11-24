@@ -1083,6 +1083,15 @@ static void gw_bevel(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, 
     cv_rect(x, y + h - 1, w, 1, lo);
     cv_rect(x + w - 1, y, 1, h, lo);
 }
+/* (v2.3.9) the diagram pages' depth: a projected shadow, never a stack of copies. One contour and one body, both
+ * the shape's own ink dragged toward the background -- the same degradation the curves' back layers use -- sitting 1
+ * and 2 px down and right of it, so the box or the bar reads as lifted with the panel still flat behind it. */
+static void cv_shadow(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t ink)
+{
+    if (x + w + 2 > 240) return;                  /* a box against the right edge keeps its 2 px */
+    cv_rrect(x + 2, y + 2, w, h, r, ux_mix(ink, T_BG, 74), T_BG);   /* the projection: the ink at 26 % */
+    cv_rrect(x + 1, y + 1, w, h, r, ux_mix(ink, T_BG, 86), T_BG);   /* and the contour at its foot, at 14 % */
+}
 /* a 4 x 4 ordered dither: `pct` of the pixels take `b`, the rest `a`. Its levels are the
  * fixed steps a 16-bit palette had for a gradient, and the pattern never moves, so a static
  * frame stays static (the splash's hold rewrites nothing). */

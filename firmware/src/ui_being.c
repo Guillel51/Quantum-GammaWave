@@ -1754,8 +1754,8 @@ static __attribute__((noinline)) void gw_viz_milky(uint16_t page, int32_t g, int
         for (gy = -8; gy <= 8; gy++) {
             int32_t ay = gy < 0 ? -gy : gy;
             int32_t half = 26 - ay * 3;
-            for (gx = -half; gx <= half; gx++)
-                cv_pset(112 + gx, gcy + gy, bg_tone_mix(page, bg_col(110), 5 + (8 - ay) * 2));
+            /* (FASE 9) the row takes one colour: the mix and the ramp were per pixel and depend only on ay */
+            cv_rect(112 - half, gcy + gy, 2 * half + 1, 1, bg_tone_mix(page, bg_col(110), 5 + (8 - ay) * 2));
         }
     }
     for (x = 2; x < 236; x += 2) {                    /* the band: two px wide, thicker at the bulge */
@@ -1854,6 +1854,12 @@ static __attribute__((noinline)) void gw_viz_world(uint16_t page, int32_t cx, in
     uint16_t halolit = bg_tone_mix(page, bg_col(heat + 90), 26 + en / 8);
     uint16_t cap = bg_tone_mix(page, bg_col(heat + 120), 30 + en / 12);
     int32_t loud = en > 14 || (pulse && pulse < 20u);
+    /* (FASE 9) the glow and the moon's shadow take tones that are fixed for the whole body: they were mixed
+     * again on every row, or on every pixel of the shadow, for the same result */
+    uint16_t glow1 = bg_tone_mix(page, bg_col(heat + 40), 10 + en / 12);
+    uint16_t glow2 = bg_tone_mix(page, bg_col(heat + 60), 7 + en / 14);
+    uint16_t moon1 = bg_tone_mix(page, bg_col(heat - 60), 46);
+    uint16_t moon2 = bg_tone_mix(page, bg_col(heat - 40), 40);
     if (kind == 1)                                    /* the giant's ring, before the body hides it */
         gw_ring_tab(cx, cy, r + 3, (r + 3) / 3, edge, 0);
     for (dy = -r; dy <= r; dy++) {
@@ -1882,9 +1888,9 @@ static __attribute__((noinline)) void gw_viz_world(uint16_t page, int32_t cx, in
         /* (FASE 2) THE OUTER GLOW: a second, dimmer ring two px off the lit limb, so the body sits in its own
          * light instead of being cut out of the sky with a single halo line. */
         if (cy + dy > 27 && cy + dy < 201 && q >= 0 && span > 2) {
-            cv_pset(cx + span + 4, cy + dy, bg_tone_mix(page, bg_col(heat + 40), 10 + en / 12));
+            cv_pset(cx + span + 4, cy + dy, glow1);
             if (q > span / 2)
-                cv_pset(cx + span + 5, cy + dy, bg_tone_mix(page, bg_col(heat + 60), 7 + en / 14));
+                cv_pset(cx + span + 5, cy + dy, glow2);
         }
         if (span < 3)
             continue;
@@ -1893,8 +1899,8 @@ static __attribute__((noinline)) void gw_viz_world(uint16_t page, int32_t cx, in
         if (kind == 1 && q > -span && q < span) {
             int32_t sx2 = q - span / 2, sy2 = dy + r / 3;
             if (sx2 * sx2 / 4 + sy2 * sy2 / 2 <= r * r / 9) {
-                cv_pset(cx + sx2, cy + dy, bg_tone_mix(page, bg_col(heat - 60), 46));
-                cv_pset(cx + sx2 + 1, cy + dy, bg_tone_mix(page, bg_col(heat - 40), 40));
+                cv_pset(cx + sx2, cy + dy, moon1);
+                cv_pset(cx + sx2 + 1, cy + dy, moon2);
             }
         }
         if (kind == 1) {                              /* five belts, a lit crest on each */
@@ -1965,8 +1971,19 @@ static int32_t gw_viz_hit(int32_t x, int32_t y)
     return -1;
 }
 
+#ifdef VIZ_PROF
+/* (temporary) where the deep field's time goes. Never compiled into a release build. */
+#include <time.h>
+double vprof[6], vprof_n;
+#define VPROF_T(i, expr) do { clock_t t0_ = clock(); expr; vprof[i] += (double)(clock() - t0_) / (double)CLOCKS_PER_SEC * 1e9; } while (0)
+#else
+#define VPROF_T(i, expr) expr
+#endif
 static __attribute__((noinline)) void gw_viz_deep(uint32_t q)
 {
+#ifdef VIZ_PROF
+    vprof_n += 1.0;
+#endif
     uint16_t page = cv_bg;
     int32_t sway = q >= 2u ? 0 : (int32_t)(bg_sin(fm1_ms * 2u) >> 14);      /* +-2 px, one 32 s tide */
     int32_t g = (int32_t)((bg_sin(fm1_ms * 3u) + 32768) >> 12);           /* 0..16: the field's own light */
@@ -1983,11 +2000,11 @@ static __attribute__((noinline)) void gw_viz_deep(uint32_t q)
                  a1 = vzb_t[1] && ui.frame - vzb_t[1] < 26u ? ui.frame - vzb_t[1] : 0u;
         if (vzb_t[0] && a0 && (!a1 || a0 <= a1)) { wx = vzb_x[0]; wa = (int32_t)a0; }
         else if (vzb_t[1] && a1) { wx = vzb_x[1]; wa = (int32_t)a1; }
-        gw_viz_milky(page, g, sway, wx, wa);
+        VPROF_T(0, gw_viz_milky(page, g, sway, wx, wa));
     }
     /* the giant's limb in the page's top-left corner: most of it outside the screen, its ring crossing the part
      * we do see, so the frame reads as a window onto something larger than it is */
-    gw_deep_body(-16 + sway / 2, 2, 34, 26000, lit, sh, ed, 0, 2);
+    VPROF_T(1, gw_deep_body(-16 + sway / 2, 2, 34, 26000, lit, sh, ed, 0, 2));
     /* THE TWO WORLDS. A banded giant with a ring and a rocky moon: HOME's own bodies, larger and mixed
      * darker so they read behind the data. Their faces turn with the clock (a pure function of fm1_ms, never
      * an accumulator) and each answers a tap in its own degree. */
@@ -2003,14 +2020,14 @@ static __attribute__((noinline)) void gw_viz_deep(uint32_t q)
             } else if (e > en_hi)
                 en_hi = e;
         }
-        gw_viz_world(page, ax, ay, 13, (int32_t)((fm1_ms * 7u) & 0x7FFFu), 1, 150, en_lo,
-                     vzb_t[0] && ui.frame - vzb_t[0] < 26u ? ui.frame - vzb_t[0] : 0u);
+        VPROF_T(2, gw_viz_world(page, ax, ay, 13, (int32_t)((fm1_ms * 7u) & 0x7FFFu), 1, 150, en_lo,
+                     vzb_t[0] && ui.frame - vzb_t[0] < 26u ? ui.frame - vzb_t[0] : 0u));
         vzb_x[0] = (int16_t)ax;
         vzb_y[0] = (int16_t)ay;
         vzb_r[0] = 13;
         if (q == 0u) {
-            gw_viz_world(page, bx, by, 10, (int32_t)((fm1_ms * 5u + 16000u) & 0x7FFFu), 0, 62, en_hi,
-                         vzb_t[1] && ui.frame - vzb_t[1] < 26u ? ui.frame - vzb_t[1] : 0u);
+            VPROF_T(3, gw_viz_world(page, bx, by, 10, (int32_t)((fm1_ms * 5u + 16000u) & 0x7FFFu), 0, 62, en_hi,
+                         vzb_t[1] && ui.frame - vzb_t[1] < 26u ? ui.frame - vzb_t[1] : 0u));
             vzb_x[1] = (int16_t)bx;
             vzb_y[1] = (int16_t)by;
             vzb_r[1] = 10;
@@ -2018,7 +2035,7 @@ static __attribute__((noinline)) void gw_viz_deep(uint32_t q)
             vzb_r[1] = 0;
         }
         /* and a low arc in the strip under the panel: the field does not end at its border */
-        gw_deep_body(200, 238, 18, 8000, bg_tone_mix(page, bg_col(120), 22), bg_tone_mix(page, bg_col(40), 34), ed, 0, 2);
+        VPROF_T(4, gw_deep_body(200, 238, 18, 8000, bg_tone_mix(page, bg_col(120), 22), bg_tone_mix(page, bg_col(40), 34), ed, 0, 2));
     }
     {   /* the touch's answer, gentler than HOME's: one ring out of the limb and a mote or two */
         uint32_t i, age;
@@ -2737,6 +2754,7 @@ static __attribute__((noinline)) void graph_colony(const track_t *t, int32_t sel
         uint16_t brd = is_sel ? T_ACCENT : e > 12 ? bg_col(140 + e / 2) : T_LINE;
         uint16_t fill = is_sel ? T_RAISE : T_BG;
 
+        cv_shadow(px, py, pw, ph, 4, is_sel ? T_ACCENT : muted ? T_DIM : e > 12 ? bg_col(140 + e / 2) : T_THEME);
         gw_oct_panel(px, py, pw, ph, 4, fill, brd, is_sel || e > 16, is_sel ? T_ACCENT : T_THEME);
         cv_text_on(px + 5, py + 2, &AF_S, drum_lane_abbr(t, l),
                    is_sel ? T_ACCENT : muted ? T_DIM : T_TEXT, fill);

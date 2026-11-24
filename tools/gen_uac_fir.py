@@ -12,8 +12,10 @@ phases 0 .. 79: the prototype is symmetric, so phase 159 - p is phase p read bac
 to exactly 1 << 30 (unity gain at DC, the rounding left on its largest tap).
 Why these numbers (tests/uac_test.c measures them on the C code):
   N = 24, FC = 22 kHz, beta 9: images that would fold below 20 kHz (input above 28.1 kHz at 7.056 MHz) are
-  down 90 dB, the passband is flat within 0.06 dB to 18 kHz (-1.2 dB at 20 kHz); with Q30 taps the 1 kHz SNR
-  sits at the 16-bit floor (~94 dB at -1 dBFS); Q15 taps would cap it near 87 dB.
+  down 90 dB, the passband is flat within 0.06 dB to 18 kHz (-1.2 dB at 20 kHz). The taps are Q15 in an
+  int16: at Q30 the 1 kHz SNR sat at the 16-bit floor (~94 dB at -1 dBFS) and the table cost 7 680 B of
+  XIP; at Q15 it measures ~87 dB, still more than ten bits under the source's own floor, for half the
+  bytes. tests/uac_test.c measures both the SNR and the THD of the shipped table.
   tools/gen_uac_fir.py [OUT]   (default firmware/src/uac_fir.h); numpy only."""
 import sys
 from pathlib import Path
@@ -21,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 L, M, N = 160, 147, 24
-FC, BETA, QB = 22000.0, 9.0, 30
+FC, BETA, QB = 22000.0, 9.0, 15
 FS = 44100.0
 
 
@@ -47,7 +49,7 @@ def table():
 
 
 def main():
-    out = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[1] / "src" / "uac_fir.h")
+    out = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[1] / "firmware" / "src" / "uac_fir.h")
     tab = table()
     lines = [
         "/* SPDX-License-Identifier: GPL-3.0-only",
@@ -59,13 +61,13 @@ def main():
         f"#define UAC_FIR_M {M}u",
         f"#define UAC_FIR_N {N}u",
         f"#define UAC_FIR_Q {QB}",
-        f"static const int32_t UAC_FIR[{L // 2}][{N}] = {{",
+        f"static const {'int16_t' if QB <= 15 else 'int32_t'} UAC_FIR[{L // 2}][{N}] = {{",
     ]
     for p in range(L // 2):
         lines.append("    {" + ", ".join(str(int(v)) for v in tab[p]) + "},")
     lines.append("};")
     out.write_text("\n".join(lines) + "\n")
-    print(f"wrote {out}: {L // 2} x {N} taps, {L // 2 * N * 4} B")
+    print(f"wrote {out}: {L // 2} x {N} taps, {L // 2 * N * (2 if QB <= 15 else 4)} B")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,28 @@
+## v2.3.9 — profundidad donde no había curvas, el chorus legible y dos recortes de flash
+
+- **Las páginas de diagrama ganan profundidad sin apilar copias.** OPERATOR / OPERATOR 2 (las cajas del algoritmo
+  FM6 y del chart DIGITAL), SOUND del kit (los ocho pads) y STEREO (las fichas del kit) llevan ahora una **sombra
+  proyectada**: la proyección de la forma 2 px abajo y a la derecha con su propia tinta al 26 %, y su contorno a 1 px
+  al 14 % — la misma degradación hacia el fondo que las capas de las curvas, pero dos pasos en vez de cuatro.
+- **FX > CHORUS, legible y con el stack de cuatro capas.** La función es `tech_chorus()` (`ui_tech.c`), servida por
+  `GR_NONE` → `graph_tech()` → `case G_CRATE`. Dibujaba la lane tres veces con un empujón de fase falso y todas casi
+  al mismo brillo: ahora son cuatro pasadas de la MISMA barrida (`sy = 1000 − k·80`, `dy = −k·5`, `qz_back_ink`),
+  el frente a tinta plena y 2 px, las de atrás hundiéndose hacia el fondo.
+- **El campo profundo del visualizador, 11 % más barato sin cambiar un píxel.** `frame_bench` [HOST], mínimo de 6
+  series de 120 fotogramas: **250 467 → 222 600 ns** por fotograma del visualizer (−11.1 %); `gw_viz_milky`
+  33 250 → 22 929 ns (−31 %). 44 renders (22 paletas × normal y LARGE) byte a byte idénticos.
+- **`UAC_FIR` de Q30 a Q15: −3 840 B.** El resampleador de 48 kHz guarda sus 80 × 24 taps en `int16` Q15.
+  Medido en host (`tests/uac_test.c`): THD de 1 kHz **−118.3 → −115.4 dB**, SNR en banda **94.6 → 87.8 dB**
+  (piso de ruido, no distorsión), respuesta 20 Hz..18 kHz sin cambios. Las tolerancias del bench que estaban escritas
+  para Q30 se ataron a `UAC_FIR_Q`, y el chequeo de fidelidad de la tabla quedó más estricto (13 unidades absolutas
+  contra 21 474).
+- **`--sort-section=alignment` en el enlace: −128 B** de relleno entre secciones, sin tocar una función.
+- **`preset_t` no tiene relleno que recuperar.** En el host mide 40 B (punteros de 64 bits); en el AC791N mide
+  **36 B** — `ANALOG_PRESETS` 2 628 B / 73, `FM6_PRESETS` 1 332 B / 37, `PHASE` 1 224 B / 34: exactamente 36 B por
+  preset. Las tablas de nombres ya comparten sus cadenas: `-fmerge-all-constants` no movió un byte.
+- **`[HOST]`**: `ui_render` 202 pantallas × 22 paletas, 4 267 hallazgos de lint, **0 desvíos de alineación**;
+  `tests/uac_test.c` **all ok**; baseline de píxeles regenerado.
+
 ## v2.3.8 — la colección curada, y el DC de MERCURY BLOOM
 
 **Seis presets casi duplicados dan su plaza a seis sonidos nuevos.** No se borró la entrada: se **sustituyó en su

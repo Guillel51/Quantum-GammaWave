@@ -277,7 +277,7 @@ def build_app():
         else:
             tc("cc", *cf, "-c", OUT / "felucca_size.ll", "-o", OUT / "felucca.o")
     elf = OUT / "felucca.elf"
-    tc("pi32v2/bin/ld", "-T", FW / "app.ld", "--gc-sections", "-Map", OUT / "felucca.map",
+    tc("pi32v2/bin/ld", "-T", FW / "app.ld", "--gc-sections", "--sort-section=alignment", "-Map", OUT / "felucca.map",
        OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o", OUT / "felucca.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin", "c1text.bin", "hottext.bin"):
         (OUT / sect).unlink(missing_ok=True)

@@ -148,5 +148,12 @@ int main(int argc, char **argv)
                    t_live[k] > 0.0 ? t_full[k] / t_live[k] : 0.0);
     }
 
-    return 0;
+    #ifdef VIZ_PROF
+    {   extern double vprof[6], vprof_n;
+        if (vprof_n > 0)
+            fprintf(stderr, "VIZPROF per frame (ns): milky %.0f  limb %.0f  giant %.0f  rock %.0f  arc %.0f  of %.0f deep frames\n",
+                    vprof[0]/vprof_n, vprof[1]/vprof_n, vprof[2]/vprof_n, vprof[3]/vprof_n, vprof[4]/vprof_n, vprof_n);
+    }
+#endif
+return 0;
 }

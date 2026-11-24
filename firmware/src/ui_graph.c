@@ -749,6 +749,7 @@ static __attribute__((noinline)) void graph_dximg(const track_t *t)
         int32_t x = cx + p * (PANEL_W / 2 - 14) / 64;
         uint16_t c = k < 256 && img ? T_MID : heat_col(60u + l * 22u);   /* (narrowed by DRV DIST FILTER: grey) */
         cv_rect(p < 0 ? x : cx, y + 6, p < 0 ? cx - x : x - cx, 1, c);
+        cv_shadow(x - 13, y, 26, 12, 2, c);
         cv_rrect(x - 13, y, 26, 12, 2, c, T_SURF);
         cv_text_in(x - 13, y + CAP_IN(S, 12), 26, &AF_S, AB[l], T_INK, c);
     }
@@ -2547,6 +2548,7 @@ static __attribute__((noinline)) void graph_fm6(const track_t *t, uint16_t c, ui
         uint16_t f = hotset >> k & 1u ? T_ACCENT : c, fill = k == sel ? T_ACCENT : fill_c ? f : T_RAISE;
         char n[2] = {(char)('1' + k), 0};
         FM6_CHART_HOOK(FMH_BOX, k, 0);
+        cv_shadow(x[k] - 10, y[k], 21, FM_BH, 2, fill);
         gw_bevel(x[k] - 10, y[k], 21, FM_BH, fill, ux_mix(fill, T_TEXT, 40), ux_mix(fill, T_BG, 42));
         GFX_HOOK_ALIGN(x[k] - 10, y[k], x[k] + 11, y[k] + FM_BH, AL_HV, "FM6 operator number in its box");
         cv_text_in(x[k] - 10, y[k] + CAP_IN(S, FM_BH), 21, &AF_S, n, fill_c || k == sel ? T_INK : on ? f : T_DIM, fill);
@@ -2678,6 +2680,7 @@ static __attribute__((noinline)) void graph_fm(const track_t *t, uint16_t c)
         char b[2] = {(char)('1' + k), 0};
         uint32_t on = t->p[P_FM1_LEVEL + k * 5u] != 0, fill_c = (car >> k & 1u) && on;
         uint16_t f = k == hop ? T_ACCENT : c, fill = fill_c ? f : T_RAISE;
+        cv_shadow(x[k] - 10, y[k], 21, FM_BH, 3, fill);
         cv_rrect(x[k] - 10, y[k], 21, FM_BH, 3, fill, T_SURF);
         GFX_HOOK_ALIGN(x[k] - 10, y[k], x[k] + 11, y[k] + FM_BH, AL_HV, "DIGITAL operator number in its box");
         cv_text_in(x[k] - 10, y[k] + CAP_IN(S, FM_BH), 21, &AF_S, b, fill_c ? T_INK : on ? f : T_DIM, fill);
