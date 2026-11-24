@@ -1,3 +1,57 @@
+## v1.11.1 — FASE 9: EL CIERRE INTEGRAL, LA SEGURIDAD AUDITADA Y EL RELEASE REAL
+
+**Un parche sobre la línea 1.11, no un redesign.** 1.11.0 → 1.11.1, sin renumerar y sin saltar números
+(`docs/VERSIONING.md`). No cambia el camino de audio, la tabla del panel, el layout de la UI ni una sola
+compuerta de instalación.
+
+- **El árbol vuelve a decir su propia versión.** El README anunciaba `v1.8.6` y el instalador citaba
+  `v3.1.1` y `v2.9.7`, paquetes de una numeración que esta línea no construye; ahora el número sale de
+  `FELUCCA_VERSION` y ningún texto público inventa otro. `docs/VALIDATION_MATRIX.md` dejó de declarar
+  "current release v1.6.0".
+- **Se fue lo que ya no era el árbol.** Un `gmon.out` de 427 KiB en la raíz y un
+  `web/emu/manifest.json` commiteado que era el registro de build de **v2.7.3** (1 112 286 B, otro commit).
+  El registro real del emulador es `release/emu/manifest.json` y `site/emulator/manifest.json`, generados
+  desde el build; `coherence_check` compara el suyo con el build record.
+- **Un nombre que no era el de la parte.** `tools/fm1_probe.py` llamaba `P25Q80H-2` a la UCUN; la
+  allowlist dice `UC25HQ80` (JEDEC `0xB36014`). Un nombre inventado en una herramienta de flash es
+  exactamente el tipo de detalle que un informe de instalación no debe arrastrar.
+- **Los golden renders del número.** Splash y about dibujan la versión: 48 frames de 3 129 cambiaron y se
+  regeneraron con `tests/ui_pixels.py --update`. Verificado después: 3 129 idénticos.
+
+**La auditoría de seguridad, sin relajar nada.** Se revisaron y volvieron a probar: SHA-256 + tamaño del
+paquete contra su manifiesto antes de habilitar INSTALL; la identificación real del chip con `0x12` en la
+misma sesión; la allowlist de dos partes de 1 MiB (`0x856014`, `0xB36014`) y el rechazo de las cinco partes
+conocidas pero no validadas para escritura; la ventana del loader `0x4000–0x92FFF` y el marcador
+`FELUCCA-LOADER-1`; el V16 `FM-1_016` como destino de restauración y nunca como contenedor (su área de app
+termina en `0xA8071`); el "Verify only" que solo manda un frame de identidad; backup y restauración por
+objeto; y el rechazo de paquetes truncados, sin fin de lista, con otra clave de chip o con la app fuera de
+la imagen. No se añadió ningún bypass, no se eliminó ningún mecanismo de recuperación y el bootloader se
+sigue sin escribir.
+
+**Lo medido.** Imagen **581 508 B** y **2 104 B libres** (suelo 2 048); RAM 94 144 de 98 304 (**4 160 B
+libres**, suelo 4 096); pool 311 256 B con 9 248 de holgura; XIP 446 556 B de código + 130 152 B de
+constantes; loader 7 777 B. Es **idéntico a v1.11.0**: el parche no costó un byte. El emulador se
+reconstruyó con emcc 6.0.11 (**1 316 630 B**, sha256 `e417d568…`) y `target_budget` sigue en verde, con
+`BLOCK_PATH` al **−27 %** de su presupuesto.
+
+**Los artefactos.** `felucca-v1.11.1.fwsc` **610 933 B**, sha256
+`cae3e5a43b3904722e7f3a46cea88fd2627d8f1aa30dd14b4ca6990a47a231e9`; `qg1-emulator-v1.11.1.zip`
+**521 811 B**, sha256 `0c0588871b98fec1982abbcb2d5f4cbd08e543665490e6e4b09f2486859e1752`; el manifiesto, el
+build record y `SHA256SUMS` van al lado. Construido desde el árbol de este release —el commit exacto y los hashes de app, loader y paquete están en
+`release/build-manifest-v1.11.1.json`— con el toolchain JieLi `20260730.1` y el SDK
+`AC79NN_SDK_V1.2.1_2023-12-13` (los tres archivos del SDK verificados contra su pin).
+
+**Las pruebas.** La suite completa (`tests/run_tests.sh`, con el paquete real) terminó en **ALL HOST TESTS
+PASSED: 6 514 comprobaciones `ok`, 0 fallos**, con ASan/UBSan, los 3 129 golden frames y el lint de alineación.
+La suite salta el emulador porque busca `emcc` en el PATH; se corrió aparte con emsdk 6.0.11 y dio
+`emu: all ok`, con la canción pesada **bit a bit** contra el build nativo (88 200 frames) y 24,9 ms por
+segundo de audio. Aparte: instalador CLI, preflight, chip, firma, restauración, límites y fallos de paquete,
+backup web, coherencia, release set y sitio, todos en verde.
+
+**Nada de esto se probó en una FM-1 física.** Ni transferencia, ni arranque, ni lectura de flash, ni
+recuperación. El informe completo, con la clase de cada medición y lo que queda pendiente, es
+`docs/FASE9_CIERRE_2026-11-24.md`.
+
 ## v1.11.0 — FASE 8: LA PANTALLA EN PALABRAS, COMPLETA; Y UNA AUDITORÍA CON PRUEBAS
 
 **El lector de pantalla (issue #105) cubre lo que le faltaba.** Hasta la 1.10 solo se decía la pantalla, la fila

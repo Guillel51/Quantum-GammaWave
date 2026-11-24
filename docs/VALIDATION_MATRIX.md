@@ -1,4 +1,4 @@
-# VALIDATION MATRIX — what was actually run (v1.6.0, published 2026-11-21)
+# VALIDATION MATRIX — what was actually run (v1.11.1, 2026-11-24)
 
 Honesty first: this file records checks that were **executed**, on the named class of machine, against
 the named tree. Anything not listed here was not run. Labels: `[HOST]` executed natively, `[TARGET]`
@@ -6,11 +6,11 @@ executed against a real AC791N build, `[EMU]`/`[WASM]` executed against/in the E
 `[STATIC]` inspected without execution, `[PUBLIC]` read back from the public URLs, `[HW]` needs a
 physical FM-1.
 
-**The current release is v1.6.0** (identity `FM-1_965`): the evidence is the last section of this file,
-*Update — 2026-11-21, v1.6.0 published* (§26). Everything above it is the audit trail of earlier trees —
-up to the v1.9.0 line, whose version number was later reconciled to v1.6.0 — and is kept because it is
-the record of what was run then. Its versions, hash prefixes, file names and figures no longer describe
-this repository; where an earlier section disagrees with the last one, the last one is later and wins.
+**The current release is v1.11.1** (identity `FM-1_965`), the FASE 9 patch on the 1.11 line. Its evidence,
+its class and its pending physical checks are in `docs/FASE9_CIERRE_2026-11-24.md` and §26 below.
+Sections above §26 are the audit trail of earlier trees — versions, hashes, file names and figures that
+described the tree at the time; where an earlier section disagrees with the last one, the last one is
+later and wins.
 
 Environment for §26: Linux x86-64, gcc 13 (`cc`), Python 3 (Pillow/fontTools/numpy), Node 20,
 **JieLi pi32v2 toolchain `jieli-linux-toolchains-20260730.1`**, **AC79 SDK
