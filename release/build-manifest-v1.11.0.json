@@ -13,8 +13,18 @@
       "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"
     }
   },
-  "checks": {},
-  "commit": "1a98cbf869289c310105aab03a7c6f42d80f651a",
+  "checks": {
+    "checks": "ok",
+    "identity": "FM-1_965",
+    "notes": [
+      ".ram_text: 1193 insns, no calls",
+      "image 581508 B; RAM .data+.bss 94144 B of 98304; pool 311256 B, spare 9248 B; LOWBUF 31048 B of 32768",
+      "XIP code 446556 B, constants 130152 B",
+      "RAM code 3940 B of 24576; calls reach 13956 B past the code's end",
+      "register access: hal/ only (src/, loader/ clean)"
+    ]
+  },
+  "commit": "4c7890e4556e8b0bdfa0c2d78377aa9f6c95c240",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -35,7 +45,7 @@
   },
   "dirty": [],
   "emulator": {
-    "commit": "1a98cbf86928",
+    "commit": "340983ac9b6c",
     "version": "v1.11.0",
     "wasm_bytes": 1316630,
     "wasm_sha256": "367b29b1027fe01aa0f92e65fa535434cc5bf3962e3e9e547411d41128da3090"
