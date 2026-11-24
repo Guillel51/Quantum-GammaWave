@@ -1,3 +1,27 @@
+## v2.4.0 — la profundidad llega a MORPH y TILT
+
+**Dos curvas más con el stack de ENV, ninguna copia de JIANT y ninguna decorativa.** Cada capa es un valor real
+del mismo parámetro, no una repetición de la misma forma.
+
+- **MORPH**: la onda que suena delante y detrás **las dos puntas del recorrido** (la onda A y la onda B), más
+  pequeñas, levantadas y en el extremo frío de la paleta. Ahora el panel dice dónde está el sonido entre dos
+  formas, no solo cómo suena. Con MORPH en 0 o con A = B se dibuja una sola pasada, idéntica a la de antes:
+  PM, TUBE, FOLD y PWM/SYNC/RING/SAW3 no cambian un píxel.
+- **TILT**: las **dos puntas del knob** (-64 y +63) detrás y el ajuste actual delante, con el mismo valor que
+  corre el DSP. Al moverse el knob se ve hacia dónde va la curva, no solo dónde está.
+- **Verificación `[HOST]` por diff de píxeles**, que es lo que faltaba la vez anterior: MORPH cambia **427**
+  píxeles (y 100..150) y TILT **436** (y 110..150) respecto al mismo build sin las capas, exactamente en la
+  zona de la curva. Barrido de UI: **0 hallazgos de lint**, **0** desvíos de alineación en 3 953 168 medidas,
+  **0** tintas sobre su propio color, **0** píxeles GREY/MONO fuera de gris. Los 264 textos elididos son los
+  tres textos libres (un mensaje, un nombre de canción), no etiquetas de página.
+- **Coste `[TARGET]`**: **+464 B** (MORPH +304, TILT +160) → imagen **580 644 / 583 612 B, 2 968 libres**,
+  por encima del suelo de 2 048. RAM sin cambios.
+- **Sobre los bugs visuales listados**: parpadeos, controles que desaparecen y zonas desplazadas no se
+  reproducen en el barrido, que dibuja cada pantalla una vez y mide alineación por tinta; los tres fallos que
+  sí aparecían en pantalla (la cola del reverb re-cuantizada en v2.3.0, el visualizer sin cachés y la costura
+  de sus dos pasadas) están corregidos o medidos en `docs/`. Un detector de parpadeo por fotograma es trabajo
+  de la fase de rendimiento, no de esta.
+
 ## v2.3.0 — FX BUSES: la cola del reverb deja de saltar
 
 **Incremental, de una sola cosa y medida.** No cambia ni una muestra de audio: los 311 renders dorados salen

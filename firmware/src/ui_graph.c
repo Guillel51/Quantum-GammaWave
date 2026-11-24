@@ -290,14 +290,15 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
  * the bend is drawn as the straight chord between them: an asymptotic sketch, labelled as such by its shape, not a
  * measured response. The dot is where the top sits; the knob moves it. Cheap: one rectangle a column, a few
  * multiplies, nothing per sample. */
-static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
+/* (FASE 5) one pass of TILT's response for a given knob position. `amt` -64..63 is the same value the DSP uses, so
+ * the three passes are three real settings and not three copies of one: the ends of the knob's travel behind, the
+ * one it is on in front. lift/scale/ink are the depth. */
+static void tilt_pass(uint16_t c, int32_t amt, int32_t sy, int32_t dy, int32_t th, int back)
 {
-    int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100;
-    int32_t amt = t->p[P_HARM], k = 64 + (clamp(amt, -64, 63) * 3) / 4;   /* 16..111: the same gain the DSP uses */
+    int32_t x, cy = graph_ht / 2 + dy, a = 38 * graph_ht / 100 * sy / 1000;
+    int32_t k = 64 + (clamp(amt, -64, 63) * 3) / 4;   /* 16..111: the same gain the DSP uses */
     int32_t xp = PANEL_X0 + PANEL_W / 2, band = PANEL_W / 6;
     int32_t right = cy - ((k - 64) * a) / 64;         /* the plateau, in the graph's own px */
-    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);       /* 0 dB */
-    cv_rect(xp, cy - a - 4, 1, 2 * a + 8, T_MID);     /* the pivot: ~880 Hz, where the bend sits */
     for (x = 0; x < PANEL_W; x++) {
         int32_t d = x - (xp - PANEL_X0), y;
         if (d <= -band)
@@ -306,9 +307,26 @@ static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
             y = right;                                /* the top: the knob's own plateau */
         else
             y = cy + ((right - cy) * (d + band)) / (2 * band);
-        cv_rect(PANEL_X0 + x, y, 1, 1, heat_y(y, cy - a, cy + a, c));
+        cv_rect(PANEL_X0 + x, y, 1, th, back ? ux_mix(T_BG, heat_y(y, cy - a, cy + a, c), 78)
+                                              : heat_y(y, cy - a, cy + a, c));
     }
-    cv_rrect(xp - band + 2, right - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the top's level, where the knob puts it */
+    if (!back)
+        cv_rrect(xp - band + 2, right - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the top's level, where the knob puts it */
+}
+static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
+{
+    int32_t cy = graph_ht / 2, a = 38 * graph_ht / 100, amt = t->p[P_HARM];
+    int32_t xp = PANEL_X0 + PANEL_W / 2;
+    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);       /* 0 dB */
+    cv_rect(xp, cy - a - 4, 1, 2 * a + 8, T_MID);     /* the pivot: ~880 Hz, where the bend sits */
+    /* (FASE 5) the two ends of TILT's travel behind, the setting it is on in front: the page says how far the
+     * knob has gone, not only where it is. At the ends themselves the same curve is already in front, so the
+     * pass equal to the current one is skipped and nothing is drawn twice. */
+    if (amt < 60)
+        tilt_pass(c, 63, 880, -5, 1, 1);
+    if (amt > -60)
+        tilt_pass(c, -64, 760, -10, 1, 1);
+    tilt_pass(c, amt, 1000, 0, 1, 0);
 }
 
 /* (v2.2) THE LFO IN DEPTH. The page drew one wave; a modulation is a wave AND where it has been, which is what the
@@ -618,6 +636,40 @@ static __attribute__((noinline)) void graph_dximg(const track_t *t)
     }
 }
 
+/* (FASE 5) one pass of MORPH's wave. pos/f say which wave it is, sy the height (per-mille of the panel's 34 px),
+ * dy the lift and th the line, so the two ends of the travel can stand behind the sound in depth. `back`: a wave
+ * of the travel, drawn dim. */
+static void morph_pass(const track_t *t, uint32_t e, const pd_t *pa, const pd_t *pb, const an_dirt_t *dt,
+                       int dirt, int pmw, uint32_t a0, uint32_t a1, int32_t pos, int32_t f,
+                       int32_t sy, int32_t dy, int32_t th, int back)
+{
+    int32_t px = 0, py = 0;
+    uint32_t i;
+    for (i = 0; i <= 110u; i++) {
+        uint32_t ph = (uint32_t)(i % 110u) * (0xFFFFFFFFu / 110u), inc = 0xFFFFFFFFu / 220u;
+        int32_t s, x = PANEL_X0 + (int32_t)i * 2, y;
+        if (ENGINES[e] == &ENG_PHASE) {
+            s = pd_wave(pa, ph >> 16);
+            if (f) s += ((pd_wave(pb, ph >> 16) - s) * f) >> 8;
+        } else if (ENGINES[e] == &ENG_LOFI) {
+            s = lofi_mto(a0, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u);
+            if (f) s += ((lofi_mto(a1, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u) - s) * f) >> 8;
+        } else if (pmw) {
+            int32_t mo = osc_saw(ph * 2u, inc);
+            s = osc_sine(ph + (uint32_t)mo * (uint32_t)(16384u + (uint32_t)t->p[P_MORPH] * 128u));
+        } else if (dirt)
+            s = an_dirt((uint32_t)t->p[P_E0], ph, dt);
+        else
+            s = an_morph(pos, ph, inc);
+        y = 46 + dy - s * 34 * sy / (32768 * 1000);
+        if (i)
+            cv_line_t(px, py, x, y, back ? ux_mix(T_BG, heat_col(80 + (uint32_t)(46 - y + 34) * 2u), 80)
+                                         : heat_col(80 + (uint32_t)(46 - y + 34) * 2u), th);
+        px = x;
+        py = y;
+    }
+}
+
 static __attribute__((noinline)) void graph_morph(const track_t *t)
 {
     const int16_t *p = t->p;
@@ -667,6 +719,12 @@ static __attribute__((noinline)) void graph_morph(const track_t *t)
     }
     f = pos & 255;
     cv_rect(PANEL_X0, 46, PANEL_W, 1, T_RAISE);
+    if (f && a1 != a0) {
+        morph_pass(t, e, &pa, &pb, &dt, dirt, pmw, a0, a1, (int32_t)a1 * 256, 0, 760, -10, 1, 1);
+        morph_pass(t, e, &pa, &pb, &dt, dirt, pmw, a0, a1, (int32_t)a0 * 256, 0, 880, -5, 1, 1);
+    }
+    morph_pass(t, e, &pa, &pb, &dt, dirt, pmw, a0, a1, pos, f, 1000, 0, 2, 0);
+    if (0)
     for (i = 0; i <= 110u; i++) {
         uint32_t ph = (uint32_t)(i % 110u) * (0xFFFFFFFFu / 110u), inc = 0xFFFFFFFFu / 220u;
         int32_t s, x = PANEL_X0 + (int32_t)i * 2, y;
