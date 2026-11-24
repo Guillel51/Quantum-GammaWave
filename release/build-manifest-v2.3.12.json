@@ -13,8 +13,18 @@
       "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"
     }
   },
-  "checks": {},
-  "commit": "542d049b0a60ad415bcd74876edc6640d4cf719e",
+  "checks": {
+    "checks": "ok",
+    "identity": "FM-1_965",
+    "notes": [
+      ".ram_text: 1193 insns, no calls",
+      "image 578036 B; RAM .data+.bss 93364 B of 98304; pool 312124 B, spare 8384 B; LOWBUF 31648 B of 32768",
+      "XIP code 447052 B, constants 126204 B",
+      "RAM code 3940 B of 24576; calls reach 13460 B past the code's end",
+      "register access: hal/ only (src/, loader/ clean)"
+    ]
+  },
+  "commit": "c2419936e7d11abe96402655ce8fd2db819135f6",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
