@@ -1,3 +1,39 @@
+## v2.2.0 — MOTOR DE PROFUNDIDAD QUANTUM: ENV, LFO Y CHORUS EN TRES DIMENSIONES
+
+**La línea 2.2, primera versión.** No cambia una muestra de audio (`tests/regress` da los **311** renders
+idénticos) ni un parámetro, una tecla o una ruta. Cambia la forma en que estas páginas dicen lo que ya sabían.
+
+- **Etapa 1 — memoria, medida y no prometida.** Auditoría símbolo por símbolo del `.bss`/`.data` del build
+  AC791N (los diez bloques mayores están todos vivos: `dly_buf`, `cv_buf`, `sl_buf`, `cloud_buf`, `proj_slot`,
+  `trk`, `rev_comb`, `proj_scratch`, `sec_stage`, `undo_st`; ninguna tabla duplicada ni buffer sin uso, y nada
+  de lo que el proyecto ya había rechazado con números se da por bueno). Sin issues ni PRs abiertos, sin trabajo
+  sin commitear. La memoria se recuperó donde de verdad aprieta, **la imagen**: el dibujo por píxel de la
+  envolvente (tres bucles más el relleno) se reemplazó por el motor compartido y la imagen bajó de
+  **581 476 a 580 180 B** (3 432 B libres, suelo 2 048): **1 296 B de flash recuperados** antes de añadir nada.
+  El costo en RAM es de **212 B** (`qz_v` 82 B + el contexto de la envolvente 100 B + 30 B de estado), con
+  **5 456 B libres** sobre un suelo de 4 096: la imagen es el recurso escaso y es el que se liberó.
+- **Etapa 2 — el motor: `qz_` en `ui_graph.c`.** Un stack de capas en pseudo-3D con geometría 2D: cada capa es
+  la MISMA curva dibujada más chica (`sx`/`sy` por mil), corrida a la derecha y arriba (`dx`/`dy`) y mezclada
+  hacia el extremo frío de la paleta; la de adelante va a 2 px con un piso de luz de dos filas y las de atrás a
+  1 px. Una función de niveles por página (`qz_lvl_t`) llena **un solo buffer estático de 41 muestras** por capa:
+  no hay asignaciones, no hay matrices y el costo de una capa es el de una polilínea. Nada del motor sabe qué es
+  una envolvente, un LFO o un chorus.
+- **Etapa 3 — dónde se aplicó, y dónde no.** **ENV** (prioridad): la envolvente de este track adelante y detrás
+  las de los otros tres tracks, con sus valores reales — cuatro capas que se separan en perspectiva y cambian si
+  se mueve cualquier knob de cualquier track. **LFO**: tres capas de la misma onda con un paso de fase entre
+  ellas, así la modulación muestra también por dónde pasó. **CHORUS**: cada canal con dos copias detrás — el
+  carril y su rastro. **DELAY** ya tenía profundidad real (el túnel de ecos concéntricos de v2.1.0) y **BUSES**
+  la conserva en sus miniaturas; REVERB, SLICER, SEQ y MASTER quedaron como estaban a propósito: ahí una escalera,
+  unas compuertas y un medidor se leen mejor planos.
+- **Etapa 4 — identidad.** Fondo negro, rampa de color entre los tokens de la paleta (`ux_mix`) del ámbar del
+  frente al frío del fondo, línea principal nítida de 2 px y secundarias progresivamente más tenues. GREY y MONO
+  siguen neutros (0 píxeles fuera de gris en la barrida).
+- **Etapa 5 — medido.** `[TARGET]` **580 180 / 583 612 B** y `.data+.bss` **92 848 / 98 304**; `[HOST]` el dibujo
+  nuevo cuesta una polilínea de 41 puntos por capa y no toca el camino de audio. Lint de alineación **0** en
+  3 953 168 mediciones; los píxeles que cambiaron están en el baseline con este motivo.
+- **Etapa 6 — publicado.** Paquete, emulador, sitio, instalador y editor sincronizados con el mismo build.
+  Sin unidad FM-1: ninguna compuerta de instalación cambia de estado.
+
 ## v2.1.0 — ENV, FX, BUSES Y SCL REDISEÑADOS: CADA PANTALLA TIENE SU PROPIO DIBUJO
 
 **La línea 2.1, primera versión.** Cambia la composición y el dibujo de ENV, DLY, DLY 2, REVERB, REVERB 2,

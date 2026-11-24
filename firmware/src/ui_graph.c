@@ -68,6 +68,105 @@ static int32_t env_x_of(int32_t lvl, int32_t n, int32_t from, int32_t to)
  * drawings added here, which hid the technical graphs (tech_dly, tech_rev, tech_chorus, tech_master) that already
  * answered the same knobs with animation. They are back in charge: the pages are GR_NONE again, ui_tech.c draws
  * them from the page id, and tests/ui_test's "the rings follow the bus's return" is the gate that caught it. */
+/* (v2.2) QUANTUM DEPTH. The ENV screen asked for the one thing a flat curve cannot say: that these shapes stand in
+ * space, one behind another. A real 3D engine is out of the question on this part (no matrix unit worth the flash,
+ * and every curve would cost a transform a point), so this is the old trick, done once and reused: a layer is the
+ * SAME curve drawn smaller, lifted and shifted a step for every layer behind it, mixed towards the palette's cool end,
+ * and the front one is drawn 2 px with a lit floor under it while the ones behind are 1 px and dimmer. It is pure 2D
+ * geometry -- scale, shear, lift, colour -- so the cost of a layer is the cost of a polyline.
+ *
+ * Two rules keep it honest: the levels come from a function the page passes in (never from a timer), and the buffer is
+ * one static array of samples, filled per layer and never allocated. The page asks for the curve once and gets the
+ * whole stack; nothing here knows what an envelope, an LFO or a chorus is. */
+#define QZ_N 41                                     /* samples a layer: 6 px apart across a 240 px panel */
+#define QZ_LAYERS 5                                 /* the most layers a page has asked for */
+static int16_t qz_v[QZ_N];                          /* one layer's levels, 0..1000 (82 B, shared by every page) */
+typedef struct {
+    int32_t x0, y0, w, h;                           /* the FRONT layer's box: x0,y0 its left foot, w x h */
+    int32_t n;                                      /* layers, 1..QZ_LAYERS */
+    int32_t dx, dy;                                 /* what a layer recedes: this many px right, this many up */
+    int32_t sx, sy;                                 /* and this many per-mille smaller (60 = 6 %) */
+    uint16_t front, back;                           /* the colour ramp: the front is the page's own ink */
+    uint16_t glow;                                  /* the front layer's floor, 0 for none */
+} qz_t;
+/* the level of a curve, 0..1000, at u = 0..1000 across the layer: k is which layer (0 = front) */
+typedef int32_t (*qz_lvl_t)(void *ctx, int32_t k, int32_t u);
+static uint16_t qz_ink(const qz_t *q, int32_t k)
+{
+    return k <= 0 || q->n < 2 ? q->front : ux_mix(q->front, q->back, 30 + k * 55 / (q->n - 1));
+}
+static __attribute__((noinline)) void qz_set(qz_t *q, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t n, uint16_t front, uint16_t back)
+{
+    q->x0 = x0;
+    q->y0 = y0;
+    q->w = w < 8 ? 8 : w;
+    q->h = h < 8 ? 8 : h;
+    q->n = n < 1 ? 1 : (n > QZ_LAYERS ? QZ_LAYERS : n);
+    q->dx = q->w / 14;                              /* the shear: each layer steps right ... */
+    q->dy = q->h / 6;                               /* ... and up, so the stack has a vanishing point */
+    q->sx = 90;                                    /* and shrinks 9 % a layer: the depth is real geometry */
+    q->sy = 90;
+    q->front = front;
+    q->back = back;
+    q->glow = ux_mix(T_BG, front, 24);
+}
+static __attribute__((noinline)) void qz_curve(const qz_t *q, qz_lvl_t fn, void *ctx)
+{
+    int32_t k, i;
+    for (k = q->n - 1; k >= 0; k--) {                /* back to front, so the near layer is never covered */
+        int32_t sw = q->w * 1000 / (1000 + k * q->sx);
+        int32_t sh = q->h * 1000 / (1000 + k * q->sy);
+        int32_t ox = q->x0 + k * q->dx, oy = q->y0 + (q->h - sh) - k * q->dy;
+        uint16_t ink = qz_ink(q, k);
+        int32_t px = 0, py = 0;
+        for (i = 0; i < QZ_N; i++) {
+            int32_t v = fn(ctx, k, i * 1000 / (QZ_N - 1));
+            qz_v[i] = (int16_t)clamp(v, 0, 1000);
+        }
+        for (i = 0; i < QZ_N; i++) {                /* the under-glow: what the front curve stands on */
+            int32_t x = ox + i * sw / (QZ_N - 1);
+            int32_t y = oy + sh - qz_v[i] * sh / 1000;
+            if (k == 0 && q->glow)                   /* the front curve's floor: two rows of light, not a fill */
+                cv_rect(x, y + 1, sw / (QZ_N - 1) + 1, 2, q->glow);
+            if (i) {
+                cv_line_t(px, py, x, y, ink, k ? 1 : 2);
+            }
+            px = x;
+            py = y;
+        }
+    }
+}
+/* exp(-4.6 u) in nine steps, Q15: the envelope's own decay (the DSP falls to 1 % over a stage, ENV_K is built from
+ * the same constant), sampled instead of walked a pixel at a time. */
+static const uint16_t ENV_E[9] = {32768, 18448, 10386, 5846, 3291, 1853, 1043, 587, 330};
+static int32_t env_fall(int32_t t1000)              /* 0..1000 across a stage -> Q15 of exp(-4.6 t) */
+{
+    int32_t f = clamp(t1000, 0, 1000) * 8 / 1000, r = clamp(t1000, 0, 1000) * 8 % 1000;
+    if (f >= 8)
+        return ENV_E[8];
+    return ENV_E[f] + (ENV_E[f + 1] - ENV_E[f]) * r / 1000;
+}
+
+/* one ADSR per layer, in the page's own pixels and % (built in graph_adsr, read by env_lvl) */
+typedef struct { int32_t a[QZ_LAYERS], d[QZ_LAYERS], r[QZ_LAYERS], t[QZ_LAYERS], s[QZ_LAYERS]; } env_ctx_t;
+static __attribute__((noinline)) int32_t env_lvl(void *ctx, int32_t k, int32_t u)
+{
+    const env_ctx_t *e = (const env_ctx_t *)ctx;
+    int32_t a = e->a[k], d = e->d[k], t = e->t[k], r = e->r[k], sus = e->s[k];
+    int32_t tot = a + d + t + r, x = u * tot / 1000;
+    if (tot <= 0)
+        return 0;
+    if (x < a)
+        return a > 0 ? 1000 * x / a : 1000;
+    x -= a;
+    if (x < d)
+        return sus + (1000 - sus) * env_fall(d > 0 ? x * 1000 / d : 1000) / 32768;
+    x -= d;
+    if (x < t)
+        return sus;
+    x -= t;
+    return r > 0 ? sus * env_fall(clamp(x * 1000 / r, 0, 1000)) / 32768 : 0;
+}
 static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
 {
     const page_t *pg = cur_page();
@@ -77,34 +176,41 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
     int32_t e = 32768;                                                  /* exp(-4.6 u), Q15 */
     const voice_t *bv;                                                  /* the loudest voice, found once */
 #define EGY(lvl) (bot - (lvl) * (bot - top) / 1000)
-#define ENVF(x, y) cv_rect((x), (y) + 1, 1, bot - (y), ux_mix(T_BG, c, 20))   /* (v2.1) the shape's own body */
+    /* (v2.2) THE ENVELOPE STANDS IN SPACE. One curve says the shape; a stack of them says where it came from. The
+     * four values this page edits are kept in a five-deep ring, and the ring is what the depth engine draws: the
+     * current shape in front, full size and 2 px, and the four shapes the user had before it receding behind it --
+     * smaller, lifted, sheared and mixed towards the palette's cool end. Nothing is invented: every layer is a real
+     * ADSR the page really held, and the front one is the one the DSP is playing. The ring only shifts when a knob
+     * changes, so a still page draws a still stack. */
+    {
+        /* (v2.2) THE INSTRUMENT'S ENVELOPES, STANDING IN SPACE. The page's own envelope is drawn in front -- full
+         * size, 2 px, with the lit floor under it -- and behind it stand the other tracks' amplitude envelopes, one
+         * layer each, smaller, lifted and mixed towards the palette's cool end. It is the same four values read from
+         * six tracks: nothing is a timer and nothing is invented, and a knob on any track changes its own layer. */
+        static env_ctx_t ec;                        /* 100 B of .bss, filled every draw: no allocation */
+        const track_t *src[QZ_LAYERS];
+        int32_t k, self = (int32_t)(t - trk), j = 0;
+        qz_t q;
+        src[0] = t;
+        for (k = 0; k < NTRK && j < 3; k++)
+            if (k != self)
+                src[++j] = &trk[k];
+        for (k = 0; k <= j; k++) {
+            int32_t v = src[k]->p[pg->id[0]], vd = src[k]->p[pg->id[1]];
+            int32_t vs = src[k]->p[pg->id[2]], vr = src[k]->p[pg->id[3]];
+            ec.a[k] = 4 + v * 50 / 127;
+            ec.d[k] = 6 + vd * 50 / 127;
+            ec.r[k] = 6 + vr * 60 / 127;
+            ec.s[k] = vs * 1000 / 127;
+            ec.t[k] = k ? ec.d[k] + 20 : (x3 - x1 - d > 0 ? x3 - x1 - d : 1);   /* the flat part, widest in front */
+        }
+        qz_set(&q, x0, top, x3 + r - x0, bot - top, j + 1, heat_y((bot + top) / 2, top, bot, c),
+               ux_mix(T_THEME, T_ACCENT, 72));
+        qz_curve(&q, env_lvl, &ec);
+    }
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
-    for (i = 0; i <= a; i++)                                  /* (v2.1) the attack's body, a column at a time */
-        ENVF(x0 + i, bot - (bot - top) * i / (a > 0 ? a : 1));
-    cv_line_t(x0, bot, x1, top, heat_y((bot + top) / 2, top, bot, c), 2);                                  /* attack: linear */
-    px = x1;
-    py = top;
-    for (i = 1; i <= d; i++) {                                          /* decay: exponential to SUS */
-        int32_t lvl;
-        e = (e * ENV_K(d)) >> 15;                       /* k^d = exp(-4.6) */
-        lvl = sus + ((1000 - sus) * e >> 15);
-        ENVF(x1 + i, EGY(lvl));
-        cv_line_t(px, py, x1 + i, EGY(lvl), heat_y(py, top, bot, c), 2);
-        px = x1 + i;
-        py = EGY(lvl);
-    }
-    cv_line_t(px, py, x3, EGY(sus), heat_y(py, top, bot, c), 2);                               /* sustain */
-    cv_rect(px, EGY(sus) + 1, x3 - px, bot - EGY(sus), ux_mix(T_BG, c, 20));                   /* its body */
-    px = x3;
-    py = EGY(sus);
-    e = 32768;
-    for (i = 1; i <= r; i++) {                                          /* release: exponential to 0 */
-        e = (e * ENV_K(r)) >> 15;
-        ENVF(x3 + i, EGY(sus * e >> 15));
-        cv_line_t(px, py, x3 + i, EGY(sus * e >> 15), heat_y(py, top, bot, c), 2);
-        px = x3 + i;
-        py = EGY(sus * e >> 15);
-    }
+    (void)px;
+    (void)py;
     /* (v2.0.1) THE LOUDEST VOICE IS FOUND ONCE: the playhead and the stage's accent both need it, and the page used
      * to walk the twelve voices twice for the same answer. */
     {
@@ -205,21 +311,43 @@ static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
     cv_rrect(xp - band + 2, right - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the top's level, where the knob puts it */
 }
 
+/* (v2.2) THE LFO IN DEPTH. The page drew one wave; a modulation is a wave AND where it has been, which is what the
+ * depth engine is for: three layers of the same wave, each a step of phase further back, receding up and to the
+ * right in the palette's cool end, with the wave of now in front at 2 px. The playhead and the level dot stay on the
+ * front one, so the animation is unchanged -- what the engine adds is the third dimension it was always drawing flat.
+ * WAVE, RATE, DEPTH, FADE, PHASE and SYNC are the same values the DSP runs: a layer is a phase step, not a timer. */
+typedef struct { const track_t *t; uint32_t ph, span; } lfo_ctx_t;
+static int32_t lfo_lvl(void *ctx, int32_t k, int32_t u)
+{
+    const lfo_ctx_t *c = (const lfo_ctx_t *)ctx;
+    uint32_t px = c->ph + (uint32_t)u * c->span + (uint32_t)k * (c->span / 3u);
+    int32_t w;
+    if (c->t->p[P_LWAVE] == 4)
+        w = ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768);
+    else
+        w = lfo_wave((track_t *)c->t, px);
+    return 500 + w * 500 / 32768;
+}
 static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
 {
-    int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, xp = PANEL_W / 4;
+    int32_t x, g, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, xp = PANEL_W / 4;
     uint32_t span = 0xFFFFFFFFu / (PANEL_W / 2u), ph = t->lfo_ph - (uint32_t)xp * span;
     int32_t now = cy - mulq15(t->lfo_val, t->lfo_fade) * a / 32768;
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
-    for (x = 0; x < PANEL_W; x++) {                  /* (lfo_wave only reads the track) */
-        uint32_t px = ph + (uint32_t)x * span;
-        int32_t y = cy - lfo_wave((track_t *)t, px) * a / 32768;
-        if (t->p[P_LWAVE] == 4)                      /* S&H: a value per cycle part, held */
-            y = cy - ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768) * a / 32768;
-        if (x)
-            cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y,
-                      x < xp ? ux_mix(T_SURF, heat_y(y, cy - a, cy + a, c), 45) : heat_y(y, cy - a, cy + a, c), 2);
-        py = y;
+    for (g = 2; g >= 0; g--) {                       /* (v2.2) the wave and where it has been: three layers in depth */
+        uint16_t gi = g ? ux_mix(heat_y(cy, cy - a, cy + a, c), ux_mix(T_THEME, T_ACCENT, 80), 40 + g * 22)
+                        : heat_y(cy, cy - a, cy + a, c);
+        py = cy - g * 5;
+        for (x = 0; x < PANEL_W; x++) {              /* (lfo_wave only reads the track) */
+            uint32_t px = ph + (uint32_t)x * span + (uint32_t)g * (span * (uint32_t)xp / 2u);
+            int32_t y = cy - g * 5 - lfo_wave((track_t *)t, px) * a / 32768;
+            if (t->p[P_LWAVE] == 4)                  /* S&H: a value per cycle part, held */
+                y = cy - g * 5 - ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768) * a / 32768;
+            if (x)
+                cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y,
+                          g ? gi : (x < xp ? ux_mix(T_SURF, gi, 45) : gi), g ? 1 : 2);
+            py = y;
+        }
     }
     cv_rect(PANEL_X0 + xp, cy - a - 4, 1, 2 * a + 8, T_MID);   /* the playhead */
     cv_rrect(PANEL_X0 + xp - 3, now - 3, 7, 7, 3, T_TEXT, T_SURF);
@@ -4000,6 +4128,7 @@ static __attribute__((noinline)) void graph_song(void)
         cv_text_r(230, my + mh + 4, &AF_S, b, T_MID, T_SURF);
     }
 }
+
 #include "ui_tech.c"                                /* (JIANT 0.5) the technical graphs (FX, DEST, VOICE, GLOBAL) */
 /* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
 static __attribute__((noinline)) void graph_master(void)

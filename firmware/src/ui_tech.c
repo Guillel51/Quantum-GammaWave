@@ -440,15 +440,19 @@ static void tech_chorus(void)
         int32_t lane = cy + (k ? 1 : -1) * (6 + ster * 22 / 63);   /* STEREO: how far apart the two lanes sit */
         int32_t po = (int32_t)(ph / 40) + (k ? ster * 9 / 16 : 0); /* and how far ahead the right one is */
         uint16_t ink = k ? T_ACCENT : T_THEME;
-        int32_t px = 0, py = lane, i2;
+        int32_t px = 0, py = lane, i2, g;
         cv_text_on(x0 + 2 + k * 14, top + 12, &AF_S, k ? "R" : "L", ux_mix(T_SURF, ink, 70), T_SURF);
-        for (i2 = 0; i2 <= w; i2++) {
-            uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + (uint32_t)po * 1024u;
-            int32_t y = lane - ((bg_sin(a) * amp) >> 15) * (k ? 3 : 4) / 4;
-            if (i2)
-                cv_line_t(x0 + px, clamp(py, top, base), x0 + i2, clamp(y, top, base), ink, k ? 1 : 2);
-            px = i2;
-            py = y;
+        for (g = 2; g >= 0; g--) {                  /* (v2.2) the lane and where it has been: depth, not a line */
+            uint16_t gi = g ? ux_mix(ink, ux_mix(T_THEME, T_ACCENT, 78), 40 + g * 22) : ink;
+            for (i2 = 0; i2 <= w; i2++) {
+                uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + (uint32_t)po * 1024u
+                           + (uint32_t)g * 2400u;
+                int32_t y = lane - ((bg_sin(a) * amp) >> 15) * (k ? 3 : 4) / 4 - g * 4;
+                if (i2)
+                    cv_line_t(x0 + px, clamp(py, top, base), x0 + i2, clamp(y, top, base), gi, g ? 1 : (k ? 1 : 2));
+                px = i2;
+                py = y;
+            }
         }
     }
     cv_rect(x0 + w / 2 - 1, top + 2, 1, base - top - 4, T_LINE);   /* the split between the two channels */
