@@ -1,8 +1,8 @@
-## v1.12.1 — JIANT INSPIRED: LAS ETAPAS DE ENV Y LAS PÁGINAS DE FX QUE NO TENÍAN IMAGEN
+## v1.13.0 — JIANT INSPIRED: LAS ETAPAS DE ENV Y LAS PÁGINAS DE FX QUE NO TENÍAN IMAGEN
 
-**Una versión de presentación, no de DSP.** 1.11.2 → 1.12.1 (`docs/VERSIONING.md`). (1.12.0 no se publica desde
-este árbol: su tag ya existía con otro paquete y GitHub no reemplaza un asset ya subido, así que el release
-quedaba con un `.fwsc` que sus propios `SHA256SUMS` no describían; 1.12.1 es el primer release coherente de la fase.) No cambia ningún camino de
+**Una versión de presentación, no de DSP.** 1.11.2 → 1.13.0 (`docs/VERSIONING.md`). La línea 1.12.0..1.12.18 ya
+está tomada en el historial del repositorio por otros paquetes, así que esta fase —una función nueva, no un parche—
+sale como 1.13.0 y no reutiliza ninguno de esos tags. No cambia ningún camino de
 audio, ni una tabla, ni un parámetro, ni el guardado: los mismos valores suenan igual. Lo que cambia es lo que la
 pantalla dice de ellos.
 
