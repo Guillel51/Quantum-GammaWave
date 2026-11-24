@@ -1,3 +1,28 @@
+## v2.3.3 — los gráficos en profundidad: la misma curva, cada vez más oscura
+
+**Cambio visual deliberado** en las cuatro páginas con stack (ENV, LFO, MORPH, TILT). El baseline de píxeles se
+regeneró por esto, no por ruido.
+
+- **ENV: las capas de atrás eran de otros tracks.** El stack dibujaba la envolvente de este track delante y las de
+  otros tres detrás, así que **mover un knob movía solo la capa frontal** y el resto quedaba congelado: se leía
+  como un dibujo roto. Ahora las cinco capas son **la misma envolvente**, la de esta pista, y lo que las separa es
+  la distancia —cizalla, elevación, tamaño y tinta— no los datos. Un knob mueve las cinco a la vez.
+- **Más profundidad, dentro del panel.** Primero subí la elevación a `h/4` por capa y las dos de atrás **se
+  salían por el borde superior**. La geometría es ahora `dx = w/16`, `dy = h/14`, encogimiento 9,5 % por capa: el
+  encogimiento baja el techo de cada capa más de lo que la elevación la sube, así que las cinco quedan dentro.
+- **Se oscurecen de verdad.** `qz_ink` mezcla hacia el fondo de la página con porcentajes **58 / 44 / 30 / 16**:
+  la segunda capa ya está claramente detrás y la quinta es un tono por encima del fondo. En MORPH y TILT la tinta
+  de cada pasada trasera sale de su propio `sy` (`qz_back_ink`: 86 / 70 / 54 %), así que el degradado sigue el
+  mismo orden en que las capas se alejan.
+- **LFO**: el eco va hacia el fondo con la misma escala (58 / 40 %) y sube `graph_ht/16 + 2` px por capa, en vez
+  de 5 px fijos y una mezcla hacia el tono frío.
+- **Menos facetas.** Los muestreos del stack pasan de **41 a 81 puntos** (uno cada 2,7 px en un panel de 220): la curva
+  frontal ya no son 41 segmentos rectos. Con 111 el compilador desenrolla esos bucles y la imagen crecía
+  1 776 B, así que 81 es el punto donde la curva se ve lisa y el presupuesto aguanta.
+- **`[TARGET]`**: **580 692 B de 583 612, 2 920 libres** (por encima del suelo de 2 048); RAM `.data+.bss`
+  4 976 B libres.
+- **`[HOST]`**: `ui_render` 0 hallazgos de lint, **0 desvíos de alineación** en 3 953 168 medidas, 22 paletas.
+
 ## v2.3.2 — el stack de MORPH, probado donde se dibuja
 
 **Sin cambio visual.** El único motivo de esta versión es que la prueba que faltaba exista en el repo y se

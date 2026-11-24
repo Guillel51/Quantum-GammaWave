@@ -78,7 +78,10 @@ static int32_t env_x_of(int32_t lvl, int32_t n, int32_t from, int32_t to)
  * Two rules keep it honest: the levels come from a function the page passes in (never from a timer), and the buffer is
  * one static array of samples, filled per layer and never allocated. The page asks for the curve once and gets the
  * whole stack; nothing here knows what an envelope, an LFO or a chorus is. */
-#define QZ_N 41                                     /* samples a layer: 6 px apart across a 240 px panel */
+#define QZ_N 81                                     /* samples a layer: 2.7 px apart across the 220 px panel --
+                                                     * twice the 41 the stack had, so the arm of an attack is an
+                                                     * arm and not a staircase; not more, because at 111 the
+                                                     * compiler unrolls these loops and the image grows 1 776 B */
 #define QZ_LAYERS 5                                 /* the most layers a page has asked for */
 static int16_t qz_v[QZ_N];                          /* one layer's levels, 0..1000 (82 B, shared by every page) */
 typedef struct {
@@ -91,9 +94,27 @@ typedef struct {
 } qz_t;
 /* the level of a curve, 0..1000, at u = 0..1000 across the layer: k is which layer (0 = front) */
 typedef int32_t (*qz_lvl_t)(void *ctx, int32_t k, int32_t u);
+/* (v2.3.3) THE STACK GOES DARK, NOT COOL. A layer behind is the same curve one step further away, and distance on a
+ * 16-bit panel reads as a darker line, not as a bluer one: each repetition mixes further towards the page's own
+ * ground -- T_BG, so MONO stays black and PAPER fades towards its paper instead of towards white-on-white -- with
+ * the step set so the second layer is already clearly behind and the fifth is barely there. */
 static uint16_t qz_ink(const qz_t *q, int32_t k)
 {
-    return k <= 0 || q->n < 2 ? q->front : ux_mix(q->front, q->back, 30 + k * 55 / (q->n - 1));
+    int32_t pct;
+    (void)q->back;
+    if (k <= 0 || q->n < 2)
+        return q->front;
+    pct = 58 - (k - 1) * 14;                        /* 58, 44, 30, 16: nearly half the ink's light each step */
+    return ux_mix(T_BG, q->front, pct < 14 ? 14 : pct);
+}
+/* (v2.3.3) A LAYER FURTHER BACK IS DRAWN DARKER, NOT MERELY THINNER. MORPH and TILT keep the pass state of the two
+ * layers they stand behind the front one, and each of them spans a fraction of the panel (`sy`): that fraction is the
+ * depth it sits at, so the ink fades in the same order the layers recede -- the near one still reads, the far one is
+ * a shade above the page's ground. */
+static uint16_t qz_back_ink(uint16_t ink, int32_t sy)
+{
+    int32_t pct = 46 + (sy - 700) * 40 / 300;       /* sy 760 -> 54 %, 880 -> 70 %, 1000 -> 86 % */
+    return ux_mix(T_BG, ink, pct < 18 ? 18 : (pct > 94 ? 94 : pct));
 }
 static __attribute__((noinline)) void qz_set(qz_t *q, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t n, uint16_t front, uint16_t back)
 {
@@ -102,10 +123,14 @@ static __attribute__((noinline)) void qz_set(qz_t *q, int32_t x0, int32_t y0, in
     q->w = w < 8 ? 8 : w;
     q->h = h < 8 ? 8 : h;
     q->n = n < 1 ? 1 : (n > QZ_LAYERS ? QZ_LAYERS : n);
-    q->dx = q->w / 14;                              /* the shear: each layer steps right ... */
-    q->dy = q->h / 6;                               /* ... and up, so the stack has a vanishing point */
-    q->sx = 90;                                    /* and shrinks 9 % a layer: the depth is real geometry */
-    q->sy = 90;
+    /* (v2.3.3) MORE DEPTH, AND INSIDE THE PANEL. Each layer steps a sixteenth of the panel right and a fourteenth of
+     * its height up, and shrinks 9.5 %: the shrink lowers the layer's top by more than the lift raises it, so the
+     * four back curves stay inside the box instead of walking out through its top edge (the first cut lifted a
+     * quarter of the height a layer and the back two were cut off at the frame). */
+    q->dx = q->w / 16;                              /* the shear: each layer steps right ... */
+    q->dy = q->h / 14;                              /* ... and up, so the stack has a vanishing point */
+    q->sx = 95;                                     /* and shrinks 9.5 % a layer: the depth is real geometry */
+    q->sy = 95;
     q->front = front;
     q->back = back;
     q->glow = ux_mix(T_BG, front, 24);
@@ -187,25 +212,23 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
          * size, 2 px, with the lit floor under it -- and behind it stand the other tracks' amplitude envelopes, one
          * layer each, smaller, lifted and mixed towards the palette's cool end. It is the same four values read from
          * six tracks: nothing is a timer and nothing is invented, and a knob on any track changes its own layer. */
+        /* (v2.3.3) THE SAME ENVELOPE, FIVE TIMES, GETTING FURTHER AND DARKER. The stack used to be four real ADSRs --
+         * this track's in front and three OTHERS behind -- so turning a knob moved only the front layer and the rest
+         * sat frozen, which read as a broken picture rather than as depth. Every layer is this page's own four
+         * values now: the knob moves the whole stack together, and what separates the layers is distance (shear,
+         * lift, size and the darker ink qz_ink gives each one), not data. The front layer is still exactly the ADSR
+         * the DSP is playing. */
         static env_ctx_t ec;                        /* 100 B of .bss, filled every draw: no allocation */
-        const track_t *src[QZ_LAYERS];
-        int32_t k, self = (int32_t)(t - trk), j = 0;
+        int32_t k;
         qz_t q;
-        src[0] = t;
-        for (k = 0; k < NTRK && j < 3; k++)
-            if (k != self)
-                src[++j] = &trk[k];
-        for (k = 0; k <= j; k++) {
-            int32_t v = src[k]->p[pg->id[0]], vd = src[k]->p[pg->id[1]];
-            int32_t vs = src[k]->p[pg->id[2]], vr = src[k]->p[pg->id[3]];
-            ec.a[k] = 4 + v * 50 / 127;
-            ec.d[k] = 6 + vd * 50 / 127;
-            ec.r[k] = 6 + vr * 60 / 127;
-            ec.s[k] = vs * 1000 / 127;
-            ec.t[k] = k ? ec.d[k] + 20 : (x3 - x1 - d > 0 ? x3 - x1 - d : 1);   /* the flat part, widest in front */
+        for (k = 0; k < QZ_LAYERS; k++) {
+            ec.a[k] = a;
+            ec.d[k] = d;
+            ec.r[k] = r;
+            ec.s[k] = sus;
+            ec.t[k] = x3 - x1 - d > 0 ? x3 - x1 - d : 1;    /* the flat part, the same width in every layer */
         }
-        qz_set(&q, x0, top, x3 + r - x0, bot - top, j + 1, heat_y((bot + top) / 2, top, bot, c),
-               ux_mix(T_THEME, T_ACCENT, 72));
+        qz_set(&q, x0, top, x3 + r - x0, bot - top, QZ_LAYERS, heat_y((bot + top) / 2, top, bot, c), T_BG);
         qz_curve(&q, env_lvl, &ec);
     }
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
@@ -307,7 +330,7 @@ static void tilt_pass(uint16_t c, int32_t amt, int32_t sy, int32_t dy, int32_t t
             y = right;                                /* the top: the knob's own plateau */
         else
             y = cy + ((right - cy) * (d + band)) / (2 * band);
-        cv_rect(PANEL_X0 + x, y, 1, th, back ? ux_mix(T_BG, heat_y(y, cy - a, cy + a, c), 78)
+        cv_rect(PANEL_X0 + x, y, 1, th, back ? qz_back_ink(heat_y(y, cy - a, cy + a, c), sy)
                                               : heat_y(y, cy - a, cy + a, c));
     }
     if (!back)
@@ -353,14 +376,18 @@ static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
     int32_t now = cy - mulq15(t->lfo_val, t->lfo_fade) * a / 32768;
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
     for (g = 2; g >= 0; g--) {                       /* (v2.2) the wave and where it has been: three layers in depth */
-        uint16_t gi = g ? ux_mix(heat_y(cy, cy - a, cy + a, c), ux_mix(T_THEME, T_ACCENT, 80), 40 + g * 22)
+        /* (v2.3.3) the echo goes DARK, not cool, and stands further back: a layer one step behind is the same wave
+         * earlier in its cycle, lifted a sixteenth of the panel and mixed further towards the page's ground, so the
+         * three read as one wave receding instead of three strands of one colour. */
+        int32_t lift = g * (graph_ht / 16 + 2);
+        uint16_t gi = g ? ux_mix(T_BG, heat_y(cy, cy - a, cy + a, c), 58 - (g - 1) * 18)
                         : heat_y(cy, cy - a, cy + a, c);
-        py = cy - g * 5;
+        py = cy - lift;
         for (x = 0; x < PANEL_W; x++) {              /* (lfo_wave only reads the track) */
             uint32_t px = ph + (uint32_t)x * span + (uint32_t)g * (span * (uint32_t)xp / 2u);
-            int32_t y = cy - g * 5 - lfo_wave((track_t *)t, px) * a / 32768;
+            int32_t y = cy - lift - lfo_wave((track_t *)t, px) * a / 32768;
             if (t->p[P_LWAVE] == 4)                  /* S&H: a value per cycle part, held */
-                y = cy - g * 5 - ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768) * a / 32768;
+                y = cy - lift - ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768) * a / 32768;
             if (x)
                 cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y,
                           g ? gi : (x < xp ? ux_mix(T_SURF, gi, 45) : gi), g ? 1 : 2);
@@ -681,7 +708,7 @@ static void morph_pass(const track_t *t, const morph_st *st, int32_t th, int bac
         int32_t x = PANEL_X0 + (int32_t)i * 2, y = morph_y(t, st, i);
         (void)ph;
         if (i)
-            cv_line_t(px, py, x, y, back ? ux_mix(T_BG, heat_col(80 + (uint32_t)(46 - y + 34) * 2u), 80)
+            cv_line_t(px, py, x, y, back ? qz_back_ink(heat_col(80 + (uint32_t)(46 - y + 34) * 2u), st->sy)
                                          : heat_col(80 + (uint32_t)(46 - y + 34) * 2u), th);
         px = x;
         py = y;
