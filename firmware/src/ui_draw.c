@@ -86,7 +86,7 @@ static __attribute__((noinline)) void draw_battery(int32_t bx)
                                                          * the body keeps its frame and the bolt is three runs
                                                          * of ink, 5 x 9, big enough to read at arm's length. */
         /* (v2.3.12) A BOLT, NOT A CROSS. Three runs that met corner to corner read as a lump with a bar across
-         * it (the report again: "el icono de batería se sigue viendo raro al cargar"). The head is wide and to
+         * it (the report again: the battery icon still reads odd while the unit is charging). The head is wide and to
          * the right, the neck is one cell of overlap, and the foot drops wide to the left: the diagonal is what
          * the eye reads, and every run is at least 3 px so it survives the panel's own dithering. */
         cv_rect(bx + 9, y + 2, 5, 4, ink);              /* the head, upper right, rows 2..5 */
