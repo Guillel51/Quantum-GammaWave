@@ -54,8 +54,6 @@ static const uint8_t SCL_WNOTE[7] = {0, 2, 4, 5, 7, 9, 11};
 #define SCL_PC(n) (1u << ((n) & 11))                    /* a pitch class as a bit */
 static uint16_t scl_selm[NTRK];                        /* the notes picked, by pitch class */
 static uint8_t scl_selb[NTRK];                         /* the lowest one: the chord's bass, 0xFF = none */
-static uint8_t scl_selk;                               /* the note touched last (its key flashes) */
-static uint32_t scl_selt;                              /* and the frame it was touched in */
 static void scl_sel_clear(uint32_t ti)
 {
     scl_selm[ti % NTRK] = 0;
@@ -366,7 +364,6 @@ static void scl_bed(int32_t x0, int32_t y0, int32_t w, int32_t h, scl_bed_t *b)
 static int32_t scl_bed_at(const scl_bed_t *b, int32_t x, int32_t y)
 {
     uint32_t i;
-    static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};
     if (x < b->x0 || x >= b->x0 + b->w || y < b->y0 || y >= b->y0 + b->h)
         return -1;
     if (y < b->y0 + b->bh) {
@@ -382,7 +379,7 @@ static int32_t scl_bed_at(const scl_bed_t *b, int32_t x, int32_t y)
     i = (uint32_t)((x - b->x0) / (b->kw + b->gap));
     if (i > 6u)
         i = 6u;
-    return (int32_t)W_NOTE[i];
+    return (int32_t)SCL_WNOTE[i];
 }
 /* (FASE 8) THE PAGE'S RECTANGLES AND AXES, ASKED FOR BY WHOEVER DRAWS OR TOUCHES. scl_tap() measured a finger
  * against 8/94/224/22 on SCALE and 12/88/216/26 on CHORD while the pages drew 8/92/224/26 and 12/90/216/26: the
@@ -419,9 +416,8 @@ static int32_t scl_ruler_x(int32_t iv)
 static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t mask,
                      uint32_t root, uint32_t sel, int small)
 {
-    static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
     scl_bed_t b;
-    uint32_t i, live = scl_live_mask(t), flash = 0, hit = 0;
+    uint32_t i, live = scl_live_mask(t), hit = 0;
     int names;
     scl_bed(x0, y0, w, h, &b);
     if (b.kw < 8)
@@ -433,8 +429,6 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
          * the key's own edge. The bed is 38 px now (2.4 px per key-row more), the accidentals take 3/5 of it
          * as a piano's do, and the name sits in the white part that is left, never on the shadow line. */
     }
-    if (scl_selt && ui.frame - scl_selt < 8u)                  /* (FASE 3) the key that was just touched lights */
-        flash = SCL_PC(scl_selk);
     {   /* (v2.0) A NOTE THAT STARTS IS A HIT: the key it lands on takes the accent for ten frames and lets it go,
          * so a sequencer step, a MIDI note or a finger reads as an event and not as a lit key that was always
          * there. Driven by the live mask -- the voices the engine is sounding -- never by a timer of its own. */
@@ -452,7 +446,6 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         int32_t kx = b.x0 + (int32_t)i * (b.kw + b.gap);
         int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
         int sound = (live >> note) & 1u, picked = (sel >> note) & 1u;
-        int hot = (flash >> note) & 1u;
         uint16_t         face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 40);
         uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         uint16_t brd;
@@ -460,9 +453,7 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
                                                             * is a different thing from being picked */
             face = ux_mix(face, T_THEME, 52 + ((hit >> note) & 1u) * 24);
         if (picked)                                        /* (FASE 3) picked: the key's face takes the accent */
-            face = ux_mix(face, T_ACCENT, hot ? 62 : 40);
-        else if (hot)
-            face = ux_mix(face, T_TEXT, 30);
+            face = ux_mix(face, T_ACCENT, 40);
         brd = picked ? T_ACCENT : ux_mix(face, T_BG, 58);
         scl_pkey(kx, b.y0, b.kw, b.h, face, brd);
         if (strip)                                          /* the scale, on the key's top edge */
@@ -487,19 +478,18 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
     for (i = 0; i < 12u; i++) {
         uint32_t deg = (i + 12u - root) % 12u;
         int32_t kx;
-        int in, is_root, sound, picked, hot;
+        int in, is_root, sound, picked;
         uint16_t face, strip;
         if (!SCL_BLACK[i])
             continue;
-        kx = b.x0 + (int32_t)W_KEY[i] * (b.kw + b.gap) + b.kw + b.gap / 2 - b.bw / 2;
+        kx = b.x0 + (int32_t)SCL_WKEY[i] * (b.kw + b.gap) + b.kw + b.gap / 2 - b.bw / 2;
         in = (mask >> deg) & 1u;
         is_root = in && deg == 0u;
         sound = (live >> i) & 1u;
         picked = (sel >> i) & 1u;
-        hot = (flash >> i) & 1u;
         face = sound ? ux_mix(T_KEYB, T_THEME, 58 + ((hit >> i) & 1u) * 24) : T_KEYB;
         if (picked)
-            face = ux_mix(T_KEYB, T_ACCENT, hot ? 78 : 60);
+            face = ux_mix(T_KEYB, T_ACCENT, 60);
         strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         scl_pkey(kx, b.y0, b.bw, b.bh, face, picked ? T_ACCENT : ux_mix(T_KEYB, T_TEXT, 24));
         /* (FASE 7) THE ACCIDENTALS ARE NAMED TOO. The five black keys carried a strip and no name, so a scale
@@ -544,8 +534,6 @@ static void scl_toggle(uint32_t ti, uint32_t pc)
         if (scl_selb[ti % NTRK] == 0xFFu || (int32_t)pc < (int32_t)scl_selb[ti % NTRK])
             scl_selb[ti % NTRK] = (uint8_t)pc;
     }
-    scl_selk = (uint8_t)pc;                                /* the key that was touched, for its flash */
-    scl_selt = ui.frame | 1u;
     ui.force = 1;
 }
 /* (FASE 3) THE PAGE ANSWERS THE FINGER -- the one interaction SCL has, and only inside its own panel: the keybed

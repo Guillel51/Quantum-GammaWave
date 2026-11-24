@@ -75,6 +75,7 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
     int32_t top = 6 * graph_ht / 100, bot = 88 * graph_ht / 100, sus = t->p[pg->id[2]] * 1000 / 127;   /* 0..1000 */
     int32_t x0 = 12, x1 = x0 + a, x3 = 226 - r, i, px, py;
     int32_t e = 32768;                                                  /* exp(-4.6 u), Q15 */
+    const voice_t *bv;                                                  /* the loudest voice, found once */
 #define EGY(lvl) (bot - (lvl) * (bot - top) / 1000)
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
     cv_line_t(x0, bot, x1, top, heat_y((bot + top) / 2, top, bot, c), 2);                                  /* attack: linear */
@@ -98,12 +99,17 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
         px = x3 + i;
         py = EGY(sus * e >> 15);
     }
-    if (pg->id[0] == P_ATK) {                           /* (JIANT 0.5) the track's envelope now: the loudest voice's */
-        const voice_t *bv = 0;                          /* level as a dot on the curve, a line down to the axis */
-        int32_t lvl, x;
+    /* (v2.0.1) THE LOUDEST VOICE IS FOUND ONCE: the playhead and the stage's accent both need it, and the page used
+     * to walk the twelve voices twice for the same answer. */
+    {
+        const voice_t *b0 = 0;
         for (i = 0; i < NVOICE; i++)
-            if (V(t, i).stage && V(t, i).stage < 4u && (!bv || V(t, i).env > bv->env))
-                bv = &V(t, i);
+            if (V(t, i).stage && V(t, i).stage < 4u && (!b0 || V(t, i).env > b0->env))
+                b0 = &V(t, i);
+        bv = b0;
+    }
+    if (pg->id[0] == P_ATK) {                           /* (JIANT 0.5) the track's envelope now: the loudest voice's */
+        int32_t lvl, x;                                 /* level as a dot on the curve, a line down to the axis */
         if (bv) {
             lvl = (int32_t)(((int64_t)bv->env * 1000) >> 24);
             if (bv->stage == 1u)                       /* the attack is drawn straight: level over its length */
@@ -123,36 +129,31 @@ static __attribute__((noinline)) void graph_adsr(const track_t *t, uint16_t c)
      * from the same a, d, r and sus the curve was built from, so a label cannot name a segment that is not there. */
     {
         static const char *const SN[4] = {"ATK", "DEC", "SUS", "REL"};
-        int32_t guide[2] = {x1, x3}, g, seg_live = -1, mid[4];
-        int32_t wS = text_w(&AF_S, "SUS"), wR = text_w(&AF_S, "REL");
-        const voice_t *bv = 0;
-        mid[0] = (x0 + x1) / 2 - text_w(&AF_S, "ATK") / 2;   /* centred on its own segment, and never past it */
-        mid[1] = (x1 + x3) / 2 - text_w(&AF_S, "DEC") / 2;
-        mid[2] = x3 - 4 - wS;                                /* SUS ends on the release's own boundary */
+        int32_t g, seg_live = -1, mid[4];
+        /* every label is three glyphs of AF_S (21 px): measured once, as a number, instead of six text_w calls */
+        mid[0] = (x0 + x1) / 2 - 10;                         /* centred on its own segment, and never past it */
+        mid[1] = (x1 + x3) / 2 - 10;
+        mid[2] = x3 - 25;                                    /* SUS ends on the release's own boundary */
         mid[3] = x3 + 4;                                     /* REL starts after it */
         if (mid[0] < 12)
             mid[0] = 12;
-        if (mid[1] + text_w(&AF_S, "DEC") > mid[2] - 4)     /* no room between DEC and SUS: the guide stays */
+        if (mid[1] + 21 > mid[2] - 4)                        /* no room between DEC and SUS: the guide stays */
             mid[1] = -1000;
         if (mid[2] < x1 + 4)
             mid[2] = -1000;
-        if (mid[3] + wR > 228) {
-            mid[3] = 228 - wR;
+        if (mid[3] + 21 > 228) {
+            mid[3] = 207;
             if (mid[3] < x3 + 2)
                 mid[3] = -1000;
         }
-        for (i = 0; i < NVOICE; i++)
-            if (V(t, i).stage && V(t, i).stage < 4u && (!bv || V(t, i).env > bv->env))
-                bv = &V(t, i);
         if (bv && pg->id[0] == P_ATK)
             seg_live = (int32_t)bv->stage - 1;
-        for (g = 0; g < 2; g++)                          /* a quiet guide, not a box: the curve stays the subject */
-            cv_rect(guide[g], top, 1, bot - top, T_LINE);
+        cv_rect(x1, top, 1, bot - top, T_LINE);          /* a quiet guide, not a box: the curve stays the subject */
+        cv_rect(x3, top, 1, bot - top, T_LINE);
         if (graph_ht - (bot + 3) >= 8)                 /* the strip has no room under the curve: guides only */
             for (g = 0; g < 4; g++)
                 if (mid[g] > -1000)
                     cv_text_on(mid[g], bot + 3, &AF_S, SN[g], g == seg_live ? T_ACCENT : T_DIM, T_SURF);
-        (void)bv;
     }
 #undef EGY
 }
@@ -823,10 +824,9 @@ static __attribute__((noinline)) void graph_grid(const track_t *t, uint16_t c)
  * Every figure read here is the parameter the engine plays. */
 static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
 {
-    static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
-    static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};    /* the white key it belongs to */
-    static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};                   /* C D E F G A B */
-    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u, live = 0;
+    /* (v2.0.1) THE SCL TABLES AND THE LIVE MASK ARE THE ONES THE SCL PAGES USE: this page had its own copies of the
+     * three note tables and its own scan of the voices, which is the same information ui_scl.c already keeps. */
+    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u, live = scl_live_mask(t);
     /* (3.1) the piano, measured: 7 white keys 29 px wide with a 2 px gap (12..228), 60 px tall,
      * five black keys 18 x 38 centred on their seam. Both are rounded bevels with a 1 px contour,
      * a light grey face for the naturals and a darker one for the accidentals, so the layout reads
@@ -835,12 +835,6 @@ static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
      * that combination was the one the owner called unattractive, and it fought every palette. */
     const int32_t x0 = 12, kw = 29, kg = 2, y0 = 25, kh = 60, bw = 18, bh = 38;
     char sb[24];
-
-    for (i = 0; i < NVOICE; i++) {                   /* the notes the selected track is sounding now */
-        const voice_t *v = &V(t, i);
-        if (v->active && v->gate && v->note < 128u)
-            live |= 1u << (v->note % 12u);
-    }
 
     if (ux.chamfer && !ux.style)
         gw_oct_panel(8, 2, 224, 118, 5, T_BG, T_LINE, 1, c);
@@ -857,7 +851,7 @@ static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
 
     /* the seven naturals */
     for (i = 0; i < 7u; i++) {
-        uint32_t note = W_NOTE[i], deg = (note + 12u - root) % 12u;
+        uint32_t note = SCL_WNOTE[i], deg = (note + 12u - root) % 12u;
         int32_t kx = x0 + (int32_t)i * (kw + kg);
         int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
         int sound = (live >> note) & 1u;
@@ -894,9 +888,9 @@ static __attribute__((noinline)) void graph_scale(const track_t *t, uint16_t c)
         int32_t kx;
         int in, is_root, sound;
         uint16_t face, ink, strip;
-        if (!BLACK[i])
+        if (!SCL_BLACK[i])
             continue;
-        kx = x0 + (int32_t)W_KEY[i] * (kw + kg) + kw + kg / 2 - bw / 2;
+        kx = x0 + (int32_t)SCL_WKEY[i] * (kw + kg) + kw + kg / 2 - bw / 2;
         in = (mask >> deg) & 1u;
         is_root = in && deg == 0u;
         sound = (live >> i) & 1u;
