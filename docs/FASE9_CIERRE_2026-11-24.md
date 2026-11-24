@@ -95,6 +95,14 @@ candidato a presupuesto más ajustado, no se cambia el baseline en una fase de c
 3. **Nombre de parte de flash incorrecto** en `tools/fm1_probe.py` (`P25Q80H-2` → `UC25HQ80`).
 4. **Golden renders desactualizados** al cambiar el número: 48 frames de splash/about regenerados con
    `tests/ui_pixels.py --update`; 3 129 frames, solo esos 48 difieren (verificado).
+5. **El sitio publicado decía v1.11.1 y servía el emulador de v1.12.18.** Encontrado al verificar la
+   publicación real, no en el árbol. El paso `the newest signed release` de `emulator.yml` elegía por tupla
+   de versión (1.12.18 > 1.11.1) mientras `make_site.py` elegía por `created` (1.11.1), así que el
+   worktree del emulador se montaba sobre el commit de 1.12.18 y la página quedaba con un WASM de otro
+   árbol. Arreglado en dos capas: la selección de CI ordena por `created` —la misma clave que el generador—
+   y `make_site.py` rechaza publicar si el emulador no nombra la versión del release (probado con un
+   manifiesto falso: exit 1, sin escribir el sitio). Requirió un commit posterior al tag v1.11.1: el tag no
+   se mueve (AGENTS §5) y el deploy de Pages se rehace desde `main`.
 
 ---
 

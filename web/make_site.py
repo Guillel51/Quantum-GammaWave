@@ -318,6 +318,15 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     else:
         build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
     emu = emulator_record(pkg, emu_manifest)
+    # (1.11.1) THE PAGE AND ITS WASM ARE ONE BUILD. When the package is a release, the emulator beside it
+    # is built from that release's commit, so the two name the same version. The v1.11.1 deploy published
+    # v1.11.1 with the emulator of v1.12.18 because CI ranked releases by number: the page checked out while
+    # its WASM came from another tree. Refusing here fails the deploy instead of shipping that contradiction.
+    if signed_manifest and emu and \
+            str(emu.get("version")).lstrip("v") != str(signed_manifest.get("version")).lstrip("v"):
+        raise SystemExit("refusing to publish: the release is %s and the emulator is %s; the page would run "
+                         "a WASM that is not the release's"
+                         % (signed_manifest.get("version"), emu.get("version")))
     # (ETAPA 8) The served file is named after the PACKAGE's own version -- `release/felucca-1.6.0.fwsc`,
     # the name `tools/make_release.py --check` holds the site to -- not after the label this run displays
     # ("v1.6.0-11b9b9e"). The label used to reach the filename, so the published site served only

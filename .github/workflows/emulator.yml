@@ -187,7 +187,13 @@ jobs:
               try: d = json.load(open(m))
               except (OSError, ValueError): continue
               if d.get("format") != "qg1-release-1" or not isinstance(d.get("images"), dict): continue
-              k = key(d.get("version"))
+              # (1.11.1) WHICH RELEASE IS NEWEST: THE ONE CUT LAST. Ordering by the version tuple made
+              # v1.12.18 -- published on 2026-11-22 by the numbering that was later reconciled back to
+              # 1.x -- outrank v1.11.1 (2026-11-24), so the root page built ITS emulator (v1.12.18) beside
+              # this release's package: the live site named v1.11.1 and served a WASM from another tree.
+              # `created` is the order things were published in, and it is the same key
+              # web/make_site.py's signed_release() uses, so the selection and the page cannot disagree.
+              k = (str(d.get("created") or ""), key(d.get("version")))
               if best is None or k > best[0]: best = (k, m[:-len(".manifest.json")], d)
           if best is None:
               print("pkg="); print("version="); print("commit=")

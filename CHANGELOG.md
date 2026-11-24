@@ -18,6 +18,14 @@ compuerta de instalación.
 - **Los golden renders del número.** Splash y about dibujan la versión: 48 frames de 3 129 cambiaron y se
   regeneraron con `tests/ui_pixels.py --update`. Verificado después: 3 129 idénticos.
 
+- **El emulador del sitio era de otro árbol.** Al verificar la publicación real, la página raíz decía
+  v1.11.1 pero servía el WASM de **v1.12.18** (1 299 656 B, otro commit): el paso de CI que elige "el release
+  más nuevo" ordenaba por número de versión, y 1.12.18 —publicada antes, en la numeración vieja— ganaba a
+  1.11.1. Ahora ordena por `created`, la misma clave que `make_site.py`, así que la selección y la página no
+  pueden discrepar; y `make_site.py` **se niega a publicar** un release cuyo emulador nombre otra versión,
+  de modo que un fallo así detiene el deploy en vez de salir al aire. Comprobado con un manifiesto falso
+  (v1.12.18): exit 1, sitio no escrito.
+
 **La auditoría de seguridad, sin relajar nada.** Se revisaron y volvieron a probar: SHA-256 + tamaño del
 paquete contra su manifiesto antes de habilitar INSTALL; la identificación real del chip con `0x12` en la
 misma sesión; la allowlist de dos partes de 1 MiB (`0x856014`, `0xB36014`) y el rechazo de las cinco partes
