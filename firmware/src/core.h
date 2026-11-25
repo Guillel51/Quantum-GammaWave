@@ -612,15 +612,7 @@ typedef struct {                 /* acid-style step: up to 4 notes (POLY), time,
     uint8_t cwhen;               /* (0.6.82) WHEN each plays: bits 0-1 comp's, 2-3 comp2's (CW_*) */
     uint8_t ctime;               /* (0.6.82) bits 0-2 DIV: RATCH's and ECHO's parts a step/2 .. /8 apart (0: the step
                                   * shared out, as before); bits 3-6 LEN: a part's gate n/16 (0: the track's GATE) */
-    uint8_t dur;                 /* (FASE 3 de esta ronda) THE RECORDED LENGTH of the step's notes, in sixteenths of
-                                  * the step (1..15: shorter than the step, where the grid could only say "the whole
-                                  * step" or TIE); 0 = the track's GATE, which is every pattern written before this
-                                  * field existed and the ones the grid entry makes. It is the duration the player
-                                  * really held the key for, measured at the note-off: a staccato note stops being
-                                  * a full step. Persisted by project.c as the 'D' 'U' block (absent = 0). */
 } step_t;
-/* (FASE 3) a step's recorded length, in sixteenths of a step (0: the track's GATE, as ever) */
-#define ST_DUR(s) ((uint32_t)(s)->dur)
 /* (0.6.82) WHEN a component plays: ALWAYS, on odd loops (1:2), on even loops (2:2), SKIP (kept, not played) */
 enum { CW_ALWAYS, CW_ODD, CW_EVEN, CW_SKIP };
 #define CW_OF(s, k) (((uint32_t)(s)->cwhen >> ((k) * 2u)) & 3u)
