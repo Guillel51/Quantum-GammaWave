@@ -202,6 +202,22 @@ static void con_status(void)
     con_kv("voices_shed", (int32_t)shed_count);
     con_kv("audio_lost", (int32_t)audio_lost);         /* (1.2.1-GW) halves never rendered (a click each): a render > ~2 halves */
     con_kv("voices_given_up", (int32_t)voice_kills);
+    {   /* (FASE 2 de esta ronda) PER PART: taken / refused. The total above says the pool was short; this says
+         * which part paid for it and which one went silent, which is the question a session with six tracks
+         * asks. One line, six fields, printed from the main loop -- the render path pays nothing for it. */
+        uint32_t p;
+        con_puts("voices_by_part ");
+        for (p = 0; p < NPART; p++) {
+            con_puts(p ? "," : "");
+            con_puts("t");
+            con_dec((int32_t)(p + 1u));
+            con_putc('=');
+            con_dec((int32_t)vpart_taken[p]);
+            con_putc('/');
+            con_dec((int32_t)vpart_denied[p]);
+        }
+        con_puts("\r\n");
+    }
     con_puts("cpu2 ");                                  /* (0.6.72) the second core (fx.c mc_status) */
     con_puts(mc_status());
     con_puts("\r\n");

@@ -23,6 +23,20 @@ voice_t vpool[VPOOLN];
 static uint32_t voice_live;                             /* voices active in the whole pool (fading ones too) */
 static uint32_t voice_peak;                             /* the most since the last reset */
 static uint32_t voice_denied;                           /* note-ons that found no voice at all */
+/* (FASE 2 de esta ronda) WHO LOST THE VOICE. The pool's totals say a voice was taken; they do not say from which
+ * part, and that is the question a listener asks when the pad disappears and the lead keeps its chord. Two 16-bit
+ * counters a part (24 B of .bss, no code on any render path): the voices the pool took from it -- the allocator,
+ * the overload guard, an all-notes-off, the comb and cloud lanes alike -- and the note-ons it had no voice for at
+ * all. `voice_kill` already exists in every one of those paths and already counts the total, so this is one add
+ * on the same line; the console prints them in `status` and MENU > ABOUT reads the same struct (load_diag).
+ * They saturate: a number that wraps is worse than one that is full. */
+uint16_t vpart_taken[NPART];                            /* this part's voices the pool gave up */
+uint16_t vpart_denied[NPART];                           /* this part's note-ons with no voice at all */
+static void vpart_add(uint16_t *c)
+{
+    if (*c != 0xFFFFu)
+        (*c)++;
+}
 /* the pool's inert slot: never active (a scan that runs to NVOICE reads it and skips it), never free
  * (voice_alloc's !active test fails), never stolen (stage 4) and a note no key has (0xFF) */
 static void vdead_init(void)
@@ -51,6 +65,10 @@ void voices_boot(void)
         vown[i] = 0;
     }
     voice_live = voice_peak = voice_denied = 0;
+    for (p = 0; p < NPART; p++) {
+        vpart_taken[p] = 0;
+        vpart_denied[p] = 0;
+    }
     vdead_init();
     /* the first share of the pool: an even split of the slots that can be granted (VDEAD never is), and at
      * least one each, because MONO and LEGATO read their voice at index 0 */
@@ -693,6 +711,13 @@ __attribute__((unused)) static void voice_stats_reset(void)
     voice_peak = voices_busy();                         /* the peak starts again from what is sounding now */
     voice_kills = 0;
     voice_denied = 0;
+    {   /* (FASE 2 de esta ronda) the per-part counters start again with the peak */
+        uint32_t p;
+        for (p = 0; p < NPART; p++) {
+            vpart_taken[p] = 0;
+            vpart_denied[p] = 0;
+        }
+    }
 }
 static void voice_kill(voice_t *v)                      /* fade out over ~6 ms (env_tick stage 4; 0.6.74, was a block) */
 {
@@ -701,6 +726,12 @@ static void voice_kill(voice_t *v)                      /* fade out over ~6 ms (
         v->kfade = 0;                                   /* (0.6.74: the fade from its start) */
     v->stage = 4;
     voice_kills++;
+    {   /* (FASE 2 de esta ronda) and to whom it belonged: `vown` already knows the slot's owner in O(1), so no
+         * caller has to pass the part and no signature changes */
+        uint32_t owner = vown[VSLOT(v)];
+        if (owner)
+            vpart_add(&vpart_taken[owner - 1u]);
+    }
 }
 
 /* (v1.4-QG) Smart psychoacoustic voice stealing: evaluates release state and psychoacoustic loudness
@@ -907,8 +938,12 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
      * whose window is full replaces its own oldest voice in place (no fade, no voice_kill), so 20 notes into
      * 12 voices reported zero steals. The note it was playing is cut all the same, and the monitor has to say
      * so. A retrigger of the same note is a repeat, not a steal. */
-    if (sounding && v->note != note)
+    if (sounding && v->note != note) {
         voice_kills++;
+        vpart_add(&vpart_taken[(uint32_t)(t - trk)]);    /* (FASE 2 de esta ronda) and to the part that owned
+                                                         * it: this in-place path is the one a full window takes,
+                                                         * so it is the one that most needs a name */
+    }
     uint32_t ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2];
 #if FELUCCA_VRESET
     if (!sounding) {                                /* (3.6) a voice that is not sounding starts from silence: the
@@ -1142,6 +1177,7 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
         voice_t *v = voice_alloc(t, note);
         if (!v) {                                       /* (FASE 2, #107) a note with no voice is a figure of its own */
             voice_denied++;
+            vpart_add(&vpart_denied[(uint32_t)(t - trk)]);
             return;
         }
         t->nmono = 0;                                   /* no stale mono stack after a mode change */

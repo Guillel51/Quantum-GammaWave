@@ -410,6 +410,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     # cost of waking T5/T6 measured on the same machine in the same run.
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_six_test" tests/poly_six_test.c -lm
     run "POLY SIX: six tracks x 2 = twelve sounding, twelve in one part, 4+4+2+1+1, releases (six gated six ringing), at the cap the released voice goes not a held one, the load governor does not cut a tail with room in the budget, twelve with the FX on, a preset change under the chord, TRACKS 4 sleeps, saturation refuses nothing, and the host cost of 4 vs 6 tracks" "$OUT/poly_six_test"
+
+    # (FASE 2 de esta ronda) WHO LOST THE VOICE: the per-part counters (taken / refused), a part with no window,
+    # twelve released at once, a long session with engines moving under it, and the saturation of the counters
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_parts_test" tests/poly_parts_test.c -lm
+    run "POLY PARTS: a full pool names the part that gave the voice, a part with no window is the one blamed, a release is not a steal, a long session with engines moving keeps sum(taken)=voices the pool took and ends empty and whole, and the counters saturate" "$OUT/poly_parts_test"
     # (v1.5.23, FASE 2) the situations the earlier poly tests do not reach: a twelve-note chord through a sound load
     # that changes engine (xp_note held four), twelve keys on a MONO / LEGATO part with PRIO LOW (mono_stack held
     # eight), a 24-note burst, twelve accumulated releases against a new chord, six parts competing, a preset change

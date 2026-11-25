@@ -439,22 +439,33 @@ static void fm6_render(track_t *t, voice_t *v, int32_t *out, uint32_t len, const
     lvl = clamp(t->p[P_E2], -64, 63) * 24 + clamp(m->cutoff >> 8, -150, 150) * 16 +   /* microsteps */
           clamp((m->shape - (64 << 8)) >> 8, -150, 150) * 16;   /* (0.6.81) SHAPE: the modulators' depth too (the
                                                          * feedback alone was silent where its operator is quiet) */
-    if (!fm6_note_compute(n, p, bus, fm6_lfo_v[tr], fm6_lfo_d[tr], lf, fm6_eff[tr].alg, fb, fm6_eff[tr].dt, lvl * 65536))   /* (v1.5.16) lvl is signed: * 65536 */
-        return;                                         /* every carrier below the threshold */
-    /* (FASE 12) A RELEASED NOTE GETS ITS TAIL, THEN ITS VOICE BACK. Stage 4 of the operator envelopes holds L4, and a
-     * patch whose L4 is audible once the key is up kept the voice for ever (tests/regress: SILT KEYS and FERROUS PAD
-     * still sounding 12 s after the note-offs, DC left behind). The tail is kept exactly as it was — the FM4
-     * conversions measure it at 1 s and must keep passing — and after FM6_REL_MAX the voice fades out over
-     * FM6_REL_FADE samples, so the voice comes back without a click. A held note never counts. */
+    /* (FASE 2 de esta ronda) THE RELEASE CLOCK RUNS FIRST, AND A RELEASED NOTE THAT COMPUTES NOTHING IS OVER.
+     * The clock used to start after the compute, and a released patch whose carriers were already under the
+     * threshold returned before it: rel_t never advanced, fm6_note_done() never said yes, and the voice stayed
+     * active (stage 3, its env parked at full by ownenv) for ever -- one pool slot lost per note. That is what
+     * tests/poly_parts_test.c D found on six tracks with the engine moving under them (voices still held 8.7 s
+     * after their note-offs). A released note whose operator envelopes have fallen under the threshold cannot
+     * come back -- every release is monotone -- so it hands its voice back at once, without waiting FM6_REL_MAX
+     * for a tail that is no longer there. */
     if (!n->down) {
         n->rel_t += FM6_N;
         if (n->rel_t >= FM6_REL_MAX + FM6_REL_FADE) {
             n->live = 0;
             return;
         }
-        if (n->rel_t > FM6_REL_MAX)
-            fg = ((FM6_REL_MAX + FM6_REL_FADE - n->rel_t) << 16) / FM6_REL_FADE;
     }
+    if (!fm6_note_compute(n, p, bus, fm6_lfo_v[tr], fm6_lfo_d[tr], lf, fm6_eff[tr].alg, fb, fm6_eff[tr].dt, lvl * 65536)) {   /* (v1.5.16) lvl is signed: * 65536 */
+        if (!n->down)
+            n->live = 0;                                /* released and silent for good: the slot is free now */
+        return;                                         /* every carrier below the threshold */
+    }
+    /* (FASE 12) A RELEASED NOTE GETS ITS TAIL, THEN ITS VOICE BACK. Stage 4 of the operator envelopes holds L4, and a
+     * patch whose L4 is audible once the key is up kept the voice for ever (tests/regress: SILT KEYS and FERROUS PAD
+     * still sounding 12 s after the note-offs, DC left behind). The tail is kept exactly as it was — the FM4
+     * conversions measure it at 1 s and must keep passing — and after FM6_REL_MAX the voice fades out over
+     * FM6_REL_FADE samples, so the voice comes back without a click. A held note never counts. */
+    if (!n->down && n->rel_t > FM6_REL_MAX)
+        fg = ((FM6_REL_MAX + FM6_REL_FADE - n->rel_t) << 16) / FM6_REL_FADE;
     /* the voice's amplitude ramp x VOICE_FS (one carrier at full: VOICE_FS / 2), six voices in unison ~ one */
     k = t->p[P_VOICE] == V_UNISON ? VOICE_FS * 2 / 5 : VOICE_FS;
     for (i = 0; i < FM6_N; i++) {                       /* the block's peak first: its trim from this block on */
