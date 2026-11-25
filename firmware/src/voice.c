@@ -15,6 +15,10 @@
  * core.h); V(t, i) reads the same lvalue every caller already used. A slot with no sounding voice may be lent
  * to another part at a block boundary, so no voice is ever moved while it sounds. */
 voice_t vpool[VPOOLN];
+/* (FASE 1 2026-11-25) the engines' shared arenas (core.h): one engine's state per track, one per slot */
+eng_arena_t eng_arena[NTRK];
+slot_arena_t slot_arena[VPOOLN];
+uint8_t slot_eng[VPOOLN];
 /* (FASE 3) THE LIVE COUNT. The monitor's peak used to walk all NPART x NVOICE voices inside every note-on
  * (voices_busy()): on the host that scan cost more than starting the note itself (tests/alloc_bench.c,
  * 270 ns -> 143 ns a note with it moved out). The count is kept where a voice starts and where it ends
@@ -992,6 +996,17 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
         v->env = 0;
         v->env_out = 0;
     }                                                   /* sounding: the attack starts from the current level */
+    {   /* (FASE 1 2026-11-25) the slot's engine state: WHEEL's wheels, ADDITIVE's partials and NOISE's CHARACTER
+         * filters share one arena, so a slot taken by another engine starts from zero instead of reading the last
+         * engine's bytes. Same engine: untouched, which keeps WHEEL's free-running wheels and its seeding as they
+         * were (the goldens of every engine are bit-identical). Engines that keep no per-slot state only move the
+         * tag; the memset runs once per slot per engine, never per note of the same engine. */
+        uint32_t sl = VSLOT(v);
+        if (slot_eng[sl] != t->engine) {
+            memset(slot_arena[sl].b, 0, sizeof slot_arena[sl].b);
+            slot_eng[sl] = (uint8_t)t->engine;
+        }
+    }
     e->note_on(t, v);
     if (sounding && !e->sampled) {                     /* retrigger / steal: keep phases and filter */
         v->ph[0] = ph0;                                 /* states (resetting them clicks) */
@@ -1329,6 +1344,10 @@ static void engine_block(track_t *t)
         }
         any = t->engine != eng_idx(t->eng_req);
         t->engine = eng_idx(t->eng_req);
+        /* (FASE 1 2026-11-25) the old engine's voices are all ended above (active = gate = 0), so its per-track
+         * state -- FM6's notes or the DRUM kit's lanes -- is dead: clear the arena before the new engine writes
+         * over it. Without this, a stale DRUM lane owner would point into whatever the next engine left there. */
+        memset(eng_arena[(uint32_t)(t - trk) % NTRK].b, 0, ENG_ARENA_BYTES);
         t->xf_on = 0;
         t->nmono = 0;
         t->mono_note = 0;

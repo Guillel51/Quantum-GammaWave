@@ -91,14 +91,23 @@ static void noise_note_on(track_t *t, voice_t *v)
 }
 
 /* (FASE 2) CHARACTER's two extra filters, keyed by the pool slot: NOISE already keeps every s[] and ph[] entry */
-static int32_t nz_bp1[VPOOLN], nz_bp2[VPOOLN], nz_hp[VPOOLN];
+/* (FASE 1 2026-11-25) CHARACTER's two filters, keyed by the pool slot (as they were), now in the slot's
+ * engine arena: WHEEL and ADDITIVE never own the same slot at once, and voice.c clears it when another
+ * engine takes the slot (a NOISE slot's first note then starts from these zeros again). */
+typedef struct { int32_t bp1, bp2, hp; } nz_slot_t;
+_Static_assert(sizeof(nz_slot_t) <= SLOT_ARENA_BYTES, "the NOISE slot state outgrew the slot's engine arena");
+static nz_slot_t *nz_slot_of(uint32_t vi)
+{
+    return (nz_slot_t *)(void *)slot_arena[vi % VPOOLN].b;
+}
 
 static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
     uint32_t vi = VSLOT(v);
     int32_t banda = xamt(p, 0), evola = xamt(p, 1), hpa = p[P_MORPH];
-    int32_t bp1 = nz_bp1[vi], bp2 = nz_bp2[vi], hslp = nz_hp[vi];
+    nz_slot_t *Z = nz_slot_of(vi);
+    int32_t bp1 = Z->bp1, bp2 = Z->bp2, hslp = Z->hp;
     uint32_t mode = (uint32_t)p[P_E0] & 3u, sel = ((uint32_t)p[P_E5] >> 4) & 7u, i;
     int32_t res = p[P_E3], drft = p[P_E6], crsh = mode < NZ_LFSR ? p[P_E7] : 0;
     if (evola)                                        /* (FASE 2) EVOL: the drift deeper, so the colour wanders */
@@ -264,9 +273,9 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     v->ph[0] = ph;
     v->ph[1] = reg;
     v->ph[2] = (uint32_t)drift;
-    nz_bp1[vi] = bp1;
-    nz_bp2[vi] = bp2;
-    nz_hp[vi] = hslp;
+    Z->bp1 = bp1;
+    Z->bp2 = bp2;
+    Z->hp = hslp;
 }
 
 /* {MODE, COLR, FREQ, RES, TRK, DENS, DRFT, CRSH / CLK} */

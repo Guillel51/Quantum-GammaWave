@@ -65,7 +65,13 @@ typedef struct {                  /* per voice, keyed by pool slot (as WHEEL's d
 } ad_vc_t;
 
 static ad_trk_t ad_t[NPART];
-static ad_vc_t ad_v[VPOOLN];      /* one entry per pool slot: it follows the voice */
+/* one entry per pool slot: it follows the voice. (FASE 1 2026-11-25) in the slot's engine arena (core.h):
+ * WHEEL and NOISE never own the same slot at once, and voice.c clears it when another engine takes it. */
+_Static_assert(sizeof(ad_vc_t) <= SLOT_ARENA_BYTES, "the ADDITIVE voice state outgrew the slot's engine arena");
+static ad_vc_t *ad_slot(uint32_t vi)
+{
+    return (ad_vc_t *)(void *)slot_arena[vi % VPOOLN].b;
+}
 
 static uint32_t ad_part(const track_t *t) { return (uint32_t)(t - trk); }   /* NTRK == NPART */
 
@@ -105,7 +111,7 @@ static void add_block(track_t *t)
 
 static void add_note_on(track_t *t, voice_t *v)
 {
-    ad_vc_t *V = &ad_v[VSLOT(v)];
+    ad_vc_t *V = ad_slot(VSLOT(v));
     uint32_t k;
     (void)t;
     for (k = 0; k < AD_NP; k++) {
@@ -119,7 +125,7 @@ static void add_note_on(track_t *t, voice_t *v)
 static __attribute__((noinline)) void add_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const ad_trk_t *T = &ad_t[ad_part(t)];
-    ad_vc_t *V = &ad_v[VSLOT(v)];
+    ad_vc_t *V = ad_slot(VSLOT(v));
     const int16_t *p = t->p;
     int32_t acc[CTL], ic1 = v->s[0], ic2 = v->s[1], dcx = v->s[2], dcy = v->s[3];
     int32_t cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) * 4);

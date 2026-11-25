@@ -569,6 +569,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "WTABLE: the frames and the morph, HARM, SUB, UNI, aliasing at every octave, health, cost" "$OUT/wavetable_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/additive_test" tests/additive_test.c -lm
     run "ADDTV: the profiles and the morph, TILT, spectral DECAY, STRETCH, SUB, band limit, health, cost" "$OUT/additive_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_arena_test" tests/engine_arena_test.c -lm
+    run "ARENA: per-track FM6/DRUM and per-slot WHEEL/ADDITIVE/NOISE state, engine switches under held notes, 6 tracks, stealing, unison" "$OUT/engine_arena_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_test" tests/fm6_test.c -lm
     mkdir -p build/fm6_demo
     run "FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos" "$OUT/fm6_test" build/fm6_demo

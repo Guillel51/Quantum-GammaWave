@@ -771,11 +771,11 @@ static int components3(void)
         t->step[0].comp = CP_OCT; t->step[0].carg = 0;
         seq_start();
         run_notes(t, 2, nt, sizeof nt);
-        ok = drum_kit[0][DV_KICK].st == base + 12 && t->dpit == 0;
+        ok = drum_kit_row(0)[DV_KICK].st == base + 12 && t->dpit == 0;
         t->step[0].comp = CP_BEND; t->step[0].carg = 0;       /* (-12) */
         seq_start();
         run_notes(t, 2, nt, sizeof nt);
-        ok &= drum_kit[0][DV_KICK].st == base && drum_kit[0][DV_KICK].bd == -12 * 16 && drum_kit[0][DV_KICK].bs > 0;
+        ok &= drum_kit_row(0)[DV_KICK].st == base && drum_kit_row(0)[DV_KICK].bd == -12 * 16 && drum_kit_row(0)[DV_KICK].bs > 0;
         t->step[0] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u << DV_KICK | 1u << DV_SNARE, .acc = 0 };
         t->step[0].comp = CP_ARPN; t->step[0].carg = CP_ARG(0u, 2u, 0u);
         seq_start();

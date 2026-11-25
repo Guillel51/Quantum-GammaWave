@@ -943,7 +943,7 @@ static int test_pfx(void)
     perf_press(PF_S8, 1);
     for (i = 0; i < 22016u; i += CTL) {
         mix_block(o, CTL);
-        hits += drum_kit[3][DV_KICK].age == 1u;
+        hits += drum_kit_row(3)[DV_KICK].age == 1u;
     }
     perf_press(PF_S8, 0);
     mix_block(o, CTL);

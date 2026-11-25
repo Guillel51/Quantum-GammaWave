@@ -59,7 +59,20 @@ static struct {                                  /* the patch through the macros
 } fm6_eff[NTRK];
 static fm6_lfo_t fm6_lfo[NTRK];
 static int32_t fm6_lfo_v[NTRK], fm6_lfo_d[NTRK]; /* this block's LFO value and delay (Q24) */
-static fm6_note_t fm6_note[NTRK][FM6_POLY];
+/* (FASE 1 2026-11-25) one row of the track's engine arena (core.h): the DRUM kit's lanes are never live on
+ * the same track (voice.c switches the engine only after the old one's voices ended, and clears the row). */
+_Static_assert(sizeof(fm6_note_t) * FM6_POLY <= ENG_ARENA_BYTES, "the FM6 notes outgrew the track's engine arena");
+static fm6_note_t *fm6_note_row(uint32_t ti)
+{
+    return (fm6_note_t *)(void *)eng_arena[ti % NTRK].b;
+}
+/* the whole block back to zero, as the harnesses did with the old fm6_note[][]: FM6's tests only */
+static void fm6_notes_clear(void)
+{
+    uint32_t ti;
+    for (ti = 0; ti < NTRK; ti++)
+        memset(fm6_note_row(ti), 0, sizeof(fm6_note_t) * FM6_POLY);
+}
 /* the voice bank (fm6_vbank.c; in the pool, zeroed at boot: no bank without the store) */
 static uint32_t fm6_bank_used __attribute__((section(".pool")));   /* bit k: B k+1 holds a voice */
 static int (*fm6_bank_read)(uint32_t k, uint8_t *pk) __attribute__((section(".pool")));   /* voice k -> pk, 0 = read */
@@ -369,7 +382,7 @@ static fm6_note_t *fm6_note_of(track_t *t, voice_t *v)
     if (t < &trk[0] || t >= &trk[NPART])
         return 0;
     i = vindex(t, v);
-    return i < FM6_POLY ? &fm6_note[t - trk][i] : 0;
+    return i < FM6_POLY ? &fm6_note_row((uint32_t)(t - trk))[i] : 0;
 }
 
 static void fm6_note_on(track_t *t, voice_t *v)

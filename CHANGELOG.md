@@ -1,3 +1,19 @@
+## Sin publicar — FASE 1/5: las arenas de los motores devuelven 6 630 B de RAM
+
+- **Unión etiquetada por motor, en dos niveles.** Estado por pista (FM6 `fm6_note[6][4]` ∪ kit DRUM
+  `drum_kit[6][8]`) y por ranura del pool (WHEEL ∪ ADDITIVE ∪ NOISE). Una pista corre un motor a la vez y una
+  ranura sostiene una voz de un motor: los bytes no tienen por qué sumarse. Medido `[HOST x86-64]`: **15 672 →
+  9 042 B**, **6 630 B** devueltos; el `.bss` del objeto completo baja **6 752 B** (297 264 → 290 512).
+- **Sin tocar el sonido.** 311 goldens de `tests/regress` **0 cambiados** y los 61 s de `six_live_golden.txt`
+  idénticos. Ni una voz, motor, pista, preset ni píxel menos; ningún buffer movido a RAMTEXT.
+- **Seguro en los cambios de motor.** La fila de la pista se limpia en el mismo punto en que `engine_block` ya
+  terminaba las voces del motor viejo (antes de cambiarlo), y `voice_start` etiqueta y limpia la ranura sólo
+  cuando otro motor la toma. `tests/engine_arena_test.c` (nuevo) lo prueba con notas sostenidas, seis pistas a
+  la vez, acordes, release, unísono y voice stealing.
+- **Mapa de target pendiente.** Este entorno no tiene `JIELI_TOOLCHAIN`/`AC79_SDK`: no hay `build/felucca.map`
+  de esta ronda, así que las cifras de `.data+.bss`/POOL/LOWBUF/RAMTEXT/NOINIT del AC791N **no se midieron y
+  no se subió ningún piso**. La aritmética está en `docs/FASE1_RAM_ARENAS_2026-11-25.md`.
+
 ## v2.5.1 — La ronda de estabilidad: la versión que sí puede publicarse
 
 `v2.5.0` ya existía como etiqueta desde el 11 de noviembre, apuntando a un commit de la fase 2: por eso el

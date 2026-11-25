@@ -218,12 +218,12 @@ int main(int argc, char **argv)
         before = 1;
         {
             uint32_t v;
-            const drum_lane_t *L = &drum_kit[0][DV_HATO];
+            const drum_lane_t *L = &drum_kit_row(0)[DV_HATO];
             before = L->x.ea;
             (void)v;
         }
-        after = drum_kit[0][DV_HATO].x.ea;
-        check("the closed hat chokes the open one", !drum_kit[0][DV_HATO].x.live || after < (1 << 30) / 1000.0,
+        after = drum_kit_row(0)[DV_HATO].x.ea;
+        check("the closed hat chokes the open one", !drum_kit_row(0)[DV_HATO].x.live || after < (1 << 30) / 1000.0,
               "open hat envelope %.0f", after);
         (void)before;
     }

@@ -28,13 +28,24 @@ la suma. Con estos números el techo es **mucho menor de los 4-8 KB** que la fas
   grande de todos. Una unión con él no ahorra nada (él *es* el máximo), y reducirlo a la mitad sería bajar la
   polifonía del motor, que la fase prohíbe.
 
-## Conclusión honesta
+## Correción medida: el techo no era 1,4 KB (2026-11-25, implementado)
 
-Compartir almacenamiento entre motores da como mucho **~1,4 KB**, no 4-8 KB, y exige que cada motor cero-inicie
-su estado al tomar una voz y que ninguno lo lea después de cambiar de motor — disciplina que hay que probar
-nota a nota con seis pistas, acordes, release y robo. Los kilobytes grandes están en otro sitio: el bloque de
-notas de FM6 (7,2 KB) y los buffers de sección (`sec_stage`), no en la duplicación entre motores.
+Este informe miró sólo el estado **por ranura** y concluyó «~1,4 KB como mucho». Faltaba la mitad del inventario:
+el estado **por pista**, que también es exclusivo de un motor porque una pista corre un solo motor a la vez.
+Medido e implementado en `docs/FASE1_RAM_ARENAS_2026-11-25.md`:
 
-Esta ronda **no implementó** la unión: con el techo medido en 1,4 KB y el riesgo de audio en el camino de
-cambio de motor, primero hay que decidir si esa ganancia paga el refactor de los diez motores, y eso es una
-decisión de diseño, no un detalle de implementación.
+| unión | antes | después | devuelto |
+|---|---|---|---|
+| por pista: FM6 `fm6_note[6][4]` (7 200 B) ∪ DRUM `drum_kit[6][8]` (5 376 B) | 12 576 B | 6 × 1 216 = 7 296 B | **5 280 B** |
+| por ranura: WHEEL 1 656 + ADDITIVE 1 224 + NOISE 216 | 3 096 B | 18 × 96 + 18 = 1 746 B | **1 350 B** |
+| **total** | **15 672 B** | **9 042 B** | **6 630 B** |
+
+El objeto host completo baja **6 752 B** de `.bss` (297 264 → 290 512), los 311 goldens de audio salen **0
+cambiados** y los 61 s de la escena de seis pistas coinciden byte a byte. La disciplina que este informe pedía
+se implementó y se prueba: `voice_start` etiqueta y limpia la ranura cuando otro motor la toma, y `engine_block`
+limpia la fila de la pista en el mismo punto en que ya ponía a cero sus voces; `tests/engine_arena_test.c` lo
+comprueba con notas sostenidas, seis pistas, acordes, release, unísono y robo.
+
+Los kilobytes grandes que siguen fuera del alcance son los buffers de FX y `trk`, no la duplicación entre
+motores: esta era la única duplicación real.
+

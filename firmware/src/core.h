@@ -836,6 +836,24 @@ typedef struct track {
 /* (3.5) the one storage of voices, and a part's window into it. V(t, i) is an lvalue: every use of a voice is
  * the same expression it was when the array lived in track_t. */
 extern voice_t vpool[VPOOLN];
+/* (FASE 1 2026-11-25) THE ENGINE ARENAS: ONE ENGINE'S STATE A TRACK, ONE A SLOT.
+ * A track runs exactly one engine (voice.c engine_block switches it only after the old engine's voices have
+ * been faded to zero and ended), and a pool slot holds one voice of one engine. So the engines' private
+ * state does not have to coexist: FM6's notes and the DRUM kit's lanes never sound together on the same
+ * track, and WHEEL's wheels, ADDITIVE's partials and NOISE's CHARACTER filters never sound together on the
+ * same slot. Each engine lays its own struct over the arena named for it. Sizes are asserted where the
+ * structs are declared (eng_drum.c, eng_fm6.c, eng_wheel.c, eng_additive.c, eng_noise.c); the arenas are
+ * unions of a uint64_t with the byte array, so every struct's alignment (4) is covered on the target too. */
+#define ENG_ARENA_BYTES 1216u                  /* FM6: 4 notes x 300 B; DRUM: 8 lanes x 112 B */
+typedef union { uint64_t align; uint8_t b[ENG_ARENA_BYTES]; } eng_arena_t;
+extern eng_arena_t eng_arena[NTRK];             /* the active engine's state, per track */
+#define SLOT_ARENA_BYTES 96u                   /* WHEEL 92 B; ADDITIVE 68 B; NOISE 12 B */
+typedef union { uint64_t align; uint8_t b[SLOT_ARENA_BYTES]; } slot_arena_t;
+extern slot_arena_t slot_arena[VPOOLN];         /* the active engine's state, per pool slot */
+extern uint8_t slot_eng[VPOOLN];                /* its engine tag; 0 (ANALOG) means no arena engine has taken
+                                                 * it -- ANALOG keeps no per-slot state, so the zeroed .bss is
+                                                 * already a valid "untaken" tag and voices_boot, which never
+                                                 * cleared these arrays before, does not touch them */
 #define V(t, i) vpool[(t)->vidx[(i)]]
 #define VSLOT(v) ((uint32_t)((v) - vpool))     /* a voice's pool slot: the engines' per-voice state is keyed by it */
 /* (3.5) every voice of a part back to silence (what a memset of the old per-part array did), leaving the

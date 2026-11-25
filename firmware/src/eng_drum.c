@@ -49,7 +49,15 @@ static uint8_t dx_mot[4];
 static int32_t dx_mot_v;
 static uint32_t dx_mot_rng = 0x9E3779B9u;
 
-static drum_lane_t drum_kit[NPART][DV_NLANE];   /* (0.6.53: in .bss, was .pool: the pool kept for the FX lines) */
+/* (0.6.53: in .bss, was .pool: the pool kept for the FX lines)
+ * (FASE 1 2026-11-25) the lanes live in the track's engine arena (core.h eng_arena), which the track's active
+ * engine owns: FM6's notes and this kit are never both live on one track. voice.c zeroes the row when the
+ * track changes engine, after the old engine's voices have ended. */
+_Static_assert(sizeof(drum_lane_t) * DV_NLANE <= ENG_ARENA_BYTES, "the DRUM kit outgrew the track's engine arena");
+static drum_lane_t *drum_kit_row(uint32_t ti)
+{
+    return (drum_lane_t *)(void *)eng_arena[ti % NPART].b;
+}
 
 /* The group mutes (JIANT): KICK (the kick), SNARE (snare and clap), HAT (both hats), PERCS (tom, rim, bell), on every
  * DRUM track. A section's (project.c keeps them with its DRUM-X kit, the song stages them); set live on the
@@ -161,7 +169,7 @@ static void step_to_grid(step_t *s)
 
 static drum_lane_t *drum_kit_of(const track_t *t)
 {
-    return t >= &trk[0] && t < &trk[NPART] ? drum_kit[t - trk] : 0;
+    return t >= &trk[0] && t < &trk[NPART] ? drum_kit_row((uint32_t)(t - trk)) : 0;
 }
 
 /* the lane voice v plays, 0 when it plays none (any more) */

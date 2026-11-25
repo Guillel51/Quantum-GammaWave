@@ -114,7 +114,14 @@ typedef struct {                 /* per voice */
 } drw_vc_t;
 
 static drw_trk_t drw_t[NPART];
-static drw_vc_t drw_v[VPOOLN];   /* (3.5) one entry per pool slot, not per part: it follows the voice */
+/* (3.5) one entry per pool slot, not per part: it follows the voice. (FASE 1 2026-11-25) it lives in the
+ * slot's engine arena (core.h slot_arena): WHEEL, ADDITIVE and NOISE are never the same slot's engine, and
+ * voice.c clears the row when another engine takes the slot. */
+_Static_assert(sizeof(drw_vc_t) <= SLOT_ARENA_BYTES, "the WHEEL voice state outgrew the slot's engine arena");
+static drw_vc_t *drw_slot(uint32_t vi)
+{
+    return (drw_vc_t *)(void *)slot_arena[vi % VPOOLN].b;
+}
 
 static uint32_t drw_part(const track_t *t) { return (uint32_t)(t - trk) % NPART; }
 
@@ -212,7 +219,7 @@ static void wheel_block(track_t *t)
 static void wheel_note_on(track_t *t, voice_t *v)
 {
     uint32_t vi = VSLOT(v), k, held = 0;
-    drw_vc_t *V = &drw_v[vi];
+    drw_vc_t *V = drw_slot(vi);
     for (k = 0; k < NVOICE; k++)                        /* single trigger: another key of the part held? */
         if (&V(t, k) != v && V(t, k).active && V(t, k).gate && V(t, k).stage != 4u)
             held = 1;
@@ -239,7 +246,7 @@ static void wheel_note_on(track_t *t, voice_t *v)
 static void wheel_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const drw_trk_t *T = &drw_t[drw_part(t)];
-    drw_vc_t *V = &drw_v[VSLOT(v)];
+    drw_vc_t *V = drw_slot(VSLOT(v));
     int32_t acc[CTL], perc1, clk0, clk1;
     uint32_t i, k;
     if (n > CTL)
