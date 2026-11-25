@@ -1716,7 +1716,12 @@ static int project_restore_runtime(const project_t *input)
 /* (0.6.21) UNDO (GLO held + G4): one step back over the last big change (HOME's DICE ALL, a sound diced, a clear, an
  * INIT / RECALL, a pattern or project loaded). undo_mark keeps the music as it is (packed as a project: ~3.8 KB);
  * undo_do brings it back and keeps what it replaced, so a second UNDO goes forward again. The transport plays on */
-static project_store_t undo_st[2] __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) */
+/* (FASE 4 de esta ronda) OFF LOWBUF: the undo pair is two project images, read and written by the main loop and
+ * nothing else -- no flash write, no DMA, no ISR -- and LOWBUF is the window that runs out first (1 120 B free
+ * against the 384 the next feature asked for). The RAMTEXT tail has 11 808 B of SRAM that no code uses, the same
+ * place the cold buffers went in this round's first phase: 7 680 B of LOWBUF back for nothing spent, and the boot
+ * clear that already sweeps .ramdata zeroes both before anything reads them. */
+static project_store_t undo_st[2] __attribute__((section(".bss.ramdata")));
 /* (JIANT 0.6.40) INIT SYSTEM (SAVE > TOOLS 5, its dialog; UNDO brings the music back) and the power-on (main.c, with
  * RESTORE LAST OFF): the six tracks their engine (TRK_DEF's) at its defaults and first sound, as INIT SOUND does; no
  * steps, automation or locks; the mix, the global effects, the tempo and the SLICER at their defaults; the song empty,

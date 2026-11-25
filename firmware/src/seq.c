@@ -232,7 +232,12 @@ static uint16_t kb_sdue[27];                    /* (0.6.81) samples to the strum
  * high. The root alone on a kit and on MONO / LEGATO / UNISON. The keys only (MIDI notes play as they come); the
  * notes go to the sequencer's recording and the ARP as the key's own would */
 enum { CD_OFF, CD_TRI, CD_SEV, CD_ADD9, CD_SUS2, CD_SUS4, CD_MAJ, CD_MIN, CD_DOM7, CD_MAJ7, CD_MIN7, CD_POW };
-enum { CV_CLOSE, CV_LEAD, CV_OPEN, CV_BASS };
+/* (FASE 4 de esta ronda) EIGHT VOICINGS, THE FOUR OF BEFORE UNTOUCHED. DROP2 and DROP3 are the two drop voicings
+ * every arranger uses: the second (or third) voice from the top moved an octave down, which spreads the chord and
+ * leaves the melody note where it was. QUART re-stacks the chord's own tones in perfect fourths (the open, modern
+ * sound a triad cannot reach), SPREAD lifts every other tone an octave (the wide, two-octave chord). None of them
+ * adds a note to the chord or a parameter to the instrument: same four values as before, four more after them. */
+enum { CV_CLOSE, CV_LEAD, CV_OPEN, CV_BASS, CV_DROP2, CV_DROP3, CV_QUART, CV_SPREAD };
 static uint8_t chord_last[NTRK][KB_CH], chord_nlast[NTRK];   /* the last chord each track played (LEAD) */
 /* (JIANT 0.8.3, QG 2025-11) the first interval of p the scale has above rel (semitones from ROOT), or -1: the
  * tone a chord asks for where the scale has it, else the nearest one it offers. Before this, a diatonic chord
@@ -337,6 +342,24 @@ static uint32_t chord_from(const track_t *t, uint32_t root, uint32_t mode, uint3
     if (vc == CV_BASS) {                        /* the root an octave down (a four-note chord leaves its fifth out) */
         if (n == 4u) { nt[2] = nt[3]; n = 3; }
         nt[n++] = r - 12;
+    } else if (vc == CV_DROP2 || vc == CV_DROP3) {
+        /* (FASE 4) DROP 2 / DROP 3: the tone that many from the top, an octave down. The chord keeps every note it
+         * had; what moves is the spacing, which is what an arranger hears. A chord too small to drop keeps its
+         * position (nothing to move without losing a tone) */
+        uint32_t from_top = vc == CV_DROP2 ? 2u : 3u;
+        if (n >= from_top + 1u)
+            nt[n - from_top] -= 12;
+    } else if (vc == CV_QUART) {
+        /* (FASE 4) QUART: the chord's own tones, stacked in perfect fourths from the root. Kept inside 0..127 by the
+         * filter below, as every voicing is */
+        uint32_t q;
+        for (q = 1; q < n; q++)
+            nt[q] = nt[q - 1] + 5;
+    } else if (vc == CV_SPREAD) {
+        /* (FASE 4) SPREAD: every other tone an octave up, so a four-note chord covers two octaves and a half */
+        uint32_t q;
+        for (q = 1; q < n; q += 2)
+            nt[q] += 12;
     }
     for (i = 1; i < n; i++)                     /* low to high, no unisons */
         for (j = i; j > 0 && nt[j] < nt[j - 1]; j--) { int32_t x = nt[j]; nt[j] = nt[j - 1]; nt[j - 1] = x; }

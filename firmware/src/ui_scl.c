@@ -941,7 +941,7 @@ static __attribute__((noinline)) void graph_scl_chord(const track_t *t, uint16_t
 {
     uint8_t off[12], nt[12];
     uint32_t sn, tn, ti = trk_index(t) % NTRK, i, oob = 0;
-    uint32_t mode = (uint32_t)clamp(t->p[P_CHRD], 0, CD_POW), vc = (uint32_t)clamp(t->p[P_CVOI], 0, 3);
+    uint32_t mode = (uint32_t)clamp(t->p[P_CHRD], 0, CD_POW), vc = (uint32_t)clamp(t->p[P_CVOI], 0, CV_SPREAD);   /* (FASE 4) the page draws all eight */
     int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
     int32_t bass = scl_selb[ti] == 0xFFu ? -1 : (int32_t)scl_selb[ti];
     uint32_t sel = scl_selm[ti];
