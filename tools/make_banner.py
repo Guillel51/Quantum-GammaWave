@@ -323,7 +323,7 @@ def banner_hero():
     y += 70
     c1 = chips(["12 VOICES", "6 TRACKS", "10 ENGINES"], (w, h), 1.12)
     canvas.alpha_composite(c1, (x0, y))
-    c2 = chips(["290 PRESETS", "64-STEP SEQ", "22 PALETTES"], (w, h), 1.12)
+    c2 = chips(["293 PRESETS", "64-STEP SEQ", "22 PALETTES"], (w, h), 1.12)
     canvas.alpha_composite(c2, (x0, y + c1.height + 12))
 
     d.text((x0, h - 68), "OPEN SOURCE  /  GPL-3.0-ONLY", font=font("IBMPlexMono-SemiBold.ttf", 20),
@@ -374,7 +374,7 @@ def card_og():
     y = 88 + q.height + g.height
     d.text((x0, y + 8), "12 voices \u00b7 6 tracks \u00b7 10 engines", font=font("ChakraPetch-Medium.ttf", 27),
            fill=(212, 232, 255, 235))
-    d.text((x0, y + 46), "290 presets \u00b7 64-step sequencer \u00b7 22 palettes", font=font("ChakraPetch-Medium.ttf", 21),
+    d.text((x0, y + 46), "293 presets \u00b7 64-step sequencer \u00b7 22 palettes", font=font("ChakraPetch-Medium.ttf", 21),
            fill=(146, 174, 212, 220))
     p = panel("quantum_01_home.png", 0.92, "HOME / ORBITAL", "240 \u00d7 240, firmware")
     canvas.alpha_composite(p, (w - p.width - 60, 96))
@@ -404,7 +404,7 @@ def banner_mobile():
     y += 58
     c1 = chips(["12 VOICES", "6 TRACKS", "10 ENGINES"], (w, h), 0.95)
     canvas.alpha_composite(c1, (x0, y))
-    c2 = chips(["290 PRESETS", "64-STEP SEQ", "22 PALETTES"], (w, h), 0.95)
+    c2 = chips(["293 PRESETS", "64-STEP SEQ", "22 PALETTES"], (w, h), 0.95)
     canvas.alpha_composite(c2, (x0, y + c1.height + 10))
     p1 = panel("quantum_01_home.png", 1.15, "HOME / ORBITAL", "")
     p2 = panel("quantum_12_fx_rack.png", 1.15, "FX / THE RACK", "")
