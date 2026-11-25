@@ -45,9 +45,11 @@ def parse(path):
         arr = lambda n: [int(v, 0) for v in re.search(r"AF_%s_%s\[\d+\] = \{([^}]*)\}" % (name, n), t)
                          .group(1).replace("\n", " ").split(",") if v.strip()]
         # (FASE 1, 2026-11-16) aag_t: off, bx, by, bw, bh (the advance is once per glyph, AF_x_ADV)
-        g = [tuple(int(v) for v in e.split(",")) for e in
-             re.findall(r"\{(-?\d+, -?\d+, -?\d+, -?\d+, -?\d+)\}",
-                        re.search(r"AF_%s_G\[\d+\] = \{(.*?)\n\};" % name, t, re.S).group(1))]
+        g = []
+        for v in re.findall(r"\{0x([0-9a-fA-F]+)u\}",
+                            re.search(r"AF_%s_G\[\d+\] = \{(.*?)\n\};" % name, t, re.S).group(1)):
+            w = int(v, 16)
+            g.append((w & 0x1FFF, ((w >> 13) & 7) - 1, (w >> 16) & 31, (w >> 21) & 31, (w >> 26) & 31))
         adv = arr("ADV")
         kern = {}
         if f[9] != "0":

@@ -55,14 +55,24 @@ enum {
 uint32_t fm6_exp2_tab[FM6_EXP2_N];
 void fm6_exp2_init(void)
 {
-    int32_t i, a = (int32_t)FM6_EXP2_V0, b = a + (int32_t)FM6_EXP2_D1;
+    int32_t i, a = (int32_t)FM6_EXP2_V0, b = a + (int32_t)FM6_EXP2_D1, d2 = (int32_t)FM6_EXP2_D2_V0;
+    uint32_t acc = 0, bits = 0;
+    const uint8_t *p = FM6_EXP2_D2;
     fm6_exp2_tab[0] = (uint32_t)a;
     fm6_exp2_tab[1] = (uint32_t)b;
     for (i = 0; i < (int32_t)FM6_EXP2_D2_N; i++) {
-        int32_t c = b + (b - a) + (int32_t)FM6_EXP2_D2[i];   /* the same step again, plus its own change */
+        int32_t c = b + (b - a) + d2;               /* the same step again, plus its own change */
         fm6_exp2_tab[i + 2] = (uint32_t)c;
         a = b;
         b = c;
+        if (i + 1 < (int32_t)FM6_EXP2_D2_N) {        /* (FASE 2/5) the change's own change, three bits with +3: */
+            while (bits < 3u) {                     /* 1 662 B less XIP and the same curve (tools/gen_tables.py) */
+                acc = acc << 8 | *p++;
+                bits += 8u;
+            }
+            d2 += (int32_t)((acc >> (bits - 3u)) & 7u) - 3;
+            bits -= 3u;
+        }
     }
 }
 /* 2^(x / 2^24), Q24 (msfa Exp2::lookup): the Q30 mantissa from fm6_exp2_tab, shifted by the integer part */

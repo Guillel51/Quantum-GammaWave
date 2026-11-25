@@ -43,6 +43,17 @@ static const char *const N_WT_UNI[] = {"1 VOICE", "2 VOICES"};
  * the exact odd symmetry its construction implies (measured: 1 LSB of +-32 000, 0.003 % of full scale). */
 static uint8_t wt_ready;
 
+/* (FASE 2/5, 2026-11-25) WT_COEF in .bss, 512 Q30 amplitudes expanded once from a 64-byte map and the 280 nonzero
+ * values (1 184 B of XIP instead of 2 048 B). Same integers, same table, same render; the expansion is 512 mask
+ * tests before the first wt_gen_init pass, never inside a block. */
+int32_t WT_COEF[WT_COEF_N];
+static void wt_coef_init(void)
+{
+    uint32_t i, n = 0;
+    for (i = 0; i < WT_COEF_N; i++)
+        WT_COEF[i] = (WT_COEF_MASK[i >> 3] >> (i & 7u)) & 1u ? WT_COEF_NZ[n++] : 0;
+}
+
 /* a frame's point before its peak: the sum of that frame's sines (tools/gen_tables.py), Q15 */
 static inline int32_t wt_raw(uint32_t f, uint32_t lim, uint32_t i)
 {
@@ -61,6 +72,7 @@ static void wt_gen_init(void)
     uint32_t l, f, i;
     if (wt_ready)
         return;
+    wt_coef_init();
     for (l = 0; l < WT_LEVELS; l++) {
         uint32_t lim = l == 0u ? 64u : l == 1u ? 16u : 5u;
         for (f = 0; f < WT_FRAMES; f++) {

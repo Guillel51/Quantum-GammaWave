@@ -251,9 +251,15 @@ def emit(face, tracking, gamma, kern_min):
     # the advances are 1/16 px: a byte each when the face's widest fits (S 156, M 144: 210 B less XIP)
     advt = "uint8_t" if max(advs) <= 0xFF else "uint16_t"
     lines.append(ar.c_array(f"AF_{name}_ADV", advt, advs, 16))
+    # (FASE 2/5, 2026-11-25) one word a glyph and phase instead of six bytes: off 13 bits, bx + 1 and by / bw / bh
+    # five bits each. The faces' ranges are checked here, so a face that outgrows the word fails the build instead of
+    # being truncated. 4 B a phase: 1 304 B less XIP across S, M and L; the bitmaps and the drawn pixels do not move.
     lines.append(f"static const aag_t AF_{name}_G[{len(table)}] = {{")
     for off, adv, bx, by, bw, bh in table:
-        lines.append(f"    {{{off}, {bx}, {by}, {bw}, {bh}}},")
+        assert 0 <= off <= 0x1FFF and -1 <= bx <= 5 and 0 <= by <= 31 and 0 <= bw <= 31 and 0 <= bh <= 31, \
+            f"{name}: glyph record out of range: {off} {bx} {by} {bw} {bh}"
+        w = off | ((bx + 1) & 7) << 13 | by << 16 | bw << 21 | bh << 26
+        lines.append(f"    {{0x{w:08x}u}},")
     lines.append("};")
     if keys:
         lines.append(ar.c_array(f"AF_{name}_KERN", "uint16_t", keys, 12))

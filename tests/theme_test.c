@@ -43,7 +43,7 @@ static double contrast(uint16_t fg, uint16_t bg)
 
 int main(int argc, char **argv)
 {
-    static const aag_t pg[1] = {{0, 0, 0, 3, 1}};   /* one glyph 'A': 3 px, alpha 0, 8, 15 (advance below) */
+    static const aag_t pg[1] = {{0x04602000u}};     /* off 0, bx 0, by 0, bw 3, bh 1 (FASE 2/5's packed word) */
     static const uint16_t pa[1] = {48};
     static const uint8_t pd[] = {0x08, 0xf0};
     const aafont_t probe = {1, 1, 'A', 'A', 0, 0, pg, pa, pd, 0, 0, 0};

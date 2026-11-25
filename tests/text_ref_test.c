@@ -86,8 +86,8 @@ static int32_t ref_kern(const aafont_t *f, uint32_t a, uint32_t b)
 static uint8_t alpha[64 * 64];
 static void ref_unpack(const aafont_t *f, const aag_t *g)
 {
-    uint32_t n = (uint32_t)g->bw * g->bh, k = 0, pos = 0;
-    const uint8_t *d = f->data + g->off;
+    uint32_t n = (uint32_t)AG_BW(g) * AG_BH(g), k = 0, pos = 0;
+    const uint8_t *d = f->data + AG_OFF(g);
     if (!f->hc) {
         for (k = 0; k < n; k++) alpha[k] = (d[k >> 1] >> ((k & 1u) ? 0 : 4)) & 15u;
         return;
@@ -118,7 +118,7 @@ static int32_t ref_text(int32_t x, int32_t y, const aafont_t *f, const char *s, 
         if (c >= 'a' && c <= 'z' && f->last < 'a') c -= 32u;
         if (prev) pen += ref_kern(f, prev, c);
         g = &f->g[ref_gi(f, c) * (uint32_t)n];
-        if (n > 1 && g[1].off != g[0].off) {
+        if (n > 1 && AG_OFF(g + 1) != AG_OFF(g)) {
             lo = step * (int32_t)floor((double)pen / step);       /* the phase positions around the pen */
             hi = lo + step;
             pos = fabs((double)(lo - pen - err)) <= fabs((double)(hi - pen - err)) ? lo : hi;
@@ -128,10 +128,10 @@ static int32_t ref_text(int32_t x, int32_t y, const aafont_t *f, const char *s, 
         }
         err = pos - pen;
         ref_unpack(f, g);
-        for (uint32_t gy = 0; gy < g->bh; gy++)
-            for (uint32_t gx = 0; gx < g->bw; gx++, k++) {
+        for (uint32_t gy = 0; gy < (uint32_t)AG_BH(g); gy++)
+            for (uint32_t gx = 0; gx < (uint32_t)AG_BW(g); gx++, k++) {
                 uint32_t v = alpha[k];
-                int32_t px = x + (int32_t)floor(pos / 16.0) + g->bx + (int32_t)gx, py = y + g->by + (int32_t)gy;
+                int32_t px = x + (int32_t)floor(pos / 16.0) + AG_BX(g) + (int32_t)gx, py = y + AG_BY(g) + (int32_t)gy;
                 if (v && (uint32_t)px < W && (uint32_t)py < H) ref[py * W + px] = v == 15u ? fg : rv[v];
             }
         pen += f->adv8 ? ((const uint8_t *)f->adv)[ref_gi(f, c)]   /* (FASE 5) the faces carry byte- or

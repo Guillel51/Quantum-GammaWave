@@ -10,7 +10,15 @@
  * ramp per (ink, background) pair, cached, so a pixel costs a nibble read and a store. Colours come from the theme tokens. */
 /* (FASE 1, 2026-11-16) one phase of a glyph. The advance is the same in every phase (tools/gen_aa_font.py
  * checks it), so it lives once per glyph in aafont_t.adv: 6 B a phase instead of 8, 840 B less XIP. */
-typedef struct { uint16_t off; int8_t bx; uint8_t by, bw, bh; } aag_t;
+/* (FASE 2/5) one word a glyph and phase: off 13 bits, bx + 1 and by / bw / bh five bits each (tools/gen_aa_font.py
+ * packs it and checks the ranges). 4 B a phase instead of 6: 1 304 B less XIP across the three faces; the reads
+ * below are a mask and a shift, and the bitmaps, the advances and the pixels are the same. */
+typedef struct { uint32_t w; } aag_t;
+#define AG_OFF(g) ((uint32_t)((g)->w & 0x1FFFu))
+#define AG_BX(g) ((int32_t)(((g)->w >> 13) & 7u) - 1)
+#define AG_BY(g) ((int32_t)(((g)->w >> 16) & 31u))
+#define AG_BW(g) ((int32_t)(((g)->w >> 21) & 31u))
+#define AG_BH(g) ((int32_t)(((g)->w >> 26) & 31u))
 typedef struct {
     uint8_t h, asc, first, last, nex;   /* line height, baseline; ASCII range; extras */
     uint16_t nk;                        /* kerning pairs */
@@ -1487,7 +1495,7 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
         if (prev)
             pen += kern(f, prev, c);
         g = &f->g[gi];
-        if (f->psh && g[1].off != g->off) {
+        if (f->psh && AG_OFF(g + 1) != AG_OFF(g)) {
             pos = pen - (pen & (step - 1));          /* the phase position at or left of the pen */
             d0 = pos - pen - err;                    /* .. and the one right of it: which keeps the gap truer */
             d1 = d0 + step;
@@ -1498,18 +1506,18 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
             pos = (pen + 8) & ~15;                   /* one phase (figures, ., blanks): the rounded pen */
         }
         err = pos - pen;
-        if (g->bw) {
-            int32_t gx = x + (pos >> 4) + g->bx, gy = y + g->by;
+        if (AG_BW(g)) {
+            int32_t gx = x + (pos >> 4) + AG_BX(g), gy = y + AG_BY(g);
             if (!rv)
                 ;                                    /* (text_ink: measured only) */
             else if (f->hc)
-                cv_alpha_hc(gx, gy, g->bw, g->bh, f->data + g->off, f->hc, rv);
+                cv_alpha_hc(gx, gy, AG_BW(g), AG_BH(g), f->data + AG_OFF(g), f->hc, rv);
             else
-                cv_alpha(gx, gy, g->bw, g->bh, f->data + g->off, rv);
+                cv_alpha(gx, gy, AG_BW(g), AG_BH(g), f->data + AG_OFF(g), rv);
             if (gx < x0) x0 = gx;
-            if (gx + g->bw > x1) x1 = gx + g->bw;
+            if (gx + AG_BW(g) > x1) x1 = gx + AG_BW(g);
             if (GFX_HOOKS && gy < y0) y0 = gy;       /* (the rows: for the host's lint only) */
-            if (GFX_HOOKS && gy + g->bh > y1) y1 = gy + g->bh;
+            if (GFX_HOOKS && gy + AG_BH(g) > y1) y1 = gy + AG_BH(g);
         }
         pen += advance(f, gi >> f->psh);
         prev = c;

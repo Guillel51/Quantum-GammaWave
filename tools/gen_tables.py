@@ -22,6 +22,23 @@ def arr(name, ctype, vals, per=12):
     return out
 
 
+def bits3(name, vals, base):
+    """(FASE 2/5) eight values a 24-bit group, three bits each: vals[i] - base is 0..7. The decoder reads the same
+    bits with shifts (dsp.c sine_init, fm6_core.c fm6_exp2_init); no rounding, no loss."""
+    assert all(base <= v <= base + 7 for v in vals), f"{name}: a value does not fit three bits"
+    out, acc, nb = [], 0, 0
+    for v in vals:
+        acc = (acc << 3) | (v - base)
+        nb += 3
+        if nb == 24:
+            out += [acc >> 16, (acc >> 8) & 255, acc & 255]
+            acc, nb = 0, 0
+    if nb:
+        acc <<= 24 - nb
+        out += [acc >> 16, (acc >> 8) & 255, acc & 255]
+    return arr(name, "uint8_t", out, 12)
+
+
 
 # WAVETABLE (src/eng_wavetable.c): eight single-cycle frames, 256 points, three band limits. Every frame
 # is a sum of sines of the cycle's harmonic k (phase 0: all of them cross zero at the cycle's start, so a
@@ -64,7 +81,18 @@ def wt_tables():
     coef = []
     for k in range(1, WT_LIMIT[0] + 1):
         coef += [int(round(wt_frame(f, k) * (1 << 30))) for f in range(8)]
-    L += arr("WT_COEF", "int32_t", coef, 8)
+    # (FASE 2/5, 2026-11-25) 232 of the 512 amplitudes are 0 (a harmonic a frame does not carry): a 64-byte bit
+    # map and the nonzero values (1 120 B) instead of 2 048 B. wt_coef_init (eng_wavetable.c) expands the 512 into
+    # .bss once, before the first wt_gen_init pass; the samples are the same integers.
+    mask = [0] * (len(coef) // 8)
+    nz = []
+    for i, v in enumerate(coef):
+        if v:
+            mask[i >> 3] |= 1 << (i & 7)
+            nz.append(v)
+    L += ["#define WT_COEF_N %d" % len(coef)]
+    L += arr("WT_COEF_MASK", "uint8_t", mask, 16)
+    L += arr("WT_COEF_NZ", "int32_t", nz, 8)
     L += ["#define WT_FRAMES 8", "#define WT_POINTS 256", "#define WT_LEVELS 3",
           "#define WT_COEF_H 64",
           "#define WT_PTS_H 129    /* points 0..128 of a frame: the cycle's first half, the second is -it */",
@@ -88,7 +116,9 @@ def main(path):
     sd2 = [sd1[i + 1] - sd1[i] for i in range(1023)]
     L += ["#define SINE_N 1025", "#define SINE_D2_N 1023",
           "#define SINE_V0 %d" % sine[0], "#define SINE_D1 %d" % sd1[0]]
-    L += arr("SINE_D2", "int8_t", sd2)
+    # (FASE 2/5) the 1 023 second differences are -3..3, three bits each with +3: 384 B instead of 1 023 B; sine_init
+    # (dsp.c) reads them back with shifts and gets the same integers (and so the same 1 025 points).
+    L += bits3("SINE_D2", sd2, -3)
     # phase increment for pitch in 1/16 semitone, MIDI 0..127
     inc = []
     for p in range(128 * 16):
@@ -184,8 +214,12 @@ def fm6_tables():
     L += ["#define FM6_EXP2_V0 %du     /* 2^(0/1024) - 1, Q30 */" % exp2[0],
           "#define FM6_EXP2_D1 %du     /* the first step: the table is V0, V0 + D1, then the curve's d2 */" % d1[0],
           "#define FM6_EXP2_N %du" % len(exp2),
-          "#define FM6_EXP2_D2_N %du" % len(d2)]
-    L += arr("FM6_EXP2_D2", "int16_t", d2, 12)
+          "#define FM6_EXP2_D2_N %du" % len(d2),
+          "#define FM6_EXP2_D2_V0 %d" % d2[0]]
+    # (FASE 2/5) the 1 023 second differences are smooth (491..983): its own first difference is -3..4, three bits
+    # each with +3 (384 B instead of 2 046 B). fm6_exp2_init (fm6_core.c) walks them with a shift and rebuilds the
+    # same d2, so the exp2 curve and every FM6 render stay bit for bit the same.
+    L += bits3("FM6_EXP2_D2", [d2[i] - d2[i - 1] for i in range(1, len(d2))], -3)
     lforatio = int(4437500000.0 * CTL / FS)                                  # msfa Lfo::lforatio_ (uint32)
     L += arr("FM6_LFO_DELTA", "uint32_t", [int(s * lforatio) for s in FM6_LFO_SOURCE], 8)
     # msfa note osc_freq: the DETUNE step of note mn, Q24 log2 (0.0209 * exp(-0.396 * lf) / 7 * lf, lf in octaves)

@@ -41,11 +41,20 @@ int16_t SINE[SINE_N];
 void sine_init(void)
 {
     int32_t i, v = SINE_V0, d = SINE_D1;
+    uint32_t acc = 0, bits = 0;
+    const uint8_t *p = SINE_D2;
     SINE[0] = (int16_t)v;
     for (i = 1; i < (int32_t)SINE_N; i++) {
         v += d;
         SINE[i] = (int16_t)v;
-        if (i <= (int32_t)SINE_D2_N) d += SINE_D2[i - 1];   /* the step's own change, the next one */
+        if (i <= (int32_t)SINE_D2_N) {              /* (FASE 2/5) three bits a change, +3 (tools/gen_tables.py): */
+            while (bits < 3u) {                     /* the same integers as the byte table, 639 B less XIP */
+                acc = acc << 8 | *p++;
+                bits += 8u;
+            }
+            d += (int32_t)((acc >> (bits - 3u)) & 7u) - 3;
+            bits -= 3u;
+        }
     }
 }
 /* sine, linearly interpolated between the 1024 table points (plain lookup: THD -55 dB) */

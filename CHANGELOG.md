@@ -1,3 +1,22 @@
+## v2.5.2 — FASE 2/5: 4 168 B de flash XIP y 8 860 B libres en la ranura
+
+- **Medido con el AC791N real**, no con documentación: toolchain de JieLi (SHA-256 verificado) y SDK
+  AC79NN; `build/felucca.map` de esta ronda. Imagen **578 920 → 574 752 B**, margen de la ranura
+  **4 692 → 8 860 B**; constantes XIP **124 812 → 120 340 B** y código +304 B (decodificadores).
+- **Cuatro recursos, sin pérdida y con los mismos enteros.** `FM6_EXP2_D2` 2 046 → 384 B (su primera
+  diferencia en 3 bits), los registros de glifo de S/M/L 3 912 → 2 608 B (un `uint32` por glifo),
+  `WT_COEF` 2 048 → 1 184 B (mapa de ceros + 280 valores no nulos, expandido a `.bss` antes del primer
+  bloque) y `SINE_D2` 1 023 → 384 B (3 bits). Cada tabla se reconstruyó valor por valor contra su
+  fórmula antes de compilar.
+- **Sin cambios de sonido ni de píxeles.** 311 goldens de `regress` sin cambios, 61/61 s de
+  `six_track_live` idénticos, `text_ref_test` 6 732 cadenas × fuentes × paletas con 0 píxeles
+  distintos, 22 paletas en `theme_test`, y el emulador WebAssembly con paridad **bit a bit** contra el
+  build nativo. La única falla de la suite (`text spacing`, 0,258 px en un par de S) se reproduce igual
+  con el generador y el test de HEAD: es deriva del rasterizador de fuentes de este entorno.
+- **Pisos intactos.** POOL 24 288 B de sobra, LOWBUF 29 256 B, código RAM 3 940 B; RAM `.data+.bss`
+  76 048 B (22 256 B libres, los 2 048 B de `WT_COEF`). Auditoría y descartes razonados en
+  `docs/FASE2_XIP_RECURSOS_2026-11-25.md`.
+
 ## Sin publicar — FASE 2: 15 966 B del pool, la consola FX y el skin
 
 - **Una línea de reverb para todos los modelos.** CLOUD, SHIMMER y ROOM/SPRING/RESO leen buffers distintos y
