@@ -11,8 +11,8 @@ cannot stay invisible: the file is regenerated in the same push.
 
 | | |
 |---|---:|
-| rows in the matrix | 880 |
-| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 427 |
+| rows in the matrix | 888 |
+| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 435 |
 | rows still asking for evidence | 33 |
 
 Classes of evidence named across the matrix (a row can name more than one):
@@ -20,7 +20,7 @@ Classes of evidence named across the matrix (a row can name more than one):
 | class | rows |
 |---|---:|
 | AC791N | 29 |
-| host | 187 |
+| host | 189 |
 | emul | 37 |
 | WASM | 35 |
 | render | 55 |
