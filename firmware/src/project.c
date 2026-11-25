@@ -791,6 +791,9 @@ static uint32_t proj_packed_size(const project_t *q)
         for (i = 0; i < NSTEP; i++)
             n += proj_step_empty(&q->t[t].step[i]) ? 0u : proj_step_size(&q->t[t].step[i]);
     }
+    for (t = 0; t < NTRK; t++)                          /* (FASE 3) the recorded lengths, when one is set */
+        for (i = 0; i < NSTEP; i++)
+            if (q->t[t].step[i].dur) { n += 2u + (uint32_t)NTRK * NSTEP; t = NTRK; break; }
     return n;
 }
 static int proj_pack(project_store_t *out, const project_t *q)
@@ -806,7 +809,8 @@ static int proj_pack(project_store_t *out, const project_t *q)
         for (i = 0; i < NSTEP; i++) {
             const step_t *s = &q->t[t].step[i];
             if (s->n > 4u || s->time > ST_REST || (s->flags & ~(3u | SF_RATCH)) || s->probability > 101u ||
-                s->comp >= CP_N || s->comp2 >= CP_N || CT_DIV(s) >= CT_NDIV || s->ctime > 127u) return 0;
+                s->comp >= CP_N || s->comp2 >= CP_N || CT_DIV(s) >= CT_NDIV || s->ctime > 127u ||
+                s->dur > 15u) return 0;
         }
     }
     if (!chain_valid(&q->chain) || !motion_valid(&q->motion) || P_COUNT > 127u || !dx_kit_ok(q->dx)) return 0;
@@ -906,6 +910,19 @@ static int proj_pack(project_store_t *out, const project_t *q)
                     b[pos++] = (uint8_t)clamp(q->t[t].mx[i][1], 0, MD_N - 1);
                     b[pos++] = (uint8_t)(clamp(q->t[t].mx[i][2], -64, 63) + 64);
                 }
+        }
+    }
+    {   /* (FASE 3 de esta ronda) THE RECORDED LENGTHS: one byte a step, only when a step has one, and LAST of the
+         * tagged blocks so a firmware that predates the field reads everything it knows exactly where it was. */
+        uint32_t any = 0;
+        for (t = 0; t < NTRK; t++)
+            for (i = 0; i < NSTEP; i++)
+                any |= q->t[t].step[i].dur;
+        if (any) {
+            b[pos++] = 'D'; b[pos++] = 'U';
+            for (t = 0; t < NTRK; t++)
+                for (i = 0; i < NSTEP; i++)
+                    b[pos++] = q->t[t].step[i].dur > 15u ? 0u : q->t[t].step[i].dur;
         }
     }
     memcpy(b + PROJC_PFX_OFF, q->pfx_lane, sizeof q->pfx_lane);
@@ -1159,6 +1176,18 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
                 q->t[t].mx[i][1] = (int16_t)(d < MD_N ? d : 0u);
                 q->t[t].mx[i][2] = (int16_t)clamp((int32_t)a - 64, -64, 63);
                 pos += 3u;
+            }
+    }
+    for (t = 0; t < NTRK; t++)                          /* (FASE 3) no length unless the block says so: a project
+                                                         * written before the field plays exactly as it did */
+        for (i = 0; i < NSTEP; i++)
+            q->t[t].step[i].dur = 0;
+    if (pos + 2u + (uint32_t)NTRK * NSTEP <= room && b[pos] == 'D' && b[pos + 1u] == 'U') {
+        pos += 2u;
+        for (t = 0; t < NTRK; t++)
+            for (i = 0; i < NSTEP; i++) {
+                uint32_t d = b[pos++];
+                q->t[t].step[i].dur = (uint8_t)(d > 15u ? 0u : d);
             }
     }
     proj_new_tracks(q, nt);                             /* (a FUNC of fewer tracks: the rest at power-on) */
