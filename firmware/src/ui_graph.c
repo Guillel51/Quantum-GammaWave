@@ -751,7 +751,7 @@ static __attribute__((noinline)) void graph_dximg(const track_t *t)
         cv_rect(p < 0 ? x : cx, y + 6, p < 0 ? cx - x : x - cx, 1, c);
         cv_shadow(x - 13, y, 26, 12, 2, c);
         cv_rrect(x - 13, y, 26, 12, 2, c, T_SURF);
-        cv_text_in(x - 13, y + CAP_IN(S, 12), 26, &AF_S, AB[l], T_INK, c);
+        cv_text_in(x - 13, y + CAP_IN(S, 13), 26, &AF_S, AB[l], T_INK, c);   /* (FASE 2/3) inside its cell, not 1 px above */
     }
 }
 
@@ -2369,12 +2369,16 @@ static void fm_route(int32_t x0, int32_t y0, int32_t x1, int32_t jy, int32_t y1,
     cv_rect(x0 < x1 ? x0 : x1, jy, (x0 < x1 ? x1 - x0 : x0 - x1) + 1, 1, c);
     cv_rect(x1, jy, 1, y1 - jy, c);
 }
-/* a feedback loop on the operator box at (x, y): out of its right side, up, back in on top with an arrow */
-static void fm_loop(int32_t x, int32_t y, uint16_t c)
+/* a feedback loop on the operator box at (x, y): out of its side, up, back in on top with an arrow. The tap and the
+ * riser sit in the box's free column -- past the 2 px shadow it projects, which ends at x + 12 -- so the loop leaves
+ * a clean edge instead of being drawn over the box's own pixels. `side`: +1 the right (default), -1 the left, for an
+ * operator with a box in this row to its right (24 px pitch: the gap on the left is the one left free). */
+static void fm_loop(int32_t x, int32_t y, uint16_t c, int32_t side)
 {
-    cv_rect(x + 11, y + 5, 5, 1, c);
-    cv_rect(x + 15, y - 4, 1, 9, c);
-    cv_rect(x, y - 4, 15, 1, c);
+    int32_t e = x + side * 13;
+    cv_rect(e, y + 5, 1, 1, c);
+    cv_rect(e, y - 4, 1, 9, c);
+    cv_rect(side > 0 ? x : e, y - 4, 14, 1, c);
     cv_rect(x, y - 4, 1, 4, c);
     cv_line(x - 2, y - 3, x - 1, y - 2, c); cv_line(x + 2, y - 3, x + 1, y - 2, c);
 }
@@ -2483,20 +2487,41 @@ static __attribute__((noinline)) void graph_fm6(const track_t *t, uint16_t c, ui
         for (j = 0; j < 6u; j++)
             if (m[k] >> j & 1u) {
                 FM6_CHART_HOOK(FMH_ROUTE, j, k);
-                fm_route(x[j], y[j] + FM_BH, x[k], y[k] - 3, y[k], rc);
+                /* (FASE 2/3) the band between two rows is four rows, and the lint keeps a pixel between a part and a
+                 * box it does not serve. The jog goes at y - 3 (leaving the 2 px shadow of the row above its own
+                 * row); the dot where the wires branch or meet, 3 x 3, goes one row lower so its top row clears
+                 * that shadow -- its bottom row lands on its own box's ring, which is the box it is for. */
+                fm_route(x[j], y[j] + FM_BH + 2, x[k], y[k] - 3, y[k], rc);
                 if (fan[j] > 1u) fm_dot(x[j], y[k] - 3, rc);          /* one operator modulating several */
-                if (m[k] & (m[k] - 1u)) fm_dot(x[k], y[k] - 3, rc);   /* several modulating one */
+                if (m[k] & (m[k] - 1u)) fm_dot(x[k], y[k] - 2, rc);   /* several modulating one */
             }
         if (car >> k & 1u) {
             FM6_CHART_HOOK(FMH_CAR, k, 0);
-            cv_rect(x[k], y[k] + FM_BH, 1, bus - y[k] - FM_BH, T_MID);
+            cv_rect(x[k], y[k] + FM_BH + 2, 1, bus - y[k] - FM_BH - 2, T_MID);
             if (x[k] != cl) fm_dot(x[k], bus, T_MID);
         }
     }
     FM6_CHART_HOOK(FMH_BUS, 0, 0);
     fm_bus(cl, cr, bus);
     FM6_CHART_HOOK(FMH_FB, fbop, 0);
-    fm_loop(x[fbop], y[fbop], hot == P_E1 ? T_ACCENT : fb ? T_MID : T_DIM);
+    {   /* (FASE 2/3) the loop's side: the right unless a box -- its 2 px shadow included, and a pixel of room, as
+         * the lint keeps -- is in the way of the rectangle it needs (x +- 13, four rows above the box and six
+         * below its top), then the left. The pitch leaves only the gap on one side free */
+        int32_t sd, use = 1, ok;
+        for (sd = 1; sd >= -1; sd -= 2) {
+            int32_t lx0 = x[fbop] + (sd > 0 ? 0 : sd * 13), lx1 = x[fbop] + (sd > 0 ? sd * 13 : 0);
+            uint32_t m2;
+            if (lx0 > x[fbop] - 2) lx0 = x[fbop] - 2;                       /* the arrow heads, either side */
+            if (lx1 < x[fbop] + 2) lx1 = x[fbop] + 2;
+            ok = 1;
+            for (m2 = 0; m2 < 6u && ok; m2++)
+                if (m2 != fbop && lx0 - 1 <= x[m2] + 12 && x[m2] - 10 <= lx1 + 1 &&
+                    y[fbop] - 5 <= y[m2] + 18 && y[m2] <= y[fbop] + 6)
+                    ok = 0;
+            if (ok) { use = sd; break; }
+        }
+        fm_loop(x[fbop], y[fbop], hot == P_E1 ? T_ACCENT : fb ? T_MID : T_DIM, use);
+    }
     for (k = 0; k < 6u; k++) {
         uint32_t on = pt[(5u - k) * FP_OP + FP_OL] != 0, fill_c = (car >> k & 1u) && on;
         uint16_t f = hotset >> k & 1u ? T_ACCENT : c, fill = k == sel ? T_ACCENT : fill_c ? f : T_RAISE;
@@ -2619,17 +2644,19 @@ static __attribute__((noinline)) void graph_fm(const track_t *t, uint16_t c)
         uint32_t m = (mods >> (4u * k)) & 15u;
         for (j = 0; j < 4u; j++) if (m >> j & 1u) {
             uint32_t fan = mods & (0x1111u << j);
-            fm_route(x[j], y[j] + FM_BH, x[k], y[k] - 3, y[k], ec);
+            /* (v2.3.16) the same geometry as FM6's chart: the wire leaves below the box's 2 px shadow, the jog
+             * runs in the free row and the dot where they meet sits one row under it */
+            fm_route(x[j], y[j] + FM_BH + 2, x[k], y[k] - 3, y[k], ec);
             if (fan & (fan - 1u)) fm_dot(x[j], y[k] - 3, ec);   /* one operator modulating several */
         }
-        if (m & (m - 1u)) fm_dot(x[k], y[k] - 3, ec);           /* several modulating one */
+        if (m & (m - 1u)) fm_dot(x[k], y[k] - 2, ec);           /* several modulating one */
         if (car >> k & 1u) {
-            cv_rect(x[k], y[k] + FM_BH, 1, bus - y[k] - FM_BH, T_MID);
+            cv_rect(x[k], y[k] + FM_BH + 2, 1, bus - y[k] - FM_BH - 2, T_MID);
             if (x[k] != cl) fm_dot(x[k], bus, T_MID);
         }
     }
     fm_bus(cl, cr, bus);                             /* the output bus and its arrow */
-    fm_loop(x[3], y[3], hot == P_E6 ? T_ACCENT : t->p[P_E6] ? T_MID : T_DIM);   /* op 4's feedback */
+    fm_loop(x[3], y[3], hot == P_E6 ? T_ACCENT : t->p[P_E6] ? T_MID : T_DIM, 1);   /* op 4's feedback, the right side */
     for (k = 0; k < 4u; k++) {
         char b[2] = {(char)('1' + k), 0};
         uint32_t on = t->p[P_FM1_LEVEL + k * 5u] != 0, fill_c = (car >> k & 1u) && on;

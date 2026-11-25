@@ -4226,3 +4226,25 @@ donde se dice `[TARGET]`, y el `[TARGET]` es el build de AC791N, no una medició
 | Instalador, hashes, coherencia | **PASS** | `make_release --check` y `coherence_check` en verde para el paquete publicado (sha256 `16926f85…`) | host + URLs públicas |
 | WASM y emulador | **PASS** | `web/emu/build.sh` con el mismo commit `79b1b09` | WASM |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
+
+---
+
+## 33. Renovación visual: las dos zonas, y el lint de UI en cero (v2.3.16, 2026-11-25)
+
+Detalle y valores: `docs/FASE_2_3_RENOVACION_VISUAL.md`. **Sin unidad FM-1**: todo es `[HOST]` salvo el build de
+AC791N (`[TARGET]`), que no es una medición sobre la unidad.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Zonas oscuras un paso más hondas, sin perder detalle | **CLOSED** | `palette_set()`: fondo −16 %, superficie −5 % en las paletas oscuras; el escalón fondo → placa crece; 22 paletas × 203 pantallas lo heredan de los tokens | host |
+| Luminosos con más saturación, sin exagerar | **CLOSED** | tema y acento 18 % más lejos de su propia luma (mismo tono, ningún color nuevo); rampas y degradados construidos sobre ellos | host |
+| GREY, MONO y las paletas claras intactas | **CLOSED** | GREY: 0 píxeles fuera de la línea de grises (pantalla entera, `ui_test.c`); MONO negro y blanco puros; PAPER conserva su papel | host |
+| Sin rediseño: componentes, animaciones, degradados y profundidad | **CLOSED** | el diff toca `palette_set()` y dos dibujos (charts de FM6, etiquetas de DX IMAGE); ninguna pantalla reescrita, ningún parámetro ni animación cambiada | host |
+| Lint de UI en cero | **CLOSED** | `ui_render` sale **0**: 4 267 → 0 hallazgos (483 «through a box», 21 «touches a box», 112 «spills out of its cell»); sólo quedan las 4 líneas del auto-test | host |
+| Rutas de FM6 sin pasar por una caja ni por su sombra | **CLOSED** | arranque 2 px bajo la sombra, codo en la única fila libre, punto de fusión en `y − 2`, realimentación por el lado libre elegido por geometría; 260 charts lintados | host |
+| Etiquetas de DX IMAGE dentro de su celda | **CLOSED** | `CAP_IN(S, 13)` en `graph_dximg`; 112 hallazgos a 0 | host |
+| Alineación, tintas propias, gris/neutro | **PASS** | 0 desvíos de 1 px en 3 967 423 medidas; 0 tintas sobre su propio color; 0 píxeles fuera de gris/neutro | host |
+| Baseline de píxeles | **PASS** | 3 241 cuadros regenerados en `tests/ui_pixels.txt`; la puerta los compara byte a byte y pasa | host |
+| Presupuesto de imagen | **PASS** | 580 736 B de 583 612 (2 876 libres, suelo 2 048) | TARGET |
+| Presupuesto de RAM | **PASS** | `.data+.bss` 93 556 B de 98 304 (4 748 libres) | TARGET |
+| Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |

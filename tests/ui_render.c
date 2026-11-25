@@ -314,20 +314,27 @@ static void hk_icon(int32_t x, int32_t y, uint32_t size, uint32_t id)
 static uint64_t fmp_mask[CV_MAX];
 static uint16_t fmp_save[CV_MAX];
 static uint8_t fmp_kind[FMP_MAX], fmp_a[FMP_MAX], fmp_b[FMP_MAX];
+static int32_t fmp_bx0[FMP_MAX], fmp_by0[FMP_MAX], fmp_bx1[FMP_MAX], fmp_by1[FMP_MAX];   /* each part's extent */
 static uint32_t fmp_n, fmp_charts;
 static void finding(const char *what, const rbox_t *b, const rbox_t *o);
-static void fmp_find(uint32_t alg, const char *what, uint32_t i, int32_t x, int32_t y, uint32_t j)
+/* (v2.3.16) the second rect was the same pixel again: it says the rectangle of the box or the part whose ring the
+ * pixel is in, which is what a fix needs to know */
+static void fmp_find2(uint32_t alg, const char *what, uint32_t i, int32_t x, int32_t y, uint32_t j, int32_t ex, int32_t ey)
 {
     static const char *const KIND[] = {"box", "route", "carrier", "bus", "loop", "label"};
     rbox_t b = {(int16_t)x, (int16_t)y, (int16_t)x, (int16_t)y, 0, {0}}, o = b;
     snprintf(b.s, sizeof b.s, "ALG %u %s %u>%u", alg + 1u, KIND[fmp_kind[i]], fmp_a[i] + 1u, fmp_b[i] + 1u);
     snprintf(o.s, sizeof o.s, "%s %u>%u", j < FMP_MAX ? KIND[fmp_kind[j]] : "panel", j < FMP_MAX ? fmp_a[j] + 1u : 0u,
              j < FMP_MAX ? fmp_b[j] + 1u : 0u);
+    if (j < FMP_MAX) { o.x0 = (int16_t)fmp_bx0[j]; o.y0 = (int16_t)fmp_by0[j]; o.x1 = (int16_t)fmp_bx1[j]; o.y1 = (int16_t)fmp_by1[j]; }
+    else { o.x0 = (int16_t)ex; o.y0 = (int16_t)ey; o.x1 = (int16_t)ex; o.y1 = (int16_t)ey; }
     finding(what, &b, &o);
 }
+#define fmp_find(alg, what, i, x, y, j) fmp_find2(alg, what, i, x, y, j, x, y)
 static void fmp_check(uint32_t alg)
 {
-    int32_t bx0[FMP_MAX], by0[FMP_MAX], bx1[FMP_MAX], by1[FMP_MAX], x, y, dx, dy;
+    int32_t *const bx0 = fmp_bx0, *const by0 = fmp_by0, *const bx1 = fmp_bx1, *const by1 = fmp_by1;
+    int32_t x, y, dx, dy;
     uint32_t net[FMP_MAX], par[12], i, j, w = cv_w, h = cv_h;
     for (i = 0; i < 12u; i++) par[i] = i;               /* the routes' nets: an operator as source (0..5), as destination (6..11) */
     #define FMP_ROOT(v) ({ uint32_t r_ = (v); while (par[r_] != r_) r_ = par[r_]; r_; })

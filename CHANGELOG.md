@@ -1,3 +1,37 @@
+## v2.3.16 — Renovación visual: negros más hondos, luminosos más ricos, y el lint de UI en cero
+
+- **Las dos zonas, en los tokens.** El ajuste no se hizo pantalla por pantalla: se hizo una vez, en
+  `palette_set()` (`gfx.c`), que es de donde salen `T_BG`, `T_SURF`, `T_THEME`, `T_ACCENT` y todo lo derivado de
+  ellos (rampas, degradados, placas, tramas). Las 22 paletas y las 203 pantallas lo heredan sin que ninguna se
+  quede atrás. **Zonas oscuras**: en una paleta oscura el fondo baja un 16 % y la superficie un 5 %, así que el
+  negro y el azul profundo quedan definidos y el escalón entre fondo, placa y pieza **se agranda** en vez de
+  cerrarse. **Zonas claras**: el tema y el acento se alejan un 18 % de su propia luma, sin cambiar de tono: más
+  cian, más azul, más violeta, más turquesa, y los degradados construidos sobre ellos (el calor de los gráficos,
+  los medidores, los anillos) llegan más lejos. Nada se re-tiñe y ningún color entra: sólo se mueven los tres
+  números, y despacio.
+- **GREY, MONO y las claras quedan como estaban.** GREY conserva cada tinta sobre la línea de grises (R = B,
+  G = 2 R) porque la comprobación recorre la pantalla entera (`ui_test.c`); MONO se queda en negro y blanco
+  puros; PAPER y las demás claras no se oscurecen — conservan su papel.
+- **El lint de UI, en cero.** `ui_render` salía 1 con **4 267** hallazgos desde antes de la fase 1 de esta
+  entrega (483 «FM6 part through a box» en los charts de algoritmo, 113 «spills out of its cell» en DX IMAGE, y el
+  resto repartido entre los mismos dos dibujos). No eran cosméticos:
+  * **Charts de FM6.** La ruta de un operador arrancaba en el borde de su caja, o sea **dentro de la sombra de 2 px
+    que la caja proyecta**: el cable salía por debajo de la sombra, no por debajo de la caja. Ahora arranca dos
+    píxeles más abajo, el codo se dibuja en la única fila libre de la banda entre dos filas (la de arriba proyecta
+    su sombra, la de abajo empieza en su placa) y el punto de bifurcación/fusión va una fila más abajo que el codo,
+    donde su fila superior no toca esa sombra. La realimentación sale por el lado libre: el lado se **elige**
+    probando el rectángulo que necesita contra cada caja, así que un operador con vecino a la derecha la lleva a la
+    izquierda en vez de dibujarla encima.
+  * **DX IMAGE.** Las etiquetas de dos letras (BD SD CP CH OH TM RS CB) se dibujaban un píxel **por encima** de su
+    placa: se veían colgando del borde. Ahora entran en su celda.
+  * **El mensaje del lint.** Cuando un cable pasaba cerca de una caja, el informe imprimía dos veces el mismo
+    píxel; ahora imprime el rectángulo de la caja, que es lo que hace falta para arreglarlo.
+- **Resultado**: `ui_render` sale **0**; sólo quedan las cuatro líneas del auto-test (las que comprueban que el
+  lint *puede* fallar). 3 241 cuadros de UI regenerados en la baseline, 0 desvíos de 1 px en 3 967 423 medidas,
+  0 tintas sobre su propio color, 0 píxeles fuera de gris/neutro en GREY y MONO.
+- **Sin cambios de comportamiento**: ni un parámetro, ni un atajo, ni una animación tocada. Esta versión cambia
+  cómo se ve y arregla lo que estaba mal dibujado.
+
 ## v2.3.15 — LFO en nueve pantallas, DEST con profundidad, y el knob 2 de TUNE que ya no escribe el 3
 
 - **MOD MAP, fuera.** Era la página MOD leída de otra manera (solo los slots asignados, con un chip que contaba las

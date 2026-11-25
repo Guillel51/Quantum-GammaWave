@@ -195,32 +195,61 @@ static uint16_t ux_shade(uint16_t c, int32_t pct)
         nb = nr, ng = nr * 2;
     return (uint16_t)((nr << 11) | (ng << 5) | nb);
 }
+/* (FASE 2/3) THE TWO GLOBAL ADJUSTMENTS, at the tokens, so every screen of every palette feels them once.
+ * Dark zones: on a dark palette the background goes a step deeper than the surface, so the blacks and the
+ * deep blues are defined and the step between background, panels and the parts widens instead of closing.
+ * Bright zones: the theme and the accent move a little further from their own luma -- more cyan, more blue,
+ * more violet, more turquoise, and the gradients built on them carry further. No channel is re-hued and no
+ * colour is introduced; the percentages are small on purpose. A light palette keeps its paper (ux.light),
+ * and GREY keeps every ink on the grey line (the whole screen is checked for it, tests/ui_test.c). */
+#define UI_DEEP_BG_PCT 16      /* the background, that much darker */
+#define UI_DEEP_SURF_PCT 5     /* the surface, a third as much: the step to the background widens */
+#define UI_VIVID_PCT 18        /* the theme and the accent, that much further from their luma */
+static uint16_t ux_sat(uint16_t c, int32_t pct)
+{
+    int32_t r = (c >> 11) & 31, g = (c >> 5) & 63, b = c & 31;
+    int32_t y = (r * 2 + g * 5 + b) / 8, nr, ng, nb;
+    nr = r + (r - y) * pct / 100; ng = g + (g - y) * pct / 100; nb = b + (b - y) * pct / 100;
+    nr = nr < 0 ? 0 : nr > 31 ? 31 : nr;
+    ng = ng < 0 ? 0 : ng > 63 ? 63 : ng;
+    nb = nb < 0 ? 0 : nb > 31 ? 31 : nb;
+    return (uint16_t)((nr << 11) | (ng << 5) | nb);
+}
 static void palette_set(uint32_t i)
 {
     const ui_pal_t *p = &UI_PALETTES[i % NPALETTES];
+    uint16_t bg = p->bg, surf = p->surf, theme = p->theme, accent = p->accent;
     i %= NPALETTES;
     ux.mono = i == UI_GREY_INDEX;
     ux.bw = i == UI_BW_INDEX;
     ux.chamfer = i == UI_JIANT_INDEX || i == UI_GAMMA_INDEX || i == UI_WRAITH_INDEX || i == UI_QUANTUM_INDEX ||
                  i == UI_SOLARIS_INDEX || i == UI_CYBER_INDEX || i == UI_NORDIC_INDEX;
-    ux.bg = p->bg; ux.surf = ux.style ? p->bg : ux_shade(p->surf, 10); ux.text = p->text;
-    ux.theme = p->theme; ux.accent = p->accent;
-    ux.mid = ux_mix(p->bg, p->text, UI_MID_PCT);
-    ux.dim = ux_mix(p->bg, p->text, UI_DIM_PCT);
-    ux.line = ux_mix(p->bg, p->text, UI_LINE_PCT);
-    ux.sel = ux_mix(p->bg, p->theme, UI_SEL_PCT);
-    ux.tint = ux_mix(p->bg, p->theme, UI_TINT_PCT);
-    ux.ink = p->bg;
-    ux.raise = ux_mix(p->surf, p->text, UI_RAISE_PCT);
-    ux.key = ux_mix(p->bg, p->text, UI_KEY_PCT);
+    if (ux_luma(bg) <= 128u) {                     /* a dark palette: the darkest zones a step deeper */
+        bg = ux_shade(bg, UI_DEEP_BG_PCT);
+        surf = ux_shade(surf, UI_DEEP_SURF_PCT);
+    }
+    if (!ux.mono && !ux.bw) {                     /* GREY and MONO: set, never blended (tools/gen_ui_palettes.py) */
+        theme = ux_sat(theme, UI_VIVID_PCT);
+        accent = ux_sat(accent, UI_VIVID_PCT);
+    }
+    ux.bg = bg; ux.surf = ux.style ? bg : ux_shade(surf, 10); ux.text = p->text;
+    ux.theme = theme; ux.accent = accent;
+    ux.mid = ux_mix(bg, p->text, UI_MID_PCT);
+    ux.dim = ux_mix(bg, p->text, UI_DIM_PCT);
+    ux.line = ux_mix(bg, p->text, UI_LINE_PCT);
+    ux.sel = ux_mix(bg, p->theme, UI_SEL_PCT);
+    ux.tint = ux_mix(bg, p->theme, UI_TINT_PCT);
+    ux.ink = bg;
+    ux.raise = ux_mix(ux.surf, p->text, UI_RAISE_PCT);
+    ux.key = ux_mix(bg, p->text, UI_KEY_PCT);
     /* (3.0) the Punch-in FX keyboard: a light grey and a darker one, two clear steps apart on every
      * palette (66 % and 26 % from the background to the text), never the background itself, so the
      * accidentals read as keys and not as holes */
-    ux.key_w = ux_mix(p->bg, p->text, 66);
-    ux.key_b = ux_mix(p->bg, p->text, 26);
+    ux.key_w = ux_mix(bg, p->text, 66);
+    ux.key_b = ux_mix(bg, p->text, 26);
     ux.lane = ux_mix(ux.surf, p->theme, 10);
     ux.grid = ux_mix(ux.surf, p->text, 6);
-    ux.light = ux_luma(p->bg) > 128u;
+    ux.light = ux_luma(bg) > 128u;
     ux.rec = ux.mono ? p->accent : ux.light ? UI_REC_LIGHT : UI_REC_DARK;
     if (i == UI_BW_INDEX) {                      /* MONO: black and white, set, not blended (tools/gen_ui_palettes.py) */
         ux.mid = ux.sel = ux.key = ux.key_w = ux.rec = p->text;   /* a selection, a keycap, REC: white, its INK black */
