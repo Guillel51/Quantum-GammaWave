@@ -290,7 +290,10 @@ static int ota_ufw(uint8_t *hdr, uint32_t *fl_off, uint32_t *fl_len, uint32_t *o
 
 static int ota_stage(void)                       /* steps 1..6; 0 = host said success */
 {
-    static uint8_t hdr[0x400], b[512], mine[512];
+    /* (2.5.1) the update's staging areas: 2 KiB the main loop touches only while an update runs, out of
+       RAM's window and into LOWBUF (the pool keeps its 8 KiB of headroom, which is a gate) */
+    static uint8_t hdr[0x400] __attribute__((section(".lowbuf"))), b[512] __attribute__((section(".lowbuf"))),
+                   mine[512] __attribute__((section(".lowbuf")));
     uint32_t i, n, ota_off, ota_len, fl_off, fl_len, c, len, own, official;
     int rc;
     /* 1. UFW header + entry list */

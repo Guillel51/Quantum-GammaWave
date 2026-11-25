@@ -4007,7 +4007,9 @@ static __attribute__((noinline)) void draw_tracks(void)
  * - 6-track mini VU activity meter across top reticle.
  * - Orbital phase space trajectory x(t) vs x(t - tau).
  * - High-contrast, crystal-clear bottom telemetry & exit hint [HOME] EXIT. */
-static int16_t scope_snap[SCOPE_N];
+static int16_t scope_snap[SCOPE_N] __attribute__((section(".lowbuf")));   /* the scope's frozen trace: drawn in the
+                                                                         main loop, 1 KiB of .bss the audio side
+                                                                         never reads */
 
 /* (FASE EXTRA) HOW DARK THE SCOPE'S WELL IS. The wells used to be opaque plates of T_SURF, which is why the
  * visualizer's field, its dust, its band and its two worlds could not be seen behind the trace. They are a

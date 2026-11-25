@@ -14,7 +14,9 @@ typedef struct {
 } midi_channel_t;
 static midi_channel_t midi_ch[16];
 /* A nibble per note (JIANT: two to a byte, 1 KB): low bits track + 1, bit 3 key released, held by its channel's pedal */
-static uint8_t midi_sel_on[16][64];
+static uint8_t midi_sel_on[16][64] __attribute__((section(".lowbuf")));   /* (2.5.1) main loop only: it holds the
+                                                                            MIDI page's selection, and RAM keeps its
+                                                                            window for the render paths */
 static uint32_t mn_get(uint32_t ch, uint32_t note) { return (midi_sel_on[ch & 15u][(note & 127u) >> 1] >> ((note & 1u) * 4u)) & 15u; }
 static void mn_set(uint32_t ch, uint32_t note, uint32_t v)
 {

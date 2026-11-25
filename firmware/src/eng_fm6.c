@@ -43,7 +43,9 @@
 #define FM6_NBANK 32u            /* SLOT: B1..B32 after OWN, the voice bank (fm6_vbank.c) */
 #define FM6_PACKED 128u
 
-static uint8_t fm6_patch[NTRK][FP_SIZE + 1u];   /* the tracks' patches (main loop writes, then fm6_pgen) */
+static uint8_t fm6_patch[NTRK][FP_SIZE + 1u] __attribute__((section(".lowbuf")));   /* the tracks' patches (main loop
+                                                                                       writes, then fm6_pgen): an edit
+                                                                                       buffer, not a render one */
 static volatile uint8_t fm6_pgen[NTRK];          /* +1 after each write of fm6_patch[t] */
 static uint8_t fm6_slot[NTRK];                   /* the SLOT value last loaded (main loop); 0xFF = none */
 static uint8_t fm6_own[NTRK][FM6_PACKED];        /* the own patch while SLOT shows a factory one (fm6_poll) */
