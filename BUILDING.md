@@ -166,3 +166,15 @@ cd /tmp/felucca-site && python3 -m http.server 8000
 
 Installing firmware is at your own risk. If an install fails and the FM-1 no longer
 starts, recovery needs [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).
+
+## El banner y las tarjetas
+
+```bash
+python3 tools/make_banner.py        # assets/branding/quantum_banner.png, web/site/assets/{banner,og,banner-mobile}.png
+```
+
+El banner se dibuja con Pillow a partir de capturas reales de 240 × 240 (`assets/screenshots/`) y de las fuentes del
+proyecto (`assets/fonts/`): no hay fotos de un dispositivo ni pantallas inventadas, y los recuentos que muestra
+(12 voces, 6 pistas, 10 motores, 290 presets, 64 pasos, 22 paletas) son los que cuentan las pruebas. Necesita
+`pip install Pillow`, el mismo requisito que los generadores de tablas.
+

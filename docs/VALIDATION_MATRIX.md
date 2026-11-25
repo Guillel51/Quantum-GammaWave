@@ -4277,3 +4277,25 @@ los commits tocan pruebas y documentación, y el paquete sigue siendo el mismo d
 | Coste del bloque en el target | **CLOSED** | re-base revisado de `events_block`/`BLOCK_PATH` (caída de 27 % por anidamiento, no por trabajo; el paso ya estaba rojo en `79b1b09`) y de `fm6_render` (292 → 599: el presupuesto era de `daf5e39`, anterior a los dos pases condicionales de CHARACTER de `f5e0ad7`). Diez líneas más quedaron intactas porque estaban dentro del 10 % | TARGET |
 | Recursos | **PASS** | imagen 580 736 B de 583 612 (2 876 libres); `.data+.bss` 93 556 de 98 304 (4 748 libres) | TARGET |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
+
+---
+
+## 35. Fase 4/4: cierre, banner, sitio y la 2.5.0 (2026-11-25)
+
+Detalle: `docs/FASE_4_RENOVACION.md`. La versión sube a **v2.5.0** en el único sitio donde se define
+(`firmware/src/felucca.c`) y de ahí sale todo: paquete, manifiesto, `versions.json`, instalador, editor, emulador y
+sitio. Ningún camino de sonido se movió; los goldens de audio siguen siendo los mismos 311.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Números públicos = firmware | **PASS** | 290 presets (`preset_slots_test.py`), 22 paletas (`ui_palettes.h`), 10 motores (`NENG_SHOWN`), 311 goldens, 4 163 checks; README, banner, `fmhub.json` y ABOUT dicen eso y no lo viejo | host |
+| ABOUT deja de citar el linaje | **PASS** | «12-Voice Poly» y «10 Engines. 290 Presets.»; la puerta de píxeles se regenera para los 32 cuadros que llevan la versión y vuelve a 3 241 idénticos | host |
+| Banner y recursos sociales | **PASS** | `tools/make_banner.py` genera 2400×900, 1600×600, 1200×630 y 1080×1350 desde capturas de 240×240 del propio firmware; sin fotos ni pantallas inventadas | host |
+| Una sola tarjeta Open Graph | **PASS** | `web/site/index.html`: un `og:image` (`assets/og.png`, 1200×630, con tipo y medidas) y `twitter:image` con el mismo archivo | host |
+| Firmware Hub | **PASS** | `fmhub.json`: 290 presets, color `#3ADFFF`, mismas URL de emulador/editor | host |
+| Build y paquete de la 2.5.0 | **PASS** | imagen 580 728 B de 583 612 (2 884 libres), RAM 93 556 de 98 304; paquete 610 933 B, identidad FM-1_965 | TARGET |
+| Emulador y sitio de la misma versión | **PASS** | `web/emu/build.sh` reconstruido; `make_release --check` y `coherence_check` en verde; `versions.json` sirve 2.5.0 | host/WASM |
+| Suite host completa | **PASS** | `ALL HOST TESTS PASSED`, 4 163 comprobaciones, 0 fallos | host |
+| Issues y PRs de GitHub | **BLOCKED** | La API sin credencial responde `rate limit exceeded` para esta IP y `gh` no está autenticado: no se pueden leer ni comentar. El historial de commits sí se revisó | — |
+| GitHub Release de la 2.5.0 | **BLOCKED** | El tag `v2.5.0` ya existe en el remoto (`138586c`, línea anterior de numeración); `tag-and-publish.yml` no mueve tags y no se fuerza ninguno | — |
+| Escritura en la unidad FM-1 | **NOT PERFORMED** | Límite permanente del dueño | — |
