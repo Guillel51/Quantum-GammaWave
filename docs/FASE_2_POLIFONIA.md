@@ -55,16 +55,26 @@ voices_by_part t1=12/0,t2=3/1,...
 Coste: un `if` y un incremento en caminos que no son el render (6 × 2 B), nada en el lazo de audio. Saturación a
 65535: un contador que da la vuelta lee como un número pequeño, que es una mentira.
 
-### 4.2 FM6 devuelve la ranura de una cola que ya no existe (punto 6)
+### 4.2 FM6 devuelve la ranura de una nota soltada que ya no calcula nada (punto 6)
 
-`fm6_render` avanzaba el reloj de release **después** de calcular los portadores: una nota soltada cuyos portadores
-ya estaban por debajo del umbral se iba por el `return` de antes, `rel_t` no avanzaba, `fm6_note_done()` nunca decía
-que sí y la voz se quedaba `active` en stage 3 **indefinidamente** —una ranura del pool por nota—. Lo encontró la
-prueba nueva: cinco voces seguían ocupadas 8.7 s después de sus note-offs en una escena de seis pistas con el motor
-cambiando debajo. Ahora el reloj corre primero y **una nota soltada que no calcula nada se da por terminada**: su
-release es monótono, no puede volver. La cola audible no cambia (los 5 s y el fade de 60 ms siguen ahí), solo deja
-de retener ranuras que ya no usaba. Cuando esta prueba no mira, la unidad no cambia: los 311 renders de referencia
-salen idénticos.
+`fm6_render` avanzaba el reloj de release **después** de calcular los portadores. Una nota soltada cuyos
+portadores ya estaban por debajo del umbral se iba por el `return` de antes: `rel_t` no avanzaba,
+`fm6_note_done()` nunca decía que sí y la voz se quedaba `active` en stage 3 reteniendo una ranura del pool.
+Ahora el reloj corre primero y **una nota soltada que no calcula nada se da por terminada**: su release es
+monótono, no puede volver.
+
+**Qué encontró y qué no encontró la prueba.** El sondeo que siguió a la escena D mostró que las cinco voces
+que seguían ocupadas 8,7 s después de sus note-offs eran **colas legítimas de FM6 de ~9 s** — `FM6_REL_MAX` son
+5 s y el fade otros 60 ms, y el propio envelope del patch puede alargar la bajada hasta pasado ese punto — y que
+terminaban solas. Es decir: la escena D **no** demostró el bug; lo que midió fueron colas reales del motor. El
+arreglo vale igual, y este documento no debe venderlo como otra cosa: es una **red de seguridad**, no la
+reparación de un defecto que el sondeo haya probado en producción. Lo que sí hace es cerrar el caso que el
+código sí permite: una nota soltada cuyos portadores caen bajo el umbral antes del final del reloj, que antes
+habría dejado la ranura ocupada sin que ninguna cola la justificara.
+
+El caso está en `tests/poly_parts_test.c` (F): un patch FM6 con los portadores por debajo del umbral, nota
+on/off, y la voz vuelve al pool en decenas de bloques en vez de esperar 5 s o quedarse para siempre. La cola
+audible no cambia (los 5 s y el fade de 60 ms siguen ahí) y los 311 renders de referencia salen idénticos.
 
 ## 5. Los diez escenarios obligatorios y dónde se prueban [HOST]
 

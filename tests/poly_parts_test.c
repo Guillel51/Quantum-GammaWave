@@ -234,6 +234,42 @@ int main(void)
         check("D: every part kept its window", trk[0].vn >= 1u && trk[5].vn >= 1u);
     }
 
+
+    /* ---- F: a released note whose carriers are already under the threshold ---------------------------- */
+    {
+        /* What section 4.2 of docs/FASE_2_POLIFONIA.md claims and this case pins: the safety net behind the
+         * release clock. A released FM6 note that computes nothing cannot come back (every release is
+         * monotone), so it must hand its slot back instead of parking on it. Section D did NOT prove this --
+         * its five long voices were legitimate ~9 s tails -- so the case is written here explicitly: a patch
+         * with every operator's output level at the floor, note on, note off, and the slot counted back. */
+        uint8_t v[FP_SIZE + 1u];
+        uint32_t k;
+        fresh();
+        host_preset(&trk[0], 12u, 0);                   /* ENGI_FM6 */
+        for (k = 0; k <= FP_SIZE; k++)
+            v[k] = fm6_patch[0][k];
+        for (k = 0; k < 6u; k++)
+            v[k * FP_OP + FP_OL] = 0;                   /* every carrier at the floor: nothing to compute */
+        fm6_set_patch(0u, v);
+        trk_note_on(&trk[0], 60u, 100u);
+        blocks(2u);
+        s = gated_all();
+        trk_note_off(&trk[0], 60u);
+        blocks(64u);
+        printf("parts: F silent carriers  gated %u busy %u after note-off\n", s, voices_busy());
+        check("F: the note took a slot while it was held", s == 1u);
+        check("F: a released note that computes nothing gives the slot back", voices_busy() == 0u);
+        /* and the net does not cut a tail that IS there: an ordinary FM6 patch still rings after the key is up */
+        fresh();
+        host_preset(&trk[0], 12u, 0);
+        trk_note_on(&trk[0], 60u, 100u);
+        blocks(2u);
+        trk_note_off(&trk[0], 60u);
+        blocks(64u);
+        printf("parts: F ordinary patch  busy %u 64 blocks after note-off\n", voices_busy());
+        check("F: a patch that still computes keeps its tail", voices_busy() >= 1u);
+    }
+
     /* ---- E: the counters saturate ------------------------------------------------------------------- */
     {
         uint16_t c = 0;
