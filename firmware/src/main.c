@@ -4,11 +4,11 @@
  * guards; then LCD, input (TIMER5 IRQ, 10 kHz), audio (ALNK0 IRQ). */
 extern uint32_t _data_start[], _data_end[], _data_load[], _bss_start[], _bss_end[];
 extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];
+extern uint32_t _low_start[], _low_end[];                /* (0.6.78) main-loop buffers below the RAM code (app.ld) */
+extern uint32_t _rd_start[], _rd_end[];                  /* (2.5.0) cold main-loop data in the RAMTEXT tail (app.ld) */
 #if FELUCCA_DUAL_CORE
 extern uint32_t _c1t_start[], _c1t_end[], _c1t_load[];   /* (0.6.71) the second core's loop (app.ld .c1_text) */
 extern uint32_t _hot_start[], _hot_end[], _hot_load[];   /* (0.6.78) core 0's hottest audio code (app.ld .hot_text) */
-extern uint32_t _low_start[], _low_end[];                /* (0.6.78) main-loop buffers below the RAM code (app.ld) */
-extern uint32_t _rd_start[], _rd_end[];                  /* (2.5.0) cold main-loop data in the RAMTEXT tail (app.ld) */
 #endif
 
 
