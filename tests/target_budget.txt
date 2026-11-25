@@ -43,7 +43,15 @@ analog_dirty 84
 lofi_byte_render 87
 drum_render 10
 noise_render 218
-fm6_render 292
+# (v2.3.17) fm6_render 292 -> 599, and the budget was older than the code it weighs: 292 was measured in
+# daf5e39, before f5e0ad7 ("Fase 2: banco CHARACTER por motor") added the TONE and FOLD passes to the same
+# function. Those are two extra one-pass loops over the block, and each runs only when its CHARACTER
+# amount is not neutral, so a patch that does not use CHARACTER pays nothing at run time -- a static count
+# of 599, of which ~300 is code that the block never reaches on such a patch. Kept as measured, with the
+# runtime numbers beside it: tests/regress reports 0 CPU budget failures over 311 golden renders and the
+# FM6 scenes at 41-68 ns per block on the host, and audio_stress holds six engines with every bus fed at
+# p99 237 us of the 725 us the device has. Do not raise this again without a measurement of the same class.
+fm6_render 599
 fm6_op_run 42
 fm6_op_fb 17
 dx_run 426

@@ -4254,3 +4254,26 @@ AC791N (`[TARGET]`), que no es una medición sobre la unidad.
 | Suite completa | **PASS salvo lo siguiente** | 4 163 `ok`; `regress` 311 renders golden, 0 cambiados, 0 fallos de health/voces/CPU; `live` 61/61 s de audio; UI renders y UI renders FM4 en verde | host |
 | Coste del bloque en el target | **REPORTED, pre-existente** | `target_budget.py`: `events_block` 33 321 contra 45 589 y `BLOCK_PATH` 33 437 contra 45 704 (−27 %). **Ya estaba rojo antes de esta fase**: el log de la suite de v2.3.15 (`79b1b09`) da 33 581 / 33 696 con el mismo aviso. Sus propias instrucciones no crecieron (1 783 → 1 797); lo que cambió es en qué bucle las cuenta el compilador, así que el total baja por ponderación de anidamiento, no por menos trabajo. **No se rebasó**: aceptar ese número sería declarar una mejora que no existe | TARGET |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
+
+---
+
+## 34. Ronda de estabilidad: estrés, audio, seguridad y el último paso rojo (v2.3.16, fase 3/3, 2026-11-25)
+
+Detalle: `docs/FASE_3_ESTABILIDAD.md`. **Sin unidad FM-1**: todo es `[HOST]` (los runners nativos, el banco de
+renders y el emulador) salvo donde diga `[TARGET]` (el build de AC791N). El firmware **no cambió** en esta fase:
+los commits tocan pruebas y documentación, y el paquete sigue siendo el mismo de la fase 2.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Estrés con sanitizadores | **PASS** | `tests/stress_run.sh 5`: `project_test`, `persistence_test`, `robust_test`, `midi_control_test` × 5 corridas cada uno bajo ASan/UBSan, más 2 pasadas completas de los goldens: 0 fallos, 0 fugas, 0 UB | host |
+| Sesión prolongada | **PASS** | `tests/audio_stress 720` en **una** corrida: 826 875 bloques = **600 s de audio** con seis motores, seis pistas, todas las buses alimentadas, MIDI y cambios de preset bajo las notas: peak 0.300/0.300 (0 tramas sobre escala completa), DC −0.0000/−0.0000, salto máximo 0.172 con **0 pasos > 0.5**, 0 muestras no finitas | host |
+| CPU del bloque bajo carga | **PASS** | `audio_stress`: p50 0.7 µs, **p99 236.8 / 247.7 µs** de los 725 µs del dispositivo (33–34 %), máx 602 µs en la corrida de 43 s; en las de 600 s aparecen picos aislados de 3.3–11.9 ms que son preferencia del host (una corrida de 13 s con el runner compartido), no DSP | host |
+| Polifonía y multitrack | **PASS** | suite: 24 notas en 12 voces sin exceder el pool, sin vocear de menos, seis partes + FX dentro del bloque; `six_live` 61/61 s de audio idénticos a su golden | host |
+| Cambios de preset bajo las notas | **PASS** | `audio_stress` los ejecuta mientras suena; `morph_six` mide cada transición (latencia, slew, click) con los dos renders idénticos antes del giro | host |
+| Navegación intensiva y refrescos | **PASS** | `ui_render` recorre 203 pantallas × 22 paletas con todas las páginas, motores y valores de columna; `--idle` y `--bands` prueban que una trama sin cambios no reenvía píxeles y que un paso escribe sólo las filas que cambian | host |
+| Auditar el audio (pops, clicks, DC, NaN, canales) | **PASS** | `audio_stress` (peak/DC/salto/no finitos), `click_test`, `perform_test`, `slicer_test`, `morph_six`, `microstart`, `lofi_tclk`: ninguno reporta click; `six_live` compara 61 s de audio con su golden | host |
+| Regresiones visuales de las fases 1 y 2 | **PASS** | `ui_render` sale **0** (0 hallazgos, 0 tintas sobre su color, 0 píxeles fuera de gris/neutro) y la puerta de píxeles da **3 241 cuadros idénticos**: esta fase no movió un píxel | host |
+| Instalador y compatibilidad | **PASS** | `install_test.py` (marcador del loader, allowlist de JEDEC, restore oficial omitido por falta del `.fwsc` v15 en el repo), `test_web.mjs`, `test_backup.mjs`, `test_pkg_bounds.mjs`, `release_gate_test`, `make_release --check` y `coherence_check` en verde; SHA256SUMS verifica | host |
+| Coste del bloque en el target | **CLOSED** | re-base revisado de `events_block`/`BLOCK_PATH` (caída de 27 % por anidamiento, no por trabajo; el paso ya estaba rojo en `79b1b09`) y de `fm6_render` (292 → 599: el presupuesto era de `daf5e39`, anterior a los dos pases condicionales de CHARACTER de `f5e0ad7`). Diez líneas más quedaron intactas porque estaban dentro del 10 % | TARGET |
+| Recursos | **PASS** | imagen 580 736 B de 583 612 (2 876 libres); `.data+.bss` 93 556 de 98 304 (4 748 libres) | TARGET |
+| Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |

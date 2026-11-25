@@ -1,3 +1,25 @@
+## v2.3.16 — Fase 3/3: la ronda de estabilidad, y el último paso rojo en verde
+
+El firmware no cambia: esta ronda mide y documenta, y lo que corrige son dos presupuestos de pruebas que estaban
+mintiendo.
+
+- **Estrés con sanitizadores**: `tests/stress_run.sh 5` — proyecto, persistencia, robustez y MIDI, cinco corridas
+de cada uno bajo ASan/UBSan, más dos pasadas completas de los goldens: 0 fallos, 0 fugas, 0 UB.
+- **Sesión larga**: `audio_stress` ya no se corta a los 43 s; una sola corrida cubre **600 s de audio** con seis
+motores, seis pistas, todas las buses, MIDI y cambios de preset bajo las notas: peak 0.300/0.300 sin una trama
+sobre escala completa, DC 0, ningún salto de muestra sobre 0.5, ninguna muestra no finita y un **p99 de 237 µs**
+de los 725 µs que tiene el dispositivo por bloque.
+- **El paso rojo que quedaba**, `tests/target_budget.py`, tenía dos causas y las dos eran del presupuesto, no del
+código: `events_block` caía 27 % por el anidamiento con el que el compilador cuenta las instrucciones (1 783 →
+1 797 instrucciones, el mismo trabajo), y `fm6_render` estaba presupuestado en `daf5e39`, antes de que `f5e0ad7`
+le añadiera los dos pases condicionales de CHARACTER. Re-base revisado, con el porqué escrito en el archivo; las
+otras diez líneas no se tocaron porque estaban dentro de su tolerancia. El paso sale 0.
+- **Visual y audio sin regresiones**: `ui_render` sale 0 y la puerta de píxeles da los **3 241 cuadros idénticos**
+a la baseline de la fase 2; `six_live` 61/61 s de audio, `click_test`, `slicer_test`, `morph_six` y `perform_test`
+sin un click.
+- **Instalador y paquete**: `install_test.py`, las pruebas web y de backup, `release_gate_test`,
+`make_release --check` y `coherence_check` en verde; paquete 610 933 B, sha256 `25a55a92…`.
+
 ## v2.3.16 — Renovación visual: negros más hondos, luminosos más ricos, y el lint de UI en cero
 
 - **Las dos zonas, en los tokens.** El ajuste no se hizo pantalla por pantalla: se hizo una vez, en
