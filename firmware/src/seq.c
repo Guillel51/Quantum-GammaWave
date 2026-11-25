@@ -547,6 +547,17 @@ static void arp_remove(track_t *t, uint32_t note)
 }
 
 static void rec_note(track_t *t, uint32_t note, uint32_t vel);
+/* (FASE 3 de esta ronda) WHERE AND WHEN A RECORDED NOTE STARTED, so its release can turn into a real length.
+ * One entry per note still down (four, as a step's chord), the step it went into, its place in the step in samples
+ * (negative when the note was played before the grid) and the step's own length then. Nothing here is sample-rate
+ * or tempo dependent: the length is turned into sixteenths of the step the moment the release arrives, so a tempo
+ * change afterwards cannot move a note that was already played. */
+static struct {
+    uint8_t n;
+    uint8_t note[4], idx[4];
+    int32_t off[4];
+    uint32_t slen[4];
+} rd[NPART];
 static void rec_release(track_t *t, uint32_t note);
 static int rec_on(const track_t *t) { return ((song.rec >> trk_index(t)) & 1u) && song.playing && !chain.running; }
 static int pfx_rec_ok(void) { return song.rec && song.playing && !chain.running; }   /* (pfx.c: the punch-in lane) */
@@ -826,6 +837,7 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
             s->n = s->hit = s->acc = 0;
             s->flags = 0;
             s->vel = 0;
+            s->dur = 0;                             /* (FASE 3) a fresh step has no recorded length yet */
             ST_MICRO_SET(s, mic);                       /* (0.6.88) its place off the grid (REC Q) */
         }
         s->time = ST_NOTE;
@@ -860,6 +872,8 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
         s->n = 0;                                   /* a fresh step */
         s->flags = 0;
         s->vel = 0;
+        s->dur = 0;                                 /* (FASE 3) nor a recorded length */
+
         ST_MICRO_SET(s, mic);                       /* (0.6.88) its place off the grid (REC Q) */
     }
     for (k = 0; k < s->n && s->note[k] != note; k++)
@@ -891,6 +905,19 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
         ;
     if (k == t->rh_n && t->rh_n < 4u)
         t->rh_note[t->rh_n++] = (uint8_t)note;      /* a chord: held until its last key is up */
+    {   /* (FASE 3) its start, for the length its release will write */
+        uint32_t q = trk_index(t), e;
+        for (e = 0; e < rd[q].n && rd[q].note[e] != note; e++)
+            ;
+        if (e == rd[q].n && e < 4u)
+            rd[q].n++;
+        if (e > 3u)
+            e = 3u;
+        rd[q].note[e] = (uint8_t)note;
+        rd[q].idx[e] = (uint8_t)idx;
+        rd[q].off[e] = gp;
+        rd[q].slen[e] = sl;
+    }
 }
 
 /* the sequencer enters step idx (before playing it): a recorded note still held ties into it */
@@ -931,6 +958,32 @@ static void rec_release(track_t *t, uint32_t note)
     if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last &&
         t->seq_pos < step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), t->seq_idx) / 2u)
         t->step[t->rh_last] = t->rh_bak;            /* released early in it: not held into this step */
+    {   /* (FASE 3 de esta ronda) THE LENGTH IT WAS HELD. A note that ends in the very step it started in gets its
+         * real duration, in sixteenths of that step, where the step model could only offer "the whole step" (the
+         * track's GATE) or a TIE into the next one: a staccato key, an off-beat stab and a legato note now differ
+         * where they used to be the same step. Notes that cross a step keep the TIE model: a length longer than a
+         * step needs the playback to interrupt the step that follows, which this phase does not change. */
+        uint32_t q = trk_index(t), e, len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
+        int32_t gp = (int32_t)t->seq_pos - (int32_t)t->ext;
+        for (e = 0; e < rd[q].n && rd[q].note[e] != note; e++)
+            ;
+        if (e < rd[q].n) {
+            if (rd[q].idx[e] == (uint8_t)(t->seq_idx % len) && rd[q].slen[e] && gp > rd[q].off[e]) {
+                int32_t d = gp - rd[q].off[e];          /* 32 bits: a step is at most a few hundred thousand */
+                int32_t u = (d * 16 + (int32_t)rd[q].slen[e] / 2) / (int32_t)rd[q].slen[e];   /* rounded (the
+                                                         * pi32v2 build has no __divdi3: no 64-bit division) */
+                step_t *st = &t->step[seq_src(t, rd[q].idx[e])];
+                /* (a chord: the step sounds as long as its LONGEST key; the short one is the price of one gate
+                 * a step, and taking the last release would make the other keys' length meaningless) */
+                if (u >= 1 && st->time == ST_NOTE && (uint32_t)u > ST_DUR(st))
+                    st->dur = (uint8_t)(u > 15 ? 15 : u);   /* 15: just short of the step; a full one is the GATE */
+            }
+            rd[q].note[e] = rd[q].note[--rd[q].n];          /* the entry is done, held or not */
+            rd[q].idx[e] = rd[q].idx[rd[q].n];
+            rd[q].off[e] = rd[q].off[rd[q].n];
+            rd[q].slen[e] = rd[q].slen[rd[q].n];
+        }
+    }
 }
 
 /* a note into armed track t in the count-in's last eighth: kept for step 1 (cin_flush); once each, 4 per track */
@@ -1721,6 +1774,10 @@ static __attribute__((noinline)) void seq_step(track_t *t, const step_t *s, uint
     }
     if (CT_LEN(s))                                  /* (0.6.82) LEN: the step's own gate, n/16 */
         gate = period * CT_LEN(s) / 16u;
+    if (ST_DUR(s) && hits <= 1u)                     /* (FASE 3) THE LENGTH THE PLAYER HELD: recorded off the keys,
+                                                     * in sixteenths of the step. A RATCH's parts keep their own
+                                                     * gate (each hit is a fixed slice of the step) */
+        gate = step_samples(t, period, t->seq_idx) * ST_DUR(s) / 16u;
     if (hits > 1u) {                                /* RATCH: the gate of a part, no slide or tie out */
         gate = step_samples(t, period, t->seq_idx) / div * (CT_LEN(s) ? CT_LEN(s) * 8u : (uint32_t)t->p[P_SGATE]) / 128u;
         if (!(skip & SEQ_REP))
