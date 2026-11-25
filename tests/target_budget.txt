@@ -20,8 +20,15 @@
 # 293/293 unchanged and tests/regress (the primary per-block CPU check) has 0 entries over budget, so
 # these are static counts of the target code and no device was measured. Do not raise them again without
 # a measurement of the same class.
+# (v2.3.17) events_block 45589 -> 33321 and BLOCK_PATH 45704 -> 33437, re-based after a review of the
+# drop, not of a growth: the function's own instruction count barely moved (1783 -> 1797) while its
+# weighted total fell 27 %, so what changed is which instructions the compiler leaves inside a loop and
+# how deeply nested they sit (an inline decision, not less work). The step had been red since before
+# v2.3.16: the suite log of 79b1b09 already measured 33581 / 33696 against the same budget. The runtime
+# gate that does measure work -- tests/regress, 311 golden renders and the per-block CPU budget -- is
+# green, and the twelve other lines in this table are untouched because they were inside their 10 %.
 mix_block 115
-events_block 45589
+events_block 33321
 analog_render 138
 phase_render 94
 phase_render_noise 113
@@ -62,4 +69,4 @@ perf_master 32
 rev_room 243
 rev_spring 126
 DRUM_PATH 1153
-BLOCK_PATH 45704
+BLOCK_PATH 33437

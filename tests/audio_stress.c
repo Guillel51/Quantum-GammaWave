@@ -57,7 +57,12 @@ static const uint8_t SCALE[16] = {48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67
 int main(int argc, char **argv)
 {
     uint32_t seconds = argc > 1 ? (uint32_t)atoi(argv[1]) : 20u, p, k, b, nblk, seed = 0x1234u;
-    double t_cpu[60000], peak_l = 0, peak_r = 0, dc_l = 0, dc_r = 0, jump = 0, sum_l = 0, sum_r = 0;
+    /* (v2.3.17) the cap was 60 000 blocks -- 43 s of audio -- which is a pass, not a session. One million
+     * blocks is twelve minutes of material in ONE run, so a drift that only shows up late (a counter that
+     * wraps, a filter that walks, a level that creeps) has somewhere to show up. The array is static: 8 MB of
+     * .bss in a host binary, never in the firmware. */
+    static double t_cpu[1000000];
+    double peak_l = 0, peak_r = 0, dc_l = 0, dc_r = 0, jump = 0, sum_l = 0, sum_r = 0;
     uint32_t jumps_hot = 0, clipped = 0, nonfinite = 0, frames = 0, nclk = 0, over = 0;
     float last_l = 0.0f, last_r = 0.0f, prev_l = 0.0f, prev_r = 0.0f;
     int fails = 0;
@@ -65,7 +70,7 @@ int main(int argc, char **argv)
     if (seconds < 1u) seconds = 1u;
     if (seconds > 600u) seconds = 600u;
     nblk = seconds * 44100u / 32u;
-    if (nblk > 60000u) nblk = 60000u;                    /* the timing array's size; the run is capped */
+    if (nblk > 1000000u) nblk = 1000000u;                /* the timing array's size; the run is capped */
 
     web_seed(7);
     web_boot();
@@ -85,7 +90,7 @@ int main(int argc, char **argv)
         uint32_t i;
         web_render(32);
         t1 = cpu_s();
-        if (nclk < 60000u)
+        if (nclk < 1000000u)
             t_cpu[nclk++] = t1 - t0;
         for (i = 0; i < 32u; i++) {
             float l = web_out_l()[i], r = web_out_r()[i];
