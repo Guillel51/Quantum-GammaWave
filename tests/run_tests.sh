@@ -422,7 +422,7 @@ if [ -f build/gen/felucca_tables.h ]; then
 
     # (FASE 3 de esta ronda) a step remembers the length the key was really held for
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/seq_dur_test" tests/seq_dur_test.c -lm
-    run "SEQ DUR: playback ends the note where the recorded length says and dur 0 is the GATE, recording measures a quarter of the step as 4/16 and a chord keeps its longest key, a note across the step keeps the TIE model, and a project carries the lengths (or writes no block at all)" "$OUT/seq_dur_test"
+    run "SEQ DUR: playback ends the note where the recorded length says and dur 0 is the GATE, recording measures a quarter of the step as 4/16 and a chord keeps its longest key, a note that crosses steps keeps the tail it really held in the last TIE step (recorded and played back), and a project carries the lengths in the step itself (no byte when there is none)" "$OUT/seq_dur_test"
     # (v1.5.23, FASE 2) the situations the earlier poly tests do not reach: a twelve-note chord through a sound load
     # that changes engine (xp_note held four), twelve keys on a MONO / LEGATO part with PRIO LOW (mono_stack held
     # eight), a 24-note burst, twelve accumulated releases against a new chord, six parts competing, a preset change
