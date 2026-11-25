@@ -4203,6 +4203,8 @@ permanece `NO-GO`.
 | Presupuesto de RAM | **PASS** | `.data+.bss` 93 376 B de 98 304 (4 928 libres) | AC791N |
 | Instalador, hashes, coherencia | **PASS** | `make_release --check` y `coherence_check` en verde para el paquete publicado | host + URLs públicas |
 | WASM y emulador | **PASS** | `web/emu/build.sh` con el mismo commit; la suite ejecuta el emulador y compara 88 200 frames contra el build nativo, bit a bit | WASM |
+| Suite completa | **PASS salvo lo siguiente** | 4 163 `ok`; `regress` 311 renders golden, 0 cambiados, 0 fallos de health/voces/CPU; `live` 61/61 s de audio; UI renders y UI renders FM4 en verde | host |
+| Coste del bloque en el target | **REPORTED, pre-existente** | `target_budget.py`: `events_block` 33 321 contra 45 589 y `BLOCK_PATH` 33 437 contra 45 704 (−27 %). **Ya estaba rojo antes de esta fase**: el log de la suite de v2.3.15 (`79b1b09`) da 33 581 / 33 696 con el mismo aviso. Sus propias instrucciones no crecieron (1 783 → 1 797); lo que cambió es en qué bucle las cuenta el compilador, así que el total baja por ponderación de anidamiento, no por menos trabajo. **No se rebasó**: aceptar ese número sería declarar una mejora que no existe | TARGET |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
 
 ---
@@ -4225,6 +4227,8 @@ donde se dice `[TARGET]`, y el `[TARGET]` es el build de AC791N, no una medició
 | Presupuesto de RAM | **PASS** | `.data+.bss` 93 556 B de 98 304 (4 748 libres) | TARGET |
 | Instalador, hashes, coherencia | **PASS** | `make_release --check` y `coherence_check` en verde para el paquete publicado (sha256 `16926f85…`) | host + URLs públicas |
 | WASM y emulador | **PASS** | `web/emu/build.sh` con el mismo commit `79b1b09` | WASM |
+| Suite completa | **PASS salvo lo siguiente** | 4 163 `ok`; `regress` 311 renders golden, 0 cambiados, 0 fallos de health/voces/CPU; `live` 61/61 s de audio; UI renders y UI renders FM4 en verde | host |
+| Coste del bloque en el target | **REPORTED, pre-existente** | `target_budget.py`: `events_block` 33 321 contra 45 589 y `BLOCK_PATH` 33 437 contra 45 704 (−27 %). **Ya estaba rojo antes de esta fase**: el log de la suite de v2.3.15 (`79b1b09`) da 33 581 / 33 696 con el mismo aviso. Sus propias instrucciones no crecieron (1 783 → 1 797); lo que cambió es en qué bucle las cuenta el compilador, así que el total baja por ponderación de anidamiento, no por menos trabajo. **No se rebasó**: aceptar ese número sería declarar una mejora que no existe | TARGET |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
 
 ---
@@ -4247,4 +4251,6 @@ AC791N (`[TARGET]`), que no es una medición sobre la unidad.
 | Baseline de píxeles | **PASS** | 3 241 cuadros regenerados en `tests/ui_pixels.txt`; la puerta los compara byte a byte y pasa | host |
 | Presupuesto de imagen | **PASS** | 580 736 B de 583 612 (2 876 libres, suelo 2 048) | TARGET |
 | Presupuesto de RAM | **PASS** | `.data+.bss` 93 556 B de 98 304 (4 748 libres) | TARGET |
+| Suite completa | **PASS salvo lo siguiente** | 4 163 `ok`; `regress` 311 renders golden, 0 cambiados, 0 fallos de health/voces/CPU; `live` 61/61 s de audio; UI renders y UI renders FM4 en verde | host |
+| Coste del bloque en el target | **REPORTED, pre-existente** | `target_budget.py`: `events_block` 33 321 contra 45 589 y `BLOCK_PATH` 33 437 contra 45 704 (−27 %). **Ya estaba rojo antes de esta fase**: el log de la suite de v2.3.15 (`79b1b09`) da 33 581 / 33 696 con el mismo aviso. Sus propias instrucciones no crecieron (1 783 → 1 797); lo que cambió es en qué bucle las cuenta el compilador, así que el total baja por ponderación de anidamiento, no por menos trabajo. **No se rebasó**: aceptar ese número sería declarar una mejora que no existe | TARGET |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
