@@ -803,6 +803,9 @@ typedef struct track {
     /* modulation matrix (mod.c): MIDI performance controllers of the track's channel, 0..127 */
     uint8_t mw, at;              /* CC1 mod wheel, channel aftertouch */
     uint8_t ex_off;              /* 127 - CC11 expression (0: full, the MIDI default) */
+    uint8_t br_off;              /* (FASE 4) 127 - CC2 breath: a wind controller's own swell. The matrix's EXPR
+                                  * source reads whichever is asking for less (mod.c mod_midi / mod_src), so a
+                                  * breath controller and a fader both work and neither needs a source of its own */
     uint8_t m_vel, m_key, m_vi;  /* the latest note-on: velocity, note, voice index (per-block destinations) */
     int16_t m_rnd;               /* .. its RAND */
     int32_t m_env;               /* the amp envelope of voice m_vi, last block (Q15) */

@@ -176,8 +176,8 @@ static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, 
         return t->mw * 258;
     case MS_AT:
         return t->at * 258;
-    case MS_EXPR:
-        return (127 - t->ex_off) * 258;
+    case MS_EXPR:                            /* (FASE 4) expression or breath, whichever asks for less */
+        return (127 - (t->ex_off > t->br_off ? t->ex_off : t->br_off)) * 258;
     case MS_STEP:
         return t->ms_v;
     case MS_BAR: {                                      /* (FASE 5) the bar's phase: a ramp from the downbeat to the
@@ -455,8 +455,11 @@ static __attribute__((noinline)) void mod_midi(track_t *t, uint32_t st, uint32_t
             t->mw = (uint8_t)d2;
         else if (d1 == 11u)
             t->ex_off = (uint8_t)(127u - d2);
+        else if (d1 == 2u)                       /* (FASE 4) CC2 BREATH: same field family, its own byte, so a
+                                                  * breath controller and CC11 can both be connected */
+            t->br_off = (uint8_t)(127u - d2);
         else if (d1 == 121u)
-            t->mw = t->at = t->ex_off = 0;
+            t->mw = t->at = t->ex_off = t->br_off = 0;
     }
 }
 
