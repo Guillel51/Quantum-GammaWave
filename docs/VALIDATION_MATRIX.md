@@ -4204,3 +4204,25 @@ permanece `NO-GO`.
 | Instalador, hashes, coherencia | **PASS** | `make_release --check` y `coherence_check` en verde para el paquete publicado | host + URLs públicas |
 | WASM y emulador | **PASS** | `web/emu/build.sh` con el mismo commit; la suite ejecuta el emulador y compara 88 200 frames contra el build nativo, bit a bit | WASM |
 | Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
+
+---
+
+## 32. LFO en nueve pantallas, DEST con profundidad, TUNE sin escrituras cruzadas (v2.3.15, 2026-11-25)
+
+Detalle y razones: `docs/FASE_EXTRA_LFO_TUNE.md`. **Sin unidad FM-1**: todo lo de esta sección es `[HOST]` salvo
+donde se dice `[TARGET]`, y el `[TARGET]` es el build de AC791N, no una medición sobre la unidad.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| `FAM_LFO` sin pantallas vacías | **CLOSED** | `MOD MAP` (sólo lectura, sin controles) eliminada de `PAGES[]`, de `GR_MODMAP` y de `graph_mod()`; nueve pantallas, contador `x/9` calculado desde la tabla; `ui_render` recorre las nueve en 22 paletas | host |
+| LFO DEST / ENV DEST con profundidad e indicadores | **CLOSED** | `tech_dest()`: la fuente en tres capas (`qz_curve`) con aguja y nivel, y una placa por destino con raíl, alcance, valor actual y valor formateado; `LOOP` como modo, no como profundidad | host |
+| Cada knob de SCL TUNE mueve sólo su parámetro | **CLOSED** | `tune_test` caso 11: girar NOTE de D (+17) a F deja `tune_get(F) == 0` y no toca ningún otro grado; 13/13 | host |
+| Las notas sostenidas se ven y se animan | **CLOSED** | regla bajo la letra, pip por el radio, anillo común; `graph_signature()` lleva el temperamento y `t->held[]` (antes la página no repintaba) | host |
+| Alineación y píxeles de UI | **PASS** | 0 desvíos de 1 px en 3 967 423 medidas, 0 tintas sobre su propio color, 0 píxeles fuera de gris/neutro en GREY/MONO; baseline de píxeles regenerada (3 241 cuadros) | host |
+| Lint de UI | **REPORTED, pre-existente** | `ui_render` sale 1 con 4 267 hallazgos (483 «FM6 part through a box», 113 «spills out of its cell», el resto en DX IMAGE y los charts de FM6). **Reproducido igual en un worktree limpio de `3ff9efd`**, con y sin `FELUCCA_FM4=1`; esta fase no añadió ninguno y no silenció ninguno | host |
+| Suite completa | **PASS salvo lo anterior** | 6 387 `ok`; `regress` 311 renders golden, 0 cambiados, 0 fallos de health/voces/CPU | host |
+| Presupuesto de imagen | **PASS, justo** | 580 352 B de 583 612 (3 260 libres, suelo 2 048) | TARGET |
+| Presupuesto de RAM | **PASS** | `.data+.bss` 93 556 B de 98 304 (4 748 libres) | TARGET |
+| Instalador, hashes, coherencia | **PASS** | `make_release --check` y `coherence_check` en verde para el paquete publicado (sha256 `16926f85…`) | host + URLs públicas |
+| WASM y emulador | **PASS** | `web/emu/build.sh` con el mismo commit `79b1b09` | WASM |
+| Escritura en la unidad | **NOT PERFORMED** | Límite permanente del dueño | — |
