@@ -555,20 +555,34 @@ static int fm6_note_compute(fm6_note_t *n, const uint8_t *p, int32_t *out, int32
     pitch_mod = fm6_penv_get(&n->penv, p) + (senslfo < 0 ? -pmod : pmod);
     amod = (uint32_t)(((int64_t)amd * lfo_delay) >> 8);                 /* Q24 */
     amod = (uint32_t)(((int64_t)amod * ((1 << 24) - lfo_val)) >> 24);
-    for (k = 0; k < 6u; k++) {
-        const uint8_t *op = p + k * FP_OP;
-        int32_t level = fm6_env_get(&n->env[k], op);
-        uint32_t ams = FM6_AMSENS[op[FP_AMS] & 3u];
-        n->op[k].freq = fm6_freq((n->fixed >> k) & 1u ? n->base[k] : logfreq + n->base[k] + pitch_mod + dt[k]);
-        if (ams) {                                 /* msfa: pt = exp(sensamp / 262144 * 0.07 + 12.2) */
+    /* (FASE 1/3) msfa's AMS factor, exp(sensamp / 262144 * 0.07 + 12.2), depends on amod and lfo_val — the
+     * block's values — and on nothing in the sample loop, so it is computed once here instead of inside the
+     * operator loop, and 0 for an operator with no AMS (its multiply is skipped). Bit-identical: same operands,
+     * same shifts, same order. The saving is small and this host cannot resolve it (see the phase report): the
+     * function runs once per block, not once per sample. */
+    {
+        uint32_t ptb[6];
+        for (k = 0; k < 6u; k++) {
+            uint32_t ams = FM6_AMSENS[p[k * FP_OP + FP_AMS] & 3u];
+            if (!ams) {
+                ptb[k] = 0;
+                continue;
+            }
             uint32_t sensamp = (uint32_t)(((uint64_t)amod * ams) >> 24);
             int32_t lg = FM6_AMS_C0 + (int32_t)(((uint64_t)sensamp * FM6_AMS_K) >> 10);
-            uint32_t pt = fm6_mant(lg) << ((lg >> 24) - 16);   /* (2^17.6 .. 2^24.1: shift 1..8) */
-            level -= (int32_t)(((uint64_t)(uint32_t)level * ((uint64_t)pt << 4)) >> 28);
+            ptb[k] = fm6_mant(lg) << ((lg >> 24) - 16);       /* (2^17.6 .. 2^24.1: shift 1..8) */
         }
-        if (!((car >> k) & 1u))
-            level += modlvl;
-        n->op[k].level_in = level < 0 ? 0 : level > (17 << 24) ? 17 << 24 : level;
+        for (k = 0; k < 6u; k++) {
+            const uint8_t *op = p + k * FP_OP;
+            /* a finished envelope (stage 4) cannot move: fm6_env_get would run its two tests and return level */
+            int32_t level = n->env[k].ix >= 4u ? n->env[k].level : fm6_env_get(&n->env[k], op);
+            n->op[k].freq = fm6_freq((n->fixed >> k) & 1u ? n->base[k] : logfreq + n->base[k] + pitch_mod + dt[k]);
+            if (ptb[k])
+                level -= (int32_t)(((uint64_t)(uint32_t)level * ((uint64_t)ptb[k] << 4)) >> 28);
+            if (!((car >> k) & 1u))
+                level += modlvl;
+            n->op[k].level_in = level < 0 ? 0 : level > (17 << 24) ? 17 << 24 : level;
+        }
     }
     return fm6_core_render(out, n->op, alg, n->fb, fb ? 8 - fb : 16);
 }
