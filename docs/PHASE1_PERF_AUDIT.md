@@ -36,8 +36,10 @@ The image has 5 564 B of app slot left.
 block's `amod` and `lfo_val`, never on a sample — once per block, outside the operator loop, and skips
 `fm6_env_get()` for an operator whose envelope is already in stage 4 (which cannot move).
 
-- **Output: bit-identical.** `tests/regress`: 311 golden renders, 0 changed; 0 health failures; emulator output
-  bit-for-bit against the native build.
+- **Output: bit-identical.** `tests/regress`: 311 golden renders, 0 changed, 0 health failures; and the whole
+  suite after the change: **6 386 checks ok**, the browser emulator's song identical to the native build frame by
+  frame. The one red line is the release-set check, which compares the tree with the *published* package: the tree
+  is ahead of v2.3.14 and this phase does not republish.
 - **`tests/fm6_test`**: 34 checks, 0 failures.
 - **Flash: +48 B** (578 000 → 578 048; the hoisted block costs more code than it saves there).
 - **CPU: not measurable here.** `dsp_bench` 6 parts full 325.4 → 325.0 ns/sample, 3 parts + drums 284.9 → 282.6,
