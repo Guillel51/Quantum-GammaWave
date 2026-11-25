@@ -24,6 +24,9 @@ ENGINES = [("ANALOG", "eng_analog.c"), ("PHASE", "eng_phase.c"), ("LOFI", "eng_l
 PROBE = r'''
 #include <stdio.h>
 #include "core.h"
+/* (FASE 12) core.h carries an inline helper that calls pc_arm() (ui.c, the sound a load left); the probe only
+ * needs the struct sizes, so the symbol is stubbed here instead of pulling the UI into a size measurement. */
+static void pc_arm(track_t *t) { (void)t; }
 int main(void) {
     printf("%zu %zu %zu %zu\n", sizeof(voice_t), sizeof(track_t), sizeof(preset_t), sizeof(track_t) * NTRK);
     return 0;

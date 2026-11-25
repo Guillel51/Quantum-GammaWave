@@ -75,6 +75,13 @@ static void setup(const uint8_t *v, const int16_t *e)
     fm6_slot[0] = (uint8_t)trk[0].p[P_E7];
     trk[0].p[P_VOICE] = V_POLY;
     trk[0].p[P_CHOR] = trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
+    /* (FASE 12) the three envelope knobs of the PANEL are modifiers (eng_fm6.c subtracts them from the operators'
+     * rates), and host_preset leaves them at SILT KEYS' own: DEC 74 and REL 58 collapsed the test patch's R2 50 to 1
+     * and R4 55 to 1, i.e. the envelope these tests measure was the panel's, not the patch's — which is why
+     * "attack -> L1, decay -> L2 -> L3, held, then the release" and "the voice ends after the release" failed with a
+     * decay and release of tens of seconds. Neutral, so a test of the operator envelopes tests them. */
+    trk[0].p[P_ATK] = trk[0].p[P_DEC] = trk[0].p[P_REL] = 0;
+
 }
 
 /* the voices' sum (track_render) of note at vel for n samples (from the note-on); release after rel samples */
@@ -273,6 +280,10 @@ static void envelopes(void)
         init_patch(base);
         op_set(base, 1, RP, LP, 99, 1);
         setup(base, 0);
+        /* (FASE 12) the SUSTAIN knob *rewrites* L3 of every operator (eng_fm6.c:347, 50 + SUS*49/126), and
+         * host_preset leaves it at SILT KEYS' 116: the L3 0 this patch asks for became 95, the note never decayed
+         * and its voice never came back — the test was measuring the panel's sustain, not the patch's silence. */
+        trk[0].p[P_SUS] = 0;
         trk_note_on(&trk[0], 60, 100);
         for (i = 0; i < FS * 2u / CTL && V(&trk[0], 0).active; i++) {
             static int32_t b[CTL];
