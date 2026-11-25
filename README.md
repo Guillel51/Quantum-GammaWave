@@ -100,12 +100,12 @@ What you hold is one instrument in four pieces:
 | | |
 |---|---|
 | **Voices / tracks / engines** | 12 · 6 · 10 (ANALOG, PHASE, FM6, LOFI, VOICE, WHEEL, NOISE, DRUM, WTABLE, ADDTV) |
-| **Sound bank** | 285 factory presets (283 browsable + 2 legacy kits), audited as data and measured as sound |
+| **Sound bank** | 290 factory presets across the ten engines, counted from the tables by the suite (`tests/preset_slots_test.py`), plus two pre-1.6 DRUM kits kept as legacy entries |
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
-| **Screen** | 240 × 240 RGB565, fourteen colours per theme, nineteen palettes (GREY and MONO included) |
+| **Screen** | 240 × 240 RGB565, twenty-two palettes (GREY and MONO included), each a set of named roles |
 | **Package** | 610 959 B, checked by SHA-256 and size (integrity, not a signature — see `docs/SIGNING.md`) |
-| **Verification** | 303 golden renders, a full host suite, an AC791N build budget, an emulator and a portal |
+| **Verification** | 311 golden renders, 4 163 host checks, an AC791N build budget, an emulator and a portal |
 
 It is a personal instrument that grew into a small ecosystem: the firmware is what the FM-1 runs, and the
 emulator, the studio, the installer and this documentation are built from the same tree, released together and
@@ -119,7 +119,7 @@ Ten engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and fr
 | Engine | What it is | Edit |
 |---|---|---|
 | **ANALOG** | virtual-analog: two oscillators, sub, noise, ring, filter, drift | waveform, shape, detune, filter, envelope |
-| **FM6** | six-operator FM, eight algorithms, feedback | algorithm, ratios, levels, envelopes, feedback |
+| **FM6** | six-operator FM, 32 routings, feedback | algorithm, ratios, levels, envelopes, feedback |
 | **PHASE** | phase-distortion / CZ-style, two lines | waveform, harmonics, distortion, envelope |
 | **WHEEL** | tonewheel organ: nine drawbars, percussion, click, drive, rotary | registration, bars, percussion, drive, rotor |
 | **VOICE** | formant / vowel synthesis | vowel, formant shift, breath, envelope |
@@ -129,8 +129,8 @@ Ten engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and fr
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 | **ADDTV** | additive: eight partials, each with its own phase and decay; SPECTRUM morphs eight profiles, STRETCH makes them inharmonic | spectrum, tilt, spectral decay, stretch |
 
-285 factory presets are spread across them (283 browsable, plus two legacy kits kept for the projects that
-still name them), plus user slots. Presets and projects from earlier
+290 factory presets are spread across them, plus the two pre-1.6 DRUM kits kept as legacy entries so a
+project that names them loads the sound it saved, plus the user slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU

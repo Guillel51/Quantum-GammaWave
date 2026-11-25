@@ -1,3 +1,23 @@
+## v2.5.0 — El cierre: el sitio, el banner y la documentación dicen lo que el firmware hace
+
+Ningún camino de sonido se movió. Lo que cambia es lo que el proyecto cuenta de sí mismo, y que ahora lo cuenta
+con números que se leen del árbol:
+
+- **Banner nuevo** (`assets/branding/quantum_banner.png`, generado por `tools/make_banner.py`): fondos negros de
+  verdad, cian, violeta y turquesa, el logotipo con degradado y **tres capturas auténticas del firmware** —
+  HOME, el algoritmo FM6 y el rack de FX — en su propio bisel con reflejo. La tarjeta social `og.png` (1200 × 630)
+  y el recorte vertical para móvil salen del mismo generador, así que no pueden contradecirse.
+- **Los números dejan de envejecer**: el banner y el README dicen 290 presets (los cuenta
+  `tests/preset_slots_test.py`), 22 paletas (`build/gen/ui_palettes.h`), 10 motores (`core.h`), 311 goldens
+  (`tests/regress`) y 4 163 comprobaciones host. Lo que antes decía 285 presets, 19 paletas y 303 goldens estaba
+  simplemente viejo.
+- **El portal**: una sola imagen Open Graph (antes había dos `og:image` y la de Twitter era el marco de 240 × 240,
+  que no sirve como tarjeta), `og:image:width/height`, texto alternativo y la tarjeta nueva.
+- **Firmware Hub**: `fmhub.json` decía 291 presets y el color naranja del linaje; ahora dice 290 y el cian de la
+  identidad.
+- **README**: FM6 ya no es «ocho algoritmos» sino 32 rutings; la pantalla, 22 paletas; la verificación, lo que la
+  suite mide de verdad.
+
 ## v2.3.16 — Fase 3/3: la ronda de estabilidad, y el último paso rojo en verde
 
 El firmware no cambia: esta ronda mide y documenta, y lo que corrige son dos presupuestos de pruebas que estaban
