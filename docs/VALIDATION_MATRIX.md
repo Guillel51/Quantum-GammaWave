@@ -4308,8 +4308,8 @@ Detalle y descartes medidos: `docs/FASE_1_MEMORIA_v2.5.0.md`.
 
 | Requisito | Estado | Evidencia | Clase |
 |---|---|---|---|
-| RAM `.data+.bss` ≥ 8 KiB libres | **PASS** | 93 556 → **84 524 B**, libres 4 748 → **13 780** (`mem_budget --show`, mapa del link) | TARGET |
-| XIP ≥ 8 KiB libres | **NOT REACHABLE** | 580 728 B = 449 768 de código + 126 180 de constantes, todas en uso y `--gc-sections` ya activo; recortar 5 300 B es quitar un recurso, no optimizar | TARGET |
+| RAM `.data+.bss` ≥ 8 KiB libres | **PASS** | 93 556 → **84 580 B**, libres 4 748 → **13 724** (build; `mem_budget --show` cuenta 84 524 / 13 780 por secciones) | TARGET |
+| XIP ≥ 8 KiB libres | **NOT REACHABLE** | 580 744 B (2 868 libres) = 449 768 de código + 126 180 de constantes, todas en uso y `--gc-sections` ya activo; recortar 5 300 B es quitar un recurso, no optimizar | TARGET |
 | POOL con margen para 12 voces y 6 pistas | **PASS (sin cambio)** | spare 8 384 B, `.pool` 312 124 B; ningún buffer de audio se movió ni se recortó | TARGET |
 | LOWBUF sin comprometer vídeo ni audio | **PASS (sin cambio)** | 1 120 B libres; el cambio no toca esa ventana | TARGET |
 | 12 voces, motores, presets, animaciones y gráficos intactos | **PASS** | goldens 311/311 idénticos, puerta de píxeles 3 241/3 241, suite host en verde | HOST |

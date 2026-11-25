@@ -33,8 +33,9 @@ Cuatro buffers que **sólo toca el bucle principal** se mudan a la cola de RAMTE
 
 Tres detalles que hacen que esto sea seguro y no una mudanza a ciegas:
 
-1. **`NOBITS`**: los cuatro van a `.bss.ramdata`, así que **no entra un solo byte en la imagen** (comprobado:
-   580 728 B antes y después). Si hubieran ido a una sección normal, sus ceros habrían viajado en el flash.
+1. **`NOBITS`**: los cuatro van a `.bss.ramdata`, así que **no entra un solo byte suyo en la imagen**: `readelf`
+   da la sección como `NOBITS`, 0x2310 B, sin dirección de carga. Si hubieran ido a una sección normal, sus ceros
+   habrían viajado en el flash. (La imagen sí crece 16 B por el bucle de limpieza del arranque: 580 728 → 580 744.)
 2. **El boot los limpia**: la SRAM arranca indefinida, y un `upf` con basura podría pasar el `magic` o un `hc_tab`
    con un puntero cualquiera haría que la decodificación de una cara leyera donde no debe. `main.c` limpia
    `_rd_start.._rd_end` en el mismo bucle que ya limpia 312 KiB de pool y 31 KiB de lowbuf; el emulador declara
@@ -46,14 +47,15 @@ Tres detalles que hacen que esto sea seguro y no una mudanza a ciegas:
 
 | Ventana | Antes | Después | Δ |
 |---|---|---|---|
-| **RAM .data+.bss** | 93 556 (4 748 libres) | **84 524 (13 780 libres)** | **+9 032 B de margen** |
+| **RAM .data+.bss** | 93 556 (4 748 libres) | **84 580 (13 724 libres)** | **+8 976 B de margen** |
 | RAMTEXT | 3 936 (20 640 libres) | 12 768 (11 808 libres) | −8 832 |
 | LOWBUF | 31 648 (1 120) | 31 648 (1 120) | 0 |
 | POOL | 312 124 (spare 8 384) | igual | 0 |
 | NOINIT | 15 572 (124) | igual | 0 |
-| Imagen XIP | 580 728 | 580 728 | 0 |
+| Imagen XIP | 580 728 (2 884 libres) | 580 744 (2 868 libres) | +16 B, el bucle de limpieza |
 
-Objetivo de la fase para RAM (**≥ 8 KB libres**): **cumplido, 13 780 B** (4 748 → 13 780, +190 %). No se quitó ni
+Objetivo de la fase para RAM (**≥ 8 KB libres**): **cumplido, 13 724 B** (4 748 → 13 724, +189 %; `mem_budget`
+suma las secciones y da 84 524 con 13 780 libres — la diferencia es que el build mide hasta `_bss_end`). No se quitó ni
 una voz, ni un motor, ni un preset, ni un píxel: los goldens de audio y la puerta de píxeles salen idénticos.
 
 ## 4. Lo que se miró y NO se cambió (con el número en la mano)
