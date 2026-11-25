@@ -415,6 +415,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     # twelve released at once, a long session with engines moving under it, and the saturation of the counters
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_parts_test" tests/poly_parts_test.c -lm
     run "POLY PARTS: a full pool names the part that gave the voice, a part with no window is the one blamed, a release is not a steal, a long session with engines moving keeps sum(taken)=voices the pool took and ends empty and whole, and the counters saturate" "$OUT/poly_parts_test"
+
+    # (FASE 3 de esta ronda) a step remembers the length the key was really held for
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/seq_dur_test" tests/seq_dur_test.c -lm
+    run "SEQ DUR: playback ends the note where the recorded length says and dur 0 is the GATE, recording measures a quarter of the step as 4/16 and a chord keeps its longest key, a note across the step keeps the TIE model, and a project carries the lengths (or writes no block at all)" "$OUT/seq_dur_test"
     # (v1.5.23, FASE 2) the situations the earlier poly tests do not reach: a twelve-note chord through a sound load
     # that changes engine (xp_note held four), twelve keys on a MONO / LEGATO part with PRIO LOW (mono_stack held
     # eight), a 24-note burst, twelve accumulated releases against a new chord, six parts competing, a preset change

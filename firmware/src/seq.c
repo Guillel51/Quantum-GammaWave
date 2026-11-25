@@ -814,6 +814,7 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
             s->n = s->hit = s->acc = 0;
             s->flags = 0;
             s->vel = 0;
+            s->dur = 0;                             /* (FASE 3) a fresh step has no recorded length yet */
             ST_MICRO_SET(s, mic);                       /* (0.6.88) its place off the grid (REC Q) */
         }
         s->time = ST_NOTE;
@@ -848,6 +849,8 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
         s->n = 0;                                   /* a fresh step */
         s->flags = 0;
         s->vel = 0;
+        s->dur = 0;                                 /* (FASE 3) nor a recorded length */
+
         ST_MICRO_SET(s, mic);                       /* (0.6.88) its place off the grid (REC Q) */
     }
     for (k = 0; k < s->n && s->note[k] != note; k++)
@@ -943,8 +946,9 @@ static void rec_release(track_t *t, uint32_t note)
             ;
         if (e < rd[q].n) {
             if (rd[q].idx[e] == (uint8_t)(t->seq_idx % len) && rd[q].slen[e] && gp > rd[q].off[e]) {
-                int64_t d = (int64_t)(gp - rd[q].off[e]);
-                int64_t u = (d * 16 + (int64_t)rd[q].slen[e] / 2) / (int64_t)rd[q].slen[e];   /* rounded */
+                int32_t d = gp - rd[q].off[e];          /* 32 bits: a step is at most a few hundred thousand */
+                int32_t u = (d * 16 + (int32_t)rd[q].slen[e] / 2) / (int32_t)rd[q].slen[e];   /* rounded (the
+                                                         * pi32v2 build has no __divdi3: no 64-bit division) */
                 step_t *st = &t->step[seq_src(t, rd[q].idx[e])];
                 /* (a chord: the step sounds as long as its LONGEST key; the short one is the price of one gate
                  * a step, and taking the last release would make the other keys' length meaningless) */
