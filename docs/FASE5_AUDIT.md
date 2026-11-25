@@ -44,11 +44,18 @@ queda por hacer en la fase es diseño (A y B), no reparación (C y D).
 
 Ordenado por valor por byte gastado, con el archivo donde vive cada cosa:
 
-1. **Destinos de modulación** (`mod.c`, `MD_*` y `param_of_dest`): la lista ya cubre PITCH, CUT, SHP, AMP, PAN,
-   los tres envíos + DIST, RATE, VIB, VEL/AT, los ocho E, CLIP, PNCH, los cuatro CHARACTER, RES, ATK/DEC/REL,
-   HARM y LSHP. Los huecos que valen algo son **OSC MIX / PW** (el motor que no los alcanza por matriz) y
-   **FEEDBK de FM6**: cada uno es un enum, un nombre y una escritura más en `param_of_dest`, y ninguno cambia
-   los renders dorados mientras ningún preset lo use (hay que dejarlo apagado en los 293).
+1. **Destinos de modulación**: **ya no falta ninguno de los que esta auditoría pedía**, y la afirmación
+   anterior ("los huecos que valen algo son OSC MIX / PW y FEEDBK de FM6") era falsa. La matriz tiene
+   `MD_E1`..`MD_E8`, que `param_of_dest()` traduce a `P_E0`..`P_E7` — es decir, a **los ocho parámetros de
+   edición del motor que esté cargado**, cualquiera de los diez. Comprobado en las tablas:
+   - ANALOG, `.edit[2]` = `MIX` → **`MD_E3`** ya mueve la mezcla de osciladores (y `PW` no es un parámetro de
+     ANALOG: el ancho de pulso es la onda `PWM` con ese `MIX`, así que un destino propio sería un duplicado);
+   - FM6, `.edit[1]` = `FB` (feedback, −7..+7) → **`MD_E2`** ya mueve el feedback del patch.
+
+   Añadir `MD_OSCMIX` / `MD_PW` / `MD_FBFB` habría sido una segunda implementación de algo que ya funciona,
+   contra la regla de la fase ("no agregar funciones redundantes ni repetir implementaciones"), y además
+   habría gastado espacio del enum de destinos, que es formato guardado. Lo que sí falta es **documentarlo**:
+   esta misma sección, corregida.
 2. **Movimiento por motor** (A): los diez motores ya reciben LFO, matriz, VEL/AT y CHARACTER; lo que falta es
    *rango* y *curvas* — p. ej. WTABLE con transición entre frames interpolada por posición fraccionaria y
    ADDTV con un parcial más de control. Los dos tocan DSP caliente: exigen `tests/target_budget.py` y los 311
