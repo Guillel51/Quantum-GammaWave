@@ -2114,6 +2114,21 @@ static void ui_draw(void)
 {
     static uint8_t counting;
     style_apply();
+    {   /* (this round) A SKIN CHANGE REPAINTS EVERY BAND, NOT ONLY THE PANEL'S ROWS. palette_set() already
+         * forgets the rows the panel holds, but a band whose own signature did not include the palette could
+         * still decide "nothing changed" and leave its old-coloured rule on the glass -- the line across the
+         * middle of the settings screen. The change is detected here, once, whatever path made it (MENU > COLOR,
+         * STYLE, a restored setting), and every cache that can skip a band is invalidated before the frame. */
+        static uint32_t skin_was = 0xFFFFFFFFu;
+        uint32_t skin_now = (uint32_t)settings.palette * 4u + (uint32_t)(ui_style & 3u);
+        if (skin_now != skin_was) {
+            skin_was = skin_now;
+            ui.force = 1;
+            ui.head_sig = ui.foot_sig = ui.graph_sig = ~0u;
+            ui.menu_sig = 0;
+            gfx_forget();
+        }
+    }
     ann_ui();                                       /* (FASE 3, #105) the screen reader: silent unless one listens */
     /* (QG-1 v1.5) the full-screen visualizer belongs to HOME alone. open_global() used to leave ui.home_viz
      * set with ui.home == 0, and every consumer of the flag then drew the visualizer over a page: draw_frame

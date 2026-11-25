@@ -27,6 +27,9 @@
  *   MASTER   the gain stage and the output peak, the clip lamp latched while the DAC sits at full scale.
  * Animation only runs on real signal: a silent engine leaves the page still. */
 #define FXB_N 8u
+/* the block's header: 15 rows, so a 12 px icon and a 12 px title sit inside it with a row of air over the
+ * separator (13 rows cut the top of the capitals and put the glyph's ink on the block's own edge) */
+#define FXB_IN 15u
 /* (FASE 4) the chain is read by its icons: eight 27 px cells cannot hold a 12 px glyph and three letters
  * without the letters spilling out of their cell, and the four cards above already name the selected link */
 /* the six blocks, left to right and top to bottom: which bus each reads */
@@ -40,25 +43,28 @@ static const uint8_t FXB_BLOCKI[FXB_NB] = {ICON_DELAY, ICON_REVERB, ICON_CHORUS,
 /* the block's own header: its icon, its title, and the lamp that lights with the bus */
 static void fxb_head(int32_t x, int32_t y, int32_t w, uint32_t ic, const char *name, uint16_t ink, int32_t lvl)
 {
-    /* (FASE 4 de esta ronda) the DELAY glyph's ink sits two rows high in its 12 px cell and read as floating
-     * above the block's own header; 1 px down puts its body on the title's line. The other five already sit
-     * there, so this is the one nudge and not a new rule. */
-    cv_icon_on(x + 3, y + 2 + (ic == ICON_DELAY ? 1 : 0), 12, ic, ink, T_BG);
-    cv_text_on(x + 17, y + 2, &AF_S, name, ink, T_BG);   /* (6.4) inside the block's own ground, never above it */
+    /* (this round) THE ICON AND THE TITLE SHARE A LINE, BY INK. cv_icon_on() draws the glyph where the font left
+     * it: the chain's ink starts two rows above the rest and climbed into the block's top edge, and the title sat
+     * at y + 2 with its capitals touching the separator. cv_icon_in() centres each glyph's own ink box on the
+     * title's 12 px line and the label starts one pixel right of the 12 px cell, so no glyph can cover a letter. */
+    cv_icon_in(x + 3, y + 1, 12, FXB_IN - 2, 12, ic, ink, T_BG);
+    cv_text_on(x + 18, y + 2, &AF_S, name, ink, T_BG);
     /* (Solar Heat) the activity lamp: 3 px at rest, 4 px with the bus carrying signal, and the colour walks
      * from the block's own ink to the palette's heat as the level climbs -- the page's only motion a silent
-     * engine cannot produce. */
+     * engine cannot produce. Inside the 15-row header, never on its edge. */
     if (lvl > 0)
-        cv_rect(x + w - 8, y + 2, 4, 4, ux_mix(ink, T_ACCENT, clamp(lvl * 100 / 4000, 0, 100)));
+        cv_rect(x + w - 8, y + 3, 4, 4, ux_mix(ink, T_ACCENT, clamp(lvl * 100 / 4000, 0, 100)));
     else
-        cv_rect(x + w - 7, y + 3, 3, 3, ink);       /* the activity lamp */
+        cv_rect(x + w - 7, y + 4, 3, 3, ink);       /* the activity lamp */
 }
 /* a level 0..7000 (fx_vu's scale) as a 0..56 px bar height */
 static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
 /* the block's readout: its value and a per-cent sign (DELAY, REVERB, CHORUS, PUNCH all print one) */
 static void fxb_pct(char *b, int32_t v)
 {
-    fmt_int(b, clamp(v, 0, 127));
+    /* the parameter is MIDI 0..127; the panel says %, as every card above it does (it printed the raw value
+     * with a % sign: DELAY at 90 read "90 %" while the card's own MIX read 71 %) */
+    fmt_int(b, (clamp(v, 0, 127) * 100 + 63) / 127);
     str_cpy(b + str_len(b), "%", 3);
 }
 /* (Solar Heat) the drawing area of a block as a dithered ramp, cold overhead and warm at the floor: two bands of
@@ -103,7 +109,7 @@ static void fxb_meters(int32_t x, int32_t y, int32_t h, int32_t snd, int32_t wet
 static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
 {
     static const int32_t BX[3] = {3, 82, 161}, BY[2] = {17, 69};
-    static const int32_t BW = 76, BH = 52, IN = 13, FT = 13;   /* IN: header, FT: the value's row */
+    static const int32_t BW = 76, BH = 52, FT = 13;            /* FT: the value's row; FXB_IN: the header */
     uint32_t i;
     int32_t sel = fxb_sel();
     int32_t snd[FXB_NB], wet[FXB_NB];
@@ -122,17 +128,21 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
     snd[FXB_PCH] = fx_vu[6]; wet[FXB_PCH] = fx_vu[7];
     snd[FXB_MST] = fx_vu[6]; wet[FXB_MST] = fx_vu[7];
     for (i = 0; i < 6u; i++) {
-        int32_t x = BX[i % 3u], y = BY[i / 3u], on, dx = x + 3, dy = y + IN, dw = BW - 10, dh = BH - IN - FT;
+        int32_t x = BX[i % 3u], y = BY[i / 3u], on, dx = x + 4, dy = y + FXB_IN, dw = BW - 16,
+                dh = BH - FXB_IN - FT - 1;                 /* 1 px of air over the value's row */
         char b[12];
         uint16_t head;
         cv_rrect(x, y, BW, BH, 3, ux_mix(T_SURF, T_THEME, 26), T_BG);        /* the block's bezel */
-        cv_rect(x + 2, y + 2, BW - 4, IN - 2, T_BG);                         /* the header's own ground */
-        fxb_grad(x + 2, y + IN, BW - 4, BH - IN - 2);
-        cv_rect(x + 2, y + IN - 1, BW - 4, 1, ux_mix(T_BG, T_ACCENT, 30));
+        cv_rect(x + 2, y + 2, BW - 4, FXB_IN - 2, T_BG);                     /* the header's own ground */
+        fxb_grad(x + 2, y + FXB_IN, BW - 4, BH - FXB_IN - 2);
+        cv_rect(x + 2, y + FXB_IN - 1, BW - 4, 1, ux_mix(T_BG, T_ACCENT, 30));
         switch (i) {
-        case FXB_DLY: on = (t->p[P_DLY] != 0 || wet[FXB_DLY] > 64) && sys_load != LOAD_ECO; break;
-        case FXB_REV: on = t->p[P_REV] != 0 || wet[FXB_REV] > 64; break;
-        case FXB_CHO: on = (t->p[P_CHOR] != 0 || wet[FXB_CHO] > 64) && sys_load != LOAD_ECO; break;
+        /* (this round) the three buses are GLOBAL: the page drew them off the selected track's send, so selecting
+         * a track with DLY / REV / CHO at 0 froze the delay's ring and dimmed the block while the bus itself was
+         * carrying sound. The return fx.c measured for the bus is the only thing that can animate it. */
+        case FXB_DLY: on = wet[FXB_DLY] > 64 && sys_load != LOAD_ECO; break;
+        case FXB_REV: on = wet[FXB_REV] > 64; break;
+        case FXB_CHO: on = wet[FXB_CHO] > 64 && sys_load != LOAD_ECO; break;
         case FXB_SLI: on = song.g[G_SLMODE] != 0 && sys_load != LOAD_ECO; break;
         case FXB_PCH: on = song.g[G_PUNCH] > 0 || song.g[G_DUCK] > 0; break;
         default: on = 1; break;
@@ -148,7 +158,7 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
              * FEEDBK's softness -- and the head itself is a filled lamp so the train has a source. MIX is what
              * the number shows, because MIX is the value this console's own knob 2 moves. */
             int32_t fb = clamp(song.g[G_DFDBK], 0, 127), mx = clamp(song.g[G_DMIX], 0, 127), k;
-            int32_t cx = dx + dw / 2, cy = dy + dh / 2, ph = (int32_t)((ui.frame * 2u) & 63u);
+            int32_t cx = dx + dw / 2, cy = dy + dh / 2, ph = (int32_t)(ui.frame * 3u & 63u);
             for (k = 3; k >= 0; k--) {
                 int32_t rx = (dw / 3) - k * 3, ry = dh / 2 - k * 2;
                 if (rx < 2 || ry < 2)
@@ -158,6 +168,15 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
                 cv_frame(cx - rx, cy - ry, rx * 2, ry * 2,
                          on ? ((mx && k == 3 - ph / 16) ? T_ACCENT :
                                ux_mix(T_BG, ux_mix(T_THEME, T_ACCENT, 30 + k * 22), 55 + fb * k / 6)) : T_RAISE);
+            }
+            /* (this round) THE PULSE ITSELF. One of the four rings was the accent's, so with four rings over a
+             * 64-frame cycle the picture stepped four times and read as still between them. A 2 x 2 head walks
+             * the outer ring's perimeter instead, one side every eight frames: the eye can follow the repeat. */
+            if (on && mx) {
+                static const int8_t RING[8][2] = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
+                int32_t q = (ph >> 3) & 7, rx = dw / 3 - 1, ry = dh / 2 - 1;
+                if (rx > 2 && ry > 2)
+                    cv_rect(cx + RING[q][0] * rx - 1, cy + RING[q][1] * ry - 1, 2, 2, T_TEXT);
             }
             fxb_pct(b, mx);
             break;
@@ -188,13 +207,20 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
              * rate of the modulation it draws. Each lane is two pixels thick over a centre line, so the picture
              * has a horizon to read against and its crests are not a dotted line, and DEPTH still sets how far
              * they swing: the same knobs, a legible picture. */
-            int32_t k, cy = dy + dh / 2, amp = 2 + clamp(song.g[G_CDEPTH], 0, 127) * (dh / 2 - 4) / 127;
+            /* (this round) THE RATE THE KNOB ASKS FOR, AND A FLOOR UNDER THE WAVES. RATE is exponential in the
+             * engine (0.05 .. 40 Hz), so one pixel a frame is right at slow and a strobe at fast: the display's
+             * phase walks 1 .. 4 units a frame with the knob, a smooth 4:1 over its travel. The lane under the
+             * accents is filled every other column so the two sweeps read as a body with depth, not two wires. */
+            int32_t k, cy = dy + dh / 2, amp = 2 + clamp(song.g[G_CDEPTH], 0, 127) * (dh / 2 - 3) / 127;
+            int32_t spd = 1 + clamp(song.g[G_CRATE], 0, 127) * 3 / 127, fr = (int32_t)ui.frame * spd;
             for (k = 0; k <= dw - 4; k++) {
-                int32_t w1 = (k * 900 / (dw > 1 ? dw : 1) + (int32_t)ui.frame) & 255, w2 = (w1 + 128) & 255;
+                int32_t w1 = (k * 900 / (dw > 1 ? dw : 1) + fr) & 255, w2 = (w1 + 128) & 255;
                 int32_t t1 = w1 < 128 ? w1 : 255 - w1, t2 = w2 < 128 ? w2 : 255 - w2;      /* the triangle */
                 int32_t s1 = t1 * (128 - t1) / 4, s2 = t2 * (128 - t2) / 4;                /* .. rounded to a wave:
                                                                                             * 0..1024 over a cycle */
                 int32_t yl = cy - 1 - s1 * amp / 1024, yr = cy + 2 + s2 * amp / 1024;
+                if (on && !(k & 1))
+                    cv_rect(dx + 2 + k, cy + 2, 1, (yr > cy + 2 ? yr - cy - 2 : 0), ux_mix(T_BG, T_ACCENT, 24));
                 cv_rect(dx + 2 + k, yl, 1, 2, on ? T_THEME : T_RAISE);
                 cv_rect(dx + 2 + k, yr, 1, 2, on ? T_ACCENT : T_RAISE);
             }
@@ -241,7 +267,7 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
         }
         if (b[0])
             cv_text_on(dx, y + BH - FT, &AF_S, b, on ? T_TEXT : T_DIM, T_BG);
-        fxb_meters(x + BW - 6, dy, dh, on ? snd[i] : 0, on ? wet[i] : 0);
+        fxb_meters(x + BW - 7, dy, dh, on ? snd[i] : 0, on ? wet[i] : 0);
         if (sel >= 2 && sel - 2 == (int32_t)i)
             cv_frame(x, y, BW, BH, T_ACCENT);
         else if (i == FXB_MST && sel >= 1 && sel <= 7)

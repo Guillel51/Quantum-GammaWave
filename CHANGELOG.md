@@ -1,4 +1,24 @@
-## Sin publicar — FASE 1/5: las arenas de los motores devuelven 6 630 B de RAM
+## Sin publicar — FASE 2: 15 966 B del pool, la consola FX y el skin
+
+- **Una línea de reverb para todos los modelos.** CLOUD, SHIMMER y ROOM/SPRING/RESO leen buffers distintos y
+  corren de uno en uno: `cloud_buf` (32 768 B) es ahora una unión con el grupo que comparte ROOM (combs 9 874 +
+  allpasses 1 996 + SHIMMER 4 096). Medido `[HOST x86-64]`: **48 734 → 32 768 B**, **15 966 B** devueltos; el
+  `.bss` del enlace de `reverb_test` baja **15 968 B** (7 350 544 → 7 334 576). `rev_clear()` limpia la unión
+  entera al cambiar de modelo, que es cuando el motor ya fundía y limpiaba.
+- **Sin tocar el sonido.** `reverb_test` (los cinco modelos, cambio con la cola sonando, FREEZE, `rev_clear`)
+  pasa; los **61 de 61 s** de `six_live_golden.txt` son idénticos; `dly_echo`, `fx_meter` y `audio` pasan.
+- **FX > BUSES**: los tres porcentajes convierten 0..127 a % (imprimían el valor crudo: 90 leía «90 %» con la
+  tarjeta diciendo 71 %), la página abre en BUSES para que las perillas 2..4 muevan MIX/SIZE/DEPTH, la firma del
+  panel incluye `song.g` (girar una perilla repinta), la cabecera pasa a 15 filas con el icono centrado por
+  tinta, el delay se anima con el retorno real del bus y un cabezal recorre su anillo.
+- **FX > CHORUS**: una sola velocidad progresiva en todo el recorrido de RATE (antes 26:1), STEREO 0 vuelve a ser
+  una línea, suelo de cinco bandas, líneas de cuarto y leyenda L/R en píldoras sobre franja propia.
+- **Skin sin línea fantasma**: cualquier cambio de paleta o estilo invalida las firmas de cabecera, pie y grafo,
+  fuerza el frame y olvida la caché del panel (`ui_draw`), no sólo `palette_set()`.
+- **Píxeles**: `tests/ui_pixels.txt` regenerado con el render de esta ronda (3 241 frames; la base anterior ya
+  estaba desfasada respecto a HEAD). Detalle y clases de medida en `docs/FASE2_RAM_FX_2026-11-25.md`.
+
+## FASE 1/5: las arenas de los motores devuelven 6 630 B de RAM
 
 - **Unión etiquetada por motor, en dos niveles.** Estado por pista (FM6 `fm6_note[6][4]` ∪ kit DRUM
   `drum_kit[6][8]`) y por ranura del pool (WHEEL ∪ ADDITIVE ∪ NOISE). Una pista corre un motor a la vez y una

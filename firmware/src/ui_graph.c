@@ -2940,6 +2940,7 @@ static uint32_t graph_signature(void)
         return h ^ (ui.frame / 2u) ^ gw_planet_sig() ^ knobs * 2654435761u;
     }
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
+    h ^= ux.gen * 40503u;                            /* (this round) a palette / STYLE change repaints the page */
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
     if (pg->graph == GR_NONE || pg->graph == GR_ARP || pg->graph == GR_MOTION) h ^= ui.frame / 2u;
@@ -2957,6 +2958,13 @@ static uint32_t graph_signature(void)
         if (fx_vu[0] | fx_vu[1] | fx_vu[2] | fx_vu[3] | fx_vu[4] | fx_vu[5] | fx_vu[6] | fx_vu[7])
             h ^= ui.frame * 1299709u;
         h ^= (uint32_t)(fxb_sel() + 1) * 40503u;
+    }
+    if (pg->graph == GR_FX || pg->graph == GR_FX_BUSES) {
+        /* (this round) THE GLOBALS THE PAGES DRAW. Both pages paint song.g (MIX, SIZE, DEPTH, RATE..) and the
+         * signature only walked the track's own p[]: turning a bus knob on a still page left the old number and
+         * the old picture until some other change forced a frame, which is the "frozen 60 / 90 / 60" report. */
+        for (i = 0; i < G_COUNT; i++)
+            h = (h ^ (uint16_t)song.g[i]) * 16777619u;
     }
     if (pg->graph == GR_LFO)                         /* (JIANT 0.5) the LFO runs: its phase, its level */
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);

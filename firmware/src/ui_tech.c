@@ -432,14 +432,22 @@ static void tech_rev2(void)
 static void tech_chorus(void)
 {
     int32_t rate = tk(0), depth = tk(1), ster = clamp(song.g[G_CSTER], -64, 63);
-    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, top = TK_Y0 + 2, base = TK_Y1 - 2, k;
+    int32_t x0 = TK_X0 + 3, w = PANEL_W - 6, lgd = TK_Y0 + 1, top = lgd + 13, base = TK_Y1 - 1, k;
     int32_t cy = (top + base) / 2;
-    int32_t amp = ((base - top) / 2 - 16) * (300 + depth * 700 / 1000) / 1000;   /* tk() is per-mille */
-    /* (FASE 4 de esta ronda) HALF THE SPEED. The sweep ran a whole wave in well under a second and, drawn three
-     * times across the panel, read as a flicker rather than as a modulation: at frame * 4 the front pass moves
-     * one cycle in about two seconds, which is the rate a chorus is heard at. DEPTH still sets the height. */
-    uint32_t ph = bg_energy() > 2 ? ui.frame * (uint32_t)(40 + rate) * 4u : 0u;
+    int32_t amp = ((base - top) / 2 - 6) * (300 + depth * 700 / 1000) / 1000;   /* tk() is per-mille */
+    /* (this round) ONE SMOOTH SPEED OVER THE WHOLE KNOB. ph used to advance by (40 + rate) * 4: rate is the
+     * knob's position 0..1000 and the engine's RATE is exponential, so the picture ran 26 times faster at the top
+     * than at the bottom -- "very fast, or very slow, depending on the rate" with three quarters of the sweep
+     * unreadable. It walks 900 .. 2 700 Q16 a frame now (one wave every 0.8 .. 2.4 s at 30 fps): monotonic,
+     * always visible, and still clearly faster when the knob says so. DEPTH still sets the height. */
+    uint32_t inc = 900u + (uint32_t)clamp(rate, 0, 1000) * 1800u / 1000u;
+    uint32_t ph = bg_energy() > 2 ? (uint32_t)ui.frame * inc : 0u;
+    int32_t b;
+    for (b = 0; b < 5; b++)                             /* a ground warmer at the floor: depth, five fills */
+        cv_rect(x0, top + b * (base - top) / 5, w, (base - top) / 5 + 1, ux_mix(T_SURF, T_THEME, 5 + b * 4));
     cv_rect(x0, cy, w, 1, T_RAISE);                     /* the zero line, quiet under both figures */
+    cv_rect(x0, cy - (base - top) / 4, w, 1, ux_mix(T_SURF, T_LINE, 40));   /* the quarter lines: a scale to read */
+    cv_rect(x0, cy + (base - top) / 4, w, 1, ux_mix(T_SURF, T_LINE, 40));
     /* (v2.3.9) THE DEPTH IS THE SAME STACK THE CURVES USE. The lane used to be drawn three times with a per-copy
      * phase nudge and a fixed lift: three bright lines of the same weight a few pixels apart, which at this height
      * read as one thick smear -- the figure said "it moves" and nothing about where it sits. It is now the stack
@@ -447,18 +455,21 @@ static void tech_chorus(void)
      * (dy = -k*5), inked through qz_back_ink so the far ones sink towards the page's own ground. The front pass,
      * the one that is the effect's data, is the only one at full ink and two pixels thick. */
     for (k = 0; k < 2; k++) {                           /* k 0 = left, 1 = right */
-        int32_t lane = cy + (k ? 1 : -1) * (6 + ster * 22 / 63);   /* STEREO: how far apart the two lanes sit */
-        int32_t po = (int32_t)(ph / 40) + (k ? ster * 9 / 16 : 0); /* and how far ahead the right one is */
+        /* STEREO: how far apart the two lanes sit. 0: the taps line up and the two figures are one line, as the
+         * DSP's are -- they used to stand 6 px apart at 0, a thickness the effect did not have. */
+        int32_t sep = (ster < 0 ? -ster : ster) * 22 / 63;
+        int32_t lane = cy + (k ? 1 : -1) * sep;
+        uint32_t po = k ? (uint32_t)(ster * 300) : 0u;  /* .. and how far ahead the right one is (STEREO 0: same
+                                                         * phase, the one line the DSP's taps make at 0) */
         uint16_t ink = k ? T_ACCENT : T_THEME;
         int32_t g;
-        cv_text_on(x0 + 2 + k * 14, top + 12, &AF_S, k ? "R" : "L", ux_mix(T_SURF, ink, 70), T_SURF);
         for (g = 2; g >= 0; g--) {                      /* back to front, so the near sweep is never covered */
             int32_t sy = 1000 - g * 90, dy = -g * 6;      /* (FASE 4) a wider stack: the depth reads */
             int32_t a_k = amp * sy / 1000, lane_k = lane + dy;
             uint16_t gi = g ? qz_back_ink(ink, sy) : ink;
             int32_t px = 0, py = lane_k, i2;
             for (i2 = 0; i2 <= w; i2++) {
-                uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + (uint32_t)po * 1024u;
+                uint32_t a = (uint32_t)i2 * (3u * 65536u) / (uint32_t)w + ph + po;
                 int32_t y = lane_k - ((bg_sin(a) * a_k) >> 15) * (k ? 3 : 4) / 4;
                 if (i2)
                     cv_line_t(x0 + px, clamp(py, top, base), x0 + i2, clamp(y, top, base), gi, g ? 1 : 2);
@@ -468,6 +479,15 @@ static void tech_chorus(void)
         }
     }
     cv_rect(x0 + w / 2 - 1, top + 2, 1, base - top - 4, T_LINE);   /* the split between the two channels */
+    /* (this round) THE LEGEND, ON TOP AND OUT OF THE WAVE. The bare L / R sat on the sweep's ground and a deep wave
+     * crossed them; a dark keycap under each puck keeps the channel's colour readable at every DEPTH. */
+    for (k = 0; k < 2; k++) {
+        int32_t lx = x0 + 2 + k * 14;
+        uint16_t ink = k ? T_ACCENT : T_THEME;
+        cv_rrect(lx, lgd, 11, 11, 3, ink, T_SURF);
+        cv_text_on(lx + 3, lgd - 1, &AF_S, k ? "R" : "L", T_INK, ink);
+    }
+    cv_text_on(x0 + 34, lgd - 1, &AF_S, "CHORUS SWEEP", ux_mix(T_SURF, T_TEXT, 45), T_SURF);
 }
 
 /* MASTER EQ: the response of the same Q24 biquad the audio path runs, on a logarithmic

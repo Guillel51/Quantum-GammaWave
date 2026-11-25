@@ -609,7 +609,10 @@ static const param_desc_t TALL_DESC = PD("REF", F_SEMI, -99, 99, 0);
  * parameters the other FX pages already own, so the console sets exactly what the engine reads. */
 static const char *const N_FXBT[] = {"TRACK", "BUSES", "DLY", "REV", "CHO", "SLI", "PUNCH", "MASTER"};
 static const param_desc_t FXBT_DESC = PE("VIEW", N_FXBT, 0);
-static int16_t fxb_tab;
+/* (this round) it opens on BUSES, not on TRACK. The page's three blocks print the three bus globals and its
+ * knobs 2..4 edit the selected link: on TRACK they edited one track's sends while the numbers stood still, which
+ * is the "always 60 / 90 / 60" report. KNOB 1 still walks every link. */
+static int16_t fxb_tab = 1;
 int fxb_sel(void) { return fxb_tab; }
 void fxb_step(int32_t d)
 {

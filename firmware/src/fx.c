@@ -37,12 +37,33 @@ static uint8_t drp_on;                    /* a train is running (the hit's own w
 static uint8_t drp_gen;                   /* the window being measured: 0 the hit, 1..6 the repeats */
 static const uint16_t REV_COMB[4] = {1116, 1188, 1277, 1356};
 static const uint16_t REV_AP[2] = {556, 441};
-static int16_t rev_comb[1116 + 1188 + 1277 + 1356] __attribute__((section(".pool")));
-static union {                          /* ROOM's allpasses; SPRING's allpass chain (int32: no clamps) */
-    int16_t ap[556 + 441];
-    int32_t sp[(556 + 441) / 2];
-} rev_u __attribute__((section(".pool")));
-#define rev_ap (rev_u.ap)
+#define REV_COMB_N (1116 + 1188 + 1277 + 1356)
+#define REV_AP_N (556 + 441)
+#define SH_LEN 2048u
+#define CL_LEN 16384u                    /* half rate: ~0.74 s */
+/* (this round) ONE LINE FOR EVERY REVERB MODEL. The four reverb lines used to sit side by side, and they
+ * were 48 734 B of the pool for a sound that runs one model at a time: ROOM, SPRING and RESO in rev_comb and
+ * the allpasses, SHIMMER in shim_buf, CLOUD in cloud_buf. No model reads another's line, and fx_block already
+ * fades a model out and calls rev_clear() before the new one starts, so the four lines are one union now --
+ * 32 768 B instead of 48 734, 15 966 B the pool gets back with the same samples on the wire. rev_clear()
+ * clears the whole union (a model change, once, outside the 32-sample steady state). */
+static union {
+    uint32_t raw[CL_LEN / 2u];           /* 4-byte aligned: the widest line, CLOUD's */
+    struct {                              /* every model that runs inside ROOM's buffers: ROOM, SPRING, RESO and
+                                           * SHIMMER (ROOM with its octave loop on top). They are one struct, not
+                                           * two union members: SHIMMER reads shim_buf and the combs at once. */
+        int16_t comb[REV_COMB_N];
+        union { int16_t ap[REV_AP_N]; int32_t sp[REV_AP_N / 2]; } u;
+        int16_t shim[SH_LEN];
+    } room;
+    int16_t cloud[CL_LEN];
+} rv_buf __attribute__((section(".pool")));
+#define rev_comb (rv_buf.room.comb)
+#define rev_u (rv_buf.room.u)
+#define rev_ap (rv_buf.room.u.ap)
+#define shim_buf (rv_buf.room.shim)
+#define cloud_buf (rv_buf.cloud)
+_Static_assert(CL_LEN >= REV_COMB_N && CL_LEN >= SH_LEN && CL_LEN >= REV_AP_N, "every reverb line fits the union");
 #define RPRE_LEN 2048u                   /* (JIANT) the reverb's pre-delay line, at half rate (4 KB): up to 92 ms */
 static int16_t rpre_buf[RPRE_LEN] __attribute__((section(".pool")));
 static int32_t rpre_out[CTL];                     /* .. the block out of it (the reverb's input) */
@@ -221,8 +242,7 @@ void fx_preset_flush(void)
 {
     memset(&fx, 0, sizeof fx);
     memset(cho_buf, 0, sizeof cho_buf);
-    memset(rev_comb, 0, sizeof rev_comb);
-    memset(rev_u.ap, 0, sizeof rev_u.ap);
+    memset(rv_buf.raw, 0, sizeof rv_buf.raw);            /* every reverb line (CLOUD, SHIMMER, ROOM, SPRING, RESO) */
     memset(rpre_buf, 0, sizeof rpre_buf);
     fx_vu[0] = fx_vu[1] = fx_vu[2] = fx_vu[3] = fx_vu[4] = fx_vu[5] = fx_vu[6] = fx_vu[7] = 0;
     {   int32_t k; for (k = 0; k < 6; k++) { fx_dly_rep[k] = 0; drp_pk[k] = 0; }
@@ -1361,8 +1381,6 @@ static __attribute__((noinline)) void rev_spring_side(uint32_t n, int32_t wd)
  *                (MOD: the more, the oftener) an octave up / down or a fifth up; RATE their density, DAMP the tone,
  *                WIDE them left and right. SIZE full: FREEZE (the line stops being written: the cloud holds) */
 static uint32_t scale_mask(const track_t *t);           /* seq.c */
-#define SH_LEN 2048u
-static int16_t shim_buf[SH_LEN] __attribute__((section(".pool")));
 static int32_t shim_fb[CTL];
 /* (0.6.12) AIR (G_RPRE on SHIMMER and CLOUD, -24..24 st): the pitch moved, the tone with it. A semitone count as a
  * speed, Q16: 2^(st / 12) (-24 .. 36) */
@@ -1477,12 +1495,10 @@ static __attribute__((noinline)) void rev_reso(const int32_t *rev_in, int32_t *o
         out[i] += a;
     }
 }
-#define CL_LEN 16384u                                    /* half rate: ~0.74 s */
 #define CL_N 12u
 #define CL_WMAX 320                                      /* (1.2.1-GW, JIANT 0.9.14 / 0.9.16) the grains' windows summed:
                                                           * 1.25 grains' worth at most */
 #define CL_BACK (CL_LEN - 6000u - 1024u)                 /* .. the farthest back a grain may start (rev_cloud) */
-static int16_t cloud_buf[CL_LEN] __attribute__((section(".pool")));
 /* (1.2.1-GW, JIANT 0.9.14) CLOUD's int16 line written through a soft knee: linear to -2.5 dBFS (bit for bit as before
  * there), then tanh up to ~-0.1 dB: a hot send rounds off like tape, never a hard clamp in the loop */
 static inline int32_t rv_knee(int32_t x)
@@ -1626,15 +1642,11 @@ static void rev_run(uint32_t ty, const int32_t *rev_in, int32_t *out, uint32_t n
 static void rev_clear(void)
 {
     uint32_t i;
-    for (i = 0; i < sizeof rev_comb / 2u; i++)
-        rev_comb[i] = 0;
-    for (i = 0; i < sizeof rev_u.ap / 2u; i++)          /* (int16: 997 of them, an odd count the int32 view misses one of) */
-        rev_u.ap[i] = 0;
+    for (i = 0; i < sizeof rv_buf.raw / sizeof rv_buf.raw[0]; i++)   /* every model's line in one: see rv_buf */
+        rv_buf.raw[i] = 0;
     for (i = 0; i < 4u; i++)
         fx.comb_lp[i] = fx.rs_lp[i] = 0;
     fx.sp_lp = fx.sp_hp = fx.sp_he = 0;
-    for (i = 0; i < SH_LEN; i++)                        /* (JIANT 0.5) SHIMMER's line, CLOUD's grains */
-        shim_buf[i] = 0;
     for (i = 0; i < CTL; i++)
         shim_fb[i] = 0;
     sh_tlp = 0;
