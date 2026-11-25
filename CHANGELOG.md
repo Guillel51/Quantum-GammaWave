@@ -1,3 +1,21 @@
+## v2.5.1 — La ronda de estabilidad: la versión que sí puede publicarse
+
+`v2.5.0` ya existía como etiqueta desde el 11 de noviembre, apuntando a un commit de la fase 2: por eso el
+release no se movía aunque el paquete, el sitio y el manifiesto dijeran 2.5.0. Esta es la primera versión
+publicable después de esa etiqueta, y trae todo lo hecho desde entonces:
+
+- **Grabación con largo real por paso**: el largo de cada paso viaja en el propio registro (bit `0x40` del byte
+  `x`), sin bloque extra ni segunda pasada.
+- **Cuatro voicings nuevos** (DROP2, DROP3, QUART, SPREAD) sobre los ocho que ya había.
+- **Memoria**: el par de deshacer salió de LOWBUF (1 120 → 8 032 B libres) y 4 520 B más de RAM volvieron al
+  mover estado de la vuelta principal fuera de la ventana del render (RAM 13 236 → 17 756 libres).
+- **La consola FX**: el bloque DELAY se mueve (anillo que viaja por el tren de ecos), su icono ya no queda
+  alto, sus porcentajes imprimen MIX/SIZE/DEPTH —los valores que los knobs de esa página mueven— y el CHORUS
+  va a media velocidad con trazos de 2 px y horizonte.
+- **Cambio de skin sin residuos**: `palette_set()` llama a `gfx_forget()`, así que la caché de filas del panel
+  no puede seguir describiendo los píxeles de la paleta anterior.
+- **Auditor de strings** (`docs/STR_PACK.md`) y la matriz de validación al día (§40-§43).
+
 ## v2.5.0 — El cierre: el sitio, el banner y la documentación dicen lo que el firmware hace
 
 Ningún camino de sonido se movió. Lo que cambia es lo que el proyecto cuenta de sí mismo, y que ahora lo cuenta
