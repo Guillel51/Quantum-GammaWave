@@ -3,29 +3,19 @@
   "artifacts": {
    "felucca-2.5.0.fwsc": {
     "bytes": 610933,
-    "sha256": "19bb49528798cce4277b0d1a612e7064df90f7274c659ea86aa826ffc075aff4"
+    "sha256": "eb324c16f5d9dbc7bd257ec0a65debef9fd59f42f4e79177ab1232542f1583b8"
    },
    "felucca.bin": {
-    "bytes": 580744,
-    "sha256": "8e52e9a0013209ce88e2f26ed544414bdde61d4797a334b7657cafe9723cbfb6"
+    "bytes": 581016,
+    "sha256": "8654627ce8eda41ade71d38594bf7785f339851eee5c356f3ff576ce6d3d8639"
    },
    "loader/ota.bin": {
     "bytes": 7777,
     "sha256": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"
    }
   },
-  "checks": {
-   "checks": "ok",
-   "identity": "FM-1_965",
-   "notes": [
-    ".ram_text: 1193 insns, no calls",
-    "image 580744 B; RAM .data+.bss 84580 B of 98304; pool 312124 B, spare 8384 B; LOWBUF 31648 B of 32768",
-    "XIP code 449792 B, constants 126172 B",
-    "RAM code 3940 B of 24576; calls reach 10720 B past the code's end",
-    "register access: hal/ only (src/, loader/ clean)"
-   ]
-  },
-  "commit": "b45115a1d1fb3d52c2f84b9c954755b19d18c6ad",
+  "checks": {},
+  "commit": "bb55a1f2084564f7f2d3639e50ca36536ea95b34",
   "config": {
    "FELUCCA_CDC": "default",
    "FELUCCA_CDC_DEFAULT": "default",
@@ -46,10 +36,10 @@
   },
   "dirty": [],
   "emulator": {
-   "commit": "f451973fe0cf",
+   "commit": "bb55a1f20845",
    "version": "v2.5.0",
-   "wasm_bytes": 1314673,
-   "wasm_sha256": "9badfb2b51da8995b4dc198112c94d34bf904d66862116b9505eeac01963ec7d"
+   "wasm_bytes": 1315214,
+   "wasm_sha256": "135c15516262cc52d3717736290e77357c0f747601a2bda509a7611a13b3e48b"
   },
   "identity": "FM-1_965",
   "package": "felucca-2.5.0.fwsc",
@@ -71,18 +61,18 @@
   },
   "version": "v2.5.0"
  },
- "build_sha256": "c969b21683c4207b8e363acf0b2b3f9490322141f4762c84f9e6dabbd2f9b1ec",
- "created": "2026-11-25T10:14:02Z",
+ "build_sha256": "ae558e0f265fd39d31083537e5aea268765001fe0da81d76d2180acfd5cf7ffa",
+ "created": "2026-11-25T11:32:46Z",
  "format": "qg1-release-1",
  "images": {
-  "felucca-2.5.0.fwsc": "19bb49528798cce4277b0d1a612e7064df90f7274c659ea86aa826ffc075aff4",
-  "felucca.bin": "8e52e9a0013209ce88e2f26ed544414bdde61d4797a334b7657cafe9723cbfb6",
+  "felucca-2.5.0.fwsc": "eb324c16f5d9dbc7bd257ec0a65debef9fd59f42f4e79177ab1232542f1583b8",
+  "felucca.bin": "8654627ce8eda41ade71d38594bf7785f339851eee5c356f3ff576ce6d3d8639",
   "loader/ota.bin": "0eed21822cb601dd27f99d38b8af688bf95dc8bfa09d8078cd4f570cdbe881b5"
  },
  "keyid": "",
  "min_firmware": "1.0.0",
  "product": "FM-1",
- "sha256": "19bb49528798cce4277b0d1a612e7064df90f7274c659ea86aa826ffc075aff4",
+ "sha256": "eb324c16f5d9dbc7bd257ec0a65debef9fd59f42f4e79177ab1232542f1583b8",
  "size": 610933,
  "version": "2.5.0"
 }
