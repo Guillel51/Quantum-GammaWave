@@ -414,6 +414,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     # (FASE 2 de esta ronda) WHO LOST THE VOICE: the per-part counters (taken / refused), a part with no window,
     # twelve released at once, a long session with engines moving under it, and the saturation of the counters
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_parts_test" tests/poly_parts_test.c -lm
+
+    # (FASE 4 de esta ronda) the eight voicings, the four of before untouched
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/chord_voicing_test" tests/chord_voicing_test.c -lm
+    run "VOICINGS: CLOSE LEAD OPEN +BASS give the notes they always gave, DROP2 and DROP3 move the second and third voice from the top an octave down, QUART stacks fourths, SPREAD lifts every other tone, and all eight keep every shape in range and in order on every key" "$OUT/chord_voicing_test"
     run "POLY PARTS: a full pool names the part that gave the voice, a part with no window is the one blamed, a release is not a steal, a long session with engines moving keeps sum(taken)=voices the pool took and ends empty and whole, and the counters saturate" "$OUT/poly_parts_test"
     # (v1.5.23, FASE 2) the situations the earlier poly tests do not reach: a twelve-note chord through a sound load
     # that changes engine (xp_note held four), twelve keys on a MONO / LEGATO part with PRIO LOW (mono_stack held
