@@ -958,6 +958,19 @@ static void rec_release(track_t *t, uint32_t note)
     if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last &&
         t->seq_pos < step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), t->seq_idx) / 2u)
         t->step[t->rh_last] = t->rh_bak;            /* released early in it: not held into this step */
+    if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last) {
+        /* (FASE 3 de esta ronda) A NOTE THAT CROSSED STEPS keeps its real tail too: the release lands in the last
+         * TIE step and its fraction of that step goes into the step's dur, so playback stops the note where the
+         * key came up instead of at the step's close. The early release (before the middle) keeps the rule above:
+         * there the TIE is undone and the step is the one it was. */
+        uint32_t sl2 = step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), t->seq_idx);
+        int32_t gp2 = (int32_t)t->seq_pos - (int32_t)t->ext;
+        step_t *st = &t->step[t->rh_last];
+        if (sl2 && gp2 > (int32_t)(sl2 / 2u) && st->time == ST_TIE) {
+            uint32_t u = (uint32_t)((gp2 * 16 + (int32_t)sl2 / 2) / (int32_t)sl2);
+            st->dur = (uint8_t)(u >= 15u ? 15u : (u < 1u ? 1u : u));
+        }
+    }
     {   /* (FASE 3 de esta ronda) THE LENGTH IT WAS HELD. A note that ends in the very step it started in gets its
          * real duration, in sixteenths of that step, where the step model could only offer "the whole step" (the
          * track's GATE) or a TIE into the next one: a staccato key, an off-beat stab and a legato note now differ
@@ -1717,6 +1730,11 @@ static __attribute__((noinline)) void seq_step(track_t *t, const step_t *s, uint
     } else if (s->time == ST_TIE) {
         if (t->seq_n) {
             t->seq_off = gate + period / 2u;
+            if (ST_DUR(s))                          /* (FASE 3 de esta ronda) THE TAIL OF A NOTE THAT CROSSED: a
+                                                     * note the player held past its step ends this far into the last
+                                                     * TIE step, where the model could only end it at the step's close.
+                                                     * Without it a 1.9-step note and a 2-step note were the same. */ 
+                t->seq_off = step_samples(t, period, t->seq_idx) * ST_DUR(s) / 16u;
             t->seq_hold = (s->flags & SF_SLIDE) != 0 || next_tie || chord_auto(t, len);   /* chains hold at any GATE /
                                                          * swing; (0.6.81) GLIDE on POLY: to the next chord */
         }

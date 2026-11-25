@@ -11,7 +11,8 @@
  *   A. playback ends the note where the recorded length says, not at the track's GATE;
  *   B. dur 0 is exactly the GATE: nothing that existed before changes;
  *   C. recording measures a note released inside its step (a quarter of the step -> 4/16);
- *   D. a note that crosses the step keeps the TIE model and writes no length;
+ *   D. a note that crosses the step keeps the TIE model -- and the *tail* it writes on the last TIE step is the
+ *      fraction the player really held, which playback honors (a 1.9-step note is no longer a 2-step note);
  *   E. a project carries the lengths, and a project with none writes no block at all (an older reader finds
  *      everything where it was).
  */
@@ -113,6 +114,24 @@ int main(void)
     rec_release(t, 60u);
     printf("dur: D released a step later -> dur %u/16 (TIE keeps it)\n", ST_DUR(&t->step[0]));
     check("D: a note that crosses the step leaves the length to the TIEs", ST_DUR(&t->step[0]) == 0u);
+
+    /* ---- D2: a note that crosses steps keeps its real tail on the last TIE step ---------------------- */
+    seq_reset(t, 4u, 127u);
+    t->seq_idx = 0u; t->seq_pos = 0u; t->ext = 0u;
+    t->rh_ties = 0;
+    rec_note(t, 60u, 100u);
+    t->seq_idx = 1u;                        /* the sequencer entered step 1: the note ties into it */
+    rec_hold(t, 1u, 4u);
+    t->seq_pos = step * 3u / 4u;            /* released three quarters into the tied step */
+    rec_release(t, 60u);
+    printf("dur: D2 crossing -> step1 time %u dur %u/16\n", t->step[1].time, ST_DUR(&t->step[1]));
+    check("D2: the TIE step keeps the tail the player held (12/16), not a whole one",
+          t->step[1].time == ST_TIE && ST_DUR(&t->step[1]) >= 11u && ST_DUR(&t->step[1]) <= 13u);
+    t->seq_idx = 1u; t->seq_n = 1; t->p[P_SGATE] = 127; t->seq_hold = 0;
+    seq_step(t, &t->step[1], div_samples(2), 0);
+    printf("dur: D2 playback of the TIE step -> seq_off %u of %u, hold %u\n", t->seq_off, step, t->seq_hold);
+    check("D2: playback releases the crossed note where the key came up, not at the step's close",
+          t->seq_off > 0u && t->seq_off <= step * 13u / 16u && !t->seq_hold);
 
     /* ---- E: the project carries the lengths, and only when there are some -------------------------- */
     memset(&q, 0, sizeof q);
