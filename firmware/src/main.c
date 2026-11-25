@@ -8,6 +8,7 @@ extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];
 extern uint32_t _c1t_start[], _c1t_end[], _c1t_load[];   /* (0.6.71) the second core's loop (app.ld .c1_text) */
 extern uint32_t _hot_start[], _hot_end[], _hot_load[];   /* (0.6.78) core 0's hottest audio code (app.ld .hot_text) */
 extern uint32_t _low_start[], _low_end[];                /* (0.6.78) main-loop buffers below the RAM code (app.ld) */
+extern uint32_t _rd_start[], _rd_end[];                  /* (2.5.0) cold main-loop data in the RAMTEXT tail (app.ld) */
 #endif
 
 
@@ -449,6 +450,10 @@ void fm1_cstart(void)
     for (d = _pool_start; d < _pool_end; d++)
         *d = 0;
     for (d = _low_start; d < _low_end; d++)
+        *d = 0;
+    /* (2.5.0) the cold buffers in the RAMTEXT tail: SRAM comes up undefined, so they are cleared here like .bss.
+     * 8 976 B, once, on the same path that already clears 312 KiB of pool and 31 KiB of lowbuf. */
+    for (d = _rd_start; d < _rd_end; d++)
         *d = 0;
     for (s = _data_load, d = _data_start; d < _data_end; s++, d++)
         *d = *s;

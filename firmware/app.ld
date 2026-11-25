@@ -46,6 +46,13 @@ SECTIONS
         _hot_end = .;
     } > RAMTEXT AT > XIP
     _hot_load = LOADADDR(.hot_text);
+    /* (2.5.0) THE WINDOW'S TAIL, FOR COLD DATA. RAMTEXT is 24 KiB; the RAM code that has to keep running while the
+     * flash is busy uses about 4 KiB of it, and the rest was idle while the 96 KiB RAM window was down to 4.7 KiB
+     * of headroom. The buffers here are main-loop only -- none of them is read from the audio ISR -- so they cost
+     * nothing in latency where they are now, and the RAM window gets their bytes back. NOLOAD: the boot copy of
+     * the code above cannot write them, and the ASSERT fails the link instead of the unit. */
+    .ramdata (NOLOAD) : { _rd_start = .; *(.bss.ramdata*) *(.ramdata*) . = ALIGN(4); _rd_end = .; } > RAMTEXT
+    ASSERT(_rd_end <= ORIGIN(RAMTEXT) + LENGTH(RAMTEXT), "RAMTEXT is full: the RAM code and its cold data outgrew the window")
     .data : { . = ALIGN(4); _data_start = .; *(.data*) *(.sdata*) . = ALIGN(4); _data_end = .; } > RAM AT > XIP
     _data_load = LOADADDR(.data);
     .bss (NOLOAD) : { _bss_start = .; *(.bss*) *(.sbss*) *(COMMON) . = ALIGN(4); _bss_end = .; } > RAM

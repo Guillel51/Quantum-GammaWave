@@ -9,7 +9,8 @@
  * what would sound without it: the latest automation event of the pass up to that step, else the sound's own value
  * (motion_unlock). A lock lasts the whole step, its RATCH parts too; swing only moves the step's start. */
 static motion_store_t motion;
-static int16_t motion_base[NTRK][P_COUNT];
+static int16_t motion_base[NTRK][P_COUNT] __attribute__((section(".bss.ramdata")));   /* (2.5.0) cold: written when a patch
+                                                                                    * loads, read by the editor */
 static uint32_t motion_active[NTRK][(P_COUNT + 31u) / 32u];
 static uint32_t motion_locked[NTRK][(P_COUNT + 31u) / 32u];   /* the ids a lock holds now (put back at the next step) */
 static uint8_t motion_base_valid, motion_full;

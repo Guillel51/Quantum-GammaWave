@@ -40,7 +40,8 @@ SECTIONS = {
     "LOWBUF": [".lowbuf"],
     "RAM": [".data", ".bss"],
     "POOL": [".pool"],
-    "RAMTEXT": [".ram_text"],
+    # (2.5.0) .ramdata: the cold main-loop buffers the RAM window lent to this one (firmware/app.ld)
+    "RAMTEXT": [".ram_text", ".ramdata"],
     "NOINIT": [".noinit"],
 }
 

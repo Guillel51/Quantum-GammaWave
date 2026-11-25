@@ -1102,10 +1102,11 @@ static void gen_mix(track_t *t, uint32_t r)
 }
 
 /* ---------------------------------------------------------------------------------------- the form: parts --- */
-static step_t gen_keep[2][NSTEP];                        /* (1.4.5) main-loop scratch, but it stays in .bss: with the
-                                                         * flash driver's buffer moved there LOWBUF keeps 2 204 B
-                                                         * free, and a window that ends 28 B from its limit (both
-                                                         * moved) is a trap for the next buffer */
+/* (1.4.5) main-loop scratch: the two tracks the generator is about to rewrite, kept so its undo can put them back. It
+ * went to .bss because LOWBUF had no room for it (with the flash driver's buffer moved there the window kept 2 204 B,
+ * and one that ends 28 B from its limit is a trap for the next buffer). (2.5.0) it is in the RAMTEXT tail instead:
+ * idle SRAM nobody else was using, never touched by the audio ISR, so the 96 KiB RAM window gets its 2 176 B back. */
+static step_t gen_keep[2][NSTEP] __attribute__((section(".bss.ramdata")));
 static void section_store(uint32_t s);                  /* (song_main.c) */
 static int section_load(uint32_t s);
 static uint32_t section_bars(uint32_t s);
