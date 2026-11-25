@@ -13,8 +13,9 @@
  *   CHORUS     the taps' delay lines: three sines a third apart, as deep as DEPTH, running at RATE while it sounds,
  *              fanned apart by STER (mono: one line)
  *   MASTER     CLIP's curve with the level now; PUNCH's transient shape; DUCK's gain now as a meter
- *   ENV / LFO DEST  the source now (the envelope's level, the LFO's value) into four bipolar columns under the cards,
- *              each as long as its amount and lit by what it sends now
+ *   ENV / LFO DEST  the source in depth (its cycle, or the track's ADSR: three layers, the playhead), then a plate
+ *              a destination with its rail, the reach its knob allows, the part the source is using now and its
+ *              value; ENV DEST's LOOP draws its chip and the envelopes it repeats instead of a depth
  *   VOICE      the track's voices: one slot each, as full as its envelope now; the glide as a curve between two notes
  *   GLOBAL     a bar of 16 steps with SWING moving the off-beats, the playhead, the beat */
 #define TK_X0 PANEL_X0
@@ -754,29 +755,111 @@ static void tech_master(void)
     }
 }
 
-/* ENV DEST / LFO DEST: the source now into four bipolar columns, one under each card */
+/* (FASE EXTRA) ENV DEST / LFO DEST: THE SOURCE IN DEPTH, AND THE FOUR ROUTES IT DRIVES.
+ * The page was four bare columns: no name, no value, no scale, and nothing saying which way a route moved. Two
+ * bands now, one question each:
+ *   1. WHAT THE SOURCE IS DOING. The LFO's cycle (or this track's ADSR) drawn as the same curve three times, the
+ *      front one 2 px and lit, the ones behind smaller, lifted and darker -- qz_curve, the stack ENV's own page
+ *      draws, so the two screens look like one instrument. On top of it the playhead of the moment and the level
+ *      the source has now; the envelope gets that level as a lit rule across its shape. Every pixel of it comes
+ *      from lfo_ph / lfo_val / the voices, never from a timer.
+ *   2. WHAT EACH ROUTE DOES WITH IT, one plate a destination: its name, a bipolar rail with the zero and the
+ *      quarters, the reach the knob allows (a quiet bar), the part of that reach the source is using at this
+ *      instant (the accent one way, the mid ink the other, a pip at its head) and the value the card formats.
+ *      A mode -- ENV DEST's LOOP -- draws its chip and the envelopes it repeats instead of a depth: it is a
+ *      choice, not an amount, and it must not read as a route at zero. */
+static int32_t dest_cycle(void *ctx, int32_t k, int32_t u)
+{
+    const track_t *t = (const track_t *)ctx;
+    uint32_t span = 0xFFFFFFFFu / 1000u;
+    (void)k;
+    if (t->p[P_LWAVE] == 4)                          /* S&H: one value per cycle, so one cycle is a flat rule.
+                                                      * Eight of them are the staircase the wave is, drawn from
+                                                      * the same hash graph_lfo uses, and they move as the phase
+                                                      * crosses a cycle: the LFO page's rule, kept here. */
+        return 500 + ((int32_t)(((t->lfo_ph >> 29) + (uint32_t)u * 8u / 1000u + 1u) * 2654435761u >> 16) - 32768) *
+                     500 / 32768;
+    return 500 + lfo_wave((track_t *)t, (uint32_t)u * span) * 500 / 32768;   /* one cycle, 0..1000 */
+}
+/* a small envelope for the LOOP row: the attack's arm, the decay to the sustain, the release */
+static void dest_glyph(int32_t x, int32_t yb, int32_t w, int32_t h, int32_t sus, uint16_t c)
+{
+    int32_t ys = yb - sus * h / 1000;
+    cv_line(x, yb, x + w / 3, yb - h, c);
+    cv_line(x + w / 3, yb - h, x + w * 2 / 3, ys, c);
+    cv_line(x + w * 2 / 3, ys, x + w, yb, c);
+}
+
 static void tech_dest(const track_t *t, int lfo)
 {
-    int32_t src = 0, c, mid = (TK_Y0 + TK_Y1) / 2, half = 44;
+    const page_t *pg = cur_page();
+    int32_t src = 0, c, k, bx = 16, bw = 208, by = 4, bh = 24, rx0 = 58, rx1 = 178, zx = (58 + 178) / 2;
     uint32_t i;
+    char vb[12];
+    const char *unit;
     if (lfo)
         src = mulq15(t->lfo_val, t->lfo_fade);
     else
         for (i = 0; i < NVOICE; i++)
             if (V(t, i).stage && V(t, i).stage < 4u && (V(t, i).env >> 9) > src)
-                src = V(t, i).env >> 9;                 /* Q15 */
-    for (c = 0; c < 4; c++) {
-        int32_t x = CARD_X(c) + 22, amt = tk_amt((uint32_t)c), bh = amt * half / 500, live = bh * src / 32767;
-        cv_rect(x - 6, mid, 25, 1, T_RAISE);
-        cv_rect(x + 6, mid - half, 1, 2 * half, T_LINE);
-        if (bh > 0) cv_rect(x, mid - bh, 13, bh, ux_mix(T_SURF, T_THEME, 35));
-        else if (bh < 0) cv_rect(x, mid, 13, -bh, ux_mix(T_SURF, T_THEME, 35));
-        if (live > 0) cv_rect(x, mid - live, 13, live, heat_col(80 + live * 170 / half));
-        else if (live < 0) cv_rect(x, mid, 13, -live, heat_col(80 - live * 170 / half));
+                src = V(t, i).env >> 9;                 /* Q15, 0..32767 */
+    {   /* 1. the source, standing in space */
+        qz_t q;
+        qz_set(&q, bx, by, bw, bh, 3, heat_y(by + bh / 2, by, by + bh, T_THEME), T_BG);
+        if (lfo) {
+            int32_t px;
+            qz_curve(&q, dest_cycle, (void *)t);
+            px = bx + (int32_t)(t->lfo_ph >> 22) * bw / 1024;   /* where the cycle stands now */
+            cv_rect(px, by - 1, 1, bh + 2, T_MID);
+            cv_rrect(px - 2, by + bh / 2 - src * (bh / 2) / 32767 - 2, 5, 5, 2, T_TEXT, T_BG);
+        } else {
+            static env_ctx_t ec;                     /* 100 B of .bss, filled every draw: no allocation */
+            int32_t at = 4 + t->p[P_ATK] * 50 / 127, de = 6 + t->p[P_DEC] * 50 / 127;
+            int32_t re = 6 + t->p[P_REL] * 60 / 127, su = t->p[P_SUS] * 1000 / 127;
+            int32_t ly;
+            for (k = 0; k < 3; k++)
+                ec.a[k] = at, ec.d[k] = de, ec.r[k] = re, ec.s[k] = su, ec.t[k] = 44;
+            qz_curve(&q, env_lvl, &ec);
+            ly = by + bh - (src > 0 ? src * bh / 32767 : 0);   /* the level the voices have now */
+            cv_rect(bx, ly, bw, 1, ux_mix(T_SURF, T_TEXT, 40));
+            cv_rect(bx + bw - 1, ly - 1, 2, 3, T_TEXT);
+        }
     }
-    {   /* the source: its level now as a bar at the left edge */
-        int32_t sh = (src < 0 ? -src : src) * half / 32767;
-        cv_rect(TK_X0, src >= 0 ? mid - sh : mid, 3, sh ? sh : 1, T_TEXT);
+    /* 2. the four routes */
+    for (c = 0; c < 4; c++) {
+        int16_t *vp;
+        const param_desc_t *d = page_desc(pg, (uint32_t)c, &vp);
+        int32_t y = 35 + c * 18, yc = y + 8, uw;
+        if (!d || !d->label || d->label[0] == '-')
+            continue;
+        cv_rrect(12, y, 216, 16, 3, T_SURF, T_BG);
+        cv_text_on(17, y + CAP_IN(S, 16), &AF_S, d->label, T_MID, T_SURF);
+        param_format(d, *vp, vb, &unit);
+        if (d->fmt == F_ENUM) {                          /* a choice, not an amount (ENV DEST's LOOP): its chip and
+                                                          * the envelopes it repeats, and no rail -- a mode is not a
+                                                          * route at zero and must never read as one */
+            uint32_t n = *vp == 0 ? 1u : *vp == 1 ? 3u : 2u;
+            cv_rrect(rx0, y + 2, 40, 12, 2, *vp ? T_KEY : T_RAISE, T_SURF);
+            cv_text_on(rx0 + 5, y + CAP_IN(S, 16), &AF_S, vb, *vp ? T_INK : T_DIM, *vp ? T_KEY : T_RAISE);
+            for (k = 0; k < (int32_t)n; k++)
+                dest_glyph(110 + k * 26, y + 14, 18, 11, t->p[P_SUS] * 1000 / 127, k ? T_DIM : T_ACCENT);
+        } else {
+            uw = unit[0] ? text_w(&AF_S, unit) : 0;      /* the value, the unit beside it, at the plate's edge */
+            if (uw)
+                cv_text_r(226, y + CAP_IN(S, 16), &AF_S, unit, T_DIM, T_SURF);
+            cv_text_r(226 - uw - (uw ? 1 : 0), y + CAP_IN(S, 16), &AF_S, vb, T_TEXT, T_SURF);
+            cv_rect(rx0, yc, rx1 - rx0, 1, T_RAISE);
+            for (k = 0; k < 5; k++)
+                cv_rect(rx0 + (rx1 - rx0) * k / 4, yc - 2, 1, 5, k == 2 ? T_MID : T_LINE);
+            int32_t amt = clamp(tk_amt((uint32_t)c), -500, 500), px = amt * (rx1 - rx0) / 1000;
+            int32_t live = clamp(amt * src / 32767, -500, 500), lx = live * (rx1 - rx0) / 1000;
+            if (px)                                      /* the reach: what the knob allows */
+                cv_rect(px > 0 ? zx : zx + px, yc - 1, px > 0 ? px : -px, 3, ux_mix(T_SURF, T_THEME, 42));
+            if (lx) {                                    /* and the part of it the source is using now */
+                cv_rect(lx > 0 ? zx : zx + lx, yc - 2, lx > 0 ? lx : -lx, 5, live > 0 ? T_ACCENT : T_MID);
+                cv_rect(zx + lx - 1, yc - 3, 2, 7, T_TEXT);    /* the pip: where the route stands */
+            }
+        }
     }
 }
 

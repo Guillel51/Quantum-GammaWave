@@ -216,7 +216,6 @@ a la derecha); apretá OCT+ para ejecutarla.
 | LFO | RATE | WAVE | PHASE | FADE |
 | LFO DEST | PITCH | FILTER | SHAPE | AMP |
 | MOD | SLOT (1–4) | SRC | DEST | AMT |
-| MOD MAP | — | — | — | — |
 | MSEQ | STEP (1–16) | LEVEL | LEN | SLEW |
 | MSEQ 2 | DIV | — | — | — |
 
@@ -1232,6 +1231,9 @@ dice entonces ECO).
 - **ENV DEST**: la envolvente hacia FILTER, PITCH, SHAPE; **LOOP ON**: con la nota mantenida, la envolvente vuelve al
   ataque cuando llega al sustain (un LFO con forma de ADSR).
 - **LFO**: RATE, WAVE (SIN, TRI, SAW, SQR, S&H), PHASE, FADE. **LFO DEST**: PITCH, FILTER, SHAPE, AMP.
+  Las dos páginas DEST dibujan la fuente (el ciclo del LFO, la envolvente de la pista) en profundidad sobre las
+  cuatro rutas, con el alcance que permite cada knob y la parte que la fuente está usando ahora; el LOOP de
+  ENV DEST muestra su chip y las envolventes que repite en lugar de una profundidad.
   - **RATE** es libre en Hz; girándolo a la izquierda pasado el más lento queda **a tempo** (4BAR, 2BAR, 1BAR, 1/2,
     1/4, 1/8D, 1/4T, 1/8, 1/8T, 1/16, 1/16T, 1/32), enganchado al compás mientras el transporte toca (PHASE es su
     desfase).
@@ -1243,9 +1245,6 @@ dice entonces ECO).
     suave; RAND en cambio sortea un valor por nota).
   - Destinos: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (velocidad del LFO), VIB, **E1–E8** (las perillas
     EDIT propias del motor, mostradas por nombre), **CLIP** y **PNCH** (el master).
-- **MOD MAP**: la matriz de un vistazo. Sólo aparecen los slots realmente asignados (SRC, DEST y AMT con valor),
-  una fila cada uno, y un destino que mueven dos o más slots lleva su cuenta (`x2`, `x3`): los destinos
-  compartidos, donde un valor se mueve dos veces. Es de lectura; en MOD se editan los slots.
 - **MSEQ**: un secuenciador de modulación de 16 pasos por pista, como un secuenciador de CV. KNOB 1 elige el paso,
   KNOB 2 fija su nivel, LEN y SLEW; DIV en MSEQ 2. Usalo desde MOD con SRC **STEP**.
 

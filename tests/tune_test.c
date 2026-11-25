@@ -225,6 +225,33 @@ int main(void)
         ok("the page's knobs: NOTE, CENTS and REF reach the table, and BACK gives equal temperament again", okv);
     }
 
+    /* --- 11. (FASE EXTRA) KNOB 2 SELECTS, IT DOES NOT EDIT ---------------------------------------------- */
+    {
+        int okv = 1, before[12], i;
+        tune_init();
+        tune_ui_slot = 0;
+        tune_ui_slot_l = -1;
+        tune_ui_all = 0;
+        tune_ui_sync(0);                            /* the page's first frame: the slot settles (and would wipe
+                                                     * a table edited before it, so the edit comes after) */
+        tune_set(2, 17);                            /* D sits 17 cents sharp: the note the knob lands on has
+                                                     * cents of its own, and they are not the ones it came from */
+        tune_ui_note = 2;
+        tune_ui_ct = 17;
+        tune_ui_sync(0);
+        for (i = 0; i < 12; i++)
+            before[i] = tune_get(i);
+        tune_ui_note = 5;                           /* the knob is turned from D to F: only the SELECTION moves */
+        tune_ui_sync(0);
+        okv &= tune_ui_ct == tune_get(5) && tune_get(5) == 0;
+        tune_ui_note = 2;                           /* and back: D still holds the 17 cents it was given */
+        tune_ui_sync(0);
+        for (i = 0; i < 12; i++)
+            okv &= tune_get(i) == before[i];
+        okv &= tune_get(2) == 17 && tune_ui_ct == 17;
+        ok("the NOTE knob selects: turning it never writes the previous note's cents into the new one", okv);
+    }
+
     printf("tune: %d FAILED\n", bad);
     return bad != 0;
 }

@@ -2136,25 +2136,23 @@ static __attribute__((noinline)) void graph_scenes(void)
  * the moment) and from the left for the others. The amount's own sign (param_format, F_BIPCT) is the assignment's
  * polarity, always shown. The slot KNOB 2..4 edit is selected; a slot that does nothing (SRC, DST or AMT at 0) is
  * dim and has no bar.
- * MOD MAP is the same page in map mode: the matrix at a glance, as the editor's map reads it -- only the assigned
- * slots, drawn by the same row, and a destination two or more of them drive carries its count in a chip: the
- * shared destinations, where one value is moved twice. Read only and with no bars: MOD is where the slots are
- * edited. */
-static __attribute__((noinline)) void graph_mod(const track_t *t, uint16_t c, int map)
+ * (FASE EXTRA) MOD MAP IS GONE. It was this page read a second way -- only the assigned slots, with a chip counting
+ * the routes that share a destination -- with no control of its own: a view of the page beside it, and one of the
+ * ten screens the LFO family was spending (nine are left). What the chip answered, the MOD page answers here: the
+ * slot KNOB 1 picks takes the accent, all eight are on the one screen and each bar is the route applying now. */
+static __attribute__((noinline)) void graph_mod(const track_t *t, uint16_t c)
 {
-    uint32_t k, j, i = 0, n;
+    uint32_t k;
     for (k = 0; k < NMSLOT; k++) {
         int32_t s = mslot(t, k, 0), d = mslot(t, k, 1), a = mslot(t, k, 2);
-        int32_t on = s && d && a, sel = !map && k == mod_ui_slot, y;
+        int32_t on = s && d && a, sel = k == mod_ui_slot, y;
         int32_t hot = sel && ui.hot_t;
         uint16_t bg = sel ? T_THEME : T_SURF, col = sel ? T_INK : on ? c : T_DIM;
         char b[10], nb[3];
         const char *unit;
-        if (map && !on)
-            continue;                                                    /* a slot that does nothing is not a route */
-        y = 2 + (int32_t)(map ? i : k) * 15;
+        y = 2 + (int32_t)k * 15;
         cv_rrect(4, y, 232, 13, 3, sel ? T_THEME : T_SURF, T_BG);         /* every slot its own plate */
-        if (!sel && !map)                                                 /* a tab, so a slot reads as one; inside
+        if (!sel)                                                         /* a tab, so a slot reads as one; inside
                                                                            * the plate's edge, clear of the digit */
             cv_rect(7, y + 3, 2, 7, on ? T_THEME : T_DIM);
         nb[0] = (char)('1' + k);
@@ -2169,18 +2167,7 @@ static __attribute__((noinline)) void graph_mod(const track_t *t, uint16_t c, in
         cv_text_on(70, y - 1, &AF_S, mod_dst_name(t, d), col, bg);
         param_format(&TP[P_M1AMT], a, b, &unit);         /* F_BIPCT: "+50" / "-50", the polarity */
         cv_text_r(152, y - 1, &AF_S, b, on ? (sel ? T_INK : a > 0 ? T_ACCENT : T_MID) : T_DIM, bg);
-        if (map) {                                       /* shared: how many routes reach this destination */
-            for (n = 0, j = 0; j < NMSLOT; j++)
-                n += mslot(t, j, 0) && mslot(t, j, 1) && mslot(t, j, 2) && mslot(t, j, 1) == d;
-            if (n > 1u) {
-                b[0] = 'x';
-                b[1] = (char)('0' + n);
-                b[2] = 0;
-                cv_rrect(196, y, 24, 13, 3, T_KEY, T_SURF);
-                cv_text_on(200, y - 1, &AF_S, b, T_INK, T_KEY);
-            }
-            i++;
-        } else if (on) {                                 /* (v1.8.0) WHAT THE ROUTE APPLIES, not the source alone:
+        if (on) {                                        /* (v1.8.0) WHAT THE ROUTE APPLIES, not the source alone:
                                                           * the bar is source x depth, signed, so a route with AMT at
                                                           * -50 moves left for the same source a +50 one moves right
                                                           * with, and a shallow route draws a short bar. The centre
@@ -2198,44 +2185,6 @@ static __attribute__((noinline)) void graph_mod(const track_t *t, uint16_t c, in
             }
         }
         (void)unit;
-    }
-    if (map) {                                       /* (ETAPA 6) where the routes land: the destination each
-                                                      * assigned slot drives, with its slots' amounts added,
-                                                      * as a bipolar bar under the rows -- the map's other half,
-                                                      * the one the chip only counted. Read only. */
-        uint32_t d, r = 0, y = 2 + i * 15 + 6, used = 0, lim = (uint32_t)(graph_ht > 40 ? graph_ht - 14 : 0);
-        uint32_t ndst = (uint32_t)(sizeof N_MDST / sizeof N_MDST[0]);   /* a count: N_MDST alone is the
-                                                                         * array, and -w never complains */
-        for (d = 1; d < ndst && used < 4u; d++) {
-            int32_t sum = 0, k2;
-            char nm[12];
-            for (k2 = 0; k2 < NMSLOT; k2++)
-                if (mslot(t, k2, 0) && mslot(t, k2, 1) == (int32_t)d && mslot(t, k2, 2))
-                    sum += mslot(t, k2, 2);
-            if (!sum)
-                continue;
-            char vb[6];
-            if ((uint32_t)y + 13u > lim)                 /* the card's end: never past it */
-                break;
-            used++;
-            cv_rrect(4, y, 232, 13, 3, T_SURF, T_BG);
-            str_cpy(nm, N_MDST[d], sizeof nm);
-            cv_text_on(12, y - 1, &AF_S, nm, c, T_SURF);
-            {   /* the bar: the track from the middle, the amount -252 .. 252 as the slots add up */
-                int32_t xm = 84, x1 = 192, px = xm + clamp(sum, -252, 252) * (x1 - xm) / 252;
-                cv_rect(xm - 30, y + 4, x1 - xm + 60, 5, T_RAISE);
-                cv_rect(px < xm ? px : xm, y + 4, px > xm ? px - xm : xm - px, 5, sum > 0 ? T_ACCENT : T_MID);
-                cv_rect(xm, y + 3, 1, 7, T_TEXT);        /* the zero */
-            }
-            vb[0] = sum < 0 ? '-' : '+';
-            fmt_int(vb + 1, sum < 0 ? -sum : sum);
-            cv_text_r(230, y - 1, &AF_S, vb, sum > 0 ? T_ACCENT : sum < 0 ? T_MID : T_DIM, T_SURF);
-            y += 15;
-            r++;
-        }
-        if (!used)                                   /* nothing assigned: the map says so, in the band */
-            cv_text_on(12, 2 + i * 15 + 8, &AF_S, "NO ROUTES", T_DIM, T_SURF);
-        (void)r;
     }
 }
 
@@ -3003,6 +2952,20 @@ static uint32_t graph_signature(void)
         h ^= SONG_END(&chain_config) * 2246822519u;      /* (0.6.22: the END) */
         for (i = 0; i < 4u; i++) h ^= (uint32_t)graph_project_used(i) << (24u + i);
         h += graph_pname_sig;
+    }
+    if (pg->graph == GR_SCL_TUNE) {                  /* (FASE EXTRA) THE TWELVE CENTS AND THE HAND ON THEM. Neither
+                                                      * the temperament being edited nor the keys being held lives in
+                                                      * a track parameter, so nothing above moved when either did: the
+                                                      * circle kept the picture it first drew. The table's four numbers
+                                                      * are here, and a phase while a key is down, so a held note can
+                                                      * pulse (four frames a step: ~15 fps, and no cost when idle). */
+        h = (h ^ (uint32_t)(tune_ui_note + 1) * 40503u ^ (uint32_t)(tune_ui_slot + 1) * 7919u ^
+             (uint32_t)(tune_ui_ct + 128) * 131u ^ (uint32_t)(tune_ui_all + 128) * 104729u ^
+             (uint32_t)tune_dirty * 65537u) * 16777619u;
+        for (i = 0; i < (uint32_t)t->nheld && i < 16u; i++)
+            h = (h ^ (uint32_t)(uint16_t)t->held[i]) * 16777619u;
+        if (t->nheld)
+            h ^= (ui.frame / 4u) * 2654435761u;
     }
     if (pg->graph == GR_MOD)
         h ^= (mod_ui_slot + 1u) * 40503u;
@@ -4648,11 +4611,7 @@ static __attribute__((noinline)) void draw_graph(void)
             break;
         case GR_MOD:
             cv_oy = 0;
-            graph_mod(t, c, 0);
-            break;
-        case GR_MODMAP:
-            cv_oy = 0;
-            graph_mod(t, c, 1);
+            graph_mod(t, c);
             break;
         case GR_MACROS:
             cv_oy = 0;

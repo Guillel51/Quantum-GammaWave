@@ -194,8 +194,21 @@ static int tune_ui_sync(uint32_t frame)
         return 1;
     }
     if ((int32_t)note != tune_ui_note_l) {
+        /* (FASE EXTRA) KNOB 2 SELECTS, IT DOES NOT EDIT. The branch used to re-read the new note's cents into
+         * tune_ui_ct_l and then fall through to the test below with `ct` still holding the *previous* note's
+         * cents: they differed, and tune_set() wrote the old note's value into the new one — moving the note
+         * knob moved (and silently rewrote) the cents knob's parameter.
+         * The two knobs' changes are told apart by the knob itself: tune_ui_ct is what the encoder holds and
+         * tune_ui_ct_l is the value last applied, so they differ only when CENTS was turned since. If it was,
+         * that turn is an edit of the note now selected (it stays); if it was not, the selection carries the
+         * note's own cents into the knob and the comparison below sees "no edit" and writes nothing. */
         tune_ui_note_l = (int16_t)note;
-        tune_ui_ct = tune_ui_ct_l = (int16_t)tune_get((int32_t)note);
+        if (tune_ui_ct != tune_ui_ct_l) {
+            ct = tune_clamp((int32_t)tune_ui_ct, -TUNE_CMAX, TUNE_CMAX);
+        } else {
+            ct = tune_clamp(tune_get((int32_t)note), -TUNE_CMAX, TUNE_CMAX);
+            tune_ui_ct = tune_ui_ct_l = (int16_t)ct;
+        }
     }
     if (ct != (int32_t)tune_ui_ct_l) {
         tune_ui_ct_l = (int16_t)ct;

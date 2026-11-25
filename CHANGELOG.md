@@ -1,3 +1,45 @@
+## v2.3.15 — LFO en nueve pantallas, DEST con profundidad, y el knob 2 de TUNE que ya no escribe el 3
+
+- **MOD MAP, fuera.** Era la página MOD leída de otra manera (solo los slots asignados, con un chip que contaba las
+  rutas que comparten destino) y no tenía ni un control propio: una vista de la página de al lado gastando una de
+  las diez pantallas de la familia LFO. Se eliminó la entrada de `PAGES[]`, su enumeración y todo su código de
+  dibujo. El contador de la familia pasa de `x/10` a `x/9` en todas sus pantallas (LFO, LFO DEST, LFO CURVE, LFO
+  SHAPE, MOD, MSEQ, MSEQ 2, MACROS, SCENES): el índice lo calcula `params.c` desde `PAGES[]`, así que no hay ningún
+  número escrito a mano que actualizar y `tests/ui_render` recorre las nueve sin huecos.
+- **LFO DEST / ENV DEST, rediseñadas.** Eran cuatro columnas bipolares sin nombre, sin valor y sin escala. Ahora
+  son dos bandas: (1) **la fuente en profundidad** — el ciclo del LFO, o el ADSR del track, dibujado tres veces con
+  el motor de profundidad que ya usa la página ENV (`qz_curve`: la de delante a 2 px y encendida, las de atrás
+  más chicas, levantadas y más oscuras), con la aguja del momento, el punto del nivel actual y, en el envelope, una
+  regla encendida con el nivel que tienen las voces; (2) **una placa por destino** con su nombre, un raíl bipolar
+  con el cero y los cuartos, el alcance que permite el knob (barra tenue), la parte de ese alcance que la fuente
+  está usando **ahora** (barra del acento hacia un lado, tinta media hacia el otro, con pip en la punta) y el valor
+  con el formato de la tarjeta. `LOOP` de ENV DEST no es una profundidad: dibuja su chip y las envolventes que
+  repite, sin raíl, para que un modo no se lea como una ruta en cero. Todo sale de `lfo_ph` / `lfo_val` / las
+  voces, nada de un temporizador.
+- **El S&H de LFO DEST no es una raya.** Un ciclo de sample-and-hold es un valor sostenido: dibujar uno solo daba
+  una línea plana que parecía rota. La banda muestra ahora los ocho ciclos que forman la escalera (el mismo hash
+  que la página LFO usa), así que se ve el escalón y se mueve cuando la fase cruza un ciclo.
+- **SCL TUNE: la escritura cruzada, cerrada.** `tune_ui_sync()` (`tune.c`) releía los cents de la nota nueva en
+  `tune_ui_ct_l` pero seguía comparando con el `ct` local de la nota **anterior**; al diferir, llamaba a
+  `tune_set(nota_nueva, cents_viejos)` y el knob NOTE reescribía en silencio el parámetro del knob CENTS. Ahora el
+  local acompaña a la selección, la comparación ve "sin edición" y la tabla no se toca: cada knob modifica solo el
+  suyo. `tests/tune_test` cubre el caso (mover la nota no cambia ningún cent).
+- **SCL TUNE: la mano se ve y se mueve.** Las notas sostenidas llevan una regla bajo su propia letra (se leen
+  aunque el temperamento esté en 0 cents), un pip recorre su radio hacia el borde y se apaga al llegar, y el
+  desplazamiento de la nota se sigue leyendo en su radio. La animación es la fase de `ui.frame` (cuatro frames por
+  paso, ~15 fps) con el índice de la nota como desfase: doce radios de geometría, nada por muestra, y la página
+  queda quieta cuando no hay teclas. `graph_signature()` no incluía ni el temperamento ni las teclas sostenidas —
+  la página conservaba el dibujo con que nació —, así que ahora los cuatro números de la tabla, el `dirty` y las
+  notas sostenidas entran en el hash: un knob repinta en el frame siguiente.
+- **El anillo que el comentario prometía.** El círculo decía "cada nota, un radio desde un anillo común" y el
+  anillo no existía: a 0 cents cada radio es un punto y la rueda se leía como polvo. Un polígono de doce segmentos
+  en `T_LINE` es ese anillo, y una desviación ya tiene de dónde salir.
+- **Medido en host, no en la unidad.** `ui_render`: 203 pantallas x 22 paletas + el barrido de páginas/valores,
+  0 desviaciones de 1 px en 3 967 423 mediciones de alineación, 0 tintas sobre su propio color, 0 píxeles fuera de
+  gris/neutro en GREY/MONO. El estado `LFO DEST` del barrido pone el LFO en marcha (`lfo_ph`, `lfo_val`,
+  `lfo_fade`) para que el frame pruebe que la aguja, el punto y las barras vivas se dibujan desde el estado.
+  Clase de cada número: `[HOST]`; sin unidad FM-1, nada aquí es una medición de hardware.
+
 ## v2.3.14 — FM6 devuelve sus voces, y sus tests dejan de medir el panel
 
 - **El defecto que quedaba abierto, cerrado.** Una nota soltada no volvía a quedar libre: la etapa 4 del envelope

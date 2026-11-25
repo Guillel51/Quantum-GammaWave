@@ -853,6 +853,15 @@ static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
     scl_head(l, tune_dirty ? "EDITED" : slot < TUNE_FACT ? "FACTORY" : "STORED",
              tune_dirty ? T_ACCENT : T_DIM);
 
+    /* (FASE EXTRA) THE COMMON RING. The comment said each note is a spoke "from a common ring" and the ring itself
+     * was never drawn: at 0 cents every spoke is a point and the wheel read as dust. One polygon of twelve
+     * segments is that ring, so a deviation has something to lean out of -- and the notes the hand holds still
+     * read when the temperament is equal. */
+    for (k = 0; k < 12u; k++) {
+        uint32_t k2 = (k + 1u) % 12u;
+        cv_line(TUNE_CX + ((TUNE_RB * SCL_COS[k]) >> 8), TUNE_CY + ((TUNE_RB * SCL_SIN[k]) >> 8),
+                TUNE_CX + ((TUNE_RB * SCL_COS[k2]) >> 8), TUNE_CY + ((TUNE_RB * SCL_SIN[k2]) >> 8), T_LINE);
+    }
     /* the circle: a spoke a note, from TUNE_RB outwards (sharp) or inwards (flat), 50 cents at the rim */
     for (k = 0; k < 12u; k++) {
         int32_t c = TUNE_CX + ((TUNE_RN * SCL_COS[k]) >> 8), y = TUNE_CY + ((TUNE_RN * SCL_SIN[k]) >> 8);
@@ -863,10 +872,25 @@ static __attribute__((noinline)) void graph_scl_tune(const track_t *t)
         uint16_t col = k == cur ? T_ACCENT : ((held >> k) & 1u) ? T_KEY : d ? T_THEME : T_LINE;
         cv_line(TUNE_CX + ((r1 * SCL_COS[k]) >> 8), TUNE_CY + ((r1 * SCL_SIN[k]) >> 8),
                 TUNE_CX + ((r0 * SCL_COS[k]) >> 8), TUNE_CY + ((r0 * SCL_SIN[k]) >> 8), col);
-        if ((held >> k) & 1u)                            /* a note the track is playing: the mark goes on the
-                                                          * spoke, never on its letter */
-            cv_rect(TUNE_CX + ((8 * SCL_COS[k]) >> 8) - 1, TUNE_CY + ((8 * SCL_SIN[k]) >> 8) - 1, 3, 3, T_ACCENT);
+        if ((held >> k) & 1u) {                          /* (FASE EXTRA) A NOTE THE HAND HOLDS MOVES. A pip runs
+                                                          * out along the note's own spoke, from the hub to the
+                                                          * rim, fading as it goes, and the spoke's tip carries
+                                                          * a mark while the key is down: the circle answers a
+                                                          * touch where the touch is, and a chord reads as a
+                                                          * fan of them. The pulse is ui.frame's own phase
+                                                          * (graph_signature hands this page four frames a step:
+                                                          * ~15 fps) with the note's index as its offset, so no
+                                                          * two pips leave together and nothing runs per sample
+                                                          * -- twelve spokes of geometry, then the page is idle. */
+            int32_t pr = 8 + (int32_t)((ui.frame / 4u + (uint32_t)k * 5u) % 20u);
+            cv_rect(TUNE_CX + ((pr * SCL_COS[k]) >> 8) - 1, TUNE_CY + ((pr * SCL_SIN[k]) >> 8) - 1, 3, 3,
+                    pr < 20 ? T_ACCENT : ux_mix(T_SURF, T_ACCENT, 40));
+        }
         cv_text_in(c - 9, y - 5, 18, &AF_S, N_NOTE[k], k == cur ? T_ACCENT : T_TEXT, T_SURF);
+        if ((held >> k) & 1u)                        /* (FASE EXTRA) a key is down on this note: a rule under its
+                                                      * own letter, so the hand reads even when the temperament sits
+                                                      * at 0 cents and the spoke has no length to show */
+            cv_rect(c - 4, y + 6, 9, 1, T_ACCENT);
     }
     cv_rect(TUNE_CX - 1, TUNE_CY - 1, 3, 3, tune_dirty ? T_ACCENT : T_DIM);
 
