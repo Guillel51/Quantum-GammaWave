@@ -4315,3 +4315,27 @@ Detalle y descartes medidos: `docs/FASE_1_MEMORIA_v2.5.0.md`.
 | 12 voces, motores, presets, animaciones y gráficos intactos | **PASS** | goldens 311/311 idénticos, puerta de píxeles 3 241/3 241, suite host en verde | HOST |
 | Sin asignaciones dinámicas nuevas ni en la ISR | **PASS** | el cambio es de colocación de `.bss`; la limpieza de arranque es un bucle de enteros como el de `.pool` | TARGET |
 | Compatibilidad de proyectos | **PASS** | ningún formato cambió; `robust_test`, `persistence_test` y los goldens de proyecto en verde | HOST |
+
+---
+
+## 37. Fase 2/4 de la ronda: polifonía, propiedad de la voz y el tail de FM6 (v2.5.0, 2026-11-25)
+
+Detalle, auditoría punto por punto y descartes medidos: `docs/FASE_2_POLIFONIA.md`.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Auditar `voice_alloc`, `voice_window_grow`, `voice_kill`, `shed_voice`, `load_tight`, `shed_count` | **PASS** | §1 del documento: dónde vive cada uno, qué decide y con qué prueba cuenta | — |
+| Condiciones de carrera entre los dos núcleos | **PASS (ya resuelto)** | `voice_defer` + `FULECCA_MC_BUSY`: la nota se pospone al bloque siguiente y nunca se pierde una tecla de un acorde; `voice_defer_test` | HOST |
+| Propiedad y estados de cada voz | **PASS** | `vpool`/`vown`/`VDEAD`: una ranura tiene un dueño, la inerte no suena ni se roba; stages 0..4 con un significado cada uno | TARGET |
+| Robo considerando envolvente, estado, antigüedad, prioridad y notas sostenidas | **PASS** | `quiet_tail` (−40 dB primero) + `voice_victim` (release, extra, mantenida que no es el bajo; fresco → parte justa → energía → edad) | HOST |
+| No cortar notas largas o importantes si hay alternativa | **PASS** | el bajo de cada parte está protegido; la víctima es la más floja, no la más antigua (medido en v1.5.23) | HOST |
+| Reutilizar voces liberadas y sus colas de release | **PASS** | `quiet_tail` antes que cualquier voz con gate; **y el arreglo de esta fase**: FM6 ya no retiene la ranura de una cola que se apagó | HOST |
+| Que una pista no monopolice el pool | **PASS** | `vshare` como desempate y préstamo de ventanas solo con ranuras que no suenan | HOST |
+| Reparto entre las seis pistas | **PASS** | `poly_six_test` C (4+4+2+1+1), `poly_phase2_test` E (ocho notas contra cinco pistas con diez) | HOST |
+| Rendimiento de FM6, ANALOG, PHASE, WHEEL, WTABLE, ADDTV | **PASS (sin cambio)** | no se tocó ningún lazo de render; el cambio de FM6 solo libera ranuras silenciosas antes | TARGET/HOST |
+| Acordes + ARP + secuenciador + grabación + FX a la vez | **PASS** | `poly_stress_test`, `poly_six_test` F, `seq_test`, `arp_test` | HOST |
+| Umbrales de `load_tight` y `shed_voice` | **PASS (revisados, no cambiados)** | 65/60 % (ECO 50/45) y dos mitades al 80 % con una acción por episodio: cada valor tiene su medición y sin unidad no se mueve | — |
+| Estadísticas de ocupadas, liberadas, robadas y rechazadas | **PASS** | totales (`voice_stats`) **y por parte** (`vpart_taken`/`vpart_denied`, línea `voices_by_part` del console) | HOST |
+| Diagnóstico de carga por pista y motor | **PARCIAL (honesto)** | por parte: voces cedidas y notas rechazadas; por motor: el coste del bloque lo miden `target_budget.py` (estático) y `poly_stress_test` (host). Ciclos por motor en la unidad no hay instrumentación | HOST/TARGET |
+| Recuperación ante picos de CPU | **PASS (diseño existente)** | histéresis del presupuesto (16 mitades bajo 60 % para soltar) y una sola voz por episodio de sobrecarga | HOST |
+| No pasar de 12 voces | **PASS** | `NVOICE` sigue en 12; `poly_budget_test` mide el cap real con 8/10/12/16 notas pedidas | HOST |
