@@ -4339,3 +4339,14 @@ Detalle, auditoría punto por punto y descartes medidos: `docs/FASE_2_POLIFONIA.
 | Diagnóstico de carga por pista y motor | **PARCIAL (honesto)** | por parte: voces cedidas y notas rechazadas; por motor: el coste del bloque lo miden `target_budget.py` (estático) y `poly_stress_test` (host). Ciclos por motor en la unidad no hay instrumentación | HOST/TARGET |
 | Recuperación ante picos de CPU | **PASS (diseño existente)** | histéresis del presupuesto (16 mitades bajo 60 % para soltar) y una sola voz por episodio de sobrecarga | HOST |
 | No pasar de 12 voces | **PASS** | `NVOICE` sigue en 12; `poly_budget_test` mide el cap real con 8/10/12/16 notas pedidas | HOST |
+
+---
+
+## 38. Auditor de tamaño por constante en XIP (v2.5.0, 2026-11-25)
+
+Detalle y cifras: `docs/XIP_AUDIT.md`, generado por `tools/xip_audit.py` desde el ELF y el mapa del link.
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Auditor que diga qué datos de XIP no referencia ningún camino alcanzable | **PASS** | `tools/xip_audit.py`: 627 secciones de sólo lectura, 126 155 B, referencia por dirección (palabra de 32 bits dentro del rango de la sección), **0 secciones muertas, 0 B de padding** | TARGET |
+| Recuperar ~5 KB para los 8 KB libres sin quitar funciones ni calidad | **BLOQUEADO (con la medición)** | no queda dato inalcanzable: `--gc-sections` ya lo quitó. Los 126 KB están en cadenas (25,6 KB), curvas (28,3 KB), fuentes (23,4 KB) y presets (13,4 KB), todos leídos. Recuperar 5 KB exige un cambio de representación (diccionario de cadenas, segunda etapa de fuentes), no un borrado | TARGET |
