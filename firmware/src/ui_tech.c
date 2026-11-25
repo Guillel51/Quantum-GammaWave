@@ -435,7 +435,10 @@ static void tech_chorus(void)
     int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, top = TK_Y0 + 2, base = TK_Y1 - 2, k;
     int32_t cy = (top + base) / 2;
     int32_t amp = ((base - top) / 2 - 16) * (300 + depth * 700 / 1000) / 1000;   /* tk() is per-mille */
-    uint32_t ph = bg_energy() > 2 ? ui.frame * (uint32_t)(40 + rate) * 8u : 0u;
+    /* (FASE 4 de esta ronda) HALF THE SPEED. The sweep ran a whole wave in well under a second and, drawn three
+     * times across the panel, read as a flicker rather than as a modulation: at frame * 4 the front pass moves
+     * one cycle in about two seconds, which is the rate a chorus is heard at. DEPTH still sets the height. */
+    uint32_t ph = bg_energy() > 2 ? ui.frame * (uint32_t)(40 + rate) * 4u : 0u;
     cv_rect(x0, cy, w, 1, T_RAISE);                     /* the zero line, quiet under both figures */
     /* (v2.3.9) THE DEPTH IS THE SAME STACK THE CURVES USE. The lane used to be drawn three times with a per-copy
      * phase nudge and a fixed lift: three bright lines of the same weight a few pixels apart, which at this height
@@ -449,8 +452,8 @@ static void tech_chorus(void)
         uint16_t ink = k ? T_ACCENT : T_THEME;
         int32_t g;
         cv_text_on(x0 + 2 + k * 14, top + 12, &AF_S, k ? "R" : "L", ux_mix(T_SURF, ink, 70), T_SURF);
-        for (g = 3; g >= 0; g--) {                      /* back to front, so the near sweep is never covered */
-            int32_t sy = 1000 - g * 80, dy = -g * 5;
+        for (g = 2; g >= 0; g--) {                      /* back to front, so the near sweep is never covered */
+            int32_t sy = 1000 - g * 90, dy = -g * 6;      /* (FASE 4) a wider stack: the depth reads */
             int32_t a_k = amp * sy / 1000, lane_k = lane + dy;
             uint16_t gi = g ? qz_back_ink(ink, sy) : ink;
             int32_t px = 0, py = lane_k, i2;

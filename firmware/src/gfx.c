@@ -215,6 +215,7 @@ static uint16_t ux_sat(uint16_t c, int32_t pct)
     nb = nb < 0 ? 0 : nb > 31 ? 31 : nb;
     return (uint16_t)((nr << 11) | (ng << 5) | nb);
 }
+void gfx_forget(void);                           /* (gfx.c, below: a palette change forgets the panel) */
 static void palette_set(uint32_t i)
 {
     const ui_pal_t *p = &UI_PALETTES[i % NPALETTES];
@@ -257,6 +258,12 @@ static void palette_set(uint32_t i)
         ux.tint = ux.grid = p->bg;
     }
     ux.gen++;                                    /* the text ramps change with the coverage curve */
+    /* (FASE 4 de esta ronda) NOTHING THE PANEL SHOWS IS KNOWN ANY MORE. Every token above just changed, so the
+     * row and band tables gfx keeps -- "this row is the one the panel already has" -- describe pixels that no
+     * longer exist. Without this the frame after a palette change skipped the rows whose drawing happened to
+     * hash the same and left the old colour on the glass: that is the line left across the middle of the
+     * settings screen after stepping the skin, reported as a stray rule. */
+    gfx_forget();
 }
 
 /* settings store a tagged id; ids below 20 are the palettes of earlier firmware */

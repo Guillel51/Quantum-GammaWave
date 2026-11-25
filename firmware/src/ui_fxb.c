@@ -40,7 +40,10 @@ static const uint8_t FXB_BLOCKI[FXB_NB] = {ICON_DELAY, ICON_REVERB, ICON_CHORUS,
 /* the block's own header: its icon, its title, and the lamp that lights with the bus */
 static void fxb_head(int32_t x, int32_t y, int32_t w, uint32_t ic, const char *name, uint16_t ink, int32_t lvl)
 {
-    cv_icon_on(x + 3, y + 2, 12, ic, ink, T_BG);
+    /* (FASE 4 de esta ronda) the DELAY glyph's ink sits two rows high in its 12 px cell and read as floating
+     * above the block's own header; 1 px down puts its body on the title's line. The other five already sit
+     * there, so this is the one nudge and not a new rule. */
+    cv_icon_on(x + 3, y + 2 + (ic == ICON_DELAY ? 1 : 0), 12, ic, ink, T_BG);
     cv_text_on(x + 17, y + 2, &AF_S, name, ink, T_BG);   /* (6.4) inside the block's own ground, never above it */
     /* (Solar Heat) the activity lamp: 3 px at rest, 4 px with the bus carrying signal, and the colour walks
      * from the block's own ink to the palette's heat as the level climbs -- the page's only motion a silent
@@ -52,6 +55,12 @@ static void fxb_head(int32_t x, int32_t y, int32_t w, uint32_t ic, const char *n
 }
 /* a level 0..7000 (fx_vu's scale) as a 0..56 px bar height */
 static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
+/* the block's readout: its value and a per-cent sign (DELAY, REVERB, CHORUS, PUNCH all print one) */
+static void fxb_pct(char *b, int32_t v)
+{
+    fmt_int(b, clamp(v, 0, 127));
+    str_cpy(b + str_len(b), "%", 3);
+}
 /* (Solar Heat) the drawing area of a block as a dithered ramp, cold overhead and warm at the floor: two bands of
  * gw_dither's 4 x 4 pattern, which is what a 16-bit panel had instead of a gradient. The pattern never moves and
  * the colours are the palette's own tokens mixed by ux_mix, so GREY / MONO / FLAT keep working and a still page
@@ -133,17 +142,24 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
         b[0] = 0;
         switch (i) {
         case FXB_DLY: {
-            /* the echo tunnel, small: the same picture the DLY page draws large */
-            int32_t fb = clamp(song.g[G_DFDBK], 0, 127), k, cx = dx + dw / 2, cy = dy + dh / 2;
+            /* THE ECHO TRAIN, WITH A PULSE IN IT. The picture was the only one on the page that never moved: the
+             * repeats sat still while every other block animated, which read as a broken block. Now a ring leaves
+             * the head every 64 frames while the bus carries signal -- the echo the delay is making, spaced by
+             * FEEDBK's softness -- and the head itself is a filled lamp so the train has a source. MIX is what
+             * the number shows, because MIX is the value this console's own knob 2 moves. */
+            int32_t fb = clamp(song.g[G_DFDBK], 0, 127), mx = clamp(song.g[G_DMIX], 0, 127), k;
+            int32_t cx = dx + dw / 2, cy = dy + dh / 2, ph = (int32_t)((ui.frame * 2u) & 63u);
             for (k = 3; k >= 0; k--) {
                 int32_t rx = (dw / 3) - k * 3, ry = dh / 2 - k * 2;
                 if (rx < 2 || ry < 2)
                     continue;
+                /* the ring the pulse is on, while the bus carries signal, is the accent's: one travelling
+                 * outward every 64 frames, so the train is seen to repeat and not just to exist */
                 cv_frame(cx - rx, cy - ry, rx * 2, ry * 2,
-                         on ? ux_mix(T_BG, ux_mix(T_THEME, T_ACCENT, 30 + k * 22), 60 + fb * k / 6) : T_RAISE);
+                         on ? ((mx && k == 3 - ph / 16) ? T_ACCENT :
+                               ux_mix(T_BG, ux_mix(T_THEME, T_ACCENT, 30 + k * 22), 55 + fb * k / 6)) : T_RAISE);
             }
-            fmt_int(b, clamp(song.g[G_DFDBK], 0, 127));
-            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            fxb_pct(b, mx);
             break;
         }
         case FXB_REV: {
@@ -163,23 +179,26 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
                             on ? ux_mix(T_ACCENT, T_THEME, clamp(k * 26, 0, 100)) : T_RAISE);
                 h = h * (1000 - fall) / 1000;
             }
-            fmt_int(b, clamp(song.g[G_RSIZE], 0, 127));
-            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            fxb_pct(b, song.g[G_RSIZE]);
             break;
         }
         case FXB_CHO: {
-            /* the two lanes, small: left above the line, right below */
-            int32_t k, cy = dy + dh / 2, amp = 1 + clamp(song.g[G_CDEPTH], 0, 127) * (dh / 2 - 3) / 127;
+            /* TWO LANES THAT READ. The sweep ran at frame * 4 -- a full cycle in a sixteenth of a second, which
+             * is a flicker, and was reported as one. It is frame * 1 now: three quarters of a second a wave, the
+             * rate of the modulation it draws. Each lane is two pixels thick over a centre line, so the picture
+             * has a horizon to read against and its crests are not a dotted line, and DEPTH still sets how far
+             * they swing: the same knobs, a legible picture. */
+            int32_t k, cy = dy + dh / 2, amp = 2 + clamp(song.g[G_CDEPTH], 0, 127) * (dh / 2 - 4) / 127;
             for (k = 0; k <= dw - 4; k++) {
-                int32_t w1 = (k * 1400 / (dw > 1 ? dw : 1) + (int32_t)(ui.frame * 4u)) & 255, w2 = (w1 + 128) & 255;
-                int32_t s1 = w1 < 128 ? w1 : 255 - w1, s2 = w2 < 128 ? w2 : 255 - w2;
-                int32_t yl = cy - 1 - ((s1 - 64) * (128 - (s1 - 64 < 0 ? 64 - s1 : s1 - 64)) * amp) / 8192;
-                int32_t yr = cy + 1 + ((s2 - 64) * (128 - (s2 - 64 < 0 ? 64 - s2 : s2 - 64)) * amp) / 8192;
-                cv_rect(dx + 2 + k, clamp(yl, dy, dy + dh - 1), 1, 1, on ? T_THEME : T_RAISE);
-                cv_rect(dx + 2 + k, clamp(yr, dy, dy + dh - 1), 1, 1, on ? T_ACCENT : T_RAISE);
+                int32_t w1 = (k * 900 / (dw > 1 ? dw : 1) + (int32_t)ui.frame) & 255, w2 = (w1 + 128) & 255;
+                int32_t t1 = w1 < 128 ? w1 : 255 - w1, t2 = w2 < 128 ? w2 : 255 - w2;      /* the triangle */
+                int32_t s1 = t1 * (128 - t1) / 4, s2 = t2 * (128 - t2) / 4;                /* .. rounded to a wave:
+                                                                                            * 0..1024 over a cycle */
+                int32_t yl = cy - 1 - s1 * amp / 1024, yr = cy + 2 + s2 * amp / 1024;
+                cv_rect(dx + 2 + k, yl, 1, 2, on ? T_THEME : T_RAISE);
+                cv_rect(dx + 2 + k, yr, 1, 2, on ? T_ACCENT : T_RAISE);
             }
-            fmt_int(b, clamp(song.g[G_CDEPTH], 0, 127));
-            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            fxb_pct(b, song.g[G_CDEPTH]);
             break;
         }
         case FXB_SLI: {
@@ -205,8 +224,7 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
                 cv_rect(dx + k, dy + dh - h, 1, h, on ? ux_mix(T_ACCENT, T_THEME, clamp(h * 5, 0, 100)) : T_RAISE);
             }
             cv_rect(dx + dw - 4, dy + duck * (dh - 2) / 127, 2, dh - duck * (dh - 2) / 127, on ? T_THEME : T_RAISE);
-            fmt_int(b, punch);
-            str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+            fxb_pct(b, punch);
             break;
         }
         default: {
