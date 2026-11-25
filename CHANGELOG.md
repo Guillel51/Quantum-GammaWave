@@ -1,3 +1,31 @@
+## v2.3.14 — FM6 devuelve sus voces, y sus tests dejan de medir el panel
+
+- **El defecto que quedaba abierto, cerrado.** Una nota soltada no volvía a quedar libre: la etapa 4 del envelope
+  (el release llegó a L4) seguía devolviendo su nivel, así que el gain del operador quedaba en L4 y
+  `fm6_note_done()` —que exige `gain_out < FM6_DONE` en cada portadora— no la daba por terminada nunca. `regress` lo
+  veía como HEALTH FAIL en `FM6/00_SILT_KEYS` (DC 19, pico 582 a los 12 s) y `FM6/31_FERROUS_PAD` (DC −172, pico
+  2288); con seis voces, dos presets que no vuelven son dos voces menos para el resto de la canción. Ahora la cola
+  del patch se respeta tal cual y la voz tiene un presupuesto: `rel_t` cuenta las muestras desde que se suelta la
+  tecla y a los 5 s (`FM6_REL_MAX`) la voz se desvanece en 60 ms (`FM6_REL_FADE`) y vuelve al motor. Las dos voces
+  quedan libres a los 5.06 s, con DC 0 y cola 0.
+- **Lo que se probó y se descartó, anotado.** Hacer que la etapa 4 devolviera silencio arreglaba los dos HEALTH FAIL
+  pero rompía `tests/fm4_test`: las conversiones de FM4 se comparan contra el motor retirado a 0.05/0.3/1.0 s y sus
+  colas viven en L4 — el centroide pasaba de 18/18 a 7/18 (peor caso 3.78 octavas). Un suelo en la tasa de release
+  (~4 s) cambiaba 28 renders y tampoco hacía falta con el presupuesto de tiempo. Ninguno de los dos está en el
+  código; los dos están explicados en `docs/FM6_VOICE_RELEASE.md`.
+- **`tests/fm6_test`: de 5 fallos a 0.** Cuatro no eran del motor: `setup()` dejaba los knobs de envelope del track
+  en los de SILT KEYS y `eng_fm6.c` los aplica al patch (ATK/DEC/REL restan de las tasas de los operadores y SUSTAIN
+  **reescribe** L3 de todos: `50 + SUS*49/126`). Con DEC 74 la R2 50 del patch de prueba quedaba en 1 (~40 s de
+  decay) y con SUS 116 su L3 0 pasaba a 95. El fixture neutraliza los tres knobs de tasa y, en el caso percusivo, el
+  de sustain. Ninguna aserción se tocó.
+- **29 renders golden de FM6 rebaselinados**: son los presets cuya cola ahora termina. `tests/fm4_test` sigue en
+  18/18 y 18/18, y ningún otro motor cambió un render (311 comparados).
+- **`tools/budget_report.py` compila otra vez**: su sonda incluía `core.h`, que llama a `pc_arm()` (ui.c) desde un
+  helper inline; ahora la sonda define el símbolo en vez de no enlazar, y el informe de RAM vuelve a salir.
+
+Detalle, evidencias y mediciones: `docs/FM6_VOICE_RELEASE.md`. Clase de cada número: `[HOST]`; sin unidad FM-1,
+nada aquí es una medición de hardware.
+
 ## v2.3.13 — EXTRA auditada, PANEL Y legible, y el jack con su limitación escrita
 
 - **PANEL Y dice qué es.** Sus dos valores eran `0` y `80` y no significaban nada: es la franja de la memoria del

@@ -111,11 +111,6 @@ static const int32_t FM6_STATICS[77] = {
     15435, 14112, 13230, 11025, 9261, 9261, 7717, 6615, 6615, 5512, 5512, 4410, 3969, 3969, 3439, 2866, 2690, 2249,
     1984, 1896, 1808, 1411, 1367, 1234, 1146, 926, 837, 837, 705, 573, 573, 529, 441, 441};
 
-/* (FASE 12) the slowest release a voice may use, in qrate units: the rate the panel and the FX send
- * (clamp(.., 1, 99)) plus a patch's own R4 could reach 1, a fall of a minute and a half from full scale that
- * holds a voice out of the six for the rest of the song (SILT KEYS and FERROUS PAD did exactly that). */
-#define FM6_REL_MIN 20
-
 /* stage ix (0..3; 4 = done) of an envelope whose rates and levels are op[FP_R1..], op[FP_L1..] */
 static void fm6_env_advance(fm6_env_t *e, const uint8_t *op, uint32_t ix)
 {
@@ -140,13 +135,8 @@ static void fm6_env_advance(fm6_env_t *e, const uint8_t *op, uint32_t ix)
     } else {
         e->statc = 0;
     }
-    if (ix == 3u && !e->down) {
-        e->statc = 0;                       /* a released stage never holds: it has a target (silence) to reach */
-        if (qrate < FM6_REL_MIN)            /* and it never crawls: the rate the panel and the FX send (clamp(.., 1, 99))
-                                             * plus a patch's own R4 could reach 1, a fall of a minute and a half from full
-                                             * scale that holds a voice out of the six for the rest of the song */
-            qrate = FM6_REL_MIN;
-    }
+    if (ix == 3u && !e->down)
+        e->statc = 0;                       /* a released stage never holds: it has a target to reach */
     e->inc = (4 + (qrate & 3)) << (2 + FM6_LG_N + (qrate >> 2));
 }
 
@@ -161,15 +151,6 @@ static void fm6_env_init(fm6_env_t *e, const uint8_t *op, int32_t outlevel, int3
 
 static int32_t fm6_env_get(fm6_env_t *e, const uint8_t *op)
 {
-    /* (FASE 12) A FINISHED ENVELOPE IS SILENT (stage 4 = the release reached L4). Stage 3 falls to L4, so a patch
-     * whose L4 is audible — or one whose release rate lands in the static table, where a stage holds for up to
-     * FM6_STATICS[0] = 1 764 000 samples, 40 s — left its carrier at that level and above FM6_DONE for ever:
-     * tests/regress saw FM6/00_SILT_KEYS and FM6/31_FERROUS_PAD still sounding with DC left 12 s after the
-     * note-offs, and tests/fm6_test the same on a factory patch. msfa's stage 4 means the envelope has no more to
-     * say, so the operator is done; the L4 level is then a *level*, not a gate. A note still held never reaches
-     * stage 4 (ix 3 does not move while the key is down), so a patch that sustains on L3 is untouched. */
-    if (e->ix >= 4u)
-        return 0;
     if (e->statc) {
         e->statc -= FM6_N;
         if (e->statc <= 0) {
@@ -458,6 +439,7 @@ typedef struct {                 /* a sounding note (msfa's note): 244 bytes */
     fm6_penv_t penv;
     uint8_t fixed;               /* bit k: operator k has a fixed frequency */
     uint8_t live, down, trim;    /* trim (eng_fm6.c, JIANT 0.6.8): the output attenuation its last block had */
+    int32_t rel_t;               /* (FASE 12) samples since the key went up: the tail a released note may keep */
     int32_t dc;                  /* (eng_fm6.c) the output's DC blocker */
 } fm6_note_t;
 
@@ -537,6 +519,7 @@ static void fm6_note_init(fm6_note_t *n, const uint8_t *p, int32_t note, int32_t
     }
     fm6_penv_init(&n->penv, p);
     n->live = n->down = 1;
+    n->rel_t = 0;
 }
 
 static void fm6_note_key(fm6_note_t *n, const uint8_t *p, int down)
@@ -546,6 +529,8 @@ static void fm6_note_key(fm6_note_t *n, const uint8_t *p, int down)
         fm6_env_key(&n->env[k], p + k * FP_OP, down);
     fm6_penv_key(&n->penv, p, down);
     n->down = (uint8_t)down;
+    if (!down)
+        n->rel_t = 1;                       /* (FASE 12) the tail starts counting here, eng_fm6.c fades it out */
 }
 
 /* the log2 frequency (Q24) of a pitch in 1/16 semitone plus a fine factor (1 + fine / 4096: Felucca's

@@ -61,7 +61,7 @@ master ramp are the only things that touch the output, and they were already cor
 and `fx.c`). Adding a switch on top of a detect that does not exist would have been a lie with a
 speaker in it.
 
-Open, and named so it is not forgotten: **FM6 voices are not always freed after note-off**
+Fixed in v2.3.14, and no longer open: **FM6 voices are not always freed after note-off**
 (`tests/regress` HEALTH FAIL on `FM6/00_SILT_KEYS` and `FM6/31_FERROUS_PAD`, and
-`tests/fm6_test` "all free some seconds after the release"). That is a real audio defect and the next
-piece of work; it is not a jack problem.
+`tests/fm6_test` "all free some seconds after the release"). It was a real audio defect, not a jack
+problem, and it is closed: see `docs/FM6_VOICE_RELEASE.md`.

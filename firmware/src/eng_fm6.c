@@ -401,6 +401,13 @@ static void fm6_block(track_t *t)       /* once a block and part: the macros, th
     fm6_lfo_d[tr] = fm6_lfo_delay(&fm6_lfo[tr]);
 }
 
+/* (FASE 12) How long a released voice keeps its tail before the fade that gives the voice back: the operator
+ * envelope's stage 4 holds L4 for ever, so a patch whose L4 is audible would never free its voice. 5 s is longer
+ * than any tail the FM4 conversions are measured on (1 s) and shorter than the 12 s the health checks allow; 60 ms
+ * of fade make the cut inaudible. */
+#define FM6_REL_MAX (5 * 44100)
+#define FM6_REL_FADE 2646
+
 /* every carrier has gone silent for good: the voice ends (voice.c, engine_t.done) */
 static int fm6_done(track_t *t, voice_t *v)
 {
@@ -419,7 +426,7 @@ static void fm6_render(track_t *t, voice_t *v, int32_t *out, uint32_t len, const
     fm6_note_t *n = fm6_note_of(t, v);
     uint32_t tr = (uint32_t)(t - trk), i;
     const uint8_t *p;
-    int32_t bus[FM6_N], lf, fb, lvl, k, a, da, pk = 0;
+    int32_t bus[FM6_N], lf, fb, lvl, k, a, da, pk = 0, fg = 65536;
     uint32_t tb;
     if (!n || !n->live || len != FM6_N)
         return;
@@ -434,6 +441,20 @@ static void fm6_render(track_t *t, voice_t *v, int32_t *out, uint32_t len, const
                                                          * feedback alone was silent where its operator is quiet) */
     if (!fm6_note_compute(n, p, bus, fm6_lfo_v[tr], fm6_lfo_d[tr], lf, fm6_eff[tr].alg, fb, fm6_eff[tr].dt, lvl * 65536))   /* (v1.5.16) lvl is signed: * 65536 */
         return;                                         /* every carrier below the threshold */
+    /* (FASE 12) A RELEASED NOTE GETS ITS TAIL, THEN ITS VOICE BACK. Stage 4 of the operator envelopes holds L4, and a
+     * patch whose L4 is audible once the key is up kept the voice for ever (tests/regress: SILT KEYS and FERROUS PAD
+     * still sounding 12 s after the note-offs, DC left behind). The tail is kept exactly as it was — the FM4
+     * conversions measure it at 1 s and must keep passing — and after FM6_REL_MAX the voice fades out over
+     * FM6_REL_FADE samples, so the voice comes back without a click. A held note never counts. */
+    if (!n->down) {
+        n->rel_t += FM6_N;
+        if (n->rel_t >= FM6_REL_MAX + FM6_REL_FADE) {
+            n->live = 0;
+            return;
+        }
+        if (n->rel_t > FM6_REL_MAX)
+            fg = ((FM6_REL_MAX + FM6_REL_FADE - n->rel_t) << 16) / FM6_REL_FADE;
+    }
     /* the voice's amplitude ramp x VOICE_FS (one carrier at full: VOICE_FS / 2), six voices in unison ~ one */
     k = t->p[P_VOICE] == V_UNISON ? VOICE_FS * 2 / 5 : VOICE_FS;
     for (i = 0; i < FM6_N; i++) {                       /* the block's peak first: its trim from this block on */
@@ -455,7 +476,7 @@ static void fm6_render(track_t *t, voice_t *v, int32_t *out, uint32_t len, const
         int32_t x = bus[i] - n->dc;
         n->dc += x >> 10;                                 /* a one-pole high-pass, ~7 Hz: FM puts sidebands at 0 Hz */
         a += da;
-        out[i] += (int32_t)(((int64_t)x * a) >> 26);
+        out[i] += fg == 65536 ? (int32_t)(((int64_t)x * a) >> 26) : (int32_t)(((int64_t)x * a * fg) >> 42);
     }
     {   /* (FASE 2) CHARACTER: TONE (a one-pole high shelf), FOLD (a symmetric wavefolder: odd harmonics). They run
          * after the voice's amplitude, so the envelope is untouched and a zero block stays silent. s[0] is free in
