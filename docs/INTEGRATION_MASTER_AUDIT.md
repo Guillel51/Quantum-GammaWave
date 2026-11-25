@@ -1,3 +1,11 @@
+> **CORRECCIÓN (fase 8, 25-11-2026).** Este documento describe un momento anterior y su encabezado ya no es
+> cierto: la etiqueta `v2.5.0` **no** apunta a la versión que este proyecto publica hoy — existe desde el
+> 11-11-2026 sobre el commit `138586c` (fase 2) y por eso el workflow `tag-and-publish` la reportaba y no la
+> movía, que es la razón por la que las Releases quedaron clavadas en 2.3.16. La versión publicable es
+> **v2.5.1**, cortada desde el commit de este árbol y servida por el sitio, el instalador y el emulador con un
+> solo paquete. Los números de tag, commit y release de las secciones de abajo se conservan como registro de
+> lo que se midió entonces; el estado vigente está en `docs/FASE_8_FINAL.md`.
+
 # Quantum GammaWave — Integración Master Audit v2.5.0
 
 ## Repository State
