@@ -104,7 +104,7 @@ What you hold is one instrument in four pieces:
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
 | **Screen** | 240 × 240 RGB565, twenty-two palettes (GREY and MONO included), each a set of named roles |
-| **Package** | 610 959 B, checked by SHA-256 and size (integrity, not a signature — see `docs/SIGNING.md`) |
+| **Package** | 610 933 B (image 580 728 B of 583 612), checked by SHA-256 and size (integrity, not a signature — see `docs/SIGNING.md`) |
 | **Verification** | 311 golden renders, 4 163 host checks, an AC791N build budget, an emulator and a portal |
 
 It is a personal instrument that grew into a small ecosystem: the firmware is what the FM-1 runs, and the
