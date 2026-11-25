@@ -162,7 +162,7 @@ int main(void)
     for (i = 0; i + 1u < sizeof q; i++)
         if (buf.raw[i] == 'D' && buf.raw[i + 1u] == 'U')
             found = 1;
-    check("E: with no length, no block is written at all", ok && !found);
+    check("E: with no length, no byte is spent on one", ok && !found);
 
     printf("dur: %s\n", bad ? "FAILED" : "all passed");
     return bad != 0;

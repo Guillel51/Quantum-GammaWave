@@ -553,11 +553,11 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel);
  * or tempo dependent: the length is turned into sixteenths of the step the moment the release arrives, so a tempo
  * change afterwards cannot move a note that was already played. */
 static struct {
-    uint8_t n;
-    uint8_t note[4], idx[4];
-    int32_t off[4];
-    uint32_t slen[4];
-} rd[NPART];
+    uint32_t off;                    /* the first note-on's place in the step, in samples */
+    uint32_t slen;                   /* that step's length then (a tempo change later cannot move it) */
+    uint8_t idx;                     /* the step it went into */
+    uint8_t on;                      /* keys of the group still down (4 at most, a step's chord) */
+} rdq[NPART];
 static void rec_release(track_t *t, uint32_t note);
 static int rec_on(const track_t *t) { return ((song.rec >> trk_index(t)) & 1u) && song.playing && !chain.running; }
 static int pfx_rec_ok(void) { return song.rec && song.playing && !chain.running; }   /* (pfx.c: the punch-in lane) */
@@ -905,18 +905,16 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
         ;
     if (k == t->rh_n && t->rh_n < 4u)
         t->rh_note[t->rh_n++] = (uint8_t)note;      /* a chord: held until its last key is up */
-    {   /* (FASE 3) its start, for the length its release will write */
-        uint32_t q = trk_index(t), e;
-        for (e = 0; e < rd[q].n && rd[q].note[e] != note; e++)
-            ;
-        if (e == rd[q].n && e < 4u)
-            rd[q].n++;
-        if (e > 3u)
-            e = 3u;
-        rd[q].note[e] = (uint8_t)note;
-        rd[q].idx[e] = (uint8_t)idx;
-        rd[q].off[e] = gp;
-        rd[q].slen[e] = sl;
+    {   /* (FASE 3) where the group of keys started: the first note-on of a chord is its earliest key, and
+         * every release measures from there, so the step keeps the chord's longest note */
+        uint32_t q = trk_index(t);
+        if (!rdq[q].on) {
+            rdq[q].off = (uint32_t)gp;
+            rdq[q].idx = (uint8_t)idx;
+            rdq[q].slen = sl;
+        }
+        if (rdq[q].on < 4u)
+            rdq[q].on++;
     }
 }
 
@@ -953,48 +951,33 @@ static void rec_release(track_t *t, uint32_t note)
     for (i = 0; i < t->rh_n; i++)
         if (t->rh_note[i] != note)
             t->rh_note[k++] = t->rh_note[i];
+    if (rdq[trk_index(t)].on)                       /* (FASE 3) the group counts down with every key, held or not */
+        rdq[trk_index(t)].on--;
     if (k == t->rh_n || (t->rh_n = (uint8_t)k))
         return;                                     /* not one of them, or others still held */
     if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last &&
         t->seq_pos < step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), t->seq_idx) / 2u)
         t->step[t->rh_last] = t->rh_bak;            /* released early in it: not held into this step */
-    if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last) {
-        /* (FASE 3 de esta ronda) A NOTE THAT CROSSED STEPS keeps its real tail too: the release lands in the last
-         * TIE step and its fraction of that step goes into the step's dur, so playback stops the note where the
-         * key came up instead of at the step's close. The early release (before the middle) keeps the rule above:
-         * there the TIE is undone and the step is the one it was. */
-        uint32_t sl2 = step_samples(t, div_samples((uint32_t)t->p[P_SDIV]), t->seq_idx);
-        int32_t gp2 = (int32_t)t->seq_pos - (int32_t)t->ext;
-        step_t *st = &t->step[t->rh_last];
-        if (sl2 && gp2 > (int32_t)(sl2 / 2u) && st->time == ST_TIE) {
-            uint32_t u = (uint32_t)((gp2 * 16 + (int32_t)sl2 / 2) / (int32_t)sl2);
-            st->dur = (uint8_t)(u >= 15u ? 15u : (u < 1u ? 1u : u));
-        }
-    }
-    {   /* (FASE 3 de esta ronda) THE LENGTH IT WAS HELD. A note that ends in the very step it started in gets its
-         * real duration, in sixteenths of that step, where the step model could only offer "the whole step" (the
-         * track's GATE) or a TIE into the next one: a staccato key, an off-beat stab and a legato note now differ
-         * where they used to be the same step. Notes that cross a step keep the TIE model: a length longer than a
-         * step needs the playback to interrupt the step that follows, which this phase does not change. */
-        uint32_t q = trk_index(t), e, len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
-        int32_t gp = (int32_t)t->seq_pos - (int32_t)t->ext;
-        for (e = 0; e < rd[q].n && rd[q].note[e] != note; e++)
-            ;
-        if (e < rd[q].n) {
-            if (rd[q].idx[e] == (uint8_t)(t->seq_idx % len) && rd[q].slen[e] && gp > rd[q].off[e]) {
-                int32_t d = gp - rd[q].off[e];          /* 32 bits: a step is at most a few hundred thousand */
-                int32_t u = (d * 16 + (int32_t)rd[q].slen[e] / 2) / (int32_t)rd[q].slen[e];   /* rounded (the
-                                                         * pi32v2 build has no __divdi3: no 64-bit division) */
-                step_t *st = &t->step[seq_src(t, rd[q].idx[e])];
-                /* (a chord: the step sounds as long as its LONGEST key; the short one is the price of one gate
-                 * a step, and taking the last release would make the other keys' length meaningless) */
-                if (u >= 1 && st->time == ST_NOTE && (uint32_t)u > ST_DUR(st))
-                    st->dur = (uint8_t)(u > 15 ? 15 : u);   /* 15: just short of the step; a full one is the GATE */
-            }
-            rd[q].note[e] = rd[q].note[--rd[q].n];          /* the entry is done, held or not */
-            rd[q].idx[e] = rd[q].idx[rd[q].n];
-            rd[q].off[e] = rd[q].off[rd[q].n];
-            rd[q].slen[e] = rd[q].slen[rd[q].n];
+    if (!rdq[trk_index(t)].on && rdq[trk_index(t)].slen) {
+        /* (FASE 3 de esta ronda) THE LENGTH IT WAS HELD, measured from the group's first key. A note that ends in
+         * the step it started in gets its real duration, in sixteenths of that step, where the model could only
+         * offer "the whole step" (the track's GATE) or a TIE: a staccato key, an off-beat stab and a legato note
+         * now differ where they used to be the same step. A note that crossed steps writes the tail it really
+         * held into the last TIE step it reached -- a 1.9-step note stops being a 2-step note -- and a note whose
+         * release came a step later with no TIE behind it keeps the TIE model, exactly as before. The last key up
+         * writes it, so a chord keeps its LONGEST note (the others are the price of one gate a step). */
+        uint32_t q = trk_index(t), len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
+        int32_t gp = (int32_t)t->seq_pos - (int32_t)t->ext, d;
+        step_t *st = 0;
+        if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last && rdq[q].idx != (uint8_t)(t->seq_idx % len))
+            st = &t->step[t->rh_last], d = gp;      /* it crossed: the tail is this step's part */
+        else if (rdq[q].idx == (uint8_t)(t->seq_idx % len))
+            st = &t->step[seq_src(t, rdq[q].idx)], d = gp - (int32_t)rdq[q].off;
+        if (st && d > 0) {
+            int32_t u = (d * 16 + (int32_t)rdq[q].slen / 2) / (int32_t)rdq[q].slen;   /* rounded (the pi32v2 build
+                                                                 * has no __divdi3) */
+            if (u >= 1 && (st->time == ST_NOTE || st->time == ST_TIE) && (uint32_t)u > ST_DUR(st))
+                st->dur = (uint8_t)(u > 15 ? 15 : u);   /* 15: just short of the step; a full one is the GATE */
         }
     }
 }
