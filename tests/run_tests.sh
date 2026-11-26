@@ -682,6 +682,7 @@ run "the ST7789's init table: no gamma, no brightness, no VCOM (the 1.4 black-sc
     python3 tests/resources_test.py
     python3 tests/panel_table_test.py firmware/src/lcd.c
 run "target memory map: 1 MiB flash, RAM / pool / stacks / noinit do not overlap" python3 tests/memory_map_test.py
+run "target memory map: the ELF's RAM windows report their used and free bytes (tools/mem_map.py)" python3 tools/mem_map.py --top 3
 run "engine size: which symbol belongs to which engine, XIP vs RAM, the map cross-check" python3 tests/engine_size_test.py
 run "engine size of this build: XIP and .data+.bss per engine (skips without build/felucca.syms)" \
     python3 tools/engine_size.py --strict --map --no-image
