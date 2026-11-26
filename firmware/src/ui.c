@@ -492,6 +492,10 @@ static int page_visible(uint32_t i)
         return !ui.home && ui.page == i;               /* SEQ pages' cycle (only where code put the screen) */
     if (PAGES[i].graph == GR_DXSND || PAGES[i].graph == GR_DXIMG)   /* (0.6.48: IMAGE) */
         return TSEL->eng_req % NENGINES == ENGI_DRUM;
+    if (PAGES[i].graph == GR_DRAW)                     /* (FASE 3) ADDITIVE > DRAW */
+        return TSEL->eng_req % NENGINES == ENGI_ADDITIVE;
+    if (PAGES[i].graph == GR_WTPHASE)                  /* (FASE 3) WAVETABLE > PHASE */
+        return TSEL->eng_req % NENGINES == ENGI_WAVETABLE;
     if (PAGES[i].scope == SC_TRACK && PAGES[i].id[0] >= P_LN0 && PAGES[i].id[0] <= P_LN7)
         return TSEL->eng_req % NENGINES == ENGI_DRUM;
     if (PAGES[i].graph >= GR_FMOP && PAGES[i].graph <= GR_FMENV)   /* (0.6.10) OPERATOR, OP ENV, OPERATOR 2: FM6's */

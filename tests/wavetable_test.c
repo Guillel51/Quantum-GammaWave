@@ -429,6 +429,61 @@ static void cost(void)
     }
 }
 
+/* (FASE 3) PHASE: the three transforms of WARP's depth. SINE is the warp the engine had; KNEE, HOLD and X2
+ * only do anything when WARP asks for depth, and their images stay under Nyquist (a coarser frame, a fade at
+ * the top of it). */
+static void mode_render(int32_t mode, int32_t warp, uint32_t note, double *y, uint32_t n)
+{
+    static int32_t b[CTL];
+    uint32_t i, k, skip = FS / 10u / CTL;
+    setup(0);
+    trk[0].p[P_LRTRG] = (int16_t)mode;
+    trk[0].p[P_X0] = (int16_t)warp;
+    trk_note_on(&trk[0], note, 100);
+    for (i = 0; i < skip; i++)
+        track_render(&trk[0], b, CTL);
+    for (i = 0; i < n; i += CTL) {
+        track_render(&trk[0], b, CTL);
+        for (k = 0; k < CTL && i + k < n; k++)
+            y[i + k] = b[k] / 32768.0;
+    }
+}
+
+static void phase_modes(void)
+{
+    static double a[NFFT], b[NFFT], ps[NFFT / 2];
+    static const char *const NAME[] = {"", "KNEE", "HOLD", "X2"};
+    uint32_t m, i, n = NFFT;
+    double d;
+    char what[128];
+    mode_render(0, 127, 57, a, n);                        /* WARP is an inverted amount: 127 = no depth */
+    for (m = 1; m <= 3u; m++) {
+        mode_render((int32_t)m, 127, 57, b, n);           /* mode alone: no depth asked for */
+        d = 0;
+        for (i = 0; i < n; i++)
+            if (a[i] != b[i])
+                d = 1.0;
+        snprintf(what, sizeof what, "%s with WARP at 0 leaves the render sample for sample", NAME[m]);
+        check(what, !d);
+    }
+    mode_render(0, 30, 57, a, n);
+    for (m = 1; m <= 3u; m++) {
+        mode_render((int32_t)m, 97, 57, b, n);
+        d = 0;
+        for (i = 0; i < n; i++)
+            if (fabs(b[i] - a[i]) > d)
+                d = fabs(b[i] - a[i]);
+        snprintf(what, sizeof what, "%s at WARP 30 changes the sound (%.3f of full scale)", NAME[m], d);
+        check(what, d > 0.01);
+    }
+    for (m = 1; m <= 3u; m++) {                            /* at 330 Hz the effect is whole: harmonics only */
+        mode_render((int32_t)m, 0, 64, b, n);              /* WARP 0 = full depth */
+        spectrum(b, n / NFFT, ps);
+        snprintf(what, sizeof what, "%s at full WARP, 330 Hz: nothing but harmonics (no aliasing)", NAME[m]);
+        check(what, only_harmonics(ps, 329.63));
+    }
+}
+
 int main(void)
 {
     uint32_t e = eng_wavetable();
@@ -440,6 +495,7 @@ int main(void)
     frames();
     harm();
     sub_uni();
+    phase_modes();
     aliasing();
     health();
     cost();

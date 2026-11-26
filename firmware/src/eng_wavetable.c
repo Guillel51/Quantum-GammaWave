@@ -26,6 +26,11 @@
  * filter: no per-voice tables beyond the state in voice_t (three phases, three states). */
 #define WT_L1_INC 33554432u       /* ~344 Hz: at most 64 harmonics (22 kHz) under it */
 #define WT_L2_INC 134414336u      /* ~1.38 kHz: at most 16 above it, then 5 */
+/* (FASE 3) the three phase transforms read 16 harmonics (a coarser frame), so they are alias-free up to ~689 Hz
+ * (32 harmonics of the doubled read, or 32 samples of a held cycle, both at Nyquist) and fade out between ~459
+ * and 689 Hz instead of folding anything back. */
+#define WT_FX_HI 67108864u        /* 2^32 / 64: ~689 Hz */
+#define WT_FX_LO 44739242u        /* ~459 Hz */
 
 static const char *const N_WT_UNI[] = {"1 VOICE", "2 VOICES"};
 
@@ -142,6 +147,23 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
     int32_t dcx = v->s[3], dcy = v->s[4];
     int32_t wpa = xamt(p, 0), posa = xamt(p, 1), folda = p[P_MORPH];   /* (FASE 2) CHARACTER */
     int32_t pph = v->s[5], psm = v->s[6], morph = p[P_E0];
+    /* (FASE 3) PHASE: which shape WARP's depth asks for. SINE (0) is the warp the engine has always had, bit for
+     * bit; KNEE bends the read point asymmetrically, HOLD holds it for 32 steps of the cycle, X2 reads two
+     * cycles and crossfades. The three read a coarser frame (16 harmonics) and fade out near the top of it. */
+    uint32_t mode = (uint32_t)clamp(p[P_LRTRG], 0, 3);
+    int32_t fxamt = wpa;
+    if (mode && fxamt) {
+        if (m->inc >= WT_FX_HI)
+            fxamt = 0;
+        else if (m->inc > WT_FX_LO)
+            fxamt = fxamt * (int32_t)((WT_FX_HI - m->inc) / ((WT_FX_HI - WT_FX_LO) / 128u)) >> 7;
+    }
+    if (mode && fxamt) {
+        if (lvl == 0u)                                 /* the transforms' images need the 16-harmonic frame */
+            lvl = 1u;
+    } else {
+        mode = 0u;                                     /* no depth (or above the fade): the plain engine */
+    }
     tsvf_t flt;
     if (n > CTL)
         n = CTL;
@@ -155,13 +177,41 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
     inc = m->inc;
     inc2 = uni && p[P_E1] ? cents_inc(m->pitch16, p[P_E1], 0) : inc;
     for (i = 0; i < n; i++) {
-        uint32_t wph = wpa ? ph0 + (uint32_t)(sine_i(ph0) * (wpa * 258)) : ph0;   /* (FASE 2) WARP: the read
-                                                          * point bends, at most a quarter of a cycle */
-        int32_t b, a = wt_pts(lvl, f0, f1, wph, &b), s;
-        s = a + (((b - a) * fx) >> 8);
+        uint32_t wph = ph0;
+        int32_t b, a, s;
+        if (mode == 0u) {
+            if (wpa)
+                wph = ph0 + (uint32_t)(sine_i(ph0) * (wpa * 258));   /* (FASE 2) WARP: the read point bends, at
+                                                                      * most a quarter of a cycle */
+        } else if (fxamt) {
+            if (mode == 1u) {                                      /* (FASE 3) KNEE: sin + half sin(2x): an
+                                                                    * asymmetric bend, ~1/4 cycle at full depth */
+                int32_t kn = sine_i(ph0) + (sine_i(ph0 * 2u) >> 1);
+                wph = ph0 + (uint32_t)(kn * (fxamt * 172));
+            } else if (mode == 2u) {                               /* HOLD: 32 steps of the cycle, blended */
+                uint32_t q = (ph0 + 0x04000000u) & 0xF8000000u;
+                wph = ph0 + (uint32_t)(((int32_t)(q - ph0) * fxamt) >> 7);
+            }
+        }
+        if (mode == 3u) {                                          /* X2: two cycles, crossfaded in */
+            int32_t d, c = wt_pts(lvl, f0, f1, ph0, &d);
+            a = c + (((d - c) * fx) >> 8);
+            c = wt_pts(lvl, f0, f1, ph0 * 2u, &d);
+            b = c + (((d - c) * fx) >> 8);
+            s = a + (((b - a) * fxamt) >> 7);
+        } else {
+            a = wt_pts(lvl, f0, f1, wph, &b);
+            s = a + (((b - a) * fx) >> 8);
+        }
         if (uni) {
-            int32_t d, c = wt_pts(lvl, f0, f1, ph1, &d);
-            s = (s + c + (((d - c) * fx) >> 8)) >> 1;
+            int32_t u, d, c = wt_pts(lvl, f0, f1, ph1, &d);
+            u = c + (((d - c) * fx) >> 8);
+            if (mode == 3u) {
+                c = wt_pts(lvl, f0, f1, ph1 * 2u, &d);
+                c += (((d - c) * fx) >> 8);
+                u += ((c - u) * fxamt) >> 7;
+            }
+            s = (s + u) >> 1;
             ph1 += inc2;
         }
         ph0 += inc;
@@ -255,6 +305,14 @@ static const preset_t WT_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 116), XP(P_HARM, 20)}},
     {"TIDAL MIRROR", {44, 26, 1, 14, 86, 20, 18, 58}, {28, 78, 102, 84}, 10, 0, FX(24, 50, 42, 72), PAT(5),
      {XP(P_LRATE, 9), XP(P_LWAVE, 7), XP(P_LD_FLT, 20), XP(P_M1SRC, 4), XP(P_M1DST, 1), XP(P_M1AMT, 14)}},  /* (v1.5.19) the table morphing under the cut */
+    /* (FASE 3) PHASE's three transforms, one preset each: they add nothing to a sound until WARP asks for it,
+     * and the preset writes the mode in the retired slot (P_LRTRG) and WARP's depth on CHARACTER 1. */
+    {"KNEE REED", {58, 8, 1, 0, 100, 26, 12, 72}, {6, 74, 96, 56}, 18, 1, FX(14, 24, 30, 36), PAT(4),
+     {XP(P_LRTRG, 1), XP(P_X0, 20), XP(P_X1, 8), XP(P_LRATE, 28), XP(P_LD_FLT, 12), XP(P_M1AMT, 8)}},
+    {"HOLD GLASS", {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 30, 64}, 10, 0, FX(0, 22, 26, 54), PAT(3),
+     {XP(P_LRTRG, 2), XP(P_X0, 30), XP(P_X1, 18), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"OCTAVE X2", {30, 12, 1, 0, 108, 16, 8, 82}, {0, 60, 120, 40}, 0, 1, FX(18, 18, 24, 26), PAT(2),
+     {XP(P_LRTRG, 3), XP(P_X0, 36), XP(P_X1, 20), XP(P_LRATE, 22), XP(P_LD_FLT, 10), XP(P_M1AMT, 10)}},
 };
 
 static const param_desc_t WT_CH[3] = {

@@ -15,7 +15,9 @@
  *    and ends silent; every EDIT parameter at its maximum, 8 notes, does not clip; a note from silence
  *    renders the same samples twice.
  * 8. cost: ns per sample per voice (8 notes held, the idle mix taken off); printed, fails above AD_COST_MAX.
- * 9. the descriptors: SPECTRUM is the first EDIT parameter (MD_E1) and the engine is listed. */
+ * 9. the descriptors: SPECTRUM is the first EDIT parameter (MD_E1) and the engine is listed.
+ * 10. (FASE 3) DRAW and RULE: the defaults (127) leave the render sample for sample, DRAW 1 at 64 drops the
+ *    fundamental against the second harmonic, and RULE at 40 changes the spectrum. */
 #define main hostsim_main
 #include "hostsim.c"
 #undef main
@@ -331,6 +333,49 @@ static void evolve(void)
     check(what, drift > 0.02);
 }
 
+/* (FASE 3) DRAW and RULE: the two new controls, off at their defaults and doing what they say */
+static void draw_rule_render(int32_t ln0, int32_t x1, double *y, uint32_t n)
+{
+    static int32_t b[CTL];
+    uint32_t i, k;
+    setup(0);
+    trk[0].p[P_LN0] = (int16_t)ln0;
+    trk[0].p[P_X1] = (int16_t)x1;
+    trk_note_on(&trk[0], 57, 100);
+    for (i = 0; i < n; i += CTL) {
+        track_render(&trk[0], b, CTL);
+        for (k = 0; k < CTL && i + k < n; k++)
+            y[i + k] = b[k] / 32768.0;
+    }
+}
+
+static void draw_rule(void)
+{
+    static double a[NFFT], b[NFFT], c[NFFT], ps[NFFT / 2], qs[NFFT / 2];
+    uint32_t i, n = NFFT;
+    double d, drop;
+    char what[160];
+    draw_rule_render(127, 127, a, n);                  /* both at their defaults: the profile, untouched */
+    draw_rule_render(127, 126, b, n);                  /* RULE one step in */
+    d = 0;
+    for (i = 0; i < n; i++)
+        if (a[i] != b[i])
+            d += fabs(a[i] - b[i]);
+    check("RULE at its default is off; one step in already changes the samples", d > 0.0);
+    draw_rule_render(64, 127, b, n);
+    spectrum(a, n / NFFT, ps);
+    spectrum(b, n / NFFT, qs);
+    drop = 20.0 * log10((at(ps, 220.0) + 1e-30) / (at(qs, 220.0) + 1e-30));
+    snprintf(what, sizeof what, "DRAW 1 at 64 drops the fundamental %.1f dB against harmonic 2 (6 dB or more)", drop);
+    check(what, drop > 6.0);
+    draw_rule_render(127, 40, c, n);
+    spectrum(c, n / NFFT, qs);
+    for (i = 0; i < NFFT / 2; i++)
+        if (qs[i] != ps[i])
+            break;
+    check("RULE at 40 changes the spectrum (a generated profile, blended in)", i < NFFT / 2);
+}
+
 static int only_harmonics(const double *ps, double f0)
 {
     double mx = 0;
@@ -490,7 +535,9 @@ int main(void)
     check("EDIT 1 is SPECTR (SPECTRUM) first (MD_E1: the matrix can move the spectrum)",
           strcmp(ENGINES[e]->edit[0].label, "SPECTR") == 0 && ENGINES[e]->edit[0].max == 127);
     check("the CHARACTER page has EVOLVE (the slow walk of SPECTRUM) and 8 partials",
-          ENGINES[e]->ch_n == 1 && ENGINES[e]->ch && strcmp(ENGINES[e]->ch[0].label, "EVOLVE") == 0);
+          ENGINES[e]->ch_n >= 1 && ENGINES[e]->ch && strcmp(ENGINES[e]->ch[0].label, "EVOLVE") == 0);
+    check("CHARACTER 2 is RULE (FASE 3), an amount that is off at its default",
+          ENGINES[e]->ch_n == 2 && strcmp(ENGINES[e]->ch[1].label, "RULE") == 0 && ENGINES[e]->ch[1].def == 127);
     check("the engine is in the factory library with at least 8 sounds", engine_library(ENGINES[e]) >= 8);
     profiles();
     tilt();
@@ -498,6 +545,7 @@ int main(void)
     stretch();
     sub();
     evolve();
+    draw_rule();
     aliasing();
     health();
     cost();

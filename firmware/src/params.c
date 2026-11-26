@@ -264,6 +264,16 @@ static const param_desc_t GP[G_COUNT] = {
  * retrigger of a sounding voice -- in POLY, where every note is a fresh voice, it changed nothing at all. */
 static const char *const N_TCLK[] = {"NOTE", "FREE", 0};
 static const param_desc_t LOFI_RTRG = {"T.CLK", F_INT, 0, 1, 0, N_TCLK, 0};
+/* (FASE 3) WAVETABLE's phase MODE, in the same retired slot: SINE is the warp the engine always had (bit for
+ * bit), KNEE/HOLD/X2 replace the shape of the bend WARP asks for. WARP itself stays on CHARACTER 1 and is the
+ * depth every mode reads, so the matrix and the LFO move it as before. */
+static const char *const N_WTMODE[] = {"SINE", "KNEE", "HOLD", "X2", 0};
+static const param_desc_t WTMODE_DESC = {"MODE", F_ENUM, 0, 3, 0, N_WTMODE, 0};
+/* (FASE 3) ADDITIVE > DRAW: the level of each of the eight partials. Stored in DRUM's LEVELS slots (P_LN0..7),
+ * which a non-DRUM track never reads; 127 is the profile untouched, so every existing sound renders bit for bit. */
+#define AD_DESC(k) {"H" #k, F_PCT, 0, 127, 127, 0, 0}
+static const param_desc_t AD_DRAW[8] = {AD_DESC(1), AD_DESC(2), AD_DESC(3), AD_DESC(4),
+                                        AD_DESC(5), AD_DESC(6), AD_DESC(7), AD_DESC(8)};
 static const param_desc_t TRK_CHANCE = {"CHANCE", F_PCTINV, 0, 127, 0, 0, 0};   /* (0.6.37) P_TCHAN: 0 = 100 % */
 static const param_desc_t MORPH_DESC = {"MORPH", F_PCT, 0, 127, 0, 0, 0};   /* (0.6.45) P_MORPH */
 static const char *const N_CLEN[] = {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
@@ -312,6 +322,10 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
     }
     if (id == P_LRTRG && ENGINES[eng_idx(t->eng_req)] == &ENG_LOFI)   /* (0.6.12) LOFI's RTRG in DIGITAL's slot */
         return &LOFI_RTRG;
+    if (id == P_LRTRG && ENGINES[eng_idx(t->eng_req)] == &ENG_WAVETABLE)   /* (FASE 3) WTABLE's phase mode */
+        return &WTMODE_DESC;
+    if (id >= P_LN0 && id <= P_LN7 && ENGINES[eng_idx(t->eng_req)] == &ENG_ADDITIVE)   /* (FASE 3) DRAW */
+        return &AD_DRAW[id - P_LN0];
     if (id == P_TCHAN && !(FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL))   /* (0.6.37) SHIFT's CHANCE */
         return &TRK_CHANCE;
     if (!(FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL))   /* (0.6.43) MUTATE's four */
@@ -579,7 +593,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
        GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_TILT,          /* (FASE EXTRA) MODMAP removed: nine screens in FAM_LFO */
-       GR_SCENES, GR_FILTER};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
+       GR_SCENES, GR_FILTER, GR_DRAW, GR_WTPHASE};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
                                      * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
@@ -742,6 +756,13 @@ static const page_t PAGES[] = {
     {"SOUND 4", FAM_EDIT, SC_TRACK, GR_DXSND, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (JIANT 0.6.54) LAYER, FEEDBK, SEND */
     {"LEVELS", FAM_EDIT, SC_TRACK, GR_NONE, {P_LN0, P_LN1, P_LN2, P_LN3}},   /* DRUM only: the sounds' levels (was LANES) */
     {"LEVELS 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_LN4, P_LN5, P_LN6, P_LN7}},
+    {"DRAW", FAM_EDIT, SC_TRACK, GR_DRAW, {P_LN0, P_LN1, P_LN2, P_LN3}},   /* (FASE 3) ADDITIVE's eight
+                                     * partial levels, in the slots DRUM's LEVELS uses: per track, per project, eight
+                                     * bytes, 127 = the profile untouched. KNOBS 1..4 are harmonics 1..4 */
+    {"DRAW 2", FAM_EDIT, SC_TRACK, GR_DRAW, {P_LN4, P_LN5, P_LN6, P_LN7}},   /* .. and 5..8 */
+    {"PHASE", FAM_EDIT, SC_TRACK, GR_WTPHASE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},   /* (FASE 3) WAVETABLE's phase
+                                     * mode, in LOFI's retired RTRG slot: SINE (the warp the engine had), KNEE, HOLD,
+                                     * X2. WARP is still the depth, on CHARACTER 1 */
     {"STEREO", FAM_EDIT, SC_TRACK, GR_DXIMG, {P_DXIMG, 0xFF, 0xFF, 0xFF}}, /* (0.6.58) IMAGE: the kit's stereo placings */
     {"OP1 ENV", FAM_EDIT, SC_TRACK, GR_ADSR, {P_FM1_ATK, P_FM1_DEC, P_FM1_SUS, P_FM1_REL}},
     {"OP2 ENV", FAM_EDIT, SC_TRACK, GR_ADSR, {P_FM2_ATK, P_FM2_DEC, P_FM2_SUS, P_FM2_REL}},
@@ -913,6 +934,19 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
     if (pg->graph == GR_SCL_TUNE) {                    /* (FASE 7) SCL > TUNE's four knobs (tune.c) */
         *valp = slot == 0u ? &tune_ui_slot : slot == 1u ? &tune_ui_note : slot == 2u ? &tune_ui_ct : &tune_ui_all;
         return slot == 0u ? &TSLOT_DESC : slot == 1u ? &TNOTE_DESC : slot == 2u ? &TCT_DESC : &TALL_DESC;
+    }
+    if (pg->graph == GR_WTPHASE) {                     /* (FASE 3) WAVETABLE > PHASE: the mode */
+        if (slot) {
+            *valp = 0;
+            return 0;
+        }
+        *valp = &TSEL->p[P_LRTRG];
+        return &WTMODE_DESC;
+    }
+    if (pg->graph == GR_DRAW) {                        /* (FASE 3) ADDITIVE > DRAW: harmonics 1..8 */
+        uint32_t k = (pg->id[0] == P_LN4 ? 4u : 0u) + slot;
+        *valp = &TSEL->p[P_LN0 + k];
+        return &AD_DRAW[k];
     }
     if (pg->graph == GR_SCL_PROG && slot == 0u) {      /* SCL > PROG's KNOB 1: the progression, not the scale */
         *valp = &scl_prog;

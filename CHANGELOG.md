@@ -1,3 +1,33 @@
+## v2.5.3 — FASE 3/5: PHASE en WAVETABLE, DRAW y RULE en ADDITIVE
+
+- **Tres transformaciones de fase, originales y baratas.** WAVETABLE gana **PHASE** (una perilla): SINE es el
+  warp que el motor ya tenía, bit a bit; **KNEE** inclina el punto de lectura de forma asimétrica (seno + medio
+  seno del doble), **HOLD** lo retiene en 32 pasos del ciclo y **X2** lee dos ciclos y los mezcla. WARP sigue
+  siendo la profundidad y sigue siendo destino de la matriz y del LFO, así que las tres responden a modulación.
+  Con WARP en 0 el motor renderiza exactamente igual que antes (el test lo compara muestra a muestra).
+- **Sin aliasing por construcción.** Los tres modos leen la tabla de 16 armónicos (en vez de la de 64) y se
+  desvanecen entre ~459 y ~689 Hz: 32 muestras por ciclo (HOLD) y 32 armónicos (X2) caben bajo Nyquist. Medido
+  en 330 Hz: HOLD, KNEE y X2 sólo tienen armónicos.
+- **ADDITIVE > DRAW**: los ocho parciales tienen su nivel propio (H1..H8, dos páginas de cuatro) en los bytes
+  `P_LN0..7` que DRUM ya guardaba; 127 es el perfil intacto y el render por defecto es bit a bit el mismo.
+- **CHARACTER 2 = RULE**: un perfil generado por dos generaciones de una regla celular original de ocho celdas
+  (familia Rule 30/90, sin copiar tabla ni implementación), calculado **por bloque** con semilla de la parte y
+  SPECTR, sin flash ni RAM. 127 lo apaga; el resto lo mezcla con la carretera de perfiles y la normalización
+  absorbe la escala (sin divisiones por parcial).
+- **Dos presets de fábrica por motor**: KNEE REED, HOLD GLASS, OCTAVE X2; RULE METAL, ORGAN DRAW.
+- **Coste medido `[AC791N]`**: imagen **574 752 → 576 172 B** (+1 420), margen de ranura **8 860 → 7 440 B**;
+  XIP 569 972 → 571 392 B (código +816, constantes +604); RAM `.data+.bss` **76 048 B igual** (22 256 libres);
+  POOL, LOWBUF y código RAM sin cambios. Presupuesto estático del bloque **+5 %** (límite +10 %).
+  `[HOST x86-64]` el render de WAVETABLE con el modo activo cuesta +5 % (HOLD), +20 % (KNEE) y +40 % (X2) por
+  muestra [medido con ruido de esta VM]; ADDITIVE calcula DRAW/RULE por bloque y el ruido del host no resuelve
+  su diferencia.
+- **Lo existente, intacto**: 316 goldens de `regress` con **0 cambiados** (311 previos + 5 presets nuevos),
+  `six_track_live` 61/61, `text_ref_test` 6 732 cadenas 0 píxeles, 22 paletas, `mod_test`, `phase2_test`,
+  203 pantallas × 22 paletas con **0 hallazgos** de lint y **0** medidas de alineación fuera de 1 px.
+- **Auditoría de expresividad**: CC2 (Breath) ya entra como fuente `EXPRESSION` de la matriz (toma el menor de
+  EXPR y breath) y CC5 ya está mapeado a `P_GLIDE` (tiempo de portamento) en el mapa CC estándar; RAND por
+  nota, M1..M4 y la matriz de 8 slots ya existen. No se duplicó ninguna fuente ni se añadió otra matriz.
+
 ## v2.5.2 — FASE 2/5: 4 168 B de flash XIP y 8 860 B libres en la ranura
 
 - **Medido con el AC791N real**, no con documentación: toolchain de JieLi (SHA-256 verificado) y SDK

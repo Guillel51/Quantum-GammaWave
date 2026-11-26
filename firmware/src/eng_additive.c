@@ -75,6 +75,24 @@ static ad_vc_t *ad_slot(uint32_t vi)
 
 static uint32_t ad_part(const track_t *t) { return (uint32_t)(t - trk); }   /* NTRK == NPART */
 
+/* (FASE 3) THE RULE PROFILE, generated, never stored. Two generations of an eight-cell rule of our own (a
+ * left/right/step XOR family, in the spirit of the elementary automata, not one of their tables) seeded by the
+ * part and SPECTR, then each harmonic reads three cells: the sound is a family of metallic, hollow or noisy
+ * spectra that costs 10 operations a block and no flash or RAM at all. RULE (CHARACTER 2, 0 = off) blends it
+ * with the profile road; at 0 nothing is added, so every existing sound renders bit for bit as before. */
+static uint32_t ad_rule_row(uint32_t seed)
+{
+    uint32_t row = (seed | 1u) & 0xFFu, g;
+    for (g = 0; g < 2u; g++)
+        row = ((row << 1) ^ (row >> 1) ^ (row >> 3) ^ (row >> 6)) & 0xFFu;
+    return row;
+}
+static int32_t ad_rule_amp(uint32_t row, uint32_t k)
+{
+    uint32_t a = (row >> k) & 1u, b = (row >> ((k + 1u) & 7u)) & 1u, c = (row >> ((k + 5u) & 7u)) & 1u;
+    return 24 + (int32_t)a * 58 + (int32_t)b * 28 + (int32_t)c * 17;   /* 24 .. 127, one byte's worth */
+}
+
 /* once per block and part: where the morph falls between two profiles, the tilt, and the eight gains
  * normalised to 32767. Nothing here runs per sample. */
 static void add_block(track_t *t)
@@ -83,6 +101,7 @@ static void add_block(track_t *t)
     const int16_t *p = t->p;
     int32_t pr = clamp(p[P_E0], 0, 127) * (AD_NP - 1);   /* 0..889 */
     int32_t tilt = p[P_E1] - 64, ev = xamt(p, 0), sc[AD_NP], sum = 0;
+    int32_t ra = xamt(p, 1), row = ra ? (int32_t)ad_rule_row((uint32_t)p[P_E0] * 8u + ad_part(t)) : 0;
     uint32_t f0, f1, k, scale;
     int32_t fx;
     if (ev) {                                             /* (CHARACTER) EVOLVE: SPECTRUM drifts, slowly */
@@ -99,14 +118,22 @@ static void add_block(track_t *t)
             int32_t q = 1024 + tilt * (int32_t)(k + 1u) * 16;
             v = (v * (q < 96 ? 96 : q > 8192 ? 8192 : q)) >> 10;
         }
+        if (ra)                                       /* (FASE 3) RULE: the generated profile, blended in. The
+                                                       * blend stays 127-scaled and the normalisation below
+                                                       * divides it out, so nothing here needs a divide */
+            v = v * (127 - ra) + ad_rule_amp((uint32_t)row, k) * 258 * ra;
         sc[k] = v;
         sum += v;
     }
     /* normalised to a total of 32767 (Q15): a spectrum's level does not jump when SPECTRUM moves, and
      * one partial alone is as loud as eight */
     scale = sum > 0 ? (32767u << 8) / (uint32_t)sum : 0u;
-    for (k = 0; k < AD_NP; k++)
-        T->g[k] = (int32_t)(((uint32_t)sc[k] * scale) >> 8);
+    for (k = 0; k < AD_NP; k++) {                     /* (FASE 3) DRAW: harmonic k's own level. 127 is the
+                                                       * untouched path, bit for bit; the others use 258/32768
+                                                       * for 1/127 (0.006 % of a step, no divide per partial) */
+        int32_t lv = clamp(p[P_LN0 + k], 0, 127), g = (int32_t)(((uint32_t)sc[k] * scale) >> 8);
+        T->g[k] = lv == 127 ? g : (g * lv * 258 + 16384) >> 15;
+    }
 }
 
 static void add_note_on(track_t *t, voice_t *v)
@@ -237,15 +264,22 @@ static const preset_t AD_PRESETS[] = {
      {XP(P_LRATE, 26), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
     {"AIR CHOIR", {26, 30, 10, 74, 96, 12, 0, 0}, {70, 92, 116, 96}, -20, 0, FX(0, 58, 36, 80), PAT(4),
      {XP(P_LRATE, 6), XP(P_LWAVE, 6), XP(P_LD_AMP, 8), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 26)}},
+    /* (FASE 3) the two new roads: RULE's generated spectrum, and DRAW's own partial levels (the preset sets
+     * the first four: the other four stay where the track has them, DRAW is a per-track control) */
+    {"RULE METAL", {120, 92, 72, 60, 112, 36, 34, 24}, {2, 72, 26, 56}, 20, 0, FX(22, 12, 26, 42), PAT(1),
+     {XP(P_X1, 22), XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_M1SRC, 7), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
+    {"ORGAN DRAW", {12, 40, 16, 0, 84, 8, 4, 30}, {0, 64, 127, 20}, 0, 0, FX(0, 34, 18, 30), PAT(5),
+     {XP(P_LN0, 127), XP(P_LN1, 90), XP(P_LN2, 64), XP(P_LN3, 40), XP(P_LRATE, 12), XP(P_LD_AMP, 6)}},
 };
 
 /* the UI's bars (ui_graph.c graph_additive): the gain each partial has in this part's last block. The
  * engine owns its state, so the graph asks instead of reaching into ad_t. */
 int32_t ad_partial(const track_t *t, uint32_t k) { return k < AD_NP ? ad_t[ad_part(t)].g[k] : 0; }
 
-static const param_desc_t AD_CH[1] = {
+static const param_desc_t AD_CH[2] = {
     {"EVOLVE", F_PCT, 0, 127, 127, 0, 0},            /* (CHARACTER) a slow walk of SPECTRUM, inverted as the
                                                       * first two slots are: 127 still, down from there drifts */
+    {"RULE", F_PCTINV, 0, 127, 127, 0, 0},           /* (FASE 3) the generated profile blended in: 127 off */
 };
 
 static const engine_t ENG_ADDITIVE = {
@@ -264,7 +298,7 @@ static const engine_t ENG_ADDITIVE = {
     .presets = AD_PRESETS,
     .npresets = NELEM(AD_PRESETS),
     .ch = AD_CH,
-    .ch_n = 1,
+    .ch_n = 2,
     .note_on = add_note_on,
     .render = add_render,
     .knob = {P_E0, P_E1, P_E4, P_E7},
