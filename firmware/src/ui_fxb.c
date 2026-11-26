@@ -57,8 +57,23 @@ static void fxb_head(int32_t x, int32_t y, int32_t w, uint32_t ic, const char *n
     else
         cv_rect(x + w - 7, y + 4, 3, 3, ink);       /* the activity lamp */
 }
-/* a level 0..7000 (fx_vu's scale) as a 0..56 px bar height */
-static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
+/* A level in fx_vu's units (the Q15 peak every other FX bar already reads through fx_meter_target) as a
+ * 0..56 px bar height. (2.16.1) THE CONSOLE KEPT THE PRE-v1.8.4 CEILING: it divided by 7000, the scale the four
+ * bars had before they were fixed, so a send bus under ~80 % of that imaginary range drew an empty bar and the
+ * page's meters only woke up when the mix was already loud. And it is a square root, which is the cheap dB a
+ * 56 px bar needs: 10 % of full scale reads 17 px, a quarter 28, full scale 56, and the first chunk lights as
+ * soon as the DSP measures anything. */
+static int32_t fxb_px(int32_t v)
+{
+    uint32_t t = (uint32_t)fx_meter_target(v) << 8, r = 0, b = 1u << 15;
+    while (b) {                                     /* integer sqrt of t << 8: fx_meter_target*16, 0..255 */
+        uint32_t c = r + b;
+        if (c * c <= t)
+            r = c;
+        b >>= 1;
+    }
+    return (int32_t)((r * 56u + 128u) >> 8);
+}
 /* the block's readout: its value and a per-cent sign (DELAY, REVERB, CHORUS, PUNCH all print one) */
 static void fxb_pct(char *b, int32_t v)
 {
@@ -84,7 +99,7 @@ static void fxb_col(int32_t x, int32_t y, int32_t h, int32_t lvl, int32_t lo, in
     int32_t seg = 3, q = h / (seg + 1), k, n;
     if (q <= 0)
         return;
-    n = fxb_px(lvl) * q / 56;
+    n = (fxb_px(lvl) * q + 55) / 56;                 /* round up: the first chunk lights with the first sample */
     for (k = 0; k < q; k++) {
         int32_t cy = y + h - (k + 1) * seg - k;      /* k = 0 is the foot */
         uint16_t c = k < n ? ux_mix(T_THEME, T_ACCENT, lo + (hi - lo) * k / (q > 1 ? q - 1 : 1)) : T_RAISE;

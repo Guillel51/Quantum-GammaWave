@@ -1,3 +1,40 @@
+## v2.16.1 — los vúmetros de FX > BUSES se despiertan con la señal, y la división de ui_input_frame medida
+
+La primera página de FX (el consola de buses) tenía los vúmetros dormidos: reaccionaban sólo cuando la mezcla
+ya estaba al máximo. No era el DSP, era la escala de dibujo.
+
+### el arreglo
+
+`fxb_px()` en `ui_fxb.c` dividía el pico de `fx_vu` por **7 000**, el techo que las cuatro barras de las otras
+páginas de FX tenían *antes* de v1.8.4 (y que se corrigió allí a Q15 completo, 32 767, con `fx_meter_target`).
+La consola se quedó con el número viejo, así que un bus enviado por debajo de ~80 % de ese rango imaginario
+pintaba una barra vacía y la página parecía muerta hasta que el mix ya estaba pegado.
+
+Ahora pasa por `fx_meter_target()` —la misma escala que el resto de FX— y aplica una **raíz cuadrada**, que es
+la curva de dB barata que una barra de 56 px necesita: 10 % de escala completa son 17 px, un cuarto son 28,
+escala completa 56, y el primer tramo se enciende con la primera muestra que el DSP mida (redondeo hacia
+arriba, antes el tramo sólo se encendía al llegar al siguiente 1/6). +16 B de XIP [AC791N].
+
+La base de píxeles se regeneró: estaba vieja desde v2.16.0 (la cadena de versión del splash y de ABOUT, las
+pantallas nuevas de VOICE/VOICE 2 y ahora los medidores): **3 321 cuadros**, y el barrido los reproduce
+idénticos.
+
+### lo que se probó y NO se quedó: dividir ui_input_frame
+
+Se extrajeron dos familias de `ui_input_frame` (30 754 B) a su propia función `static noinline`, midiendo el
+delta del ELF enlazado tras cada una y comparando el barrido completo:
+
+| familia extraída | XIP |
+|---|---:|
+| los avisos de TRACKS 4 LOW / ALL TR DEG (0.6.18, 0.6.28, 0.6.45) | **+480 B** |
+| las ranuras compartidas del modelo de reverb (JIANT 0.6.5, 0.6.12) | **+164 B** |
+
+Las dos **empeoran**: el build es `-Oz` y pi32v2 no tiene llamadas largas, así que cada frontera `noinline`
+paga su llamada, su marco y la reorganización de registros, y no recupera nada a cambio. Se revirtieron las
+dos, como pedía la regla de la fase: ningún corte que empeore el tamaño se queda. La división por familias no
+es una vía de XIP en este compilador; el margen sigue en 1 516 B y el camino que queda es el de la fase 1/10
+(payload de presets por diferencias, 13 564 B de tablas).
+
 ## v2.16.0 — 2.16: el glide en perspectiva, el vúmetro fuera de PERFORMANCE y 1 496 B de XIP
 
 Fase de recuperación de XIP con dos arreglos de interfaz que estaban abiertos. Sin cambios de DSP, de
