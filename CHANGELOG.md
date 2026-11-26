@@ -1,3 +1,15 @@
+## v2.11.1 — el filtro VOWEL responde a CUT y RES, y sus formantes tienen cuerpo
+
+- **En EDIT > FILTER 5/9 con TYPE VOWEL, la gráfica no seguía a CUT ni a RES.** La curva dibujaba tres formantes
+  fijos (250/520/780) y solo añadía el pico genérico de resonancia: mover CUT no movía nada visible. El DSP de
+  ANALOG en VOWEL es un SVF cuyo corte y resonancia son el timbre, así que la curva ahora **desliza el racimo de
+  formantes con CUT** (base 140…370 unidades, F2 ≈ 1,9× y F3 ≈ 2,6×, siempre dentro del barrido) y **RES sube y
+  afina los tres picos**. El dibujo usa los mismos números que la respuesta, así que no pueden separarse.
+- **Los formantes ahora son cuerpos, no una línea:** detrás de la curva hay tres columnas con halo y núcleo
+  brillante (el color sale de la rampa `heat_y` de la página), con una base marcada. Se suman a las cuatro capas
+  de profundidad que la página ya tenía, sin tocar el tamaño ni el presupuesto de dibujo.
+- Sin cambios de DSP, de voces, de memoria ni de audio: es dibujo de la página, y los goldens de audio no se mueven.
+
 ## v2.11.0 — el banner dice lo que el firmware tiene, y el ecosistema vuelve a una sola versión
 
 - **El banner de portada tenía los números viejos**: decía «285 PRESETS» y «19 PALETTES» cuando el firmware

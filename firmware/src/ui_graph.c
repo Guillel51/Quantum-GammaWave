@@ -354,16 +354,22 @@ static int32_t flt_mag(int32_t type, int32_t u, int32_t uc, int32_t q, int32_t d
     case 3:                                          /* COMB: the notch train, one every 160 units */
         g = 520 + 480 * (((u + uc) / 160) % 2 ? 1 : -1);
         break;
-    case 4: {                                        /* VOWEL: three formants, fixed, as a voice has them */
-        static const int16_t VF[3] = {250, 520, 780};
+    case 4: {                                        /* VOWEL: the voice's three formants. (v2.11.1) They used to
+                                                      * be three fixed peaks, so CUT and RES moved nothing in the
+                                                      * graph although the DSP's vowel is an SVF whose cutoff and
+                                                      * resonance are the vowel: the cluster now slides with CUT
+                                                      * and RES lifts and sharpens it, as it sounds. */
+        int32_t base = 140 + uc * 230 / 1000, w = 150 - q * 70 / 127;
         int32_t k, sum = 0;
         for (k = 0; k < 3; k++) {
-            int32_t dd = u - VF[k];
+            int32_t f = k == 0 ? base : k == 1 ? base * 17 / 10 : base * 25 / 10;
+            int32_t a = k == 0 ? 360 : k == 1 ? 260 : 170;
+            int32_t dd = u - f;
             dd = dd < 0 ? -dd : dd;
-            if (dd < 95)
-                sum += (95 - dd) * 380 / 95;
+            if (dd < w)
+                sum += (w - dd) * (a + q * a / 300) / w;
         }
-        g = 170 + sum;
+        g = 120 + sum;
         break;
     }
     case 5:                                          /* SCREAM: a spike at the cutoff on a slope, no tail */
@@ -411,6 +417,25 @@ static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
     int32_t uc = 40 + clamp(cut, 0, 127) * 920 / 127;   /* 4 % .. 96 % of the sweep */
     int32_t q = clamp(res, 0, 127), dr = clamp((int32_t)t->p[pg->id[3]], 0, 127);
     cv_rect(PANEL_X0, graph_ht * 42 / 100, PANEL_W, 1, T_RAISE);
+    if (type == 4) {                                    /* (v2.11.1) the vowel's three formants as bodies behind the
+                                                         * curve: a soft column, a bright core and a base shadow, so
+                                                         * the page reads as a voice and not as a line. They are the
+                                                         * same peaks flt_mag draws, so they move with CUT and RES. */
+        int32_t base = 140 + uc * 230 / 1000, q7 = clamp(q, 0, 127), bot = graph_ht * 82 / 100;
+        int32_t kk;
+        for (kk = 0; kk < 3; kk++) {
+            int32_t f = kk == 0 ? base : kk == 1 ? base * 17 / 10 : base * 25 / 10;
+            int32_t a = kk == 0 ? 360 : kk == 1 ? 260 : 170;
+            int32_t amp = a + q7 * a / 300;
+            int32_t x = PANEL_X0 + clamp(f * (PANEL_W - 1) / 1000, 0, PANEL_W - 1);
+            int32_t h = clamp(amp * (bot - graph_ht * 12 / 100) / 1180, 2, bot - graph_ht * 12 / 100);
+            uint16_t core = heat_y(bot - h, graph_ht * 12 / 100, bot, T_ACCENT);
+            cv_rect(x - 6, bot - h / 2, 13, h / 2, qz_back_ink(core, 620));
+            cv_rect(x - 3, bot - h, 7, h, qz_back_ink(core, 880));
+            cv_rect(x - 1, bot - h, 3, h, core);
+            cv_rect(x - 7, bot - 2, 15, 2, T_RAISE);
+        }
+    }
     for (k = 3; k >= 1; k--)
         filter_pass(type, uc, q, dr, 1000 - k * 80, -k * 4, 1, k);
     filter_pass(type, uc, q, dr, 1000, 0, 2, 0);
