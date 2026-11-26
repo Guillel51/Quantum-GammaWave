@@ -1502,6 +1502,24 @@ static void test_fase3(void)
     trk[1].p[P_FRES] = 60;
     check("RES is a destination the UI can name, and the lists still line up",
           str_eq(mod_dst_name(t, MD_RES), "RES") && MD_N == QG_DST_N);
+    /* (FASE 5) the two the note reads when it attacks: a per-block source moves them, and the stored value
+     * comes back after the block (the assertions are inequalities: the amount's scaling is the matrix's) */
+    t->p[P_GLIDE] = 12;
+    t->p[P_CSTR] = 8;
+    lfo_at(t, 32767);
+    slot(t, 0, MS_LFO, MD_GLIDE, 40);
+    mod_begin(t);
+    check("LFO -> GLIDE: the block's portamento time goes up", t->p[P_GLIDE] > 12);
+    mod_end(t);
+    check(".. and the stored GLIDE is back after the block", t->p[P_GLIDE] == 12);
+    lfo_at(t, 32767);
+    slot(t, 0, MS_LFO, MD_STRUM, -30);
+    mod_begin(t);
+    check("LFO -> STRUM: the chord's spread comes down", t->p[P_CSTR] < 8);
+    mod_end(t);
+    check(".. and the stored STRUM is back after the block", t->p[P_CSTR] == 8);
+    check("GLIDE and STRUM are names the UI can give",
+          str_eq(mod_dst_name(t, MD_GLIDE), "GLIDE") && str_eq(mod_dst_name(t, MD_STRUM), "STRUM"));
 }
 
 int main(int argc, char **argv)

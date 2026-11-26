@@ -149,7 +149,7 @@ static void mod_destinations(void)
     uint32_t i, n = (uint32_t)NELEM_(N_MDST);
     /* (v1.12.13) 30 -> 32: HARM and TILT (v1.12.4) and LSHP, the LFO's curve (v1.12.5), appended after REL, so
      * every number a stored preset or motion record holds keeps its meaning; only the count grew. */
-    ck(n == 32u, "MOD: N_MDST's length changed; the destination numbers are part of the preset format "
+    ck(n == 34u, "MOD: N_MDST's length changed; the destination numbers are part of the preset format "
                  "(FASE 5 appended ATK DEC REL, v1.12.4/5 HARM TILT LSHP)");
     ck((uint32_t)TP[P_M1DST].max + 1u == n, "MOD: the DEST knob's range is not the table's length");
     for (i = 0; i < n; i++)

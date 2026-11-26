@@ -49,7 +49,11 @@ static uint32_t clk_n;                          /* (JIANT) .. the 1/16 steps sin
 static uint32_t ms_clock;        /* (JIANT) samples since PLAY on the transport's grid (fx.c mix_block; seq.c seq_start:
                                   * 0): MS_STEP's place */
 enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY, MD_REV, MD_RATE, MD_VIB, MD_E1,
-       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_ATK, MD_DEC, MD_REL, MD_HARM, MD_LSHP, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
+       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_RES, MD_ATK, MD_DEC, MD_REL, MD_HARM, MD_LSHP,
+       MD_GLIDE, MD_STRUM, MD_N };   /* (FASE 5) GLIDE and STRUM: both are read when the note attacks (voice.c's
+                                     * portamento, chord_voice's spread), so a per-block offset from VEL, AT, EXPR
+                                     * or an LFO changes them note by note instead of once for the whole part.
+                                     * Appended, so every stored destination number keeps its meaning */   /* (FASE 2) X1..X4: the engine CHARACTER
                                                           * bank, appended after the master so every stored
                                                           * destination number keeps its meaning */
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
@@ -87,6 +91,12 @@ static uint32_t mod_param(uint32_t d)
     if (d == MD_LSHP)                               /* (v1.12.5) the LFO's curve: a block's offset moves it as it
                                                      * moves any other parameter, and mod_end restores it */
         return P_LSHP;
+    if (d == MD_GLIDE)                              /* (FASE 5) the portamento time the next note starts with */
+        return P_GLIDE;
+    if (d == MD_STRUM)                              /* (FASE 5) the chord's spread; P_CSTR is the slot STRUM already
+                                                         * uses (core.h), so the page and the matrix write the same
+                                                         * byte and nothing can disagree */
+        return P_CSTR;
     if (d == MD_HARM)                               /* (v1.12.4) TILT: a block's offset moves the tilt, as ATK/DEC/REL
                                                      * move the envelope's times: voice.c reads p[P_HARM] and hands it
                                                      * to the voice, and mod_end puts the stored value back */

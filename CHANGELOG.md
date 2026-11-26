@@ -1,3 +1,20 @@
+## v2.14.6 — FASE 5/6: GLIDE y STRUM entran en la matriz de modulación
+
+- **Dos destinos nuevos, 32 y 33**, añadidos al final de la lista (`MD_GLIDE`, `MD_STRUM`; `MD_N`/`QG_DST_N` 32 → 34)
+  para que ningún número guardado cambie de significado. Son los dos únicos parámetros que el DSP lee en el ataque de
+  la nota y que ninguna fuente podía mover nota a nota: el tiempo de portamento y la separación del acorde. Con
+  `VEL -> GLIDE` las notas suaves se deslizan y las fuertes no; con `AT -> STRUM` el acorde se abre bajo la presión.
+- **Sin coste en el DSP**: escriben el mismo byte que la página ya escribe, en el bloque, y `mod_end` lo devuelve.
+  Cero estado por voz, cero trabajo por muestra.
+- **Cobertura nueva en `mod_test`**: LFO sobre GLIDE y sobre STRUM mueven el parámetro y lo devuelven, y los dos
+  nombres existen para la interfaz. `etapa7_audit_test` pasa con la lista de 34.
+- **Medido [AC791N]**: imagen **580 172 B** de 583 612 (3 440 libres), alcance 10 388 B, RAM 75 664, POOL y LOWBUF
+  iguales. **[HOST]**: `regress` con **316 renders dorados idénticos**, 0 fallos de salud y de voces, 1 fallo de
+  presupuesto de CPU del host (el conocido), 0 notas por encima del +40 %; `mod_test`, `phase5_test` y las pruebas
+  de web pasan. No se escuchó: no hay salida de audio ni unidad en este entorno.
+- **Pendiente**: el Web Studio mostrará los dos nombres cuando se reconstruya el emulador WASM (aquí no hay `emcc`);
+  las pruebas del editor validan contra ese artefacto, así que no se tocó.
+
 ## v2.14.5 — FASE 4/6: auditoría de las 207 pantallas y la respuesta del FILTER a escala propia
 
 - **`filter_pass` / `graph_filter` (ui_graph.c)**: la curva se escalaba contra el techo fijo de `flt_mag` (1180), así

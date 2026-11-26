@@ -80,7 +80,7 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
                                      "CLIP", "PNCH", "X1", "X2", "X3", "X4", "RES",
-                                     "ATK", "DEC", "REL", "HARM", "LSHP"};   /* (FASE 5) the envelope's three times: a source can
+                                     "ATK", "DEC", "REL", "HARM", "LSHP", "GLIDE", "STRUM"};   /* (FASE 5) the envelope's three times: a source can
                                      * stretch or shorten them per block (mod.c); appended after RES, so every
                                      * stored destination number keeps its meaning */   /* (JIANT: the master, FX > MASTER);
                                      * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored

@@ -538,8 +538,11 @@ typedef struct {
 #define QG_DST_VIB 11            /* MD_VIB */
 #define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
 #define QG_SRC_N 17              /* MS_N: the matrix's sources (mod.c checks the count); (FASE 5) +1: BAR */
-#define QG_DST_N 32              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL;
-                                  * v1.12.4 +1: HARM, TILT; v1.12.5 +1: LSHP, the LFO's curve) */
+#define QG_DST_N 34              /* MD_N: its destinations ((FASE 3) +1: RES; FASE 5 +3: ATK DEC REL;
+                                  * v1.12.4 +1: HARM, TILT; v1.12.5 +1: LSHP, the LFO's curve; FASE 5 +2: GLIDE,
+                                  * STRUM -- the two the note reads when it attacks) */
+#define QG_DST_GLIDE 32          /* MD_GLIDE: the portamento time the next note starts with */
+#define QG_DST_STRUM 33          /* MD_STRUM: the chord's spread, low to high */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */

@@ -169,7 +169,7 @@ async function editorMock() {
       && md[1].names[11] === "VIB" && md[1].names[19] === "E8" && md[1].names[21] === "PNCH" && md[1].names[25] === "X4" && md[1].names[26] === "RES"
       && md[1].names[27] === "ATK" && md[1].names[28] === "DEC" && md[1].names[29] === "REL"
       && md[2].min === -64 && md[2].max === 63 && md.every((d) => d.def === 0),
-      "editor: matrix parameters 49..60 over DESC (17 SRC names: 1.2.1-GW NOISE, PAT, FASE 5 BAR; 32 DST names: the macros M1..M4, the master CLIP PNCH, the CHARACTER bank X1..X4, FASE 3 RES, FASE 5 ATK DEC REL, FASE 4 HARM and LSHP)");
+      "editor: matrix parameters 49..60 over DESC (17 SRC names: 1.2.1-GW NOISE, PAT, FASE 5 BAR; 32 DST names: the macros M1..M4, the master CLIP PNCH, the CHARACTER bank X1..X4, FASE 3 RES, FASE 5 ATK DEC REL, FASE 4 HARM and LSHP; the emulator artefact lags FASE 5 GLIDE/STRUM until an emcc rebuild)");
     await rq(E.req.set(0, 52, 1));
     await rq(E.req.set(0, 53, 12));
     await rq(E.req.set(0, 54, -30));
