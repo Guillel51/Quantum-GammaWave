@@ -336,7 +336,7 @@ static void gen_drums(track_t *t, uint32_t len)
     gseed(GS_DRUMS);
     memset(gs.kick, 0, sizeof gs.kick);
     memset(gs.snare, 0, sizeof gs.snare);
-    for (l = 0; l < 8u; l++) map[l] = DRUM_MAP[g->drum][l];
+    for (l = 0; l < 8u; l++) map[l] = DM_PAT[DRUM_MAP[g->drum][l]];   /* (FASE 1/10) a byte per cell, the lines in DM_PAT */
     if (trap) {                                         /* only straight eighths or sixteenths from the pool (drill keeps
                                                          * its 3-3-2); its open hats, percussion and snares are its own */
         static const uint8_t TRAP_HATS[4] = {0, 1, 3, 7};
