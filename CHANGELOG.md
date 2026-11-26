@@ -1,4 +1,9 @@
-## Sin publicar — el registro de glifo acepta caras de más de 8 KiB (medida de las 8 fases de S)
+## v2.15.0 — 2.15: las seis fases, las tarjetas de MORPH/TILT/LFO CURVE y la medida de las 8 fases
+
+Release de acumulación: todo lo que quedó «Sin publicar» desde 2.12.0 entra aquí, con el registro de glifo que
+acepta caras de más de 8 KiB y la medición real de text_spacing a 8 fases.
+
+### el registro de glifo acepta caras de más de 8 KiB (medida de las 8 fases de S)
 
 - **El bloqueo del generador**: `aag_t` empaquetaba el `off` del bitmap en 13 bits (máx. 8 191) y la cara S a 8 fases
   pide 8 223, así que `gen_aa_font.py` abortaba en el `assert` y no escribía `build/gen/ui_fonts.h`. La palabra era de
@@ -12,7 +17,7 @@
   `region XIP overflowed by 5512 bytes`** (imagen ≈ 589 124 B contra un slot de 583 612 B). El par «Gl» de S pasa de
   **+0,258 px a −0,025 px** y el máximo de la cara de **0,258 a 0,157 px** (rms 0,105 → 0,055).
 
-## Sin publicar — rediseño: la tarjeta libre del LFO CURVE pasa a ser RETRIG
+### rediseño: la tarjeta libre del LFO CURVE pasa a ser RETRIG
 
 - **LFO CURVE (LFO)**: el cuarto mando era una tarjeta en blanco. Ahora es **RETRIG**: **ON**, una nota reinicia el LFO
   desde **PHASE**; **OFF**, el LFO corre libre y la nota se le une donde está. Es el mismo byte que PHASE (−1 = FREE)
@@ -24,7 +29,7 @@
 - **[AC791N]**: XIP **575 756 B** contra 575 616 B antes (código 453 972 + constantes 121 784) e imagen **580 536 B**
   con **3 076 B** libres, contra 580 396 B antes. RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488, alcance 10 124 B.
 
-## Sin publicar — rediseño: las tarjetas vacías del MORPH y del TILT se llenan con lo que la página es
+### rediseño: las tarjetas vacías del MORPH y del TILT se llenan con lo que la página es
 
 - **MORPH (EDIT)**: tenía tres mandos muertos y tres tarjetas en blanco bajo el gráfico. Ahora los cuatro controles son
   reales: **MORPH**, **WAVE** (la onda que se está interpolando, con su nombre según el motor: SAW, PWM, SYNC, RING…),
@@ -40,7 +45,7 @@
   que no se añadió código ni datos. RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488, alcance 10 228 B. RAM 75 664 / 98 304,
   POOL 296 156, LOWBUF 28 488, alcance 10 228 B.
 
-## Sin publicar — camino a 3.0: trabajo por bloque fuera del filtro de pista
+### camino a 3.0: trabajo por bloque fuera del filtro de pista
 
 - **`tf_run` (voice.c)**: la posición dentro del bloque (`w`) se calculaba en cada muestra aunque sólo la usan tres
   casos (entrada del filtro, salida, crossfade de TYPE). En el estado estacionario —el caso común, y el de seis
@@ -52,7 +57,7 @@
 - **[AC791N]**: imagen 580 396 B de 583 612 (3 216 libres), RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488,
   alcance 10 228 B.
 
-## Sin publicar — cierre de las seis fases
+### cierre de las seis fases
 
 - **SEQ > AUTO LIST y SEQ > AUTOMATION dejan de ser páginas vacías**: la lista sin locks explica que un mando sobre un
   paso graba su valor, y la automatización sin movimientos dice «NO MOVES YET» y qué tecla empieza a grabar. Eran las
@@ -67,7 +72,7 @@
   28 488, alcance 10 268 B. **[HOST]**: 3 305 cuadros, 0 hallazgos de lint, 0 tintas sobre su propio color, 0
   píxeles fuera de gris; `regress` con 316 dorados idénticos.
 
-## Sin publicar — FASE 5/6: GLIDE y STRUM entran en la matriz de modulación
+### FASE 5/6: GLIDE y STRUM entran en la matriz de modulación
 
 - **Dos destinos nuevos, 32 y 33**, añadidos al final de la lista (`MD_GLIDE`, `MD_STRUM`; `MD_N`/`QG_DST_N` 32 → 34)
   para que ningún número guardado cambie de significado. Son los dos únicos parámetros que el DSP lee en el ataque de
@@ -84,7 +89,7 @@
 - **Pendiente**: el Web Studio mostrará los dos nombres cuando se reconstruya el emulador WASM (aquí no hay `emcc`);
   las pruebas del editor validan contra ese artefacto, así que no se tocó.
 
-## Sin publicar — FASE 4/6: auditoría de las 207 pantallas y la respuesta del FILTER a escala propia
+### FASE 4/6: auditoría de las 207 pantallas y la respuesta del FILTER a escala propia
 
 - **`filter_pass` / `graph_filter` (ui_graph.c)**: la curva se escalaba contra el techo fijo de `flt_mag` (1180), así
   que un tipo que nunca baja —SHELF entre 400 y 1000— se dibujaba en el tercio superior con dos tercios de banda
@@ -100,7 +105,7 @@
   (mínimo 8 192), RAM 75 664, POOL y LOWBUF iguales. **[HOST]**: 0 lint, 0 tintas sobre su propio color, 0
   desalineaciones, 0 píxeles GREY/MONO fuera de gris.
 
-## Sin publicar — FASE 3/6: profundidad y ambiente compartidos, y la suite vuelve a arrancar
+### FASE 3/6: profundidad y ambiente compartidos, y la suite vuelve a arrancar
 
 - **`ux_ambient()` (gfx.c)**: un solo componente para el fondo de la banda de cuerpo. Seis bloques en tres filas de
   profundidad —más oscuros que la placa, con borde superior iluminado, pie en sombra y canto lateral, el acento en
@@ -400,7 +405,7 @@
   76 048 B (22 256 B libres, los 2 048 B de `WT_COEF`). Auditoría y descartes razonados en
   `docs/FASE2_XIP_RECURSOS_2026-11-25.md`.
 
-## Sin publicar — FASE 2: 15 966 B del pool, la consola FX y el skin
+### FASE 2: 15 966 B del pool, la consola FX y el skin
 
 - **Una línea de reverb para todos los modelos.** CLOUD, SHIMMER y ROOM/SPRING/RESO leen buffers distintos y
   corren de uno en uno: `cloud_buf` (32 768 B) es ahora una unión con el grupo que comparte ROOM (combs 9 874 +
