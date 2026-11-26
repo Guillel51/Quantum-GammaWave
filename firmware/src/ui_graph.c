@@ -878,7 +878,7 @@ static __attribute__((noinline)) void graph_dximg(const track_t *t)
  * second copy of the maths. */
 typedef struct {
     int32_t pos, f, sy, dy;
-    uint32_t a0, a1, e;
+    uint32_t a0, a1, e, sp;              /* (this phase) sp: PWM / SYNC / RING / SAW3, 0 = the wave MORPH slides */
     int dirt, pmw;
     pd_t pa, pb;
     an_dirt_t dt;
@@ -899,6 +899,26 @@ static int32_t morph_y(const track_t *t, const morph_st *st, uint32_t i)
     } else if (ENGINES[e] == &ENG_LOFI) {
         s = lofi_mto(st->a0, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u);
         if (st->f) s += ((lofi_mto(st->a1, ph, 0x80000000u, WRAM[((uint32_t)t->p[P_E2] >> 3) & 15u], 0, 1u) - s) * st->f) >> 8;
+    } else if (st->sp) {                             /* (this phase) PWM SYNC RING SAW3 */
+        /* These four were the one MORPH panel with no wave in it: a straight ramp from x to y that only said
+         * "MORPH is here", drawn before the depth stack and returning without it. Each shape is now the one
+         * analog_ext() makes, from the page's own MORPH (the modulation the DSP adds on top of it -- SHAPE, mo_cur --
+         * is not invented here), and it goes through the same four layers as every other engine's MORPH. */
+        uint32_t mr = (uint32_t)clamp((int32_t)t->p[P_MORPH], 0, 127);
+        if (st->sp == 1u) {                          /* PWM: the pulse, 50 % .. 99 % wide (an_pw's law) */
+            int32_t q = clamp((int32_t)mr * 512, -16384, 65000);
+            uint32_t w = 0x80000000u + (uint32_t)(q << 15);
+            s = ph < w ? 26000 : -26000;
+        } else if (st->sp == 2u) {                   /* SYNC: osc 2 restarted by every cycle of osc 1 */
+            uint32_t r16 = 16u + mr * 64u / 127u;    /* the ratio an_mext() asks for */
+            s = osc_saw((uint32_t)(((uint64_t)ph * r16) >> 4), inc);
+        } else if (st->sp == 3u) {                   /* RING: osc 1 x osc 2, at that ratio */
+            uint32_t r16 = 16u + mr * 64u / 127u;
+            s = (osc_saw(ph, inc) * osc_sine((uint32_t)(((uint64_t)ph * r16) >> 4))) >> 15;
+        } else {                                     /* SAW3: three saws, the pair spread by MORPH (and DTUNE) */
+            uint32_t d = (uint32_t)((int32_t)t->p[P_E1] + (int32_t)mr * 40 / 127) * 40u;
+            s = (osc_saw(ph, inc) + osc_saw(ph + d, inc) + osc_saw(ph - d, inc)) / 3;
+        }
     } else if (st->pmw) {
         int32_t mo = osc_saw(ph * 2u, inc);
         s = osc_sine(ph + (uint32_t)mo * (uint32_t)(16384u + (uint32_t)t->p[P_MORPH] * 128u));
@@ -935,6 +955,8 @@ static __attribute__((noinline)) void graph_morph(const track_t *t)
     pd_t pa, pb;
     an_dirt_t dt = {0, 0, 0, 0, 0};
     int dirt = 0, pmw = 0;
+    uint32_t sp = 0;                                  /* (this phase) PWM..SAW3, and its label */
+    const char *spn = 0;
     if (ENGINES[e] == &ENG_PHASE) {
         uint32_t dcw = (uint32_t)(p[P_E2] << 8) * 65535u / (127u << 8);
         pos = (int32_t)(p[P_E0] & 7) * 256 + p[P_MORPH] * 768 / 127;
@@ -956,27 +978,30 @@ static __attribute__((noinline)) void graph_morph(const track_t *t)
         pos = 0;
         n0 = n1 = N_ANALOG_WAVE[(uint32_t)p[P_E0] % NELEM(N_ANALOG_WAVE)];
     } else {
-        if (p[P_E0] >= 4) {                             /* (0.6.81) PWM SYNC RING SAW3: the WAVE, what MORPH moves */
+        if (p[P_E0] >= 4 && p[P_E0] <= 7) {             /* (this phase) PWM SYNC RING SAW3: their own wave, and
+                                                         * now the shared depth stack, the travel bar and the label
+                                                         * the other waves have. It used to draw a straight ramp
+                                                         * and return, which is why these four were the only MORPH
+                                                         * screens with no depth and no shape of their own. */
             static const char *const WHAT[4] = {"PWM  WIDTH", "SYNC  RATIO", "RING  RATIO", "SAW3  SPREAD"};
-            str_cpy(b, WHAT[(p[P_E0] - 4) & 3], sizeof b);
-            cv_rect(PANEL_X0, 46, PANEL_W, 1, T_RAISE);
-            for (i = 0; i <= 110u; i++) {
-                int32_t x = PANEL_X0 + (int32_t)i * 2, y = 46 - (int32_t)((i * 34u * (uint32_t)p[P_MORPH]) / (110u * 127u)) + 17;
-                if (i) cv_line_t(px, py, x, y, heat_col(80 + (uint32_t)(46 - y + 34) * 2u), 2);
-                px = x; py = y;
-            }
-            cv_text(PANEL_X0 + 2, 90, &AF_S, b, T_MID);
-            return;
+            sp = (uint32_t)(p[P_E0] - 4) + 1u;
+            spn = WHAT[(p[P_E0] - 4) & 3];
+            pos = 0;
+            f = (int32_t)p[P_MORPH] * 255 / 127;    /* the bar's marker sits where the knob is */
+            n0 = n1 = "";
         }
         pos = clamp(p[P_E0] * 256 + p[P_MORPH] * 768 / 127, 0, 1536);
         a0 = ((uint32_t)pos >> 8) & 3u; a1 = (a0 + 1u) & 3u;
         n0 = N_ANALOG_WAVE[a0]; n1 = N_ANALOG_WAVE[a1];
+        f = pos & 255;
     }
-    f = pos & 255;
+    if (!sp)
+        f = pos & 255;
     cv_rect(PANEL_X0, 46, PANEL_W, 1, T_RAISE);
     {
         morph_st st;
         st.pos = pos; st.f = f; st.a0 = a0; st.a1 = a1; st.e = e;
+        st.sp = sp;
         st.dirt = dirt; st.pmw = pmw; st.dt = dt;
         st.pa = pa; st.pb = pb;
         /* the state of each pass, kept for tests/morph_depth.c: it reads the geometry the panel just drew from,
@@ -1021,8 +1046,12 @@ static __attribute__((noinline)) void graph_morph(const track_t *t)
         if (i) cv_line_t(px, py, x, y, heat_col(80 + (uint32_t)(46 - y + 34) * 2u), 2);
         px = x; py = y;
     }
-    str_cpy(b, n0, sizeof b);
-    if (f && a1 != a0) { str_cpy(b + str_len(b), " > ", 4); str_cpy(b + str_len(b), n1, 8); }
+    if (spn) {
+        str_cpy(b, spn, sizeof b);
+    } else {
+        str_cpy(b, n0, sizeof b);
+        if (f && a1 != a0) { str_cpy(b + str_len(b), " > ", 4); str_cpy(b + str_len(b), n1, 8); }
+    }
     cv_text(PANEL_X0 + 2, 90, &AF_S, b, T_MID);
     /* (3.4) WHERE the morph is, not only what it sounds like: the bottom of the panel is the travel from A to
      * B and the marker is the position the knob is on, so the panel answers the question the page is about --

@@ -738,6 +738,7 @@ static void eng(uint32_t e) { set_engine_of(TSEL, e); }
 
 enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESETS, S_PRESETS_NOFAV, S_USER, S_PHRASES, S_PROJECT, S_TOOLS,
        S_SONG_EMPTY, S_SONG, S_STEP, S_PATTERN, S_CHANCE, S_COMP, S_COMP_TRIG, S_COMP_ECHO, S_MUTATE, S_MORPH, S_DXIMG, S_DXSEND, S_PFLASH, S_PFLASH_HOME, S_FUGUE, S_MOTION, S_DRUM, S_DRUM_HAND, S_DRUM_CYM, S_MIXER, S_MIXER_PAN,
+       S_MORPH_PWM, S_MORPH_SYNC, S_MORPH_RING, S_MORPH_SAW3,   /* (this phase) ANALOG's four special waves */
        S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM, S_MONITOR,
        S_EDIT_ANALOG, S_EDIT_DIGITAL, S_OP_ENV, S_EDIT_WHEEL, S_EDIT_SAMPLE, S_EDIT_GRAIN, S_EDIT_LOFI, S_EDIT_LOFI_FREE, S_EDIT_PHASE,
        S_EDIT_CHAR, S_EDIT_VOICE_CHAR, S_LFO_SHAPE,          /* (FASE 2) */
@@ -766,7 +767,9 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_SCENES, S_SCENES_EMPTY, S_PRESETS_POP, S_COUNT };   /* (v1.8.5) QUANTUM MORPH: a captured pair and an empty one */
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
-    "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
+    "drum_hand", "drum_cym", "mixer", "mixer_pan",
+    "morph_pwm", "morph_sync", "morph_ring", "morph_saw3",             /* (this phase) */
+    "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
     "voice", "global", "system", "monitor", "edit_analog", FELUCCA_FM4 ? "edit_digital" : "edit_fm6", "op_env", "edit_wheel", "edit_voice",
     "edit_noise", "edit_lofi", "edit_lofi_free", "edit_phase", "edit_char", "edit_voice_char", "lfo_shape", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "drumx", "drumx_hit", "dx_sound", "dx_sound2", "confirm_seq", "confirm_project", "confirm_user", "confirm_pattern",
     "confirm_motion", "confirm_erase", "menu", "menu_speaker", "about", "about_rec", "about_credits", "about_end", "uboot", "calibration", "splash",
@@ -1011,6 +1014,20 @@ static void setup(int s)
         break;
     case S_MORPH:                                       /* (0.6.45) ANALOG SAW, MORPH 50 */
         set_engine_of(TSEL, ENGI_ANALOG); TSEL->p[P_E0] = 0; TSEL->p[P_MORPH] = 50; go_page(GR_MORPH);
+        break;
+    /* (this phase) the four waves that used to draw a straight ramp and skip the depth stack: each one on its own
+     * scene so the sweep, the lint and the pixel gate see them at a MORPH that shows the shape */
+    case S_MORPH_PWM:
+        set_engine_of(TSEL, ENGI_ANALOG); TSEL->p[P_E0] = 4; TSEL->p[P_MORPH] = 90; go_page(GR_MORPH);
+        break;
+    case S_MORPH_SYNC:
+        set_engine_of(TSEL, ENGI_ANALOG); TSEL->p[P_E0] = 5; TSEL->p[P_MORPH] = 70; go_page(GR_MORPH);
+        break;
+    case S_MORPH_RING:
+        set_engine_of(TSEL, ENGI_ANALOG); TSEL->p[P_E0] = 6; TSEL->p[P_MORPH] = 80; go_page(GR_MORPH);
+        break;
+    case S_MORPH_SAW3:
+        set_engine_of(TSEL, ENGI_ANALOG); TSEL->p[P_E0] = 7; TSEL->p[P_E1] = 20; TSEL->p[P_MORPH] = 90; go_page(GR_MORPH);
         break;
     case S_MUTATE:                                      /* (0.6.43) three tracks mutating, bar 5 */
         trk[0].p[P_MSND] = 2; trk[0].p[P_MPAT] = 4; trk[1].p[P_MSND] = 3; trk[1].p[P_MMODE] = 1; trk[3].p[P_MPAT] = 1;

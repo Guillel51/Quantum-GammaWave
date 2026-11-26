@@ -1,3 +1,26 @@
+## v2.14.0 — PWM, SYNC, RING y SAW3 también son ondas (y también tienen profundidad)
+
+- **Las cuatro variantes especiales de ANALOG dibujaban una recta y se saltaban la profundidad.** `graph_morph()`
+  tiene un camino general con cuatro capas (la curva y tres copias más planas, más altas y más oscuras) y un
+  camino propio para PWM, SYNC, RING y SAW3 que pintaba una rampa de esquina a esquina y hacía `return` antes del
+  bloque de profundidad: eran las únicas pantallas de MORPH sin onda y sin 3D, y la recta no representaba nada de
+  lo que procesa el DSP. Ahora cada una dibuja **la forma que hace `analog_ext()`** desde el MORPH de la página —
+  el pulso de `an_pw()` (50 % … 99 %), el segundo oscilador del SYNC con la relación de `an_mext()`, el producto
+  del RING a esa relación y las tres sierras del SAW3 separadas por DTUNE + MORPH — y entra por el **mismo**
+  `morph_st` y `morph_pass()` que el resto: **cuatro capas de profundidad, la barra de recorrido y la etiqueta**,
+  sin una segunda implementación del efecto.
+- **Barrido**: cuatro escenas nuevas (`morph_pwm`, `morph_sync`, `morph_ring`, `morph_saw3`), 203 → **207
+  pantallas × 22 paletas**, base de píxeles regenerada a 3 305 cuadros; lint, alineación (0 desvíos en 4 069 937
+  mediciones) y las puertas `--regions/--idle/--bands/--headers` pasan. `morph_depth`, `ui_test`,
+  `chorus_rate_test`, `control_map_test` y `phase2_test` pasan.
+- **Enlace**: la XIP creció 500 B y el alcance de llamadas desde el código en RAM quedó 160 B corto del mínimo;
+  RAMTEXT sube 1 KiB (`0x01C70800` → `0x01C70C00`) y su longitud baja lo mismo (`0x6000` → `0x5C00`), con la
+  banda de guarda en el mismo sitio: alcance 9 056 B, RAM code 3 940 B de 23 552.
+- **Medido**: **[AC791N]** imagen 578 936 B de 583 612 (4 676 libres), XIP 452 480 + 121 676, RAM 75 632 de
+  98 304, pool spare 24 352, LOWBUF 28 488 de 32 768. **[HOST]** el resto. Sin mediciones en la FM-1 física.
+- **Pendiente de la fase**: el rediseño pantalla por pantalla más allá de MORPH, capas 3D en las páginas de FX
+  que hoy son una sola curva (DLY) y en DRUM por sonido, y microanimaciones de respuesta al tocar cada encoder.
+
 ## v2.13.0 — CHORUS con techo de 6 Hz y su gráfica, EDIT y LFO unificados, y el fondo a sangre
 
 - **El RATE del CHORUS no puede pasar de 6.00 Hz, por ningún camino.** El bus leía `LFO_INC[G_CRATE]`, la tabla del
