@@ -147,6 +147,12 @@ case "${POLY:-12}" in
     *)  echo "poly: POLY=${POLY:?} (the measured profiles are 10 and 12)" >&2; exit 2 ;;
 esac
 fail=0
+# (2.16) A group that did not run is not a green result. Every "skip" here says so in the summary, and
+# STRICT_EMU=1 (CI, where emsdk is installed by the workflow) turns a skipped emulator group into a
+# failure: a run that cannot build the WASM must not look like a run that did and passed.
+skips=""
+n_skip=0
+skip() { n_skip=$((n_skip + 1)); skips="$(printf '%s\n  - %s' "$skips" "$1")"; echo "== SKIPPED: $1"; }
 # (1.3.7) A check that fails says which one, right there: a suite of hundreds of commands whose only trace
 # of a failure is a `fail=1` needs the whole log to find it, and in CI that log needs a credential to read.
 # The line is plain text on purpose (no GitHub syntax in a test script): anyone greps for FAIL.
@@ -751,19 +757,16 @@ fi
 # "skip the browser emulator" on a machine that has Emscripten installed, and the parity check ("= native",
 # 88 200 frames bit for bit) never ran as part of the suite. A skipped group is a gap in the evidence, not a
 # green result: if emcc is not on PATH but an SDK is where this repository puts it, source it and run the group.
-if ! command -v emcc >/dev/null 2>&1; then
-    for sdk in "${EMSDK:-}" "$HOME/emsdk" "/opt/emsdk"; do
-        [ -n "$sdk" ] && [ -f "$sdk/emsdk_env.sh" ] || continue
-        # shellcheck disable=SC1090
-        . "$sdk/emsdk_env.sh" >/dev/null 2>&1 || true
-        command -v emcc >/dev/null 2>&1 && break
-    done
-fi
+# shellcheck source=../tools/emu_env.sh
+. tools/emu_env.sh
+emu_find_emcc || true
 
 if ! command -v emcc >/dev/null 2>&1; then
-    echo "== skip the browser emulator (no emcc and no emsdk: Emscripten builds web/emu)"
+    skip "browser emulator (no emcc: Emscripten builds web/emu; looked on PATH, \$EMSDK, ~/emsdk, /opt/emsdk)"
+    [ "${STRICT_EMU:-0}" = 1 ] && { echo "FAIL: STRICT_EMU=1 and the emulator group did not run"; fail=1; }
 elif ! command -v node >/dev/null 2>&1 || [ ! -f build/gen/felucca_tables.h ]; then
-    echo "== skip the browser emulator (needs node and build/gen)"
+    skip "browser emulator (needs node and build/gen)"
+    [ "${STRICT_EMU:-0}" = 1 ] && { echo "FAIL: STRICT_EMU=1 and the emulator group did not run"; fail=1; }
 else
     run "browser emulator: the firmware to WebAssembly (web/emu/build.sh -> build/emu)" sh web/emu/build.sh
     cc -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o "$OUT/emu_native" web/emu/native_check.c -lm
@@ -781,4 +784,9 @@ else
         python3 tests/manifest_test.py
 fi
 
+if [ "$n_skip" -gt 0 ]; then
+    echo ""
+    echo "$n_skip group(s) NOT RUN (a skip is not a pass):$skips"
+    echo ""
+fi
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

@@ -79,7 +79,13 @@ jobs:
           # gitee resets connections from the runners now and then: retries with backoff; the cache above keeps them
           retry() { for d in 0 5 15 30 60; do sleep $d; "$@" && return 0; done; return 1; }
           T=$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools
-          [ -e "$HOME/.jieli/toolchain" ] || retry sh tools/get_toolchain.sh "$HOME/.jieli"
+          # (2.16) ALWAYS through the script: it is idempotent (a stamped install from the pinned archive
+          # is a no-op) and it refuses a DEST that is not stamped with the current pin. `[ -e ... ] ||`
+          # meant a cached ~/.jieli from an earlier archive was used forever, with the pin never checked.
+          retry sh tools/get_toolchain.sh "$HOME/.jieli"
+          # the identity the build actually used, in the log: a link failure is not debuggable without it
+          "$HOME/.jieli/toolchain/pi32v2/bin/clang" --version | head -3
+          cat "$HOME/.jieli/toolchain.stamp" 2>/dev/null || echo "::warning::no toolchain stamp (not from tools/get_toolchain.sh)"
           if [ ! -s "$T/uboot.boot" ] || [ ! -s "$T/cfg_tool.bin" ] || [ ! -s "$T/cfg/eq_cfg_hw.bin" ]; then
             rm -rf "$HOME/fw-AC79_AIoT_SDK"
             retry git clone --filter=blob:none --no-checkout --depth 1 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"

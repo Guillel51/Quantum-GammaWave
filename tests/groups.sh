@@ -66,19 +66,19 @@ run_sync() {
 }
 
 run_emu() {
-    # emcc is wherever the environment says it is: $EMSDK, ~/emsdk (where docs put it) or /tmp/emsdk (the
-    # older layout). Hard-coding /tmp made the group measure a stale WASM on any other machine.
-    for e in "${EMSDK:-}" "$HOME/emsdk" /tmp/emsdk; do
-        if [ -n "$e" ] && [ -f "$e/emsdk_env.sh" ]; then
-            . "$e/emsdk_env.sh" >/dev/null 2>&1
-            break
-        fi
-    done
-    if command -v emcc >/dev/null 2>&1; then
+    # emcc is wherever the environment says it is: PATH, $EMSDK, ~/emsdk, /opt/emsdk or /tmp/emsdk (the older
+    # layout). tools/emu_env.sh shares the search with web/emu/build.sh and tests/run_tests.sh, and adds
+    # emsdk's own directories because its emsdk_env.sh fails silently when sourced by dash.
+    # (2.16) NO REBUILD IS NOT A PASS: this used to test whatever WASM was lying in build/emu and call that
+    # green, which is a stale emulator reported as the current tree. It is a skip now (exit 2), the same
+    # "not run here" the browser group uses.
+    # shellcheck source=../tools/emu_env.sh
+    . tools/emu_env.sh
+    if emu_find_emcc; then
         sh web/emu/build.sh
     else
-        echo "emu: emcc unavailable; testing the existing packaged WASM (not a rebuild)" >&2
-        [ -f build/emu/felucca.wasm ] || return 1
+        echo "emu: emcc unavailable, so the WASM cannot be rebuilt from these sources: group SKIPPED" >&2
+        return 2
     fi
     # the native reference the WASM is compared against bit for bit: tests/run_tests.sh builds it, and a
     # group run on a clean tree failed here on a missing file instead of on a wrong emulator. Build it

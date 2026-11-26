@@ -11,7 +11,17 @@
 set -e
 cd "$(dirname "$0")/../.."
 [ -f build/gen/felucca_tables.h ] || { echo "emu: run ./build.sh once first (build/gen)"; exit 1; }
-command -v emcc >/dev/null 2>&1 || { echo "emu: no emcc (Emscripten)"; exit 1; }
+# (2.16) FOUND, NOT ASSUMED: emcc is not on the PATH in this project's own setup -- the SDK lives in
+# $HOME/emsdk and is reached by sourcing emsdk_env.sh -- so a clean shell said "no emcc" with Emscripten
+# installed. tools/emu_env.sh looks in PATH, $EMSDK, ~/emsdk, /opt/emsdk and /tmp/emsdk, and adds
+# upstream/emscripten directly because emsdk_env.sh fails silently when sourced by dash.
+# shellcheck source=tools/emu_env.sh
+. "$(dirname "$0")/../../tools/emu_env.sh"
+if ! emu_find_emcc; then
+    echo "emu: no emcc (Emscripten 6.0.11): install emsdk, then source ~/emsdk/emsdk_env.sh"
+    echo "emu: looked on PATH, then \$EMSDK, ~/emsdk, /opt/emsdk, /tmp/emsdk"
+    exit 1
+fi
 # One version everywhere: .github/workflows/target.yml installs EMU_EMCC and docs/BUILD_AC791N.md
 # documents it. Another compiler usually still works, so this warns instead of refusing, but the
 # parity check compares bit for bit and a silent version drift is what makes it hard to trust.

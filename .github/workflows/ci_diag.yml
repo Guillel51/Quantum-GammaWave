@@ -75,6 +75,17 @@ jobs:
             awk -F'\t' '$1 !~ /^publish/ && ($2 ~ /Set up job|Checkout|the emulator|target|deploy|Pages|site/ || 1) {print}' /tmp/run.log \
               | grep -iE "::error|error:|Error: |fatal|Traceback|FAILED|denied|403|404|422" | cut -c1-2000 | tail -300
             echo
+            echo "## context around failures"
+            # (2.16) The filtered section above keeps the lines that NAME a failure; the line that CAUSED it
+            # usually does not (a linker diagnostic such as "region `XIP' overflowed by 12 bytes", a
+            # "cannot find -l...", a compiler note). This pass keeps 25 lines before and 8 after every
+            # failure marker, so the next reader does not have to guess or re-run the job.
+            awk -F'\t' '{ l[NR]=$0 }
+              END { for (i=1;i<=NR;i++)
+                      if (l[i] ~ /::error|build: .* failed|overflowed|undefined reference|cannot find|No such file|error: ld|fatal error/) {
+                          s=i-25; if (s<1) s=1; e=i+8; if (e>NR) e=NR;
+                          for (j=s;j<=e;j++) print l[j] } }' /tmp/run.log | cut -c1-2000 | tail -400
+            echo
             echo "## tail"
             tail -400 /tmp/run.log | cut -c1-2000
             echo
