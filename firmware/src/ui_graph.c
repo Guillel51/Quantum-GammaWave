@@ -3172,6 +3172,12 @@ static uint32_t graph_signature(void)
     if (pg->graph == GR_SLCR || pg->graph == GR_SLPIT)   /* (its globals: the page's knobs and the bus) */
         for (i = 0; i < G_SL_N; i++)
             h = (h ^ (uint32_t)song.g[G_SLMODE + i]) * 16777619u;
+    /* (FASE 3) THE CHORUS PAGE'S OWN STATE, AND ITS SWEEP. graph_chorus reads RATE, DEPTH, STEREO and TYPE and
+     * walks its phase with ui.frame, and neither was in this signature: the picture kept the frame it first drew
+     * (a still chorus) and turning any of its four knobs left the old picture on the glass -- the "it does not move
+     * and nothing moves it" report. The four globals and the phase are the state; DEPTH and STEREO also shape the
+     * drawing, so the page repaints the frame either of them changes. */
+
     if (pg->graph == GR_SLPIT)
         h ^= (sl_ui_step + 1u) * 40503u;
     if (pg->graph == GR_TOOLS)                       /* (0.6.12) the action picked, the song's row */
@@ -4678,7 +4684,12 @@ static __attribute__((noinline)) void draw_graph(void)
         return;
     }
     sig = graph_signature();
-    if (!ui.force && sig == ui.graph_sig)
+    /* (FASE 3) THE CHORUS PAGE IS LIVE BY NATURE. graph_chorus draws RATE, DEPTH, STEREO, TYPE and a sweep that is
+     * a function of ui.frame, and none of them was in graph_signature(): the page kept the frame it first drew and
+     * no knob moved a pixel of it -- the "the chorus does not move and nothing moves it" report. Its signature can
+     * be whatever it is (a bus knob's own numbers are in song.g, the phase is not); the page is drawn every frame
+     * it is up, exactly as an animated graph, and the DSP's own values are read fresh on each pass. */
+    if (!ui.force && sig == ui.graph_sig && pg->graph != GR_CHORUS)
         return;
     {   /* (0.6.57) LOAD LITE / ECO: the panel's animation (the beings, the scope, LFO, the envelope's dot, a turn
          * redrawing a curve) at most every 50 / 70 ms (~20 / 14 frames a second, FULL: as fast as it changes), so the
