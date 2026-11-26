@@ -33,6 +33,10 @@ typedef struct {
     const int8_t *kd;                   /* 1/16 px */
     const uint8_t *ex;                  /* codes of the extra glyphs */
     uint8_t psh;                        /* log2 of the phases per glyph: g[i << psh] .. g[(i << psh) + phases - 1] */
+    const uint16_t *gi;                 /* (3.0) a face that mixes its phases: the first table entry of each glyph
+                                         * (its run is 1 << x[glyph] long), 0 = g[i << psh] */
+    const uint8_t *x;                   /* (3.0) the log2 phases of each glyph, 2 bits each: a thin stem takes
+                                         * eight where the rest of the face keeps four (gen_aa_font.py DEEP) */
     uint8_t adv8;                       /* the advances in adv are bytes, not the 16-bit words of aafont_t.adv */
     const uint8_t *hc;                  /* data's Huffman code (cv_alpha_hc), 0 = 2 px per byte (cv_alpha) */
 } aafont_t;
@@ -1478,7 +1482,7 @@ static int32_t glyph_at(const aafont_t *f, uint32_t ch)
 
 /* the table entry of ch at phase 0 (its other phases follow it). Not in the face: the ellipsis as '.',
  * else '?', else the face's first glyph (L is sparse: its space) */
-static uint32_t glyph(const aafont_t *f, uint32_t ch)
+static uint32_t glyph_no(const aafont_t *f, uint32_t ch)
 {
     int32_t k;
     if (ch >= 'a' && ch <= 'z' && f->last < 'a')
@@ -1486,7 +1490,18 @@ static uint32_t glyph(const aafont_t *f, uint32_t ch)
     if ((k = glyph_at(f, ch)) < 0 && (ch != (uint8_t)ELLIPSIS || (k = glyph_at(f, '.')) < 0) &&
         (k = glyph_at(f, '?')) < 0)
         k = 0;
-    return (uint32_t)k << f->psh;
+    return (uint32_t)k;
+}
+/* the glyph's first table entry; its phases follow it */
+static uint32_t glyph(const aafont_t *f, uint32_t ch)
+{
+    uint32_t k = glyph_no(f, ch);
+    return f->gi ? f->gi[k] : (k << f->psh);
+}
+/* (3.0) the glyph's phases, log2: 2 bits a glyph (AF_<N>_X), the face's psh when it has one grid */
+static uint32_t glyph_x(const aafont_t *f, uint32_t k)
+{
+    return f->x ? (uint32_t)((f->x[k >> 2] >> ((k & 3u) * 2u)) & 3u) : (uint32_t)f->psh;
 }
 
 static int32_t kern(const aafont_t *f, uint32_t a, uint32_t b)       /* 1/16 px */
@@ -1520,7 +1535,7 @@ static int32_t text_w(const aafont_t *f, const char *s)
         uint32_t c = fold(f, (uint8_t)*s);
         if (prev)
             pen += kern(f, prev, c);
-        pen += advance(f, glyph(f, c) >> f->psh);
+        pen += advance(f, glyph_no(f, c));
         prev = c;
     }
     return (pen + 8) >> 4;
@@ -1532,19 +1547,19 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
     const int32_t step = 16 >> f->psh;
     uint32_t prev = 0;
     for (; *s; s++) {
-        uint32_t c = fold(f, (uint8_t)*s), gi = glyph(f, c);
+        uint32_t c = fold(f, (uint8_t)*s), k = glyph_no(f, c), gi = glyph(f, c);
         const aag_t *g;
-        int32_t pos, d0, d1;
+        int32_t pos, d0, d1, psh = (int32_t)glyph_x(f, k), step = 16 >> psh;
         if (prev)
             pen += kern(f, prev, c);
         g = &f->g[gi];
-        if (f->psh && AG_OFF(g + 1) != AG_OFF(g)) {
+        if (psh && AG_OFF(g + 1) != AG_OFF(g)) {
             pos = pen - (pen & (step - 1));          /* the phase position at or left of the pen */
             d0 = pos - pen - err;                    /* .. and the one right of it: which keeps the gap truer */
             d1 = d0 + step;
             if ((d0 < 0 ? -d0 : d0) > (d1 < 0 ? -d1 : d1))
                 pos += step;
-            g += ((uint32_t)pos >> (4u - f->psh)) & ((1u << f->psh) - 1u);
+            g += ((uint32_t)pos >> (4u - psh)) & ((1u << psh) - 1u);
         } else {
             pos = (pen + 8) & ~15;                   /* one phase (figures, ., blanks): the rounded pen */
         }
@@ -1562,7 +1577,7 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
             if (GFX_HOOKS && gy < y0) y0 = gy;       /* (the rows: for the host's lint only) */
             if (GFX_HOOKS && gy + AG_BH(g) > y1) y1 = gy + AG_BH(g);
         }
-        pen += advance(f, gi >> f->psh);
+        pen += advance(f, k);
         prev = c;
     }
     bb[0] = x0;

@@ -61,8 +61,17 @@ def parse(path):
                        # f[13] is adv8, the uint8-advance flag FASE 1 added, and reading it here made this
                        # test decode every face as nibbles -- it crashed outright once a face had adv8 off and
                        # an HC table, which is where the L face landed
-                       "hc": arr("HC") if len(f) > 14 and f[14].startswith("AF_") else None}
+                       # (3.0) a face that mixes its phases: f[13] AF_<N>_GI (each glyph's first entry) and f[14]
+                       # AF_<N>_X (its log2 phases); f[16] is the Huffman code, still the last member
+                       "gi": arr("GI") if len(f) > 13 and f[13].startswith("AF_") else None,
+                       "x": ([v for b in (arr("X") if len(f) > 14 and f[14].startswith("AF_") else []) for v in ((b >> 0) & 3, (b >> 2) & 3, (b >> 4) & 3, (b >> 6) & 3)] if len(f) > 14 and f[14].startswith("AF_") else None),
+                       "hc": arr("HC") if len(f) > 16 and f[16].startswith("AF_") else None}
     return faces
+
+
+def gbase(f, k):
+    """the glyph's first table entry (3.0: a mixed face gives each glyph its own run)"""
+    return f["gi"][k] if f.get("gi") else (k << f["psh"])
 
 
 def glyph_at(f, c):
@@ -96,15 +105,17 @@ def place(f, s):
         if prev:
             pen += f["kern"].get((prev << 8) | c, 0)
         gi = glyph(f, c)
-        g0 = f["g"][gi << psh]
+        base = gbase(f, gi)
+        gp = f["x"][gi] if f.get("x") else psh      # (3.0) the glyph's own phases
+        g0 = f["g"][base]
         if RULE[0] == "rounded":                     # the tables before the phases: the rounded pen
             pos = (pen + 8) & ~15
             e = g0
-        elif psh and f["g"][(gi << psh) + 1][0] != g0[0]:   # the phase position nearer the previous glyph's offset
-            step = 16 >> psh
+        elif gp and f["g"][base + 1][0] != g0[0]:    # the phase position nearer the previous glyph's offset
+            step = 16 >> gp
             lo = pen - (pen & (step - 1))
             pos = lo if abs(lo - pen - err) <= abs(lo + step - pen - err) else lo + step
-            e = f["g"][(gi << psh) + ((pos >> (4 - psh)) & ((1 << psh) - 1))]
+            e = f["g"][base + ((pos >> (4 - gp)) & ((1 << gp) - 1))]
         else:                                        # one phase: the rounded pen
             pos = (pen + 8) & ~15
             e = g0

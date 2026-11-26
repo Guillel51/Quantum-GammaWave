@@ -1,3 +1,32 @@
+## Sin publicar — 8 fases sólo donde la cara S las necesita
+
+`text_spacing` cierra: la S mide **0,202 px** (rms 0,059, **0 pares sobre 0,25**), «Gl» pasa de −0,26 px a
+**−0,025 px**, M 0,044 y L 0,432 (0 sobre 0,5). El umbral no se movió.
+
+### cómo entra sin tocar motores, presets ni calidad
+
+- La grilla fina es **por glifo**, no por cara: `tools/gen_aa_font.py` rasteriza la S a 8 fases y guarda las 8
+  sólo para los 20 glifos de los pares que fallan (`DEEP = "GRacdehilmnopqrstvxy"`); el resto conserva sus 4 de
+  siempre (las pares: 0, ¼, ½, ¾), que son exactamente los bitmaps que ya dibujaba, más un solo registro para las
+  figuras y el punto. `AF_S_GI` da la primera entrada de cada glifo y `AF_S_X` sus fases a **2 bits por glifo**.
+- `aafont_t` gana `gi` y `x`; `gfx.c` toma el paso y el índice del glifo (`glyph_x`). M y L quedan con
+  `gi = x = 0`, o sea el camino de antes.
+- Las caras de una sola grilla siguen con sus corridas rellenas por glifo (`k << psh`): el espejo de
+  `text_ref_test.c` indexa igual y no cambia una línea de comportamiento.
+
+### las medidas, por clase
+
+- **[AC791N]** imagen **583 592 B** de 583 612 (20 libres; antes 580 520), XIP 578 812 B (código 453 884 +
+  constantes 124 928), RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488. Coste: **+3 072 B** frente a las 4 fases,
+  contra los **+10 353 B** de las 8 fases en toda la cara; el desborde de 5 512 B desapareció sin recortar nada.
+- **[HOST x86]** barrido 207 pantallas × 22 paletas: **0 lint, 0 tintas, 0 GREY/MONO, 0 desalineaciones**
+  (4 232 638 medidas), **3 040 cuadros cambiados** (la tipografía corre hasta 0,12 px al sentarse en la grilla
+  fina); base `tests/ui_pixels.txt` regenerada, `3 305 frames recorded`.
+- **[HOST x86]** `text_ref_test` 6 732 cadenas × caras × paletas: **0 pines de fin y 0 píxeles** distintos del
+  espejo; `text_spacing_test.py` en verde; `theme_test`, `ui_test`, `control_map_test` (24 825, 0 fallos) y
+  `engine_param_test` (240 × 3, 0 sin efecto) en verde.
+- **[unidad FM-1]** no medida: no hay unidad en este entorno.
+
 ## v2.15.0 — 2.15: las seis fases, las tarjetas de MORPH/TILT/LFO CURVE y la medida de las 8 fases
 
 Release de acumulación: todo lo que quedó «Sin publicar» desde 2.12.0 entra aquí, con el registro de glifo que

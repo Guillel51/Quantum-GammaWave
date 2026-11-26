@@ -108,21 +108,25 @@ static void ref_unpack(const aafont_t *f, const aag_t *g)
 
 static int32_t ref_text(int32_t x, int32_t y, const aafont_t *f, const char *s, uint16_t fg, uint16_t bg)
 {
-    int32_t pen = 0, err = 0, n = 1 << f->psh, step = 16 / n;
+    int32_t pen = 0, err = 0, n = 1 << f->psh;
     uint32_t prev = 0;
     ref_ramp(fg, bg);
     for (; *s; s++) {
-        uint32_t c = (uint8_t)*s, k = 0;
+        uint32_t c = (uint8_t)*s, k = 0, gno;
         const aag_t *g;
-        int32_t lo, hi, pos;
+        int32_t lo, hi, pos, nf, st;
         if (c >= 'a' && c <= 'z' && f->last < 'a') c -= 32u;
         if (prev) pen += ref_kern(f, prev, c);
-        g = &f->g[ref_gi(f, c) * (uint32_t)n];
-        if (n > 1 && AG_OFF(g + 1) != AG_OFF(g)) {
-            lo = step * (int32_t)floor((double)pen / step);       /* the phase positions around the pen */
-            hi = lo + step;
+        gno = ref_gi(f, c);
+        /* (3.0) a face that mixes its phases: the glyph's run and its own phases (S gives eight to the stems) */
+        nf = 1 << (f->x ? ((f->x[gno >> 2] >> ((gno & 3u) * 2u)) & 3u) : f->psh);
+        st = 16 / nf;
+        g = &f->g[f->gi ? f->gi[gno] : gno * (uint32_t)n];
+        if (nf > 1 && AG_OFF(g + 1) != AG_OFF(g)) {
+            lo = st * (int32_t)floor((double)pen / st);           /* the phase positions around the pen */
+            hi = lo + st;
             pos = fabs((double)(lo - pen - err)) <= fabs((double)(hi - pen - err)) ? lo : hi;
-            g += ((pos / step) % n + n) % n;
+            g += ((pos / st) % nf + nf) % nf;
         } else {
             pos = 16 * (int32_t)floor((pen + 8) / 16.0);           /* one phase: the rounded pen */
         }

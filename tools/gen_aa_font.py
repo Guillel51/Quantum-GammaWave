@@ -43,6 +43,12 @@ LOCAL_INTER = os.path.expanduser("~/Library/Fonts/Inter.ttc")   # 4.001: 0 Regul
 # now, so a string that needs one has to add it back here). The ellipsis stays: ui_draw.c draws it.
 EXTRAS = [0x2026]
 CODE = {0x2026: 0x85}                  # characters outside Latin-1 -> their one-byte code in the firmware
+# (3.0) DEEP: the glyphs of a face that get twice the phases. A thin stem or a bowl can sit a whole step (1/4 px)
+# off in a pair -- 'Gl' read 0.258 against the 0.25 limit -- and the fix is a finer grid only where the face needs
+# it: the union of the letters of every S pair at 0.15 px or more. The face rasterises at twice the phases and
+# keeps, per glyph, the even ones for the rest (the same 0, 1/4, 1/2, 3/4 grid, so their bitmaps do not change) and
+# all of them for these; AF_<N>_GI is each glyph's first entry and AF_<N>_X its log2 phases.
+DEEP = {"S": "GRacdehilmnopqrstvxy"}
 PHASES, PHASES_M, PHASES_L = 4, 2, 2  # horizontal phases per glyph (aa_raster.raster_font): S, M, L. (4.2) M went to
                                        # 2: it is the monospace face, every advance is 9 px, and its fourth-phase cells
                                        # were 8 KB of flash for a quarter of a pixel.
@@ -194,22 +200,29 @@ def huff_unpack(hc, data, n):
 
 def emit(face, tracking, gamma, kern_min):
     name, font, px, (first, last), extras, ftrack, phases = face
+    deep = DEEP.get(name, "")
+    nph = phases * 2 if deep else phases          # the raster's phases (the slot count of a deep glyph)
     chars = [chr(c) for c in range(first, last + 1)] + [chr(c) for c in extras]
-    r = ar.raster_font(font, px, chars, tracking if ftrack is None else ftrack, gamma, True, kern_min, phases)
+    r = ar.raster_font(font, px, chars, tracking if ftrack is None else ftrack, gamma, True, kern_min, nph)
     rise = RISE.get(os.path.basename(font.split("#")[0].split("@")[0]), 0)
     if rise:                                       # the ink up by rise px in its line (the line shorter by as much)
         r["asc"] -= rise
         r["h"] -= rise
         r["glyphs"] = {ch: (a, [(bx, by - rise if bw else by, bw, bh, b) for bx, by, bw, bh, b in ph])
                        for ch, (a, ph) in r["glyphs"].items()}
-    data, table, lines = bytearray(), [], []
+    data, table, lines, xf, gi = bytearray(), [], [], [], []
+    psh0 = phases.bit_length() - 1
     for ch in chars:
         adv16, ph = r["glyphs"][ch]
-        off = len(data)
-        for bx, by, bw, bh, b in ph:
+        if nph == phases:                         # a face of one grid: phases entries a glyph, as it always had
+            keep = ph if len(ph) == phases else ph + [ph[0]] * (phases - len(ph))
+        else:                                     # the mixed face: every other phase for the rest of it -- 0,
+            keep = ph if (ch in deep or len(ph) <= 1) else ph[0::2]   # 1/4, 1/2, 3/4, the bitmaps it always had
+        gi.append(len(table))                     # (3.0) the glyph's first entry (AF_<N>_GI)
+        for bx, by, bw, bh, b in keep:
             table.append((len(data), adv16, bx, by, bw, bh))
             data += b
-        table += [(off,) + table[-1][1:]] * (phases - len(ph))   # one phase (aa_raster.FIXED): the same bitmap
+        xf.append(psh0 if nph == phases else len(keep).bit_length() - 1)   # (3.0) its phases (AF_<N>_X)
     raw, hc = bytes(data), []
     if name in HUFF[0]:
         # Huffman-code every distinct bitmap (phases may share one), byte-aligned per glyph
@@ -235,9 +248,18 @@ def emit(face, tracking, gamma, kern_min):
     deltas = [d for (a, b), d in kern if ord(a) < 256 and ord(b) < 256]
     order = sorted(range(len(keys)), key=lambda i: keys[i])
     keys, deltas = [keys[i] for i in order], [deltas[i] for i in order]
-    psh = phases.bit_length() - 1
+    psh = nph.bit_length() - 1
+    if any(x != psh for x in xf):                     # a face that mixes its phases: the runs and their log2
+        lines.append(ar.c_array(f"AF_{name}_GI", "uint16_t", gi, 12))
+        # 2 bits a glyph (they are 0..3): 95 B of table become 24
+        lines.append(ar.c_array(f"AF_{name}_X", "uint8_t",
+                                [sum(xf[i * 4 + j] << (2 * j) for j in range(4) if i * 4 + j < len(xf))
+                                 for i in range((len(xf) + 3) // 4)], 24))
+        giname, xname = f"AF_{name}_GI", f"AF_{name}_X"
+    else:
+        giname = xname = "0"
     lines.append(f"/* {name}: {os.path.basename(font.split('#')[0])} {px}px, h {r['h']}, baseline {r['asc']}, "
-                 f"{len(chars)} glyphs x {phases} phases, {len(data)} B data"
+                 f"{len(chars)} glyphs x {nph} phases, {len(data)} B data"
                  + (f" (Huffman; {len(raw)} B as nibbles) */" if hc else " */"))
     lines.append(ar.c_array(f"AF_{name}_DATA", "uint8_t", list(data), 24, "0x{:02x}"))
     if hc:
@@ -245,8 +267,8 @@ def emit(face, tracking, gamma, kern_min):
     # (FASE 1, 2026-11-16) the advance is the same in every phase (checked here, not assumed): 2 B a glyph
     # instead of 2 B a phase, and aag_t drops to 6 B (gfx.c). 840 B of XIP across the three faces; the glyphs,
     # their bitmaps and the drawn pixels are untouched.
-    advs = [table[i][1] for i in range(0, len(table), phases)]
-    assert all(len({table[g * phases + p][1] for p in range(phases)}) == 1 for g in range(len(advs))), \
+    advs = [table[gi[k]][1] for k in range(len(chars))]
+    assert all(len({table[p][1] for p in range(gi[k], gi[k] + (1 << xf[k]))}) == 1 for k in range(len(chars))), \
         f"{name}: a glyph's advance differs between its phases"
     # the advances are 1/16 px: a byte each when the face's widest fits (S 156, M 144: 210 B less XIP)
     advt = "uint8_t" if max(advs) <= 0xFF else "uint16_t"
@@ -270,10 +292,10 @@ def emit(face, tracking, gamma, kern_min):
     lines.append(f"static const uint8_t AF_{name}_EX[{max(1, len(extras))}] = {{{ex}}};")
     lines.append(f"static const aafont_t AF_{name} = {{{r['h']}, {r['asc']}, {first}, {last}, {len(extras)}, {len(keys)}, "
                  f"AF_{name}_G, AF_{name}_ADV, AF_{name}_DATA, {'AF_%s_KERN' % name if keys else '0'}, "
-                 f"{'AF_%s_KD' % name if keys else '0'}, AF_{name}_EX, {psh}, {1 if advt == 'uint8_t' else 0}, "
-                 f"{'AF_%s_HC' % name if hc else '0'}}};")
+                 f"{'AF_%s_KD' % name if keys else '0'}, AF_{name}_EX, {psh}, {giname}, {xname}, "
+                 f"{1 if advt == 'uint8_t' else 0}, {'AF_%s_HC' % name if hc else '0'}}};");
     if "H" in chars:                                  # the capitals' band (gfx.c CAP_IN: centring text by it)
-        cap = table[chars.index("H") * phases]
+        cap = table[gi[chars.index("H")]]
         lines.append(f"#define AF_{name}_CAP_Y {cap[3]}   /* the ink of H: rows {cap[3]} .. {cap[3] + cap[5] - 1} of the line */")
         lines.append(f"#define AF_{name}_CAP_H {cap[5]}")
     cost = {"data": len(data) + len(hc), "glyph_table": 6 * len(table) + 2 * len(advs), "kern": 3 * len(keys), "extras": len(extras),
