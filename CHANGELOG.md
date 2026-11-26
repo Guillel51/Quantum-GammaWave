@@ -1,3 +1,18 @@
+## v2.15.0 — cierre de las seis fases
+
+- **SEQ > AUTO LIST y SEQ > AUTOMATION dejan de ser páginas vacías**: la lista sin locks explica que un mando sobre un
+  paso graba su valor, y la automatización sin movimientos dice «NO MOVES YET» y qué tecla empieza a grabar. Eran las
+  dos peores del auditoría de la FASE 4 (109 y 96 px de banda vacía).
+- **Banner del repositorio rehecho** (`assets/branding/quantum_banner.png`, 1280×420) con cuatro capturas reales del
+  barrido (HOME, PRESETS, FILTER, PATTERN): los píxeles que pinta el firmware, no un render de marketing.
+- **Recorrido de las seis fases, en un solo documento**: `docs/FASE6_CIERRE_2.15_2026-11-26.md` tiene el estado de
+  cada pendiente heredado (qué se cerró y qué sigue, con su medida y su razón), las cifras de la build y los
+  bloqueos por nombre: sin `emcc` no hay emulador nuevo, sin `gh` no hay Release de GitHub, sin unidad no hay prueba
+  física.
+- **Medido [AC791N]**: imagen **580 364 B** de 583 612 (3 248 libres), RAM 75 664 / 98 304, POOL 296 156, LOWBUF
+  28 488, alcance 10 268 B. **[HOST]**: 3 305 cuadros, 0 hallazgos de lint, 0 tintas sobre su propio color, 0
+  píxeles fuera de gris; `regress` con 316 dorados idénticos.
+
 ## v2.14.6 — FASE 5/6: GLIDE y STRUM entran en la matriz de modulación
 
 - **Dos destinos nuevos, 32 y 33**, añadidos al final de la lista (`MD_GLIDE`, `MD_STRUM`; `MD_N`/`QG_DST_N` 32 → 34)

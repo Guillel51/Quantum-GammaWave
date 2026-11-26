@@ -3728,6 +3728,12 @@ static __attribute__((noinline)) void graph_motion(void)
     span = len > 1u ? len - 1u : 1u;
     if (id >= P_COUNT) {                             /* (no parameter to draw: the columns' counts say the rest) */
         cv_line(x0, (y0 + y1) / 2, x1, (y0 + y1) / 2, T_SURF);
+        /* (FASE 6) the page was a bare line and 100 px of nothing under the columns: say what the page is for and
+         * what to press, as the empty browser and the empty song already do */
+        GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H, "panel note centred");
+        cv_text_in(0, y0 + 16, 240, &AF_S, "NO MOVES YET", T_TEXT, T_BG);
+        GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H, "panel note centred");
+        cv_text_in(0, y0 + 38, 240, &AF_S, "[K1] RECORDS A KNOB", T_MID, T_BG);
         return;
     }
     d = track_desc(t, id);
@@ -3796,6 +3802,12 @@ static __attribute__((noinline)) void graph_events(void)
             GFX_HOOK_ALIGN(0, y, 0, y + 16, AL_V, "list row text centred up/down");
             cv_text_r(226, y + CAP_IN(S, 16), &AF_S, b, sel ? T_INK : T_TEXT, bg);
         }
+    }
+    if (!n) {   /* (FASE 6) an empty list was one row and 100 px of nothing: the page says what it records and how */
+        GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H, "panel note centred");
+        cv_text_in(0, LIST_Y(2), 240, &AF_S, "TURN A KNOB ON A STEP", T_DIM, T_SURF);
+        GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H, "panel note centred");
+        cv_text_in(0, LIST_Y(3), 240, &AF_S, "TO LOCK ITS VALUE", T_DIM, T_SURF);
     }
 }
 /* (0.6.12) SAVE > TOOLS: a list of what it can do (on what: the track, the song's row), the one picked (KNOB 1 or
