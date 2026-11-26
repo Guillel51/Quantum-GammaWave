@@ -475,10 +475,11 @@ static __attribute__((noinline)) void graph_chorus(const track_t *t, uint16_t c)
     int32_t st = clamp((int32_t)song.g[G_CSTER], -64, 63);
     uint32_t span = 0xFFFFFFFFu / (uint32_t)(PANEL_W / 2);        /* one cycle across half the panel */
     uint32_t step = span * (uint32_t)(type == 0 ? 1 : type == 1 ? 3 : 5);   /* CHORUS / PHASER / FLANGER */
-    /* RATE: how fast the cycle walks. Shown in slow motion, because a 6 Hz sweep seen at 6 Hz is a blur, not a
-     * reading: the slowest rate takes ~14 s a cycle and the fastest ~1.5 s, and the picture still changes with
-     * every step of the knob. */
-    uint32_t ph = ui.frame * (0xFFFFFFFFu / (88u + (127u - rate) * 6u));
+    /* RATE: how fast the cycle walks. (2.16.2) IT WAS 14 s A CYCLE AT THE SLOW END, WHICH READ AS A STILL PICTURE:
+     * the phase moved 0.14 px a frame at RATE 0, and the report was "the chorus graph does not move at all". It is
+     * real time now -- fm1_ms, not the frame counter -- so the sweep is visible whatever the page's redraw rate is,
+     * and it runs 1.2 s a cycle at RATE 0 down to 0.3 s at 127: fast enough to see, never a strobe. */
+    uint32_t ph = (uint32_t)fm1_ms * (1u + rate / 32u) * (0xFFFFFFFFu / 1200u);
     (void)t;
     a = (12 + dep * 34 / 127) * graph_ht / 100;                   /* DEPTH: 12 .. 46 % of the panel */
     side = (st + 64) * (int32_t)(span / 8u) / 128;                /* STEREO: 0 closes the pair */

@@ -1,3 +1,29 @@
+## v2.16.2 — el gráfico de CHORUS se mueve
+
+El gráfico de la página FX > CHORUS dibujaba los tres barridos del bus (RATE, DEPTH, STEREO, TYPE) pero su fase
+avanzaba **0,14 px por cuadro** en el extremo lento: un ciclo cada ~14 s sobre una ventana de 234 px. En la
+pantalla eso no es movimiento lento, es una imagen quieta, y el informe fue exacto: «no se mueve en lo absoluto».
+
+Ahora la fase va en **tiempo real** (`fm1_ms`, no el contador de cuadros) y el ciclo dura **1,2 s en RATE 0 y
+0,3 s en 127**: visible en todo el recorrido del knob, y más rápido con él en vez de menos. DEPTH, STEREO y TYPE
+ya se leían cada cuadro sobre `song.g`, así que el dibujo responde a los cuatro mandos. Coste: 0 B (582 096 B,
+1 516 libres [AC791N]).
+
+Verificación: el barrido completo regeneró **13 cuadros** de la pantalla CHORUS (todas las paletas) porque la
+fase ya no es la del contador de cuadros; `ui_render` sigue en 0 hallazgos de lint y 0 desalineaciones en
+4 234 479 medidas, y la base de píxeles quedó actualizada a 3 321 cuadros. **No** está observado en una unidad.
+
+### lo que esta entrega no hizo
+
+- **TP/GP a índices de 16 bits sobre un blob**: no se intentó. Los dos intentos de la misma transformación ya
+  medidos en esta línea (PAGES −192 B, ICON_MAP −92 B) salieron negativos porque el linker fusiona los literales
+  con los del resto de la UI; antes de tocar 127 + 40 descriptores hay que medir una muestra, y esa medición es
+  el primer paso de la próxima pasada, no un cambio a ciegas.
+- **Revisión de todos los iconos y animaciones de las variantes**: la consola de BUSES ya anima sus seis
+  bloques (tren de ecos con pulso en DLY, cola de nueve barras en REV, dos carriles de CHO, compuertas de SLI,
+  transitorio de PCH, medidor de MST) y este pase no la tocó; los iconos son los de `ui_icons` y no se
+  rediseñaron.
+
 ## v2.16.1 — los vúmetros de FX > BUSES se despiertan con la señal, y la división de ui_input_frame medida
 
 La primera página de FX (el consola de buses) tenía los vúmetros dormidos: reaccionaban sólo cuando la mezcla
