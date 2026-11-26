@@ -57,6 +57,7 @@ El inventario anterior cerraba con «los buffers de FX y `trk` quedan fuera del 
 motor que corre **un modelo a la vez**, y `fx_block` ya fundía el modelo viejo y llamaba a `rev_clear()` antes
 de arrancar el nuevo. Ahora son una unión de **32 768 B** —ROOM, SPRING, RESO y SHIMMER comparten un struct
 (conviven: SHIMMER es ROOM con su lazo de octava), CLOUD es el otro miembro— y `rev_clear()` limpia la unión
-entera en el cambio de modelo. **15 966 B** devueltos al pool; `.bss` del enlace host −15 968 B. Los 61 s de
+entera (las pruebas); en el cambio de modelo el bloque solo la pide (`rev_arm`) y `fx_rev_service()`, desde el
+bucle principal, limpia las líneas del modelo entrante. **15 966 B** devueltos al pool; `.bss` del enlace host −15 968 B. Los 61 s de
 audio de `six_track_live` y los 311 goldens de `regress` coinciden, y `reverb_test` cubre los cinco modelos,
 el cambio con la cola sonando y FREEZE. Detalle: `docs/FASE2_RAM_FX_2026-11-25.md`.

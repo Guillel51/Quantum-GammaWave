@@ -344,6 +344,8 @@ void perf_reset(void);   /* (2.1) a new preset: the punch-in latches, the macros
 int32_t fx_master_g(void);
 int32_t fx_lim_env(void);
 void fx_preset_flush(void);   /* (2.1) a new preset: the buses' short state and their small lines */
+void fx_rev_service(void);    /* (this round) a reverb model change's clear of its lines: main loop, never the ISR */
+extern volatile uint8_t fx_in_isr;   /* set around mix_block by the audio ISR (audio.c): no clear inside it */
 int fxb_sel(void);            /* (6.1) FX > BUSES: the link the console's knobs edit */
 void fxb_step(int32_t d);     /* .. walked by KNOB 1 */
 

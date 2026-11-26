@@ -45,8 +45,7 @@ static const uint16_t REV_AP[2] = {556, 441};
  * were 48 734 B of the pool for a sound that runs one model at a time: ROOM, SPRING and RESO in rev_comb and
  * the allpasses, SHIMMER in shim_buf, CLOUD in cloud_buf. No model reads another's line, and fx_block already
  * fades a model out and calls rev_clear() before the new one starts, so the four lines are one union now --
- * 32 768 B instead of 48 734, 15 966 B the pool gets back with the same samples on the wire. rev_clear()
- * clears the whole union (a model change, once, outside the 32-sample steady state). */
+ * 32 768 B instead of 48 734, 15 966 B the pool gets back with the same samples on the wire. */
 static union {
     uint32_t raw[CL_LEN / 2u];           /* 4-byte aligned: the widest line, CLOUD's */
     struct {                              /* every model that runs inside ROOM's buffers: ROOM, SPRING, RESO and
@@ -64,6 +63,22 @@ static union {
 #define shim_buf (rv_buf.room.shim)
 #define cloud_buf (rv_buf.cloud)
 _Static_assert(CL_LEN >= REV_COMB_N && CL_LEN >= SH_LEN && CL_LEN >= REV_AP_N, "every reverb line fits the union");
+/* (this round) THE CLEAR OF THAT UNION IS NOT THE BLOCK'S WORK. rev_clear() used to zero every byte of it inside
+ * the block that switched models: 32 768 B, the whole line, in a block that has 725 us. It is a change-time cost
+ * and the block is the one place it must not sit. Now the change block arms a request (rev_arm: the small state
+ * resets it always did, no line), the reverb stays muted while a request is open, and fx_rev_service() -- called
+ * from the main loop, never from the ISR -- clears ONLY the lines the incoming model reads and closes the
+ * request. The two words are the handshake: the block only ever writes rv_seq / rv_ty, the main loop only ever
+ * writes rv_seen, so neither can tear the other's, and a change made while a clear is running leaves
+ * rv_seen != rv_seq: the reverb stays muted and the next pass clears for the model that is now there (never for
+ * the one that was replaced). The output is the one it was: the change block fades the old model to zero, and
+ * the new one starts on silence. */
+static volatile uint32_t rv_seq, rv_seen;   /* requests made, requests cleared (equal: no clear owed) */
+static volatile uint8_t rv_ty;              /* the model the open request is for */
+/* set around mix_block by the audio ISR (audio.c). A caller that is not the ISR -- the main loop, and every host
+ * harness that renders the block itself -- is main context and clears at the top of the block, so the device's
+ * block never does it and the harnesses keep the output the firmware has. */
+volatile uint8_t fx_in_isr;
 #define RPRE_LEN 2048u                   /* (JIANT) the reverb's pre-delay line, at half rate (4 KB): up to 92 ms */
 static int16_t rpre_buf[RPRE_LEN] __attribute__((section(".pool")));
 static int32_t rpre_out[CTL];                     /* .. the block out of it (the reverb's input) */
@@ -1638,12 +1653,10 @@ static void rev_run(uint32_t ty, const int32_t *rev_in, int32_t *out, uint32_t n
     }
 }
 
-/* the reverb's buffers and states to silence (the model changed) */
-static void rev_clear(void)
+/* the reverb's states to silence (no line in it: every field is a word or two) */
+static void rev_state_clear(void)
 {
     uint32_t i;
-    for (i = 0; i < sizeof rv_buf.raw / sizeof rv_buf.raw[0]; i++)   /* every model's line in one: see rv_buf */
-        rv_buf.raw[i] = 0;
     for (i = 0; i < 4u; i++)
         fx.comb_lp[i] = fx.rs_lp[i] = 0;
     fx.sp_lp = fx.sp_hp = fx.sp_he = 0;
@@ -1655,6 +1668,47 @@ static void rev_clear(void)
     fx.cl_gl = fx.cl_gr = 0;
     fx.cl_dc = 0;
     fx.cl_fill = 0;
+}
+/* the lines model ty reads, and only them -- the union's other member is another model's memory and this one
+ * never looks at it. ROOM (and ROOM_MOD): the four combs and the two allpasses, 11 870 B. SPRING: its 4 096-sample
+ * loop and the 4-stage chain in rev_u, 10 188 B. RESO: its four 1 024-sample combs, 8 192 B. SHIMMER: ROOM's and
+ * its own 2 048-sample octave line (the whole room struct, 15 966 B). CLOUD: its 0.74 s line, 32 768 B. */
+static void rev_clear_for(uint32_t ty)
+{
+    switch (ty) {
+    case 1: memset(rev_comb, 0, SP_LEN * sizeof rev_comb[0]); memset(&rev_u, 0, sizeof rev_u); break;
+    case 2: memset(&rv_buf.room, 0, sizeof rv_buf.room); break;
+    case 3: memset(rev_comb, 0, 4u * RS_LEN * sizeof rev_comb[0]); break;
+    case 4: memset(cloud_buf, 0, sizeof cloud_buf); break;
+    default: memset(rev_comb, 0, sizeof rev_comb); memset(&rev_u, 0, sizeof rev_u); break;
+    }
+    rev_state_clear();
+}
+/* every line at once: the tests' reset, and the fault path's. Closes any open request, so the caller can run a
+ * model straight after it (main context: fx_trip asks again, see below) */
+static void rev_clear(void)
+{
+    memset(&rv_buf, 0, sizeof rv_buf);
+    rev_state_clear();
+    rv_seen = rv_seq;
+}
+/* a model change, in the block: the state resets now (cheap, no line), the lines' clear asked of the main loop */
+static void rev_arm(uint32_t ty)
+{
+    rev_state_clear();
+    rv_ty = (uint8_t)ty;
+    rv_seq++;
+}
+/* (this round) the deferred clear, from the main loop: never from the ISR. One pass clears for the model the
+ * request names at the moment it started; a change made while it ran leaves rv_seen != rv_seq, so the reverb stays
+ * muted and the next pass clears for the model that is there now. */
+void fx_rev_service(void)
+{
+    uint32_t s = rv_seq;
+    if (s == rv_seen)
+        return;
+    rev_clear_for(rv_ty);
+    rv_seen = s;
 }
 
 
@@ -1805,7 +1859,7 @@ static __attribute__((noinline)) void fx_sleep(uint32_t n, int32_t *wet)
     rt = REV_LITE[sys_load % 3u][rt];
     if ((uint8_t)rt != fx.rtype) {                      /* a model change taken asleep (the gate's output is 0
                                                          * either way: no crossfade to hear) */
-        rev_clear();
+        rev_arm(rt);
         fx.rtype = (uint8_t)rt;
     }
     memset(wet, 0, n * sizeof *wet);
@@ -1822,6 +1876,8 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
 {
     uint32_t i, dl = delay_samples();
     int32_t dcd, dcw, ddm;
+    if (!fx_in_isr)
+        fx_rev_service();                   /* (this round) main context: a model change's clear runs here */
     int32_t vin0 = 0, vin1 = 0, vin2 = 0, any;
     {   /* (7.0) one pass over the three buses where 0.6.14 walked them twice: the peaks, and from them the
          * "anything sent?" the gate needs. Same numbers by construction, a third fewer reads on the busiest
@@ -2047,7 +2103,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         rev_run(fx.rtype, rev_in, t, n);
         for (i = 0; i < n; i++, g -= d)
             wet[i] += mulq16(t[i], (uint32_t)g);
-        rev_clear();
+        rev_arm(rt);
         fx.rtype = (uint8_t)rt;
         fx_gate(wet, n);
         {
@@ -2060,6 +2116,17 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             fx_vu[4] = dlpk;
             fx_vu[5] = pk;
         }
+        return;
+    }
+    if (rv_seen != rv_seq) {            /* (this round) a clear is owed: the new model has no clean lines yet.
+                                         * Only its own part is missing -- the change block faded the old model to
+                                         * 0 -- so the chorus and the delay stay, gated as every block, and the
+                                         * reverb re-enters from silence once fx_rev_service has run. Nothing of
+                                         * the clear itself is in this block: see fx_rev_service */
+        fx_gate(wet, n);
+        fx_vu[3] = chpk;
+        fx_vu[4] = dlpk;
+        fx_vu[5] = 0;
         return;
     }
     {

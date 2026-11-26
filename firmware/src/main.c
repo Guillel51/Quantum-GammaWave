@@ -325,6 +325,7 @@ static void fm1_main(void)
 
     for (;;) {
         uint32_t m = fm1_ms;
+        fx_rev_service();                      /* (this round) a reverb model change's clear: here, off the ISR */
         fm1_wdt_feed();
         usb_retry(fm1_ms);
         if (fm1_ms > 30000u && bootguard.pending) {     /* a crash or hang in the first 30 s counts */
@@ -412,6 +413,7 @@ static void fm1_main(void)
         ui_draw();
         felucca_dbg.stage = 9;
         while (fm1_ms - m < 15u) {                               /* ~60 UI frames/s at most */
+            fx_rev_service();                  /* (this round) between blocks: the clear is ready before the next */
             ui_input();
 #if FELUCCA_OTA
             ed_service();                       /* editor replies without waiting for the next frame */

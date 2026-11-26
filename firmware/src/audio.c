@@ -110,7 +110,10 @@ static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 
     fx_boot_gain(boot_armed ? (int32_t)boot_gain : 0);  /* (1.4.5) the fade is on the master: USB and DAC stay the
                                                          * same signal, and it costs no pass of its own. (FASE 3)
                                                          * until armed: 0, so the output is exact silence */
+    fx_in_isr = 1;                                      /* (this round) the block never clears a reverb line:
+                                                         * fx_rev_service is main context (fx.c) */
     mix_block(out, n);
+    fx_in_isr = 0;
     if (boot_armed && boot_gain < 32768u) {
         boot_gain += (uint32_t)n * (32768u / BOOT_FADE);
         if (boot_gain > 32768u) boot_gain = 32768u;
