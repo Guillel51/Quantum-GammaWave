@@ -391,14 +391,21 @@ static int32_t flt_mag(int32_t type, int32_t u, int32_t uc, int32_t q, int32_t d
     g += dr * 140 / 127;                             /* DRIVE: the hotter the part, the higher the curve */
     return clamp(g, 0, 1180);
 }
-static void filter_pass(int32_t type, int32_t uc, int32_t q, int32_t dr, int32_t sy, int32_t dy, int32_t th, int back)
+/* (FASE 4) THE RESPONSE FILLS THE PANEL IT HAS. It used to be scaled against a fixed 1180 (flt_mag's ceiling), so a
+ * type whose curve never reaches the bottom -- SHELF sits between 400 and 1000, NOTCH's hole is the only dip -- drew
+ * in the upper third of a panel with two thirds of empty band under it: the same "page with an empty card" the
+ * filter page was given this graph to fix. Each type is now scaled to its own span (lo..hi, the pass's own curve,
+ * with a twelfth of margin either side) and the floor line is that span's bottom, not an absolute 0 dB the sketch
+ * never claimed to have. The four depth passes share one span, so the copies stay copies. */
+static void filter_pass(int32_t type, int32_t uc, int32_t q, int32_t dr, int32_t sy, int32_t dy, int32_t th,
+                        int back, int32_t lo, int32_t hi)
 {
     int32_t x, cy = graph_ht * 42 / 100 + dy, top = graph_ht * 12 / 100, bot = graph_ht * 82 / 100;
-    int32_t px = 0, py = 0;
+    int32_t px = 0, py = 0, span = hi > lo ? hi - lo : 1;
     for (x = 0; x < PANEL_W; x++) {
         int32_t u = x * 1000 / (PANEL_W - 1);
         int32_t g = flt_mag(type, u, uc, q, dr) * sy / 1000;
-        int32_t y = bot - g * (bot - top) / 1180;
+        int32_t y = bot - (g - lo) * (bot - top) / span;
         y = clamp(y, top, bot);
         if (x) {
             uint16_t ink = heat_y(y, top, bot, T_THEME);
@@ -415,8 +422,18 @@ static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
     const page_t *pg = cur_page();
     int32_t type = (int32_t)t->p[pg->id[0]], cut = (int32_t)t->p[pg->id[1]], res = (int32_t)t->p[pg->id[2]], k;
     int32_t uc = 40 + clamp(cut, 0, 127) * 920 / 127;   /* 4 % .. 96 % of the sweep */
-    int32_t q = clamp(res, 0, 127), dr = clamp((int32_t)t->p[pg->id[3]], 0, 127);
-    cv_rect(PANEL_X0, graph_ht * 42 / 100, PANEL_W, 1, T_RAISE);
+    int32_t q = clamp(res, 0, 127), dr = clamp((int32_t)t->p[pg->id[3]], 0, 127), f_lo, f_hi;
+    {   /* (FASE 4) the span the curve is read on: its own, over the sweep */
+        int32_t x0, lo = 2000, hi = -2000;
+        for (x0 = 0; x0 < PANEL_W; x0++) {
+            int32_t v = flt_mag(type, x0 * 1000 / (PANEL_W - 1), uc, q, dr);
+            if (v < lo) lo = v;
+            if (v > hi) hi = v;
+        }
+        f_lo = lo - (hi - lo) / 12;
+        f_hi = hi + (hi - lo) / 12;
+    }
+    cv_rect(PANEL_X0, graph_ht * 82 / 100, PANEL_W, 1, T_RAISE);
     if (type == 4) {                                    /* (v2.11.1) the vowel's three formants as bodies behind the
                                                          * curve: a soft column, a bright core and a base shadow, so
                                                          * the page reads as a voice and not as a line. They are the
@@ -437,8 +454,8 @@ static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
         }
     }
     for (k = 3; k >= 1; k--)
-        filter_pass(type, uc, q, dr, 1000 - k * 80, -k * 4, 1, k);
-    filter_pass(type, uc, q, dr, 1000, 0, 2, 0);
+        filter_pass(type, uc, q, dr, 1000 - k * 80, -k * 4, 1, k, f_lo, f_hi);
+    filter_pass(type, uc, q, dr, 1000, 0, 2, 0, f_lo, f_hi);
     (void)c;
 }
 /* (this phase) THE CHORUS BUS, DRAWN FROM ITS FOUR KNOBS. The page had no graph (GR_NONE), so RATE, DEPTH,

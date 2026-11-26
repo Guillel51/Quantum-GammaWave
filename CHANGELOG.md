@@ -1,3 +1,19 @@
+## v2.14.5 — FASE 4/6: auditoría de las 207 pantallas y la respuesta del FILTER a escala propia
+
+- **`filter_pass` / `graph_filter` (ui_graph.c)**: la curva se escalaba contra el techo fijo de `flt_mag` (1180), así
+  que un tipo que nunca baja —SHELF entre 400 y 1000— se dibujaba en el tercio superior con dos tercios de banda
+  vacía. Ahora cada tipo se escala a su propio recorrido sobre el barrido, con un duodécimo de margen, y las cuatro
+  pasadas de profundidad comparten ese recorrido para seguir siendo copias. Medido en el barrido GREY: el hueco
+  plano de `filter_shelf` baja de 71 px a 41 (los 41 son el margen inferior común), y lo mismo NOTCH (55 → 41),
+  VOWEL (44 → 41) y SCREAM (60 → 41).
+- **Base de píxeles regenerada**: 65 cuadros cambiados (las páginas FILTER en sus paletas), 0 perdidos, 0 nuevos.
+- **Auditoría**: las 207 pantallas × 22 paletas con dos medidas por pantalla (tinta y corrida de filas planas) además
+  del lint; el registro de las ocho pantallas que siguen con hueco muerto y su medida está en
+  `docs/FASE4_AUDITORIA_2026-11-26.md`.
+- **Medido [AC791N]**: imagen **580 132 B** de 583 612 (3 480 libres), alcance de llamadas desde RAM 10 396 B
+  (mínimo 8 192), RAM 75 664, POOL y LOWBUF iguales. **[HOST]**: 0 lint, 0 tintas sobre su propio color, 0
+  desalineaciones, 0 píxeles GREY/MONO fuera de gris.
+
 ## v2.14.4 — FASE 3/6: profundidad y ambiente compartidos, y la suite vuelve a arrancar
 
 - **`ux_ambient()` (gfx.c)**: un solo componente para el fondo de la banda de cuerpo. Seis bloques en tres filas de
