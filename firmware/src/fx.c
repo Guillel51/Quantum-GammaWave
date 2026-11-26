@@ -1536,9 +1536,11 @@ static uint32_t cl_rand(void) { fx.cl_rng = fx.cl_rng * 1664525u + 1013904223u; 
 static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
     static const uint32_t PITCH[4] = {65536u, 131072u, 32768u, 98184u};   /* x1, an octave up, down, a fifth up (Q16) */
-    uint32_t i, k, freeze = song.g[G_RSIZE] >= 127 && fx.cl_fill >= 32768u;   /* (1.2.1-GW, JIANT 0.9.16: a FREEZE
+    uint32_t i, k, freeze = song.g[G_RSIZE] >= 127 && fx.cl_fill >= 24576u;   /* (1.2.1-GW, JIANT 0.9.16: a FREEZE
                                                          * of an empty line held silence, "CLOUD off at SIZE 100 %"; now
-                                                         * the line first takes a line's worth of sound, ~0.74 s) */
+                                                         * the line first takes a line's worth of sound, ~0.56 s. 0.74 s
+                                                         * (32768) held the wash only 6.1 dB under what it took at RATE 127,
+                                                         * over cloud_hot_test's 6 dB: the same hold, from less line) */
     int32_t gap = 1700 - song.g[G_RRATE] * 11, dk = 32767 - song.g[G_RDAMP] * 220, wd = song.g[G_RWIDE], air = rev_air();
     uint32_t ar = semi_q16(air);                         /* (0.6.12) AIR: the grains up / down, the tone with them */
     if (air < 0) dk = clamp(dk + air * 1100, 1500, 32767);
@@ -1558,7 +1560,7 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
             else
                 fx.cl_half = x;
             fx.cl_w++;
-            if (fx.cl_fill < 32768u && (fx.cl_fill || x)) fx.cl_fill++;
+            if (fx.cl_fill < 24576u && (fx.cl_fill || x)) fx.cl_fill++;
         }
         if (--fx.cl_next <= 0) {                         /* a grain is born, in the first one free */
             fx.cl_next = gap / 2 + (int32_t)(cl_rand() % (uint32_t)gap);

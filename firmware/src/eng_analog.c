@@ -484,8 +484,10 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_LRATE, 28), XP(P_LWAVE, 4), XP(P_LD_SHP, 14), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* E: folded bass */
     {"PAPER LANTERN", {4, 18, 60, 2, 64, 18, 6, 7}, {72, 92, 110, 96}, 10, 0, FX(0, 58, 28, 72), PAT(5),
      {XP(P_LRATE, 19), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8), XP(P_LSHP, 18)}},  /* B: pad */
-    {"SLOW TIDE", {7, 38, 64, 6, 58, 26, 8, 12}, {84, 94, 116, 102}, 14, 0, FX(0, 64, 30, 80), PAT(5),
-     {XP(P_LRATE, 21), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},  /* B: SAW3 pad */
+    {"SLOW TIDE", {7, 38, 64, 6, 26, 40, 20, 12}, {84, 94, 116, 102}, 14, 0, FX(0, 64, 30, 80), PAT(5),
+     {XP(P_LRATE, 21), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},  /* B: SAW3 pad;
+     * (2.16) CUT 26 / RES 40 / DRIVE 20: it measured 0.044 from HARP PLUCK (preset_audit --gate-sound), a darker tide
+     * now at 0.064: same pad, its own corner */
     {"AMBER GLASS", {2, 8, 56, 0, 96, 14, 0, 12}, {0, 86, 34, 64}, 24, 0, FX(0, 30, 34, 50), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_HARM, 16)}},  /* C: keys */
     {"TIN ROOF", {6, 14, 80, 0, 102, 22, 0, 12}, {0, 84, 0, 70}, 30, 0, FX(0, 22, 42, 44), PAT(3),
