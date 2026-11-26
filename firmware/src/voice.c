@@ -370,8 +370,13 @@ static __attribute__((noinline)) void tf_run(track_t *t, int32_t *out, uint32_t 
         }
         tsvf_coef(&c, cut, p[P_FRES]);
         k = 8192 - p[P_FRES] * 7600 / 127;
+        /* (3.0) the block's position is used by three cases only -- coming in, going out, a TYPE crossfade. In the
+         * steady state (the common one: the filter just filtering) the shift is dead work in every sample, so it is
+         * summed once here and read from a local. Nothing else in the loop changed: the output is the same bits. */
+        {
+        uint32_t need_w = !was || !on || fo != TF_DRY;
         for (i = 0; i < n; i++) {
-            int32_t x = out[i], y, w = (int32_t)((i + 1u) << (12 - CTL_LOG2));   /* 0 .. 1 over the block, Q12 */
+            int32_t x = out[i], y, w = need_w ? (int32_t)((i + 1u) << (12 - CTL_LOG2)) : 0;   /* 0 .. 1, Q12 */
             int32_t v3 = x - ic2, v1 = (c.a1 * ic1 + c.a2 * v3) >> 13, v2 = ic2 + ((c.a2 * ic1 + c.a3 * v3) >> 13);
             int32_t s1 = 2 * v1 - ic1, bp = (k * v1) >> 12;
             if (ft == FT_SCREAM)
@@ -391,6 +396,7 @@ static __attribute__((noinline)) void tf_run(track_t *t, int32_t *out, uint32_t 
             else if (!on)
                 y = y + (((x - y) * w) >> 12);          /* out */
             out[i] = y;
+        }
         }
         if ((dx_xon & 1u) && ENGINES[t->engine] == &ENG_DRUM)
             tf_sides(ti, &c, k, ft, was, on, n > CTL ? CTL : n);
@@ -1568,9 +1574,12 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         pitch = v->pitch_cur + t->pfx_pit + tune + bend16 + ((lfo * p[P_LD_PIT] * 3) >> 15) + ((m.envq15 * p[P_ED_PIT] * 3) >> 15);
         m.pitch16 = clamp(pitch, 0, 2047);
         m.inc = tune_inc(m.pitch16);
-        m.fine = v->fine + tune_fine + bend_fine;
-        if (v->fine + tune_fine + bend_fine)             /* residual below 1/16 semitone */
-            m.inc += (uint32_t)((int32_t)(m.inc >> 12) * (v->fine + tune_fine + bend_fine));
+        {   /* (3.0) the residual is the same sum in three places: once per voice per block, not three times */
+            int32_t fin = v->fine + tune_fine + bend_fine;
+            m.fine = fin;
+            if (fin)                                     /* residual below 1/16 semitone */
+                m.inc += (uint32_t)((int32_t)(m.inc >> 12) * fin);
+        }
         m.cutoff = ((lfo * p[P_LD_FLT]) >> 7) + ((m.envq15 * p[P_ED_FLT]) >> 7);
         if (v->vel > 110)                               /* accent opens the filter with the env */
             m.cutoff += (m.envq15 * 24) >> 7;

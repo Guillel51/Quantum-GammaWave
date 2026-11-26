@@ -1,3 +1,15 @@
+## Sin publicar — camino a 3.0: trabajo por bloque fuera del filtro de pista
+
+- **`tf_run` (voice.c)**: la posición dentro del bloque (`w`) se calculaba en cada muestra aunque sólo la usan tres
+  casos (entrada del filtro, salida, crossfade de TYPE). En el estado estacionario —el caso común, y el de seis
+  pistas a la vez— era un desplazamiento muerto por muestra y por pista; ahora se decide una vez por bloque.
+- **`voice_render` (voice.c)**: el residuo de afinación se sumaba tres veces por voz y por bloque; ahora una, en un
+  local.
+- **Prueba**: `regress` con **316 renders dorados idénticos**, 0 fallos de salud ni de voces. La salida no cambia bit
+  a bit. CPU antes/después en cifras no es medible en este host (`0 instr` y reloj de 10 ms), y así se declara.
+- **[AC791N]**: imagen 580 396 B de 583 612 (3 216 libres), RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488,
+  alcance 10 228 B.
+
 ## Sin publicar — cierre de las seis fases
 
 - **SEQ > AUTO LIST y SEQ > AUTOMATION dejan de ser páginas vacías**: la lista sin locks explica que un mando sobre un
