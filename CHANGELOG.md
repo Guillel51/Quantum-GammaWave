@@ -1,3 +1,18 @@
+## Sin publicar — rediseño: las tarjetas vacías del MORPH y del TILT se llenan con lo que la página es
+
+- **MORPH (EDIT)**: tenía tres mandos muertos y tres tarjetas en blanco bajo el gráfico. Ahora los cuatro controles son
+  reales: **MORPH**, **WAVE** (la onda que se está interpolando, con su nombre según el motor: SAW, PWM, SYNC, RING…),
+  **TILT** y **DETUNE**. Los tres añadidos cambian lo que el crossfade suena; `engine_param_test` sigue dando **0
+  mandos sin efecto** (240 × 3 presets).
+- **TILT (EDIT)**: dos tarjetas vacías pasan a ser **M.STRT** (la dispersión con la que arranca cada nota) y
+  **GLIDE** (el portamento del ataque), las dos cosas que esta página ya trataba de la voz.
+- **Medido**: 207 pantallas × 22 paletas con **0 hallazgos de lint, 0 tintas sobre su propio color, 0 desalineaciones
+  y 0 píxeles GREY/MONO fuera de gris**; 96 cuadros cambiados (MORPH y TILT en sus paletas), base de píxeles al día.
+  `ui_test` y `engine_param_test` pasan.
+- **[AC791N]**: XIP **575 616 B** (código 453 868 + constantes 121 748) contra 575 584 B antes (misma imagen de
+  **580 396 B**, 3 216 libres): sólo cambian etiquetas de página, no se añadió código ni datos. RAM 75 664 / 98 304,
+  POOL 296 156, LOWBUF 28 488, alcance 10 228 B.
+
 ## Sin publicar — camino a 3.0: trabajo por bloque fuera del filtro de pista
 
 - **`tf_run` (voice.c)**: la posición dentro del bloque (`w`) se calculaba en cada muestra aunque sólo la usan tres

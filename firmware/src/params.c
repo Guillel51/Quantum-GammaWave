@@ -749,7 +749,10 @@ static const page_t PAGES[] = {
     {"CHARACTER", FAM_EDIT, SC_ENGINE, GR_NONE, {P_X0, P_X1, P_XCH, 0xFF}},   /* (FASE 2) the engine's own, two or
                                      * three slots; the third only on the engines without a native MORPH */
     {"RETRIG", FAM_EDIT, SC_TRACK, GR_NONE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},
-    {"MORPH", FAM_EDIT, SC_TRACK, GR_MORPH, {P_MORPH, 0xFF, 0xFF, 0xFF}},   /* (0.6.45) ANALOG PHASE LOFI: the wave morphs */   /* (0.6.12) LOFI BYTE / FLOAT: RTRG */
+    {"MORPH", FAM_EDIT, SC_TRACK, GR_MORPH, {P_MORPH, P_E0, P_HARM, P_DETUNE}},   /* (0.6.45) ANALOG PHASE LOFI: the wave
+                                     * morphs. (3.0) The page had three dead knobs and three blank cards under the graph: the
+                                     * wave being morphed (E0), the spectral TILT and the voices' DETUNE are the three
+                                     * things that change what the crossfade sounds like, so they are the cards. */   /* (0.6.12) LOFI BYTE / FLOAT: RTRG */
     /* (JIANT 0.6.54) DRUM: the whole kit first (KIT = EDIT 1, KIT 2 = EDIT 2, KIT 3, X-MOD, FILTER), then a sound
      * (SOUND 1..4, KNOB 1 the sound on each), (0.6.58) then the stereo and the volumes (LEVELS, LEVELS 2, STEREO) */
     {"KIT 3", FAM_EDIT, SC_TRACK, GR_DXIMG, {0xFF, 0xFF, 0xFF, 0xFF}},     /* TONE's BP and FEEDBK (the kit's) */
@@ -758,7 +761,9 @@ static const page_t PAGES[] = {
     {"OP ENV", FAM_EDIT, SC_TRACK, GR_FMENV, {0xFF, 0xFF, 0xFF, 0xFF}},     /* bytes of the track's patch (ui_fm6op.c): */
     {"OPERATOR 2", FAM_EDIT, SC_TRACK, GR_FMOP2, {0xFF, 0xFF, 0xFF, 0xFF}}, /* CRS FINE LEVEL / STG RATE LEVEL / MODE DTUN VEL */
     {"FILTER", FAM_EDIT, SC_TRACK, GR_FILTER, {P_FTYPE, P_E4, P_E5, P_E6}},   /* (JIANT 0.5) ANALOG: TYPE CUT RES DRV */
-    {"TILT", FAM_EDIT, SC_TRACK, GR_TILT, {P_DETUNE, P_HARM, 0xFF, 0xFF}},   /* (this phase) DETUNE and TILT on one page:
+    {"TILT", FAM_EDIT, SC_TRACK, GR_TILT, {P_DETUNE, P_HARM, P_MSTART, P_GLIDE}},   /* (3.0) the two dead slots of the
+                                     * card row are this page's own voice: how far a note starts scattered (M.STRT) and
+                                     * the portamento time it starts with, both read at the attack, both audible */   /* (this phase) DETUNE and TILT on one page:
                                      * how far apart the part's voices sit (voice.c's unison spread, +-40 cents across
                                      * them) and how the voice leans dark .. bright. Both were a page each -- DETUNE's
                                      * with three empty slots -- and the graph draws the two of them */   /* (v1.12.4) the voice's own spectral tilt:
