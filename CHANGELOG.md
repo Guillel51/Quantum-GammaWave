@@ -1,4 +1,4 @@
-## v2.15.0 — cierre de las seis fases
+## Sin publicar — cierre de las seis fases
 
 - **SEQ > AUTO LIST y SEQ > AUTOMATION dejan de ser páginas vacías**: la lista sin locks explica que un mando sobre un
   paso graba su valor, y la automatización sin movimientos dice «NO MOVES YET» y qué tecla empieza a grabar. Eran las
@@ -13,7 +13,7 @@
   28 488, alcance 10 268 B. **[HOST]**: 3 305 cuadros, 0 hallazgos de lint, 0 tintas sobre su propio color, 0
   píxeles fuera de gris; `regress` con 316 dorados idénticos.
 
-## v2.14.6 — FASE 5/6: GLIDE y STRUM entran en la matriz de modulación
+## Sin publicar — FASE 5/6: GLIDE y STRUM entran en la matriz de modulación
 
 - **Dos destinos nuevos, 32 y 33**, añadidos al final de la lista (`MD_GLIDE`, `MD_STRUM`; `MD_N`/`QG_DST_N` 32 → 34)
   para que ningún número guardado cambie de significado. Son los dos únicos parámetros que el DSP lee en el ataque de
@@ -30,7 +30,7 @@
 - **Pendiente**: el Web Studio mostrará los dos nombres cuando se reconstruya el emulador WASM (aquí no hay `emcc`);
   las pruebas del editor validan contra ese artefacto, así que no se tocó.
 
-## v2.14.5 — FASE 4/6: auditoría de las 207 pantallas y la respuesta del FILTER a escala propia
+## Sin publicar — FASE 4/6: auditoría de las 207 pantallas y la respuesta del FILTER a escala propia
 
 - **`filter_pass` / `graph_filter` (ui_graph.c)**: la curva se escalaba contra el techo fijo de `flt_mag` (1180), así
   que un tipo que nunca baja —SHELF entre 400 y 1000— se dibujaba en el tercio superior con dos tercios de banda
@@ -46,7 +46,7 @@
   (mínimo 8 192), RAM 75 664, POOL y LOWBUF iguales. **[HOST]**: 0 lint, 0 tintas sobre su propio color, 0
   desalineaciones, 0 píxeles GREY/MONO fuera de gris.
 
-## v2.14.4 — FASE 3/6: profundidad y ambiente compartidos, y la suite vuelve a arrancar
+## Sin publicar — FASE 3/6: profundidad y ambiente compartidos, y la suite vuelve a arrancar
 
 - **`ux_ambient()` (gfx.c)**: un solo componente para el fondo de la banda de cuerpo. Seis bloques en tres filas de
   profundidad —más oscuros que la placa, con borde superior iluminado, pie en sombra y canto lateral, el acento en

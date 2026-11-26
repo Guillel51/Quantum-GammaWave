@@ -9,6 +9,12 @@ publicada más alta es `v2.12.0` (el `build/manifest.json` de partida). Por eso 
 reutilizar un paquete ya publicado. Se publica como **v2.15.0**, que es mayor que todo lo anterior y coincide con la
 última entrada del `CHANGELOG` (v2.14.6).
 
+**Resultado**: los artefactos de 2.6.0 se retiraron del árbol (paquete, manifiesto, build record, copias del sitio,
+entradas en los tres `SHA256SUMS` y en `versions.json` y en el `meta` del instalador), y el árbol vuelve a anunciar
+**v2.12.0**, que es el paquete que `make_release.py --check` valida como uno solo. **2.15.0 no se publica**: sin
+`emcc` no hay emulador que lo acompañe, y un paquete sin su emulador sería lo mismo que acaba de limpiarse. El tag
+local `v2.15.0` se borró por la misma razón.
+
 ## 1. Pendientes heredados: estado final
 
 | pendiente | estado | evidencia |
