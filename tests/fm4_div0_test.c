@@ -143,7 +143,7 @@ static uint32_t fm4_convert_ref(int16_t *p, uint8_t *v)
         for (i = 0; i < 7u; i++)
             same &= pr->e[i] == p[P_E0 + i];
         if (same)
-            name = pr->name;
+            name = PR_NAME(pr);
     }
     for (k = 0; k < 10u; k++)
         v[FP_NAME + k] = ' ';
@@ -283,7 +283,7 @@ int main(void)
                  !memcmp(q.fm6[t], pk, FM6_PACKED) && !memcmp(q.t[t].p, ref, sizeof ref);
         }
         if (!k)
-            check("ORGAN: INDEX + FLT ENV is 0 (#61's divisor)", str_eq(DIGITAL_PRESETS[4].name, "ORGAN") &&
+            check("ORGAN: INDEX + FLT ENV is 0 (#61's divisor)", str_eq(PR_NAME(&DIGITAL_PRESETS[4]), "ORGAN") &&
                   full[0][P_E4] == 0 && full[0][P_ED_FLT] == 0);
         check(k ? "a 0.9 project (FUN3), DIGITAL E.PIANO BELL BASS BRASS: FM6, the same patches as before"
                 : "a 0.9 project (FUN3), DIGITAL ORGAN PAD MARIMBA FUNK KEY: FM6, the same patches as before", ok);

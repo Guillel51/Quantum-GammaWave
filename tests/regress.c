@@ -1544,7 +1544,7 @@ int main(int argc, char **argv)
     for (e = 0; e < NENGINES; e++)
         for (pi = 0; pi < ENGINES[e]->npresets; pi++) {
             job_t *j;
-            slug(s, ENGINES[e]->presets[pi].name, sizeof s);
+            slug(s, PR_NAME(&ENGINES[e]->presets[pi]), sizeof s);
             snprintf(name, sizeof name, "preset/%s/%02u_%s", ENGINES[e]->name, pi, s);
             j = add(J_PRESET, name);
             j->e = (uint8_t)e;
@@ -1608,7 +1608,7 @@ int main(int argc, char **argv)
     for (e = 0; e < NENGINES; e++)
         for (pi = 0; pi < ENGINES[e]->npresets; pi++) {
             job_t *j;
-            slug(s, ENGINES[e]->presets[pi].name, sizeof s);
+            slug(s, PR_NAME(&ENGINES[e]->presets[pi]), sizeof s);
             snprintf(name, sizeof name, "cpu/%s/%02u_%s", ENGINES[e]->name, pi, s);
             j = add(J_CPU, name);
             memset(cpu_parts[ncpu], 0, sizeof cpu_parts[ncpu]);
@@ -1968,7 +1968,7 @@ int main(int argc, char **argv)
         for (e = 0; e < NENGINES; e++)
             if (eng_ok(e)) {
                 uint32_t pi = have_ipc ? heavy_p[e] : heavy_p_ns[e];
-                printf("regress:   %-8s %-14s %6.0f instr  %6.1f ns\n", ENGINES[e]->name, ENGINES[e]->presets[pi].name,
+                printf("regress:   %-8s %-14s %6.0f instr  %6.1f ns\n", ENGINES[e]->name, PR_NAME(&ENGINES[e]->presets[pi]),
                        have_ipc ? heavy[e] : 0.0, have_ipc ? heavy_ns[e] : heavy_ns_best[e]);
             }
     }

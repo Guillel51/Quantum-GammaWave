@@ -980,7 +980,7 @@ static int tracks_test(const char *dir)
         four_full = tracks_cost(full, &bm2);
         two_voice = tracks_cost(vv, &bm3);
         none = tracks_cost(idle, 0);
-        printf("tracks: worst single part: %s %s %.1f ns\n", ENGINES[worst_e]->name, ENGINES[worst_e]->presets[worst_p].name, worst);
+        printf("tracks: worst single part: %s %s %.1f ns\n", ENGINES[worst_e]->name, PR_NAME(&ENGINES[worst_e]->presets[worst_p]), worst);
         printf("tracks: %s + PHASE + VOICE + drums, 3 + 3 + 2 notes: %.1f ns (%.2f x the worst single part), "
                "%u voices\n", ENGINES[fm]->name, four, four / worst, bm);
         printf("tracks: the same, 8 + 8 + 4 notes asked for (budget keeps %u): %.1f ns (%.2f x)\n", bm2, four_full,

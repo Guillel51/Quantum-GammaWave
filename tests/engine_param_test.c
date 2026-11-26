@@ -243,7 +243,7 @@ static void levels(void)
                 double d = 20.0 * log10(rms / 32768.0);
                 if (d < med - 6.0 || d > med + 6.0)
                     printf("    %-7s #%-2u %-12s %5.1f dBFS (%+.1f vs the engine)\n", en->name, (unsigned)i,
-                           en->presets[i].name, d, d - med);
+                           PR_NAME(&en->presets[i]), d, d - med);
             }
         }
     }
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
             for (i2 = 0; i2 < g->npresets; i2++) {
                 int32_t pk; double rms2, hot2;
                 render_preset(en2, i2, &pk, &rms2, &hot2);
-                printf("%s %u %s %.2f %.2f %.4f %d\n", g->name, (unsigned)i2, g->presets[i2].name,
+                printf("%s %u %s %.2f %.2f %.4f %d\n", g->name, (unsigned)i2, PR_NAME(&g->presets[i2]),
                        rms2 > 0 ? 20.0 * log10(rms2 / 32768.0) : -120.0,
                        pk > 0 ? 20.0 * log10((double)pk / 32768.0) : -120.0, hot2, (int)trk[0].p[P_LEVEL]);
             }

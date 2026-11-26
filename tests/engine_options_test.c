@@ -185,7 +185,7 @@ int main(void)
                     for (kk = 0; kk < 6; kk++)
                         if (pr->x[kk].id == want[w] + 1 && pr->x[kk].v == val[w]) {
                             found = 1;
-                            printf("     %s: %s / %s\n", what[w], ENGINES[ee]->name, pr->name);
+                            printf("     %s: %s / %s\n", what[w], ENGINES[ee]->name, PR_NAME(pr));
                             break;
                         }
                 }

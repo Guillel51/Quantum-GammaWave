@@ -36,6 +36,20 @@ release no lo esconde: el camino grande que queda es codificar los presets de f�
 el vector por defecto de cada motor (13 564 B de tablas, 5-6 KB recuperables), con su decodificador probado
 valor por valor en las nueve rutas de carga.
 
+### memoria (fase 2/10)
+
+El presupuesto de RAMTEXT no medía RAMTEXT: `tools/mem_budget.py` seguía con la longitud de antes de
+FASE 2/6 (`0x6000` en vez de `0x5200`), así que daba por buena una ventana que tenía **396 B libres**
+contra su suelo de 1 024. Corregido el número, el par de undo (2 x 3 840 B, main loop puro) se va del
+`.ramdata` de RAMTEXT al pool, donde ya viven las otras imágenes de proyecto: **RAMTEXT pasa de 396 a
+8 224 B libres** y el pool paga 7 680 B (le quedan 16 676, más del mínimo de 8 KiB). Las otras cuatro
+ventanas no se mueven. Mapa completo, vidas de las siete imágenes de proyecto, pilas medidas y
+concurrencia: `docs/FASE2_RAM_2026-11-26.md`.
+
+De paso, la validación recompiló la suite entera y encontró que el cambio de nombre de preset a offset
+había dejado nueve binarios de prueba rotos (`project_test`, `ui_test` y `preset_audit_test` hacían
+segfault): 22 sitios en 16 archivos pasan ahora por `PR_NAME()`.
+
 ### verificación
 
 - **[AC791N]** `./build.sh` enlaza; `drumx_test`, `pattern_len_test`, `preset_audit_test`, `project_test`,

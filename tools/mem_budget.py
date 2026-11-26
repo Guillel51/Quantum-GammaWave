@@ -32,7 +32,9 @@ REGIONS = {
     "LOWBUF": 0x8000,
     "RAM": 96 * 1024,
     "POOL": 0x50000,
-    "RAMTEXT": 0x6000,
+    # (FASE 2/10) the linker script has said 0x5200 since FASE 2/6; 0x6000 made this check pass with 3 584 B
+    # of room that does not exist.
+    "RAMTEXT": 0x5200,
     "NOINIT": 0x3D50,
 }
 # which output section each window holds, and how its name appears in the map

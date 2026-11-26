@@ -90,7 +90,7 @@ int main(void)
                                                       * list's index, the table's without the aliases) */
             const preset_t *p = &en->presets[eng_preset_nth(en, k)];
             printf("%s\n  {\"name\":", k ? "," : "");
-            js_str(p->name);
+            js_str(PR_NAME(p));
             for (i = 0; i < 8u; i++)
                 v[i] = p->e[i];
             printf(",\"e\":");
@@ -139,7 +139,7 @@ int main(void)
     for (k = 0; k < FM4_NPRESETS; k++) {
         const preset_t *p = &DIGITAL_PRESETS[k];
         printf("%s\n {\"name\":", k ? "," : "");
-        js_str(p->name);
+        js_str(PR_NAME(p));
         for (i = 0; i < 8u; i++)
             v[i] = p->e[i];
         printf(",\"e\":");

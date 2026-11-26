@@ -258,7 +258,7 @@ static void fingerprint(void)
             printf("{\"engine\":");
             jstr(en->name);
             printf(",\"index\":%u,\"name\":", (unsigned)i);
-            jstr(en->presets[i].name);
+            jstr(PR_NAME(&en->presets[i]));
             printf(",\"rms\":%.1f,\"peak\":%d,\"atk_ms\":%.1f,\"dec_ms\":%.1f,\"bands\":[",
                    rms, (int)peak, atk_b * (double)CTL * 1000.0 / (double)FS,
                    dec_b * (double)CTL * 1000.0 / (double)FS);
@@ -323,7 +323,7 @@ static void dump(void)
             printf("{\"engine\":");
             jstr(en->name);
             printf(",\"index\":%u,\"name\":", (unsigned)i);
-            jstr(p->name);
+            jstr(PR_NAME(p));
             printf(",\"e\":[");
             for (k = 0; k < 8u; k++) printf("%s%d", k ? "," : "", p->e[k]);
             printf("],\"env\":[%u,%u,%u,%u]", p->env[0], p->env[1], p->env[2], p->env[3]);
@@ -372,39 +372,39 @@ int main(int argc, char **argv)
             for (k = 0; k < 8u; k++)
                 if (p->e[k] < en->edit[k].min || p->e[k] > en->edit[k].max) {
                     e_range++;
-                    printf("  range: %-8s %-16s E%u = %d outside %d..%d\n", en->name, p->name, (unsigned)k,
+                    printf("  range: %-8s %-16s E%u = %d outside %d..%d\n", en->name, PR_NAME(p), (unsigned)k,
                            (int)p->e[k], (int)en->edit[k].min, (int)en->edit[k].max);
                 }
-            if (!p->name[0] || p->env[0] > 127 || p->env[1] > 127 || p->env[2] > 127 || p->env[3] > 127) {
+            if (!PR_NAME(p)[0] || p->env[0] > 127 || p->env[1] > 127 || p->env[2] > 127 || p->env[3] > 127) {
                 e_range++;
-                printf("  range: %-8s %-16s name empty or an envelope stage past 127\n", en->name, p->name);
+                printf("  range: %-8s %-16s name empty or an envelope stage past 127\n", en->name, PR_NAME(p));
             }
             for (k = 0; k < i; k++)
-                if (strcmp(p->name, en->presets[k].name) == 0) e_dupn++;
+                if (strcmp(PR_NAME(p), PR_NAME(&en->presets[k])) == 0) e_dupn++;
             for (k = 0; k < i; k++)
                 if (same_as(p, &en->presets[k])) {
                     e_dupp++;
-                    printf("  duplicate: %-8s %-16s has the parameters of %s\n", en->name, p->name, en->presets[k].name);
+                    printf("  duplicate: %-8s %-16s has the parameters of %s\n", en->name, PR_NAME(p), PR_NAME(&en->presets[k]));
                 }
             render_preset(e, i, &peak, &rms, &hot);
             if (fabs(dc_last) > e_dc) e_dc = fabs(dc_last);
             if (fabs(dc_last) > 0.02) {
                 dc_bad++;
                 printf("  dc:     %-8s %-16s sits %.1f %% off centre (halves %.1f / %.1f %%, peak %d) %s\n",
-                       en->name, p->name, fabs(dc_last) * 100.0, dc_h1 * 100.0, dc_h2 * 100.0, (int)peak,
+                       en->name, PR_NAME(p), fabs(dc_last) * 100.0, dc_h1 * 100.0, dc_h2 * 100.0, (int)peak,
                        dc_h1 * dc_h2 > 0 ? "DC" : "sub-audio");
             }
             if (rms < 8.0) {
                 e_silent++;
-                printf("  silent: %-8s %-16s rms %.1f, peak %d\n", en->name, p->name, rms, (int)peak);
+                printf("  silent: %-8s %-16s rms %.1f, peak %d\n", en->name, PR_NAME(p), rms, (int)peak);
             }
             if (levels)   /* (FASE 5) the number the remaster decides on: what each sound actually puts out */
                 printf("%-8s %3u %-18s rms %6.1f peak %5d clip %5.2f%%\n",
-                       en->name, (unsigned)i, p->name, rms, (int)peak, hot * 100.0);
+                       en->name, (unsigned)i, PR_NAME(p), rms, (int)peak, hot * 100.0);
             if (hot > 0.02) {
                 e_hot++;
                 printf("  hot:    %-8s %-16s %.0f%% of the note in the clipper's last stretch (peak %d)\n",
-                       en->name, p->name, hot * 100.0, (int)peak);
+                       en->name, PR_NAME(p), hot * 100.0, (int)peak);
             }
         }
         printf("%-8s %6u %7u %6u %8u %8u %6u %6.2f %%\n", en->name, n, e_silent, e_hot, e_dupn, e_dupp, e_range,

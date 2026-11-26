@@ -482,7 +482,7 @@ static int test_sound_loads(void)
                  t->p[P_LEVEL] == (int16_t)preset_level_of(t->eng_req % NENGINES, t->preset));
     bad += check("..and no warning about the sequence", !msg_is("T1 SEQ REPLACED"));
     for (i = 0; i < ENGINES[0]->npresets; i++)
-        if (str_eq(ENGINES[0]->presets[i].name, "RAVE"))
+        if (str_eq(PR_NAME(&ENGINES[0]->presets[i]), "RAVE"))
             break;
     t->p[P_AMODE] = 0;
     t->preset = (uint8_t)(i - 1u);
@@ -5413,7 +5413,7 @@ static int test_fm4_retired(void)
     uint8_t v[FP_SIZE + 1u];
     ui_power_on();
     bad += check("power-on: track 2 is FM6 PAD (TRK_DEF, was DIGITAL PAD)", trk[1].eng_req == ENGI_FM6 &&
-                 str_eq(ENGINES[ENGI_FM6]->presets[trk[1].preset].name, "PAD"));
+                 str_eq(PR_NAME(&ENGINES[ENGI_FM6]->presets[trk[1].preset]), "PAD"));
     preset_all_pos(&total);
     for (i = 0; i < total; i++) {
         e = preset_all_at(i, &k);

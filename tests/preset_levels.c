@@ -100,10 +100,10 @@ int main(int argc, char **argv)
             rms_all[cnt++] = rms;
             if (csv)
                 printf("%u,%u,\"%s\",\"%s\",%.1f,%.1f\n", (unsigned)e, (unsigned)pi,
-                       ENGINES[e]->name, ENGINES[e]->presets[pi].name, db_of(rms), db_of(pk));
+                       ENGINES[e]->name, PR_NAME(&ENGINES[e]->presets[pi]), db_of(rms), db_of(pk));
             else
                 printf("%-9s %2u %-12s rms %+6.1f dB  peak %+6.1f dB\n", ENGINES[e]->name, (unsigned)pi,
-                       ENGINES[e]->presets[pi].name, db_of(rms), db_of(pk));
+                       PR_NAME(&ENGINES[e]->presets[pi]), db_of(rms), db_of(pk));
         }
     }
     if (!csv) {

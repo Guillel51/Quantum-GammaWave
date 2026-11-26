@@ -239,8 +239,8 @@ static void presets(void)
             p[i] = TP[i < P_E0 ? i : 0].def;
         fm4_preset_values(p, k);
         ok &= fm4_convert(p, v) == FM4_TO_FM6[k] && p[P_E7] == FM4_TO_FM6[k] && !p[P_E0] && !p[P_E6];
-        for (i = 0; i < 10u && DIGITAL_PRESETS[k].name[i]; i++)
-            names &= v[FP_NAME + i] == (uint8_t)DIGITAL_PRESETS[k].name[i];
+        for (i = 0; i < 10u && PR_NAME(&DIGITAL_PRESETS[k])[i]; i++)
+            names &= v[FP_NAME + i] == (uint8_t)PR_NAME(&DIGITAL_PRESETS[k])[i];
     }
     check("presets: each converts to PTCH = the FM6 preset that covers it, the macros neutral", ok);
     check("presets: the patch is named after the DIGITAL preset", names);

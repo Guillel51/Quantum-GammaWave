@@ -638,7 +638,7 @@ static void cost(void)
         if (pi < FM6_NFACTORY)
             fm6_unpack(FM6_FACTORY[pi], v);
         c = (mix_cost(pi < FM6_NFACTORY ? v : heavy, 6) - idle) / 6;
-        printf("fm6:   %-12s %5.0f  ~%.2f %%\n", pi < FM6_NFACTORY ? ENG_FM6.presets[pi].name : "(6 carriers)", c, c * 0.017);
+        printf("fm6:   %-12s %5.0f  ~%.2f %%\n", pi < FM6_NFACTORY ? PR_NAME(&ENG_FM6.presets[pi]) : "(6 carriers)", c, c * 0.017);
         worst = c > worst ? c : worst;
     }
     snprintf(what, sizeof what, "cost: at most %.0f instructions a sample and voice (~%.1f %% on the device, 6 voices ~%.0f %%; limit %.0f)",
@@ -654,8 +654,10 @@ static void demo(const char *dir, uint32_t pi)
     uint32_t pat = pr->pat ? pr->pat - 1u : 4u, step = FS / 8u, s, i, held = 0, frames = 0;
     char path[512], nm[32];
     FILE *w;
-    for (i = 0; pr->name[i] && i < 31u; i++)
-        nm[i] = pr->name[i] == ' ' ? '_' : pr->name[i];
+    {   const char *pn = PR_NAME(pr);                /* (FASE 1/10) the name is an offset in PRESET_NAMES */
+        for (i = 0; pn[i] && i < 31u; i++)
+            nm[i] = pn[i] == ' ' ? '_' : pn[i];
+    }
     nm[i] = 0;
     snprintf(path, sizeof path, "%s/%02u_%s.wav", dir, pi, nm);
     if (!(w = fopen(path, "wb")))

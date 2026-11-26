@@ -23,7 +23,7 @@ static uint32_t vg_preset(uint32_t e, const char *n)
 {
     uint32_t k;
     for (k = 0; k < ENGINES[e]->npresets; k++)
-        if (str_eq(ENGINES[e]->presets[k].name, n))
+        if (str_eq(PR_NAME(&ENGINES[e]->presets[k]), n))
             return k;
     return 0;
 }

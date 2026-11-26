@@ -347,7 +347,7 @@ static void health(void)
             nclip++;
         if (cnt && fabs(sum / cnt) > 0.02 * VOICE_FS) {  /* (PHASE's defaults: 1.7 %) */
             ndc++;
-            printf("wavetable:   %s: mean %.0f (%.2f %% of a voice's full scale)\n", ENGINES[eng_wavetable()]->presets[pi].name,
+            printf("wavetable:   %s: mean %.0f (%.2f %% of a voice's full scale)\n", PR_NAME(&ENGINES[eng_wavetable()]->presets[pi]),
                    sum / cnt, 100 * fabs(sum / cnt) / VOICE_FS);
         }
         for (i = 0; i < 10u; i++)

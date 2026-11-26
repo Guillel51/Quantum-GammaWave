@@ -278,12 +278,12 @@ static void dc_and_clip(void)
             mean += m1 / 16;
         }
         if (getenv("VERBOSE"))
-            printf("noise:   %-10s RMS %6.1f dB  mean %+.5f\n", ENG_NOISE.presets[pi].name, 20 * log10(r + 1e-12), mean);
+            printf("noise:   %-10s RMS %6.1f dB  mean %+.5f\n", PR_NAME(&ENG_NOISE.presets[pi]), 20 * log10(r + 1e-12), mean);
         if (fabs(mean) * 32768.0 / VOICE_FS > worst)
             worst = fabs(mean) * 32768.0 / VOICE_FS, worst_p = pi;
     }
     snprintf(what, sizeof what, "no DC: worst |mean| %.2f %% of a voice's full scale (%s)", worst * 100,
-             ENG_NOISE.presets[worst_p].name);
+             PR_NAME(&ENG_NOISE.presets[worst_p]));
     check(what, worst < 0.01);
     for (m = 0; m < 4u; m++)
         for (k = 0; k < 64u; k++) {                   /* the corners of COLR FREQ RES DENS CRSH TRK */
@@ -383,7 +383,7 @@ static void cost(void)
     for (pi = 0; pi <= ENG_NOISE.npresets; pi++) {
         const int16_t *e = pi < ENG_NOISE.npresets ? pe(pi) : HEAVY;
         c = (mix_cost(e, 8) - idle) / 8;
-        printf("noise:   %-10s %5.0f  ~%.2f %%\n", pi < ENG_NOISE.npresets ? ENG_NOISE.presets[pi].name : "(corner)", c,
+        printf("noise:   %-10s %5.0f  ~%.2f %%\n", pi < ENG_NOISE.npresets ? PR_NAME(&ENG_NOISE.presets[pi]) : "(corner)", c,
                c * 0.017);
         worst = c > worst ? c : worst;
     }
@@ -400,8 +400,10 @@ static void demo(const char *dir, uint32_t pi)
     uint32_t pat = pr->pat ? pr->pat - 1u : 4u, step = FS / 8u, s, i, held = 0, frames = 0;
     char path[512], nm[32];
     FILE *w;
-    for (i = 0; pr->name[i] && i < 31u; i++)
-        nm[i] = pr->name[i] == ' ' ? '_' : pr->name[i];
+    {   const char *pn = PR_NAME(pr);                /* (FASE 1/10) the name is an offset in PRESET_NAMES */
+        for (i = 0; pn[i] && i < 31u; i++)
+            nm[i] = pn[i] == ' ' ? '_' : pn[i];
+    }
     nm[i] = 0;
     snprintf(path, sizeof path, "%s/%02u_%s.wav", dir, pi, nm);
     if (!(w = fopen(path, "wb")))

@@ -862,7 +862,7 @@ int main(void)
                     (c).t[1].engine == ENGI_PHYS_TO)
         ok = proj_pack_vb(&st, &a) && proj_import(&c, &st, sizeof st);
         bad += check("FUN8 with a SAMPLE PERC track: DRUM's kit, the rest of the sound and the steps kept; SAMPLE tracks ANALOG", ok && PERC_OK(c) &&
-                     str_eq(ENGINES[ENGI_DRUM]->presets[0].name, "DRUM-X") &&
+                     str_eq(PR_NAME(&ENGINES[ENGI_DRUM]->presets[0]), "DRUM-X") &&
                      !memcmp(ENGINES[ENGI_DRUM]->presets[0].e, (int8_t[8])DRUM_KIT_E, 8));
         bad += check("  its motion on CUT goes, the retired SAMPLE track's too (ANALOG now); a send's stays",
                      c.motion.count == 1u && c.motion.event[0].param == P_REV && motion_valid(&c.motion) && proj_ok(&c));

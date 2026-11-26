@@ -447,7 +447,7 @@ static void health(void)
         if (cnt && fabs(sum / cnt) > 0.02 * VOICE_FS) {
             ndc++;
             printf("additive:   %s: mean %.0f (%.2f %% of a voice's full scale)\n",
-                   ENGINES[eng_additive()]->presets[pi].name, sum / cnt, 100 * fabs(sum / cnt) / VOICE_FS);
+                   PR_NAME(&ENGINES[eng_additive()]->presets[pi]), sum / cnt, 100 * fabs(sum / cnt) / VOICE_FS);
         }
         for (i = 0; i < 10u; i++)
             trk_note_off(&trk[0], 60u + i * 2u);

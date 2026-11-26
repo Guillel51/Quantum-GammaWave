@@ -88,7 +88,7 @@ static int preset_of(const char *name)
 {
     uint32_t i;
     for (i = 0; i < ENGINES[ENGI_ANALOG]->npresets; i++)
-        if (!strcmp(ENGINES[ENGI_ANALOG]->presets[i].name, name))
+        if (!strcmp(PR_NAME(&ENGINES[ENGI_ANALOG]->presets[i]), name))
             return (int)i;
     return -1;
 }

@@ -1731,12 +1731,16 @@ static int project_restore_runtime(const project_t *input)
 /* (0.6.21) UNDO (GLO held + G4): one step back over the last big change (HOME's DICE ALL, a sound diced, a clear, an
  * INIT / RECALL, a pattern or project loaded). undo_mark keeps the music as it is (packed as a project: ~3.8 KB);
  * undo_do brings it back and keeps what it replaced, so a second UNDO goes forward again. The transport plays on */
-/* (FASE 4 de esta ronda) OFF LOWBUF: the undo pair is two project images, read and written by the main loop and
- * nothing else -- no flash write, no DMA, no ISR -- and LOWBUF is the window that runs out first (1 120 B free
- * against the 384 the next feature asked for). The RAMTEXT tail has 11 808 B of SRAM that no code uses, the same
- * place the cold buffers went in this round's first phase: 7 680 B of LOWBUF back for nothing spent, and the boot
- * clear that already sweeps .ramdata zeroes both before anything reads them. */
-static project_store_t undo_st[2] __attribute__((section(".bss.ramdata")));
+/* (FASE 4 de una ronda anterior) OFF LOWBUF: the undo pair is two project images, read and written by the main loop
+ * and nothing else -- no flash write, no DMA, no ISR -- and LOWBUF was the window that ran out first (1 120 B free
+ * against the 384 the next feature asked for).
+ * (FASE 2/10) OFF THE RAMTEXT TAIL, TO THE POOL: the tail grew to 16 656 B of cold data and the window it lives in
+ * reached 396 B free against its own 1 024 B floor (tools/mem_budget.py, corrected in this phase: it still said
+ * RAMTEXT was 24 KiB). The pool has 24 356 B free over 328 KiB, keeps the other project images (mut_anchor,
+ * song_keep, proj_wire) and is main-loop only, which is what these two are: the tightest window gets 7 680 B of
+ * margin and the one with room pays for it. .pool is not zeroed at boot, and neither was .ramdata until main.c
+ * cleared it -- undo_ok gates every read, so nothing reads an image that was never written. */
+static project_store_t undo_st[2] __attribute__((section(".pool")));
 /* (JIANT 0.6.40) INIT SYSTEM (SAVE > TOOLS 5, its dialog; UNDO brings the music back) and the power-on (main.c, with
  * RESTORE LAST OFF): the six tracks their engine (TRK_DEF's) at its defaults and first sound, as INIT SOUND does; no
  * steps, automation or locks; the mix, the global effects, the tempo and the SLICER at their defaults; the song empty,
