@@ -1,6 +1,6 @@
 # FASE 5/5 — cierre, estabilidad y estado final
 
-Fecha: 2026-11-26 · Versión: **v2.6.0** · Clases de medición: `[AC791N]` compilación del
+Fecha: 2026-11-26 · Versión: **v2.10.0** · Clases de medición: `[AC791N]` compilación del
 target, `[HOST x86-64]` esta VM, `[EMU]` WebAssembly. Ninguna afirmación de hardware.
 
 ## 1. Qué se revisó y qué se encontró

@@ -1527,7 +1527,7 @@ No se realizaron escrituras en el FM-1 físico. No se generaron ni sustituyeron 
 What is **not** in this pass: any device measurement, any emulator frame, any change to the audio
 path (none was made or measured).
 
-## 25. Update — 2026-11-11, v2.6.0 rebuilt here from the release commit (no unit touched)
+## 25. Update — 2026-11-11, v2.10.0 rebuilt here from the release commit (no unit touched)
 
 Every figure below was produced in this session on this machine. Classes: `[TARGET]` = AC791N build with
 the pinned pi32v2 toolchain and pinned SDK files; `[HOST]` = native x86-64; `[WASM]` = Emscripten build
@@ -1539,7 +1539,7 @@ executed in Node. Nothing here is a claim about a physical FM-1.
 | SDK | `AC79NN_SDK_V1.2.1_2023-12-13`; `uboot.boot`, `cfg_tool.bin`, `cfg/eq_cfg_hw.bin` match `SDK_SHA256` | `[TARGET]` |
 | Build commit | `d3aa772cc5533671053e7a07cead9186c34f2bee`, `dirty: []` | `[TARGET]` |
 | Image / budgets | image **541 460 B**; `.data+.bss` **87 696 / 98 304 B**; POOL spare **15 392 B**; XIP code 380 908 B + 140 520 B constants; RAM code **19 284 / 24 576 B**, `.ram_text` no calls | `[TARGET]` |
-| Package | `release/felucca-v2.6.0.fwsc` **610 959 B**, sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`, identity `FM-1_965`, version `v2.6.0` | `[TARGET]` |
+| Package | `release/felucca-v2.10.0.fwsc` **610 959 B**, sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`, identity `FM-1_965`, version `v2.10.0` | `[TARGET]` |
 | Release manifest | `qg1-release-1` with `images` + `build_sha256`, **no `sig`** (SHA-256 model of `docs/SIGNING.md`) | `[HOST]` |
 | Integrity gate | `fm1_sign.py verify` → `verified (integrity only, unsigned: SHA-256 model)`; same manifest with `--require-signature` → exit 1 | `[HOST]` |
 | Legacy signed release | `release/felucca-v2.4.0.fwsc` still verifies against `qg1-release-1` | `[HOST]` |
@@ -1550,34 +1550,34 @@ executed in Node. Nothing here is a claim about a physical FM-1.
 
 **Not run, and why.** A physical unit (only the owner may do that), a browser session (no browser automation
 was used), GitHub Artifact Attestation (produced by `release.yml` in Actions, not here), and the signing of a
-v2.6.0 package (no Ed25519 private key exists in this environment, by design). The installer gate therefore
+v2.10.0 package (no Ed25519 private key exists in this environment, by design). The installer gate therefore
 stays closed for a first physical write: rows 4–9 of §15 still need a reading from the owner's unit.
 
-## 26. What v2.6.0 still cannot claim (2026-11-11)
+## 26. What v2.10.0 still cannot claim (2026-11-11)
 
 The public chain was verified by downloading it, not by reading a workflow conclusion:
 
 | Surface | Verified state |
 |---|---|
-| Pages root (portal + installer) | serves **v2.6.0**, package `felucca-v2.6.0-35651a5.fwsc`, `qg1-release-1` named, `72165d8d…` published |
+| Pages root (portal + installer) | serves **v2.10.0**, package `felucca-v2.10.0-35651a5.fwsc`, `qg1-release-1` named, `72165d8d…` published |
 | Downloaded package | 610 959 B, sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25` — equals the record |
-| `/emulator/` | manifest `v2.6.0`, commit `b53ca388ad0a`, wasm 1 104 631 B sha256 `ae94611f…` |
+| `/emulator/` | manifest `v2.10.0`, commit `b53ca388ad0a`, wasm 1 104 631 B sha256 `ae94611f…` |
 | Downloaded wasm | sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a` — equals the record |
-| `/preview/` | `v2.6.0`, commit `b53ca388ad0a` (main's own emulator) |
-| `release/*.fwsc` | five packages verify: four signed by `qg1-release-1`, v2.6.0 as integrity-only |
+| `/preview/` | `v2.10.0`, commit `b53ca388ad0a` (main's own emulator) |
+| `release/*.fwsc` | five packages verify: four signed by `qg1-release-1`, v2.10.0 as integrity-only |
 
 **Open, with the concrete reason:**
 
-1. **The `v2.6.0` tag is not the artefact commit.** `refs/tags/v2.6.0` = `73c0c66…`; the published
+1. **The `v2.10.0` tag is not the artefact commit.** `refs/tags/v2.10.0` = `73c0c66…`; the published
    artefacts were built from `35651a5…`, because `main` gained the splash-brace repair (`4a3c2c8`) and the
    SDK/UI merges after the tag was cut. Rebuilding at `35651a5` changes the package (541 460 B image,
    `72165d8d…`) from the tag build (541 492 B, `567b72fa…`), so the tag cannot be described as "the bytes
    served". Moving a published tag or re-cutting it needs a tag push, which this session has no credential
    for (`gh auth status`: not logged in; `cloud_git` pushes branches only).
-2. **The GitHub Release `v2.6.0` has no downloadable assets.** Its asset list is empty, and uploading
-   `felucca-v2.6.0.fwsc`, `build-manifest-v2.6.0.json` and `SHA256SUMS` needs the same missing credential.
+2. **The GitHub Release `v2.10.0` has no downloadable assets.** Its asset list is empty, and uploading
+   `felucca-v2.10.0.fwsc`, `build-manifest-v2.10.0.json` and `SHA256SUMS` needs the same missing credential.
    The package *is* publicly downloadable from Pages, which is what the installer page uses.
-3. **No Ed25519 signature for v2.6.0** (by design: no private key exists here). `Signatures: NOT SIGNED —
+3. **No Ed25519 signature for v2.10.0** (by design: no private key exists here). `Signatures: NOT SIGNED —
    integrity via SHA-256 + size`. GitHub Artifact Attestation is produced by `release.yml` on a tag push,
    so it also does not cover `35651a5`.
 4. **The full host suite did not complete in this session** (the runner restarted during it). What did run:
@@ -1592,7 +1592,7 @@ The public chain was verified by downloading it, not by reading a workflow concl
 
 Everything here was read from the public URLs afterwards with no credential (`[PUBLIC]`), or executed in this
 tree (`[HOST]` / `[TARGET]`). It supersedes §26 where they disagree, and closes the pendings §26 opened for
-v2.6.0 — for v2.7.0, not retroactively.
+v2.10.0 — for v2.7.0, not retroactively.
 
 | Item | State | Evidence |
 |---|---|---|
@@ -4351,7 +4351,7 @@ Detalle y cifras: `docs/XIP_AUDIT.md`, generado por `tools/xip_audit.py` desde e
 | Auditor que diga qué datos de XIP no referencia ningún camino alcanzable | **PASS** | `tools/xip_audit.py`: 627 secciones de sólo lectura, 126 155 B, referencia por dirección (palabra de 32 bits dentro del rango de la sección), **0 secciones muertas, 0 B de padding** | TARGET |
 | Recuperar ~5 KB para los 8 KB libres sin quitar funciones ni calidad | **BLOQUEADO (con la medición)** | no queda dato inalcanzable: `--gc-sections` ya lo quitó. Los 126 KB están en cadenas (25,6 KB), curvas (28,3 KB), fuentes (23,4 KB) y presets (13,4 KB), todos leídos. Recuperar 5 KB exige un cambio de representación (diccionario de cadenas, segunda etapa de fuentes), no un borrado | TARGET |
 
-## 31. Cierre 2026-11-26 — FASE 5/5 (v2.6.0)
+## 31. Cierre 2026-11-26 — FASE 5/5 (v2.10.0)
 
 | Requisito | Estado | Evidencia | Clase |
 |---|---|---|---|

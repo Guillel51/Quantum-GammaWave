@@ -1,4 +1,4 @@
-## v2.6.0 — FASE 5/5: cierre, los números públicos al día y dos pruebas que miraban un formato que ya no existe
+## v2.10.0 — FASE 5/5: cierre, los números públicos al día y dos pruebas que miraban un formato que ya no existe
 
 - **Las pruebas de las tablas compactas vuelven a probar lo que el firmware hace.** `sine_table_test` y
   `fm6_exp2_test` decodificaban las tablas como diferencias de 8 y 16 bits, pero desde la compactación a tres bits
