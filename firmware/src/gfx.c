@@ -10,15 +10,18 @@
  * ramp per (ink, background) pair, cached, so a pixel costs a nibble read and a store. Colours come from the theme tokens. */
 /* (FASE 1, 2026-11-16) one phase of a glyph. The advance is the same in every phase (tools/gen_aa_font.py
  * checks it), so it lives once per glyph in aafont_t.adv: 6 B a phase instead of 8, 840 B less XIP. */
-/* (FASE 2/5) one word a glyph and phase: off 13 bits, bx + 1 and by / bw / bh five bits each (tools/gen_aa_font.py
- * packs it and checks the ranges). 4 B a phase instead of 6: 1 304 B less XIP across the three faces; the reads
- * below are a mask and a shift, and the bitmaps, the advances and the pixels are the same. */
+/* (FASE 2/5) one word a glyph and phase: off, bx + 1 and by / bw / bh five bits each (tools/gen_aa_font.py packs it
+ * and checks the ranges). 4 B a phase instead of 6: 1 304 B less XIP across the three faces; the reads below are a
+ * mask and a shift, and the bitmaps, the advances and the pixels are the same.
+ * (3.0) off is 14 bits, not 13: a face above 8 KiB of bitmaps did not fit the record and the generator refused the
+ * header (S at 8 phases asked for 8 223). The word was 31 bits, so the extra bit is the spare: still 4 B a phase and
+ * the same masks and shifts, one wider immediate -- the faces below 8 KiB produce byte-identical records. */
 typedef struct { uint32_t w; } aag_t;
-#define AG_OFF(g) ((uint32_t)((g)->w & 0x1FFFu))
-#define AG_BX(g) ((int32_t)(((g)->w >> 13) & 7u) - 1)
-#define AG_BY(g) ((int32_t)(((g)->w >> 16) & 31u))
-#define AG_BW(g) ((int32_t)(((g)->w >> 21) & 31u))
-#define AG_BH(g) ((int32_t)(((g)->w >> 26) & 31u))
+#define AG_OFF(g) ((uint32_t)((g)->w & 0x3FFFu))
+#define AG_BX(g) ((int32_t)(((g)->w >> 14) & 7u) - 1)
+#define AG_BY(g) ((int32_t)(((g)->w >> 17) & 31u))
+#define AG_BW(g) ((int32_t)(((g)->w >> 22) & 31u))
+#define AG_BH(g) ((int32_t)(((g)->w >> 27) & 31u))
 typedef struct {
     uint8_t h, asc, first, last, nex;   /* line height, baseline; ASCII range; extras */
     uint16_t nk;                        /* kerning pairs */

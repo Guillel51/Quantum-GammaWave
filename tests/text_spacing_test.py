@@ -49,7 +49,7 @@ def parse(path):
         for v in re.findall(r"\{0x([0-9a-fA-F]+)u\}",
                             re.search(r"AF_%s_G\[\d+\] = \{(.*?)\n\};" % name, t, re.S).group(1)):
             w = int(v, 16)
-            g.append((w & 0x1FFF, ((w >> 13) & 7) - 1, (w >> 16) & 31, (w >> 21) & 31, (w >> 26) & 31))
+            g.append((w & 0x3FFF, ((w >> 14) & 7) - 1, (w >> 17) & 31, (w >> 22) & 31, (w >> 27) & 31))
         adv = arr("ADV")
         kern = {}
         if f[9] != "0":

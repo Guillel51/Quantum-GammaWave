@@ -1,3 +1,17 @@
+## Sin publicar — el registro de glifo acepta caras de más de 8 KiB (medida de las 8 fases de S)
+
+- **El bloqueo del generador**: `aag_t` empaquetaba el `off` del bitmap en 13 bits (máx. 8 191) y la cara S a 8 fases
+  pide 8 223, así que `gen_aa_font.py` abortaba en el `assert` y no escribía `build/gen/ui_fonts.h`. La palabra era de
+  31 bits: el bit libre pasa a `off` **(14 bits, 0x3FFF)**, con los demás campos desplazados uno; sigue siendo **4 B por
+  glifo y fase**. `gfx.c` y el parser de `tests/text_spacing_test.py` leen el mismo formato.
+- **Medido a 4 fases** (el valor que queda en el árbol): 3 305 cuadros **idénticos** a la base, 0 lint, 0
+  desalineaciones, XIP 575 740 B (código 453 968 + constantes 121 772) e imagen **580 520 B** — 16 B menos que antes del
+  cambio por los inmediatos más anchos. `text_spacing_test.py` sigue en 0,258 px: el umbral no se tocó.
+- **[AC791N] Medición a 8 fases** (no se queda en el árbol): el generador sí escribe el header — fuente S: datos
+  14 417 B + tabla 4 750 B = 19 168 B contra 8 814 B, fuentes 31 396 B contra 22 034 B; **el enlace falla con
+  `region XIP overflowed by 5512 bytes`** (imagen ≈ 589 124 B contra un slot de 583 612 B). El par «Gl» de S pasa de
+  **+0,258 px a −0,025 px** y el máximo de la cara de **0,258 a 0,157 px** (rms 0,105 → 0,055).
+
 ## Sin publicar — rediseño: la tarjeta libre del LFO CURVE pasa a ser RETRIG
 
 - **LFO CURVE (LFO)**: el cuarto mando era una tarjeta en blanco. Ahora es **RETRIG**: **ON**, una nota reinicia el LFO
