@@ -1150,6 +1150,12 @@ static void edit_param(uint32_t slot, int32_t steps)
     v = param_turn(d, *vp, accel(EN_K1 + slot, steps, d->fmt == F_ENUM ? 0 : d->max - d->min));
     *vp = (int16_t)v;
     fb_turn(v0, v, slot, steps);    /* (FASE 4/8) moved: the column lights; at an end: the card says which */
+    if (pg->graph == GR_LFO && pg->id[0] == P_LSHP && slot == 3u) {   /* (3.0) LFO CURVE's RETRIG: the LFO's PHASE as
+                                                 * OFF/ON (params.c page_desc). It returns here: the card's value is
+                                                 * the page's, and PHASE is where the retrigger lives */
+        lfo_retrig_put(v);
+        return;
+    }
     if (pg->graph == GR_MACROS && vp >= &macro_ui[0] && vp <= &macro_ui[3]) {   /* (FASE 8) MACROS: the matrix's
                                                  * M1..M4 (the same values its sources read) */
         macro_set((uint32_t)(vp - macro_ui), v);

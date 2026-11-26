@@ -1,3 +1,15 @@
+## Sin publicar — rediseño: la tarjeta libre del LFO CURVE pasa a ser RETRIG
+
+- **LFO CURVE (LFO)**: el cuarto mando era una tarjeta en blanco. Ahora es **RETRIG**: **ON**, una nota reinicia el LFO
+  desde **PHASE**; **OFF**, el LFO corre libre y la nota se le une donde está. Es el mismo byte que PHASE (−1 = FREE)
+  leído como OFF/ON, así que las dos páginas nunca se contradicen; no añade parámetro ni cambia el formato guardado.
+- **Medido**: 207 pantallas × 22 paletas con **0 hallazgos de lint, 0 tintas sobre su propio color, 0 desalineaciones
+  y 0 píxeles GREY/MONO fuera de gris**; 32 cuadros cambiados (LFO CURVE en sus paletas), base de píxeles al día.
+  Pasan `ui_test`, `engine_param_test` (240 mandos × 3 presets, 0 sin efecto), `control_map_test` (24 825
+  comprobaciones, 0 fallos) y `chorus_rate_test`.
+- **[AC791N]**: XIP **575 756 B** contra 575 616 B antes (código 453 972 + constantes 121 784) e imagen **580 536 B**
+  con **3 076 B** libres, contra 580 396 B antes. RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488, alcance 10 124 B.
+
 ## Sin publicar — rediseño: las tarjetas vacías del MORPH y del TILT se llenan con lo que la página es
 
 - **MORPH (EDIT)**: tenía tres mandos muertos y tres tarjetas en blanco bajo el gráfico. Ahora los cuatro controles son

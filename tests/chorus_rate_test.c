@@ -120,6 +120,15 @@ int main(void)
                   d && str_eq(d->label, "INVERT") && bp == &TSEL->p[P_X3]);
             d = page_desc(PAGES + pi, 0, &bp);
             check("LFO CURVE knob 1 is still CURVE", d && str_eq(d->label, "CURVE") && bp == &TSEL->p[P_LSHP]);
+            /* (3.0) the fourth card: the LFO's RETRIG, PHASE read as OFF/ON (-1 FREE = OFF) */
+            TSEL->p[P_LPHASE] = 64;
+            d = page_desc(PAGES + pi, 3, &bp);
+            check("LFO CURVE knob 4 is RETRIG", d && str_eq(d->label, "RETRIG"));
+            check("  RETRIG shows ON when a note restarts the LFO (PHASE 64)", bp && *bp == 1);
+            TSEL->p[P_LPHASE] = -1;
+            d = page_desc(PAGES + pi, 3, &bp);
+            check("  RETRIG shows OFF when PHASE is FREE", d && bp && *bp == 0);
+            TSEL->p[P_LPHASE] = 0;
         }
     }
 

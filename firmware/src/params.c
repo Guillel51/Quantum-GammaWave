@@ -700,7 +700,10 @@ static const page_t PAGES[] = {
     {"ENV DEST", FAM_ENV, SC_TRACK, GR_NONE, {P_ED_FLT, P_ED_PIT, P_ED_SHP, P_ELOOP}},   /* JIANT 0.4: LOOP */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LRATE, P_LWAVE, P_LPHASE, P_LFADE}},
     {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
-    {"LFO CURVE", FAM_LFO, SC_TRACK, GR_LFO, {P_LSHP, P_X2, P_X3, 0xFF}},   /* (this phase) SLEW and INVERT live here
+    {"LFO CURVE", FAM_LFO, SC_TRACK, GR_LFO, {P_LSHP, P_X2, P_X3, P_LPHASE}},   /* (3.0) the fourth card is RETRIG:
+                                     * the LFO's PHASE read as OFF/ON (page_desc), because a note restarting the LFO at
+                                     * PHASE or joining it free is what the retrigger is -- one page for the LFO's shape, its
+                                     * edge, its sign and when it starts */   /* (this phase) SLEW and INVERT live here
                                      * with CURVE: one page for the LFO's shape, its edge and its sign, instead of
                                      * a page for the bend and an almost empty one for the other two */   /* (v1.12.5) the LFO's phase bent: the
                                      * graph is the LFO's own, so turning the knob bends the drawn wave as it bends
@@ -861,6 +864,21 @@ static const param_desc_t SQGO_DESC = PE("APPLY", N_SQGO, 0);
 static const char *const N_SQUNDO[] = {"--", "TURN: UNDO"};
 static const param_desc_t SQUNDO_DESC = PE("UNDO", N_SQUNDO, 0);
 /* (FASE 2) LFO SHAPE's two, and VOICE 2's VEL (an amount: stored 0 = 100 % velocity, 127 = none) */
+/* (3.0) LFO CURVE's fourth card: RETRIG, the LFO's own. ON: a note restarts the LFO from PHASE; OFF: FREE, the LFO
+ * runs on and a note joins it where it is. It was only reachable as PHASE's -1 on the LFO page, which reads as a
+ * number; the card says what it does and keeps the phase PHASE asks for (0 if it was FREE). */
+static int16_t lfo_rt_ui;
+static const char *const N_RT[] = {"OFF", "ON"};
+static const param_desc_t RETRIG_DESC = PE("RETRIG", N_RT, 1);
+static void lfo_retrig_put(int32_t on)
+{
+    int16_t *ph = &TSEL->p[P_LPHASE];
+    if (on) {
+        if (*ph < 0) *ph = 0;                         /* ON from FREE: PHASE 0, the default the face starts with */
+    } else {
+        *ph = -1;                                     /* FREE */
+    }
+}
 static const param_desc_t SLEW_DESC = {"SLEW", F_PCTINV, 0, 127, 127, 0, 0};
 static const param_desc_t INVERT_DESC = {"INVERT", F_PCTINV, 0, 127, 127, 0, 0};
 static const param_desc_t VEL_DESC = {"VEL", F_PCTINV, 0, 127, 0, 0, 0};
@@ -897,6 +915,13 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
             *valp = &TSEL->p[P_XID[slot]];
             return d;
         }
+    }
+    if (pg->id[0] == P_LSHP && pg->id[1] == P_X2 && slot == 3u) {   /* (3.0) LFO CURVE: RETRIG. The LFO's restart was a
+                                     * value hidden inside PHASE (LFO page: -1 FREE, never restarted by a note); the card
+                                     * says it as OFF/ON and writes the same byte, so the two pages never disagree */
+        lfo_rt_ui = (int16_t)(TSEL->p[P_LPHASE] >= 0);
+        *valp = &lfo_rt_ui;
+        return &RETRIG_DESC;
     }
     if (pg->id[0] == P_LSHP && pg->id[1] == P_X2 && slot >= 1u && slot <= 2u) {   /* (this phase) LFO CURVE: SLEW,
                                      * INVERT. Slot 0 is CURVE itself and falls through to PARAMS below */
