@@ -255,7 +255,11 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
         }
         default: {
             /* the master: its meter, the output peak and the clip lamp */
-            int32_t pk = audio_out_peak(0) > audio_out_peak(1) ? audio_out_peak(0) : audio_out_peak(1);
+            /* (FASE 1) one read per channel: the ternary called audio_out_peak() twice for the winner and
+             * twice for the loser, and each call walks the 256-sample ring of the DAC (audio.c). The page
+             * redraws per frame, so the peak is now two scans instead of up to four, with the same value. */
+            int32_t pk0 = audio_out_peak(0), pk1 = audio_out_peak(1);
+            int32_t pk = pk0 > pk1 ? pk0 : pk1;
             int32_t g = clamp(fx_master_g(), 0, 32767) * (dw - 2) / 32767;
             cv_rect(dx, dy + dh / 2 - 2, dw - 2, 5, T_RAISE);                              /* the meter's well */
             cv_rect(dx, dy + dh / 2 - 2, g, 5, ux_mix(T_THEME, T_SURF, 40));

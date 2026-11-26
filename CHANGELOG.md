@@ -1,3 +1,23 @@
+## v2.14.1 — FASE 1/6: lo que se paga dos veces dentro del bloque y en cada cuadro
+
+- **`fx_trip()` (la ruta de fallo del audio) ponía a cero `dly_buf` dos veces**: un `for` de 65 536 iteraciones
+  (131 072 B de stores) y, acto seguido, el `memset` de la misma línea. El bucle se va: 131 072 B menos de trabajo
+  dentro del bloque, en el camino que tiene menos tiempo libre.
+- **FX > MASTER llamaba hasta cuatro veces a `audio_out_peak()`** en un ternario (`peak(0) > peak(1) ? peak(0) :
+  peak(1)`), y cada llamada recorre las 256 muestras del anillo del DAC: ahora una lectura por canal, mismo valor.
+- **GLOBAL calculaba `div_samples(2)` dos veces por cuadro** (una división, vía `beat_samples()`): una vez, reusada.
+- **La base de píxeles no podía pasar en un árbol limpio**: se había grabado con `git describe` y `run_tests.sh`
+  compila con `FELUCCA_VERSION` de `felucca.c` (`v2.12.0`), así que ABOUT y SPLASH diferían en 48 cuadros.
+  Regenerada con la receta del suite: 3 305 cuadros idénticos.
+- **Medido [AC791N]**: imagen 578 856 B (578 936 antes, −80), XIP 452 392 B de código (−88) + 121 684 de
+  constantes, RAM 75 632 B (=), POOL 303 328 con 24 352 libres (=), `BLOCK_PATH` estático 34 835 (=). **[HOST]**
+  316 renders dorados idénticos, 0 fallos de salud ni de voces; `audio_stress` (6 motores, 6 pistas, todos los
+  buses) sin picos, sin no finitos y sin saltos; barrido de 207 pantallas × 22 paletas con 0 desalineaciones.
+- **Sin tocar**: no hay `malloc`/`free` en el firmware (nada que fragmentar), las arenas de motor son uniones por
+  pista/ranura (no hay buffers duplicados) y las tablas que viven en RAM se construyen al arrancar para no pagar
+  XIP por muestra. Los pendientes de calidad (`cloud_hot` a 0,1 dB del criterio, `Gl` a 0,258 px) quedan
+  diagnosticados en `docs/FASE1_PERF_MEM_2026-11-26.md`, no relajados.
+
 ## v2.14.0 — PWM, SYNC, RING y SAW3 también son ondas (y también tienen profundidad)
 
 - **Las cuatro variantes especiales de ANALOG dibujaban una recta y se saltaban la profundidad.** `graph_morph()`

@@ -918,8 +918,10 @@ static void tech_global(void)
     int32_t step = w / 16, base = 60, hot = 40 + (bpm - 40) * 190 / 200, now = -1, cx, k;
     static const char *const CK[3] = {"INT", "USB", "TRS"};
     if (song.playing) {
-        uint32_t bar = div_samples(2) * 16u;
-        now = bar ? (int32_t)((ms_clock % bar) / div_samples(2)) : -1;
+        /* (FASE 1) one div_samples(2) for both the bar and the step: it was called twice per frame, and it
+         * is a divide (fx.c beat_samples() / DIV_DEN) on a value that cannot change inside the expression */
+        uint32_t step16 = div_samples(2), bar = step16 * 16u;
+        now = bar ? (int32_t)((ms_clock % bar) / step16) : -1;
     }
     cv_rect(x0, base + 1, w, 1, T_RAISE);
     for (i = 0; i < 16; i++) {

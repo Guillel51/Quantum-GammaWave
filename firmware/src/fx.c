@@ -2702,8 +2702,8 @@ static __attribute__((noinline)) void fx_trip(uint32_t c1, uint32_t n)
     memset(fxq_c, 0, sizeof fxq_c);
     memset(fxq_d, 0, sizeof fxq_d);
     memset(fxq_r, 0, sizeof fxq_r);
-    for (i = 0; i < DLY_LEN; i++)
-        dly_buf[i] = 0;
+    /* (FASE 1) the memset below already clears the whole line: this loop cleared the same 65 536 halves first
+     * (131 072 B of stores) inside the audio block, on the fault path that has the least time to spare. */
     memset(dly_buf, 0, sizeof dly_buf);
     memset(cho_buf, 0, sizeof cho_buf);
     memset(rpre_buf, 0, sizeof rpre_buf);
