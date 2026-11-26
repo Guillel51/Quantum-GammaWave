@@ -1184,7 +1184,9 @@ static void setup(int s)
     /* (FASE 2) the contextual CHARACTER page (ANALOG's two slots, VOICE's three) and LFO SHAPE */
     case S_EDIT_CHAR: eng(0); TSEL->p[P_X0] = 80; TSEL->p[P_X1] = 34; go_title("CHARACTER"); break;
     case S_EDIT_VOICE_CHAR: eng(5); TSEL->p[P_X0] = 96; TSEL->p[P_X1] = 44; TSEL->p[P_MORPH] = 70; go_title("CHARACTER"); break;
-    case S_LFO_SHAPE: TSEL->p[P_X2] = 40; TSEL->p[P_X3] = 90; go_title("LFO SHAPE"); break;
+    case S_LFO_SHAPE: TSEL->p[P_X2] = 40; TSEL->p[P_X3] = 90; go_title("LFO CURVE"); break;   /* (this phase) SLEW and
+                                     * INVERT moved onto CURVE's page; the scene keeps its name so the sheet's rows
+                                     * keep their numbers */
     case S_EDIT_FILTER_SHELF: TSEL->p[P_FTYPE] = 7; TSEL->p[P_E5] = 80; TSEL->p[P_E6] = 40; go_page(GR_FILTER); break;
     case S_EDIT_FILTER_NOTCH: TSEL->p[P_FTYPE] = 6; TSEL->p[P_E5] = 90; TSEL->p[P_E6] = 70; go_page(GR_FILTER); break;
     case S_EDIT_FILTER_VOWEL: TSEL->p[P_FTYPE] = 4; TSEL->p[P_E5] = 20; TSEL->p[P_E6] = 30; go_page(GR_FILTER); break;

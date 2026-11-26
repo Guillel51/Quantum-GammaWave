@@ -137,13 +137,13 @@ static void pages(void)
     for (i = 0; i < NELEM(PAGES); i++) {
         if (PAGES[i].fam == FAM_EDIT && PAGES[i].id[0] == P_X0)
             seen_ch++;
-        if (PAGES[i].fam == FAM_LFO && PAGES[i].id[0] == P_X2)
+        if (PAGES[i].fam == FAM_LFO && PAGES[i].id[0] == P_LSHP && PAGES[i].id[1] == P_X2)
             seen_lfo++;
         if (PAGES[i].id[0] == P_MSTART && PAGES[i].id[2] == P_DXIMG)
             seen_vel++;
     }
     check("one CHARACTER page", seen_ch == 1);
-    check("one LFO SHAPE page", seen_lfo == 1);
+    check("SLEW and INVERT have their page, CURVE's", seen_lfo == 1);
     check("VOICE 2 carries ENV VEL", seen_vel == 1);
     for (e = 0; e < NENGINES; e++) {
         const engine_t *en = ENGINES[e];
@@ -171,14 +171,20 @@ static void pages(void)
         }
     }
     for (i = 0; i < NELEM(PAGES); i++)
-        if (PAGES[i].fam == FAM_LFO && PAGES[i].id[0] == P_X2) {
+        if (PAGES[i].fam == FAM_LFO && PAGES[i].id[0] == P_LSHP && PAGES[i].id[1] == P_X2) {   /* (this phase) on
+                                     * CURVE's page, slots 2 and 3 (slot 1 is CURVE) */
             int s;
             track_t *t = &trk[0];
-            for (s = 0; s < 2; s++) {
+            for (s = 1; s <= 2; s++) {
                 int16_t *vp = 0;
                 const param_desc_t *d = page_desc(&PAGES[i], (uint32_t)s, &vp);
-                check("LFO SHAPE slot", d && (s ? !strcmp(d->label, "INVERT") : !strcmp(d->label, "SLEW")) &&
-                                             vp == &t->p[s ? P_X3 : P_X2] && d->def == 127);
+                check("CURVE page's SLEW / INVERT slot", d && (s == 2 ? !strcmp(d->label, "INVERT") : !strcmp(d->label, "SLEW")) &&
+                                             vp == &t->p[s == 2 ? P_X3 : P_X2] && d->def == 127);
+            }
+            {
+                int16_t *vp = 0;
+                const param_desc_t *d = page_desc(&PAGES[i], 0, &vp);
+                check("CURVE page's slot 1 is still CURVE", d && !strcmp(d->label, "CURVE") && vp == &t->p[P_LSHP]);
             }
             break;
         }

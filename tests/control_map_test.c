@@ -36,7 +36,7 @@ static void check(const char *what, int ok, const char *page, uint32_t slot)
 static int computed_page(const page_t *pg)
 {
     return pg->id[0] == P_X0 ||          /* CHARACTER: the engine's bank, and MORPH on slot 3 */
-           pg->id[0] == P_X2 ||          /* LFO SHAPE: SLEW / INVERT and two empty slots */
+           (pg->id[0] == P_LSHP && pg->id[1] == P_X2) ||   /* (this phase) LFO CURVE: SLEW / INVERT on slots 2 and 3 */
            pg->graph == GR_FX_BUSES ||   /* FX > BUSES: KNOB 1 links, 2..4 edit the link's parameters */
            pg->graph == GR_SEQTOOLS ||   /* SEQ > TOOLS: the four actions, three of them not parameters */
            pg->graph == GR_MOD ||        /* MOD: the slot shown picks ids, and 5..8 have none of their own */

@@ -648,7 +648,11 @@ static __attribute__((noinline)) void draw_column(uint32_t c, const char *label,
     uw = unit[0] ? text_w(&AF_S, unit) + UNIT_GAP : 0;
     /* (v1.9) what has to fit is the ink, not the advance: the advance of "CHORUS" is under the card's
      * width while its ink ran into the border, so the card kept the M face and the S never came. */
-    if (ink_w(vf, val) + uw > room - 2)
+    /* (this phase) BOTH THE INK AND THE PEN. The face was chosen on the ink alone, and a name whose ink just
+     * fitted but whose advance did not -- CHORUS, SPRING -- kept the M face and was then CLIPPED by the card's
+     * edge as it was drawn ("CHORU", "SPRIN"): the roll path advances glyph by glyph and never cuts with an
+     * ellipsis. Asking the advance as well sends those names to the small face, where they fit whole. */
+    if (ink_w(vf, val) + uw > room - 2 || text_w(vf, val) + uw > room - 2)
         vf = &AF_S;
     /* (QG-1 stage 3) the value matters more than its unit: when even the small font cannot hold both,
      * the unit goes and the value is drawn whole. Before, cv_text_fit cut the value instead ("1…"). */
@@ -780,8 +784,17 @@ static __attribute__((noinline)) void draw_column(uint32_t c, const char *label,
             if (!ui.roll[c].from[0] && val[0])
                 GFX_HOOK_ALIGN(0, ROLL_Y, COL_W, ROLL_Y + ROLL_H, AL_V, "card value in its roll window");
             x = roll_text(c, 5, 19, val, vc);
-        } else
-            x = cv_text_fit(5, 22, vf, val, vc, T_SURF, room - uw);
+        } else {   /* (this phase) A LONG NAME FITS. The small face starts at x = 5 like every other value, and a
+                  * name wider than the card's inner row -- the CHORUS page's "CHORUS", REVERB's "SPRING" -- was
+                  * cut to what the row left ("CHORU", "SPRIN"), which reads as a broken glyph and not as a name.
+                  * Such a value is centred on the card and given all of its width but the 3 px edge: the same
+                  * letters, inside the same card; every value that already fitted stays exactly where it was. */
+            int32_t iw = ink_w(vf, val) + uw;
+            int32_t vx = iw > room ? HALF_UP(COL_W - iw) : 5;
+            if (vx < 3)
+                vx = 3;
+            x = cv_text_fit(vx, 22, vf, val, vc, T_SURF, COL_W - 3 - vx - uw);
+        }
         if (unit[0]) {
             GFX_HOOK_ALIGN(0, 0, 0, vf == &AF_M ? 19 + AF_M.asc : 22 + AF_S.asc, AL_B, "card unit on its value's baseline");
             cv_text_on(x + UNIT_GAP, 22, &AF_S, unit, T_MID, T_SURF);     /* on the value's baseline (S) */

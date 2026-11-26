@@ -481,8 +481,8 @@ static int page_visible(uint32_t i)
         return 0;                                       /* (0.6.30) LOAD ECO: no SLICER, no chorus: their pages gone */
     if (PAGES[i].fam == FAM_EDIT && PAGES[i].id[0] == P_X0)   /* (FASE 2) CHARACTER: the engines with slots */
         return ENGINES[TSEL->eng_req % NENGINES]->ch_n >= 2u;
-    if (PAGES[i].fam == FAM_LFO && PAGES[i].id[0] == P_X2)   /* (FASE 2) LFO SHAPE */
-        return !(FELUCCA_FM4 && TSEL->eng_req % NENGINES == ENGI_DIGITAL);
+    /* (this phase) the LFO SHAPE page is gone: SLEW and INVERT ride on CURVE's page, which every engine has, so
+     * there is no page left to hide on DIGITAL (voice.c applies both to the track's LFO whatever the engine is). */
     if (PAGES[i].graph == GR_MORPH) {                   /* (0.6.45) MORPH: ANALOG's plain waves, PHASE, LOFI's (not BYTE FLOAT) */
         uint32_t e = TSEL->eng_req % NENGINES;
         return e == ENGI_ANALOG || ENGINES[e] == &ENG_PHASE ||   /* (0.6.81: every ANALOG WAVE) */

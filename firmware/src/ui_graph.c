@@ -441,6 +441,77 @@ static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
     filter_pass(type, uc, q, dr, 1000, 0, 2, 0);
     (void)c;
 }
+/* (this phase) THE CHORUS BUS, DRAWN FROM ITS FOUR KNOBS. The page had no graph (GR_NONE), so RATE, DEPTH,
+ * STEREO and TYPE were numbers with nothing to look at. The bus is three taps of one delay line swept by an LFO a
+ * third of a cycle apart (fx.c cho_ens), so the picture is exactly that: three traces over one cycle, their sweep
+ * as wide as DEPTH, RATE setting how fast the cycle walks, STEREO how far the right tap sits from the left (two
+ * traces, the pair closing to one line at 0 and opening at the ends) and TYPE the shape the tap takes -- the
+ * ensemble's sine, the phaser's three notches, the flanger's tight comb. Two darker copies behind, lifted and mixed
+ * towards the ground, give the depth the rest of the instrument's pages have; nothing is random and no layer moves
+ * on its own: every value read here is the one the DSP runs. */
+static __attribute__((noinline)) void graph_chorus(const track_t *t, uint16_t c)
+{
+    int32_t x, k, cy = graph_ht / 2, a, w, side, py[2];
+    uint32_t rate = (uint32_t)clamp((int32_t)song.g[G_CRATE], 0, 127);
+    uint32_t type = (uint32_t)clamp((int32_t)song.g[G_CTYPE], 0, 2);
+    int32_t dep = clamp((int32_t)song.g[G_CDEPTH], 0, 127);
+    int32_t st = clamp((int32_t)song.g[G_CSTER], -64, 63);
+    uint32_t span = 0xFFFFFFFFu / (uint32_t)(PANEL_W / 2);        /* one cycle across half the panel */
+    uint32_t step = span * (uint32_t)(type == 0 ? 1 : type == 1 ? 3 : 5);   /* CHORUS / PHASER / FLANGER */
+    /* RATE: how fast the cycle walks. Shown in slow motion, because a 6 Hz sweep seen at 6 Hz is a blur, not a
+     * reading: the slowest rate takes ~14 s a cycle and the fastest ~1.5 s, and the picture still changes with
+     * every step of the knob. */
+    uint32_t ph = ui.frame * (0xFFFFFFFFu / (88u + (127u - rate) * 6u));
+    (void)t;
+    a = (12 + dep * 34 / 127) * graph_ht / 100;                   /* DEPTH: 12 .. 46 % of the panel */
+    side = (st + 64) * (int32_t)(span / 8u) / 128;                /* STEREO: 0 closes the pair */
+    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);                   /* the centre, the dry signal */
+    for (k = 2; k >= 0; k--) {                                    /* two copies behind, the taps in front */
+        int32_t lift = k * (graph_ht / 16 + 1);
+        uint16_t col = k ? ux_mix(T_BG, heat_y(cy, cy - a, cy + a, c), 46 - k * 12)
+                         : heat_y(cy, cy - a, cy + a, c);
+        for (x = 0; x < PANEL_W; x++) {
+            uint32_t px = ph + (uint32_t)x * step + (uint32_t)k * (0xFFFFFFFFu / 3u);
+            w = osc_sine(px);
+            if (type == 1)                                        /* PHASER: the notches, a third as deep */
+                w = w / 2 + osc_sine(px * 3u) / 3;
+            if (k == 0 && side) {                                 /* the right tap, offset by STEREO */
+                int32_t yr = cy - lift - osc_sine(px + (uint32_t)side) * a / 32768;
+                if (x) cv_line_t(PANEL_X0 + x - 1, py[1], PANEL_X0 + x, yr, ux_mix(T_SURF, col, 55), 1);
+                py[1] = yr;
+            }
+            {
+                int32_t y = cy - lift - w * a / 32768;
+                if (x) cv_line_t(PANEL_X0 + x - 1, py[0], PANEL_X0 + x, y, col, k ? 1 : 2);
+                py[0] = y;
+            }
+        }
+    }
+    cv_rrect(PANEL_X0 + PANEL_W / 2 - 3, cy - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the centre: the dry path */
+}
+/* (this phase) DETUNE, ON THE SAME PAGE, AS A DIFFERENT MOVEMENT. The part's voices sit k * DETUNE * 56 / 889 cents
+ * apart (voice.c's unison spread), which on this graph's axis is a slide, not a bend: the page draws TILT's own
+ * transfer curve twice more, shifted left and right by as many pixels as the knob spreads the voices, dimmer and one
+ * pixel thin, behind the front one. TILT bends the curve, DETUNE widens it, and both move at once while the two
+ * knobs are turned because they are the two values the DSP runs. */
+static void tilt_spread(uint16_t c, int32_t amt, int32_t dx)
+{
+    int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100, band = PANEL_W / 6;
+    int32_t k = 64 + (clamp(amt, -64, 63) * 3) / 4;
+    int32_t right = cy - ((k - 64) * a) / 64;
+    for (x = 0; x < PANEL_W; x++) {
+        int32_t s = x - dx, d = s - PANEL_W / 2, y;
+        if (s < 0 || s >= PANEL_W)
+            continue;
+        if (d <= -band)
+            y = cy;
+        else if (d >= band)
+            y = right;
+        else
+            y = cy + ((right - cy) * (d + band)) / (2 * band);
+        cv_rect(PANEL_X0 + x, y, 1, 1, qz_back_ink(heat_y(y, cy - a, cy + a, c), 820));   /* dimmer than the front, still a reading */
+    }
+}
 static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
 {
     int32_t cy = graph_ht / 2, a = 38 * graph_ht / 100, amt = t->p[P_HARM];
@@ -454,9 +525,14 @@ static __attribute__((noinline)) void graph_tilt(const track_t *t, uint16_t c)
      * than the last. It used to put the two ENDS of the knob's travel behind (and skipped the near one at the ends),
      * which left a single line at either extreme and layers that did not move with the knob. */
     {
-        int32_t k;
+        int32_t k, det = clamp((int32_t)t->p[P_DETUNE], 0, 127);
         for (k = 3; k >= 1; k--)
             tilt_pass(c, amt, 1000 - k * 80, -k * 5, 1, k);
+        if (det) {                                    /* (this phase) DETUNE: how wide the unison sits */
+            int32_t off = 2 + det * (PANEL_W / 10) / 127;
+            tilt_spread(c, amt, -off);
+            tilt_spread(c, amt, off);
+        }
         tilt_pass(c, amt, 1000, 0, 1, 0);
     }
 }
@@ -481,8 +557,14 @@ static int32_t lfo_lvl(void *ctx, int32_t k, int32_t u)
 static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
 {
     int32_t x, g, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, xp = PANEL_W / 4;
+    /* (this phase) SLEW AND INVERT ARE DRAWN. Both were only numbers: CURVE's page now carries them, and the page
+     * is the wave, so they belong in it. The wave is walked left to right, which is the same walk the DSP does in
+     * time, so SLEW is the very one-pole the engine applies (its own coefficient: 32767 / (1 + sl * sl / 8)) run
+     * along the picture, and INVERT is the same subtraction voice.c does with the stored byte. The playhead and the
+     * level dot read the smoothed, flipped value, so a knob turn moves the picture the way it moves the sound. */
+    int32_t sl = xamt(t->p, 2), inv = t->p[P_X3];
     uint32_t span = 0xFFFFFFFFu / (PANEL_W / 2u), ph = t->lfo_ph - (uint32_t)xp * span;
-    int32_t now = cy - mulq15(t->lfo_val, t->lfo_fade) * a / 32768;
+    int32_t now = cy - mulq15(t->lfo_val, t->lfo_fade) * a / 32768;   /* (the engine's value: smoothed, flipped) */
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
     for (g = 3; g >= 0; g--) {                       /* (v2.3.4) four layers: the wave and three behind it */
         /* (v2.3.3) the echo goes DARK, not cool, and stands further back: a layer one step behind is the same wave
@@ -495,19 +577,29 @@ static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
         int32_t sh = t->p[P_LWAVE] == 4;
         /* a staircase lifted a sixth of the panel per layer becomes four staircases in the same picture; the S&H echo
          * sits a couple of pixels above the front instead and lets the darker ink do the depth */
-        int32_t lift = g * (sh ? graph_ht / 40 + 1 : graph_ht / 16 + 2);
+        int32_t lift = g * (sh ? graph_ht / 40 + 1 : graph_ht / 16 + 2), sm;
         uint16_t gi = g ? ux_mix(T_BG, heat_y(cy, cy - a, cy + a, c), 56 - (g - 1) * 14)
                         : heat_y(cy, cy - a, cy + a, c);
         py = cy - lift;
+        sm = 0;
         for (x = 0; x < PANEL_W; x++) {              /* (lfo_wave only reads the track) */
             uint32_t px = ph + (uint32_t)x * span + (uint32_t)(sh ? 0 : g) * (span * (uint32_t)xp / 2u);
-            int32_t y = cy - lift - lfo_wave((track_t *)t, px) * a / 32768;
+            int32_t w = lfo_wave((track_t *)t, px);
             if (sh)                                  /* S&H: a value per cycle part, held */
-                y = cy - lift - ((int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768) * a / 32768;
+                w = (int32_t)((((px >> 29) + 1u) * 2654435761u) >> 16) - 32768;
+            if (sl)                                  /* SLEW: the engine's own coefficient, along the picture */
+                sm += ((w - sm) * (32767 / (1 + sl * sl / 8))) >> 15;
+            else
+                sm = w;
+            if (inv != 127)                          /* INVERT: the byte's own subtraction (127 is neutral) */
+                sm -= (sm * 2 * (127 - inv)) / 127;
+            {
+            int32_t y = cy - lift - sm * a / 32768;
             if (x)
                 cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y,
                           g ? gi : (x < xp ? ux_mix(T_SURF, gi, 45) : gi), g ? 1 : 2);
             py = y;
+            }
         }
     }
     cv_rect(PANEL_X0 + xp, cy - a - 4, 1, 2 * a + 8, T_MID);   /* the playhead */
@@ -3529,15 +3621,18 @@ static __attribute__((noinline)) void graph_ground_ramp(void)
     int32_t span = graph_h() - 4;
     /* (7.4) from under the bezel's shade to the panel's own floor: one ramp a page, ten bands, and the accent
      * arrives at the bottom edge instead of stopping a quarter of the panel short and starting again below. */
-    int32_t y0 = 2 + span * 10 / 100, y1 = graph_h() - 2;   /* (v2.3.10) to the panel's own floor: at 97 % the
-                                                            * gradient stopped a few rows short and every page with
-                                                            * a short body (SCL's, the kit's) read as a band of
-                                                            * background under the panel instead of a fall */
+    int32_t y0 = 2 + span * 10 / 100, y1 = graph_h();   /* (this phase) FULL BLEED. To the last row of the body and
+                                                            * from x = 0 to 240: with the panel's 3 px inset and
+                                                            * its 2 px foot the ramp stopped inside the card, and
+                                                            * the owner read the strip the bezel left at the sides
+                                                            * and at the bottom as background showing through. The
+                                                            * ground now covers the 240 x 240 canvas under the
+                                                            * chrome; the frame's ink still reads on top of it. */
     uint16_t warm = ux_mix(T_ACCENT, T_TEXT, 12);
     int32_t top = ux_luma(T_SURF) > 150 ? 8 : 22;                /* a light page takes a lighter hand */
     if (y1 - y0 < 12)
         return;
-    ux_ground_ramp(7, y0, 226, y1 - y0, 10, T_SURF, ux_mix(T_SURF, warm, top), 100);
+    ux_ground_ramp(0, y0, 240, y1 - y0, 10, T_SURF, ux_mix(T_SURF, warm, top), 100);
 }
 
 static __attribute__((noinline)) void graph_user(void)
@@ -4657,6 +4752,10 @@ static __attribute__((noinline)) void draw_graph(void)
         case GR_FX:
             cv_oy = 0;
             graph_fx(t, c);
+            break;
+        case GR_CHORUS:                              /* (this phase) the bus: RATE, DEPTH, STEREO, TYPE */
+            cv_oy = 0;
+            graph_chorus(t, c);
             break;
         case GR_DIAG:
             graph_diag(c);

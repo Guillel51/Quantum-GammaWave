@@ -1868,7 +1868,7 @@ static __attribute__((noinline)) void fx_sleep(uint32_t n, int32_t *wet)
     fx.cho_w += n;
     fx.dly_w += n;
     fx.rpre_w += n;
-    fx.cho_ph += LFO_INC[song.g[G_CRATE] & 127] * n / CTL;   /* (free-running: its phase, not a sound) */
+    fx.cho_ph += chorus_inc(song.g[G_CRATE]) * n / CTL;   /* (this phase) RATE capped at 6 Hz (core.h) */
 }
 
 static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t *rev_in, int32_t *wet,
@@ -1930,7 +1930,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
     if (!dton) fx.dt1 = fx.dt2 = 0;   /* (8 kHz .. 250 Hz | 73 Hz .. 3 kHz, Q 1.4) */
     int32_t dmix = song.g[G_DMIX] * 258;
     int32_t cdepth = song.g[G_CDEPTH] * 6, rt;
-    uint32_t cinc = LFO_INC[song.g[G_CRATE] & 127] / CTL;
+    uint32_t cinc = chorus_inc(song.g[G_CRATE]) / CTL;   /* (this phase) 0.05 .. 6.00 Hz, clamped */
     int32_t hk = 5, wd = song.g[G_WIDTH];             /* (the loop's DC block: ~1 Hz, 0.6.89); WIDTH */
     int32_t gr = !sys_load && (song.g[G_DPIT] || song.g[G_DSPRY]);   /* (JIANT) the GRAIN delay (LOAD LITE / ECO: plain) */
     /* (0.6.90) PING-PONG (not with the GRAIN): the line read at TIME (left) and twice TIME (right, the loop's tap), the

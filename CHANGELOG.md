@@ -1,3 +1,39 @@
+## v2.13.0 — CHORUS con techo de 6 Hz y su gráfica, EDIT y LFO unificados, y el fondo a sangre
+
+- **El RATE del CHORUS no puede pasar de 6.00 Hz, por ningún camino.** El bus leía `LFO_INC[G_CRATE]`, la tabla del
+  LFO de pista, que llega a 40 Hz: la página, el encoder, un CC, un preset viejo o un proyecto restaurado podían
+  entregarle cualquier velocidad hasta 40 Hz. Ahora el chorus tiene **su propio par de tablas** (`CH_HZ_X100` y
+  `CH_INC`, 0.05 … 6.00 Hz, exponenciales para que el extremo bajo siga siendo musical) y `chorus_inc()` **recorta el
+  byte** en vez de dar la vuelta a la tabla, así que un valor corrupto tampoco lo acelera: el bloque de audio mide
+  **6.000 Hz** en RATE 127 en el host, y 6.000 Hz también con un byte fuera de rango. La página imprime lo que la
+  tabla tiene (`.05 Hz` … `6.00 Hz`, `F_CHHZ`); el Web Studio muestra la misma ley (`F.CHOHZ`).
+- **La página CHORUS dibuja su bus** (antes `GR_NONE`): tres derivaciones de una línea de retardo, una tercera de
+  ciclo de distancia, con el barrido tan ancho como DEPTH, RATE fijando la velocidad del ciclo, STEREO separando o
+  cerrando el par izquierda/derecha y TYPE cambiando la forma (ensemble, las muescas del phaser, el peine del
+  flanger). Dos copias más oscuras detrás dan la profundidad del resto del instrumento; nada es aleatorio: son los
+  valores que corre el DSP.
+- **EDIT > TILT lleva DETUNE**: la pantalla exclusiva de DETUNE (VOICE 3) desaparece y el reparto del unísono se
+  edita junto al TILT. La gráfica dibuja los dos: TILT inclina la curva de transferencia, DETUNE la ensancha (dos
+  copias desplazadas a izquierda y derecha, tantos píxeles como separa a las voces).
+- **LFO CURVE lleva SLEW e INVERT**: la página LFO SHAPE desaparece. La onda dibujada pasa por el mismo coeficiente
+  de suavizado que aplica `voice.c` (32767 / (1 + sl² / 8)) y por la misma resta de INVERT, así que SLEW redondea los
+  escalones y INVERT da la vuelta la onda en pantalla, con el punto de nivel y el cabezal sobre ese valor.
+- **El fondo y el degradé van a sangre**: `graph_ground_ramp` cubre **0 … 240 px** y llega a la última fila del
+  cuerpo (antes 7 … 233 y dos filas dentro), que es la franja que se leía como fondo asomando por los bordes laterales
+  y por abajo.
+- **Un nombre de elección ya no se corta**: el formateador de `F_ENUM` guardaba 6 bytes y dejaba CHORUS en «CHORU» y
+  SPRING en «SPRIN»; ahora guarda el nombre entero (8 caracteres), la tarjeta baja a la tipografía pequeña cuando no
+  entra el avance y, si aun así no entra, centra el texto en la tarjeta en vez de cortarlo contra el borde.
+- **Pruebas**: nueva `tests/chorus_rate_test.c` (tabla, recorte en cada byte, la velocidad real del DSP en RATE 127 y
+  con un byte corrupto, el texto de la página, las páginas unificadas y sus mandos); `ui_test` comprueba que DETUNE y
+  TILT mueven la gráfica de EDIT y que CURVE mueve la del LFO; los 316 goldens de audio se regeneraron (el chorus
+  cambia de tabla: 254 presets que lo envían suenan distinto, 62 sin envío quedan bit a bit), y también los 61 hashes
+  de `six_live_golden.txt`. Lint, alineación, píxeles y las puertas `--regions/--idle/--bands/--headers` pasan.
+- **Lo que NO se hizo**: el rediseño de las 203 pantallas con una capa 3D nueva en cada una, y las animaciones de
+  partículas por control. No hay medición física en la FM-1 en esta entrada: todo es host y build AC791N.
+- Build AC791N con toolchain y SDK: imagen **578 440 B** de 583 612 (5 172 libres), XIP 573 660, RAM 75 616
+  (22 688 libres). Clase de la medición: **[AC791N]** build, **[HOST]** pruebas.
+
 ## v2.12.0 — desbloqueo de la publicación: el conjunto de release ya no se compara contra otro commit
 
 - **`make_release --check` fallaba en CI sobre un release correcto.** El flujo construye el paquete en el commit

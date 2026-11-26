@@ -149,6 +149,12 @@ def main(path):
     hz = [0.05 * (800 ** (v / 127)) for v in range(128)]
     # (FASE 1, 2026-11-16) 5 .. 4000 (0.05 .. 40 Hz x 100): a uint16 holds every entry, 256 B less XIP. The
     # value read is identical (the callers widen it), so params.c's display and the LFO rate do not change.
+    # (this phase) CHORUS RATE, 0.05 .. 6.00 Hz: the bus's rate capped at the owner's 6 Hz, exponential so the
+    # low end stays musical. Its own pair of tables (768 B) because the LFO's runs to 40 Hz and the chorus must
+    # never get there, whichever byte a preset, a CC or a restored project hands it.
+    ch = [0.05 * ((6.00 / 0.05) ** (v / 127)) for v in range(128)]
+    L += arr("CH_HZ_X100", "uint16_t", [int(round(h * 100)) for h in ch], 10)
+    L += arr("CH_INC", "uint32_t", [int(h * CTL / FS * 2 ** 32) for h in ch], 8)
     L += arr("LFO_HZ_X100", "uint16_t", [int(round(h * 100)) for h in hz], 10)
     L += arr("LFO_INC", "uint32_t", [int(h * CTL / FS * 2 ** 32) for h in hz], 8)
     # filter cutoff 30 Hz .. 16 kHz

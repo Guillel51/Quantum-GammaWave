@@ -546,6 +546,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_options_test" tests/engine_options_test.c -lm
     run "ENGINES: PHASE LINE = FOLD and LOFI WAVE = SYNC sound, differ from every other value of their knob, and no preset uses them" \
         "$OUT/engine_options_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/chorus_rate_test" tests/chorus_rate_test.c -lm
+    run "CHORUS RATE: 0.05..6.00 Hz on every path, the DSP's own rate at the top, a corrupt stored byte, the merged pages" "$OUT/chorus_rate_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/tone_cache_test" tests/tone_cache_test.c -lm

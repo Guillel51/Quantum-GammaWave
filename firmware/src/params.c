@@ -196,7 +196,7 @@ static const param_desc_t GP[G_COUNT] = {
     [G_DMIX] = PD("MIX", F_PCT, 0, 127, 90),
     [G_RSIZE] = PD("SIZE", F_PCT, 0, 127, 90),
     [G_RDAMP] = PD("DAMP", F_PCT, 0, 127, 60),
-    [G_CRATE] = PD("RATE", F_LFOHZ, 0, 127, 40),
+    [G_CRATE] = PD("RATE", F_CHHZ, 0, 127, 40),    /* (this phase) 0.05 .. 6.00 Hz: CH_INC, see core.h */
     [G_CDEPTH] = PD("DEPTH", F_PCT, 0, 127, 60),
     [G_MIDI] = PE("MIDI", N_MIDI_INPUT, 0),
     [G_DREL] = PD("REL", F_PCT, 0, 100, 30),     /* DUCK's release: 40 .. 600 ms (fx.c duck_block) */
@@ -521,6 +521,15 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         *unit = "Hz";
         break;
     }
+    case F_CHHZ: {                                  /* (this phase) the CHORUS's RATE, capped at 6.00 Hz */
+        uint32_t h = CH_HZ_X100[v < 0 ? 0 : v > 127 ? 127 : v];
+        if (h < 1000u)
+            fmt_fix(val, (int32_t)h, 2);
+        else
+            fmt_fix(val, (int32_t)(h / 10u), 1);
+        *unit = "Hz";
+        break;
+    }
     case F_CUTOFF: {
         uint32_t h = CUTOFF_HZ[v & 127];
         if (h < 1000u) {
@@ -551,7 +560,12 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         *unit = "st";
         break;
     case F_ENUM:
-        str_cpy(val, d->names[v < d->min ? d->min : v > d->max ? d->max : v], 6);
+        /* (this phase) EIGHT CHARACTERS, NOT FIVE. The cap was 6 bytes, so a choice whose name did not fit it was
+         * truncated in the STRING itself -- CHORUS read "CHORU", REVERB's SPRING "SPRIN" -- and the four cards
+         * drew the fragment as if it were the name. Every caller's buffer is 12 bytes (the smallest that reaches
+         * this branch is 10, on a numeric-only site), so the name is kept whole up to eight characters and the
+         * card's own fit (the small face, then an ellipsis) decides the rest. */
+        str_cpy(val, d->names[v < d->min ? d->min : v > d->max ? d->max : v], 9);
         if (d->unit)
             *unit = d->unit;
         break;
@@ -593,7 +607,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
        GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_TILT,          /* (FASE EXTRA) MODMAP removed: nine screens in FAM_LFO */
-       GR_SCENES, GR_FILTER, GR_DRAW, GR_WTPHASE};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
+       GR_SCENES, GR_FILTER, GR_DRAW, GR_WTPHASE, GR_CHORUS};   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
                                      * internal number above keeps its meaning */   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
@@ -686,14 +700,14 @@ static const page_t PAGES[] = {
     {"ENV DEST", FAM_ENV, SC_TRACK, GR_NONE, {P_ED_FLT, P_ED_PIT, P_ED_SHP, P_ELOOP}},   /* JIANT 0.4: LOOP */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LRATE, P_LWAVE, P_LPHASE, P_LFADE}},
     {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
-    {"LFO CURVE", FAM_LFO, SC_TRACK, GR_LFO, {P_LSHP, 0xFF, 0xFF, 0xFF}},   /* (v1.12.5) the LFO's phase bent: the
+    {"LFO CURVE", FAM_LFO, SC_TRACK, GR_LFO, {P_LSHP, P_X2, P_X3, 0xFF}},   /* (this phase) SLEW and INVERT live here
+                                     * with CURVE: one page for the LFO's shape, its edge and its sign, instead of
+                                     * a page for the bend and an almost empty one for the other two */   /* (v1.12.5) the LFO's phase bent: the
                                      * graph is the LFO's own, so turning the knob bends the drawn wave as it bends
                                      * the sound -- the same lfo_wave draws both. Below 0 the cycle sits longer at
                                      * its start, above 0 it leaves at once and lingers at the end: SAW becomes an
                                      * exponential ramp, TRI leans, a square starts to breathe. 0 draws and sounds
                                      * exactly as before */
-    {"LFO SHAPE", FAM_LFO, SC_TRACK, GR_NONE, {P_X2, P_X3, 0xFF, 0xFF}},   /* (FASE 2) SLEW, INVERT (the CHARACTER
-                                     * bank's two remaining slots: a track's LFO, not an engine's) */
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */
     {"MSEQ", FAM_LFO, SC_TRACK, GR_MSEQ, {0xFF, P_MS0, P_MSLEN, P_MSSLW}},   /* JIANT: KNOB 1 the step (ms_ui_step) */
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
@@ -712,7 +726,8 @@ static const page_t PAGES[] = {
                                                                                  * in DLY's TONE; G_DHPF stored, unused) */
     {"REVERB", FAM_FX, SC_GLOBAL, GR_NONE, {G_RTYPE, G_RSIZE, G_RDAMP, G_RPRE}},   /* TYPE: ROOM / SPRING */
     {"REVERB 2", FAM_FX, SC_GLOBAL, GR_NONE, {G_RMOD, G_RRATE, G_RFILT, G_RWIDE}},   /* JIANT: modulation, tone, width */
-    {"CHORUS", FAM_FX, SC_GLOBAL, GR_NONE, {G_CRATE, G_CDEPTH, G_CSTER, G_CTYPE}},   /* (0.6.9: STEREO; QG-1: TYPE) */
+    {"CHORUS", FAM_FX, SC_GLOBAL, GR_CHORUS, {G_CRATE, G_CDEPTH, G_CSTER, G_CTYPE}},   /* (this phase) the page draws
+                                     * the bus: three taps at RATE, as deep as DEPTH, apart by STEREO, shaped by TYPE */   /* (0.6.9: STEREO; QG-1: TYPE) */
     /* (0.6.81) the SLICER after the buses, before MASTER: DELAY, REVERB and CHORUS nearer at hand */
     {"SLICER", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLMODE, G_SLPAT, G_SLRATE, G_SLDEP}},   /* (0.6.3) one, on a bus */
     {"SL BUS", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLT1, G_SLT1 + 1, G_SLT1 + 2, G_SLT1 + 3}},   /* what goes in */
@@ -743,7 +758,10 @@ static const page_t PAGES[] = {
     {"OP ENV", FAM_EDIT, SC_TRACK, GR_FMENV, {0xFF, 0xFF, 0xFF, 0xFF}},     /* bytes of the track's patch (ui_fm6op.c): */
     {"OPERATOR 2", FAM_EDIT, SC_TRACK, GR_FMOP2, {0xFF, 0xFF, 0xFF, 0xFF}}, /* CRS FINE LEVEL / STG RATE LEVEL / MODE DTUN VEL */
     {"FILTER", FAM_EDIT, SC_TRACK, GR_FILTER, {P_FTYPE, P_E4, P_E5, P_E6}},   /* (JIANT 0.5) ANALOG: TYPE CUT RES DRV */
-    {"TILT", FAM_EDIT, SC_TRACK, GR_TILT, {P_HARM, 0xFF, 0xFF, 0xFF}},   /* (v1.12.4) the voice's own spectral tilt:
+    {"TILT", FAM_EDIT, SC_TRACK, GR_TILT, {P_DETUNE, P_HARM, 0xFF, 0xFF}},   /* (this phase) DETUNE and TILT on one page:
+                                     * how far apart the part's voices sit (voice.c's unison spread, +-40 cents across
+                                     * them) and how the voice leans dark .. bright. Both were a page each -- DETUNE's
+                                     * with three empty slots -- and the graph draws the two of them */   /* (v1.12.4) the voice's own spectral tilt:
                                      * below 0 leans the voice dark (the top goes away), above 0 bright (the top comes
                                      * forward): every engine, including the drums and FM6, whose parts do not own the
                                      * filter above. It is not the FILTER: the pole is fixed, DC stays at unity and
@@ -775,10 +793,6 @@ static const page_t PAGES[] = {
                                                  * the fourth knob is ALLOC, the voice allocator (ROT rotates the oldest /
                                                  * REUSE retriggers the same voice), which the DSP has always read
                                                  * (voice.c) and no page offered: it took the slot that was left empty */
-    {"VOICE 3", FAM_EDIT, SC_TRACK, GR_NONE, {P_DETUNE, 0xFF, 0xFF, 0xFF}},   /* (FASE 1) DETUNE: the unison spread
-                                     * voice.c has always applied (fine = k * DETUNE * 56 / 889, up to +-40 cents across the
-                                     * part's voices) and no page offered. With ALLOC on VOICE 2 it closes the pair: how many
-                                     * voices a note takes, and how far apart they sit */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, G_TUNE}},
     {"SYSTEM", FAM_GLO, SC_GLOBAL, GR_NONE, {G_TRKS, G_LOADP, G_ROUTE, G_INFO}},   /* (0.6.18) TRACKS 4 / 6; (0.6.30)
                                                          * LOAD ECO / LITE / FULL (the USB card: the header's icon) */
@@ -879,7 +893,8 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
             return d;
         }
     }
-    if (pg->id[0] == P_X2) {                           /* (FASE 2) LFO SHAPE: SLEW, INVERT */
+    if (pg->id[0] == P_LSHP && pg->id[1] == P_X2 && slot >= 1u && slot <= 2u) {   /* (this phase) LFO CURVE: SLEW,
+                                     * INVERT. Slot 0 is CURVE itself and falls through to PARAMS below */
         /* pointers, not copies: the target's clang 4.0.1 does not fold a const struct with
          * pointer members into another static initializer (a copy is not a C constant expression) */
         static const param_desc_t *const D[2] = {&SLEW_DESC, &INVERT_DESC};
@@ -888,12 +903,8 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
          * for EVERY slot, so knob 2 read INVERT, knob 3 read SLEW and knob 4 read INVERT again, and all
          * three wrote the same byte (P_X3): turning any of them moved the other two. The owner's report is
          * exactly that. Slots the table leaves empty answer with nothing, as every other page does. */
-        if (slot >= 2u) {
-            *valp = 0;
-            return 0;
-        }
-        *valp = &TSEL->p[slot ? P_X3 : P_X2];
-        return D[slot];
+        *valp = &TSEL->p[slot == 1u ? P_X2 : P_X3];
+        return D[slot - 1u];
     }
     /* A TRACK PARAMETER ID IS NOT A GLOBAL ONE. P_DXIMG (P_FM3_REL) is 74 and G_MWIDTH (MASTER > STEREO M/S,
      * v1.4) is also 74, so this branch -- which runs before the scope check and matches a bare number -- answered

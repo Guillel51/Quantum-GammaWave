@@ -4095,14 +4095,15 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 static int test_edit_cycle(void)
 {
     static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "CHARACTER", "MORPH", "FILTER", "TILT", "VOICE", "VOICE 2",
-                                        "VOICE 3", "EDIT 1"};   /* (JIANT 0.5: ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2;
-                                                      * FASE 2: CHARACTER; FASE 1: VOICE 3, DETUNE; v1.12.4: TILT) */
+                                        "EDIT 1"};   /* (JIANT 0.5: ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2;
+                                                      * FASE 2: CHARACTER; v1.12.4: TILT, which now carries DETUNE: the
+                                                      * page DETUNE had on its own (VOICE 3) is gone in this phase) */
     static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "CHARACTER", "OPERATOR", "OP ENV", "OPERATOR 2", "TILT",
-                                        "FILTER", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};   /* v1.12.4: TILT, before the
+                                        "FILTER", "VOICE", "VOICE 2", "EDIT 1"};   /* v1.12.4: TILT, before the
                                                                           * part's FILTER */   /* (the part's FILTER; 0.6.10: FM6's
                                                                           * operator pages; FASE 2: CHARACTER; FASE 1: VOICE 3) */
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "TILT", "FILTER", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
-                                        "OP LEVEL", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};   /* v1.12.4: TILT, before
+                                        "OP LEVEL", "VOICE", "VOICE 2", "EDIT 1"};   /* v1.12.4: TILT, before
                                                                           * the part's FILTER */
     int bad = 0, ok;
     uint32_t i;
@@ -4130,9 +4131,10 @@ static int test_edit_cycle(void)
     {   /* #97: a DRUM track's lane levels on EDIT > LANES (KICK SNARE CLAP HATCL) and LANES 2 (HATOP TOM RIM BELL) */
         static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "KIT 3", "X-MOD", "TILT", "FILTER", "SOUND", "SOUND 2",
                                             "SOUND 3", "SOUND 4", "LEVELS", "LEVELS 2", "STEREO", "VOICE", "VOICE 2",
-                                            "VOICE 3", "EDIT 1"};   /* v1.12.4: TILT, between X-MOD and FILTER */
+                                            "EDIT 1"};   /* v1.12.4: TILT, between X-MOD and FILTER; (this phase)
+                                                          * VOICE 3 went and DETUNE rides on TILT */
         set_engine_of(TSEL, ENGI_DRUM);
-        bad += check("EDIT cycle (DRUM, 0.6.58): the kit's (KIT KIT 2 KIT 3 X-MOD TILT FILTER), a sound's (SOUND 1..4), then the volumes and the stereo (LEVELS LEVELS 2 STEREO), VOICE, VOICE 2, VOICE 3",
+        bad += check("EDIT cycle (DRUM, 0.6.58): the kit's (KIT KIT 2 KIT 3 X-MOD TILT FILTER), a sound's (SOUND 1..4), then the volumes and the stereo (LEVELS LEVELS 2 STEREO), VOICE, VOICE 2",
                      engine_cycle(CYC_K, NELEM(CYC_K)));
         {   /* (0.6.58) KIT 3 turns BP and FEEDBK only; STEREO's KNOB 1 is IMAGE */
             uint8_t t0 = dx_tone;
@@ -5246,9 +5248,12 @@ static int test_bughunt_ui2(void)
         ok &= !name_on() && up_used(3);
         bad += check("NAME: PLAY stops a running transport (never starts), REC ignored, then OCT+ saves", ok);
     }
-    {   /* 6. the piano roll's lowest C name ("C-1") stays inside the panel: nothing drawn left of x 3 */
+    {   /* 6. the piano roll's lowest C name ("C-1") stays inside the panel: no ink left of x 3.
+         * (this phase) The ground is full bleed (0..240), so the strip left of the panel is no longer T_BG: the
+         * check looks for the label's own ink (T_TEXT / T_MID) instead of "anything but the page colour", which is
+         * what it always meant and still fails if a glyph lands at x 0..2. */
         uint32_t p, x, y, out = 0;
-        uint16_t bg;
+        uint16_t bg, ink, ink2;
         for (p = 0; p < NPALETTES; p++) {
             track_t *t;
             uint8_t lo = 0, hi = 127;
@@ -5258,9 +5263,14 @@ static int test_bughunt_ui2(void)
             t->step[0].note[0] = lo; t->step[5].note[0] = hi;
             go_page(GR_ROLL); cursor_set(0); ui.force = 1; frame(); frame();
             bg = (uint16_t)((T_BG >> 8) | (T_BG << 8));
+            ink = (uint16_t)((T_TEXT >> 8) | (T_TEXT << 8));
+            ink2 = (uint16_t)((T_MID >> 8) | (T_MID << 8));
             for (y = Y_GRAPH; y < Y_GRAPH + H_GRAPH; y++)
-                for (x = 0; x < 3u; x++)
-                    out += host_screen[y * 240u + x] != bg;
+                for (x = 0; x < 3u; x++) {
+                    uint16_t px = host_screen[y * 240u + x];
+                    out += px == ink || px == ink2;
+                }
+            (void)bg;
         }
         bad += check("piano roll: the C-1 label stays inside the panel (every palette)", !out);
     }
@@ -11146,6 +11156,56 @@ static int qg_viz_exits(void)
     }
     return bad;
 }
+/* (this phase) THE PAGE IS ITS PARAMETERS. DETUNE and TILT share one screen and CURVE carries SLEW and INVERT, so
+ * the graph of each page has to move with every one of them -- not just the number on the card. Rendered through the
+ * real drawer and compared pixel by pixel: TILT's page is static, so any difference is the knob's; the LFO's wave
+ * animates, so its own drift between two frames is measured first and the knob has to beat it. */
+static uint32_t scr_diff(const uint16_t *a)
+{
+    uint32_t i, d = 0;
+    for (i = 0; i < 240u * 240u; i++)
+        d += a[i] != host_screen[i];
+    return d;
+}
+static int test_phase_graphs(void)
+{
+    static uint16_t a[240 * 240];
+    int bad = 0;
+    uint32_t det, harm, anim, slew, inv, k;
+    ui_power_on();
+    set_engine_of(TSEL, ENGI_ANALOG);
+    TSEL->p[P_DETUNE] = 0;
+    TSEL->p[P_HARM] = 0;
+    go_title("TILT"); frames(3);
+    memcpy(a, host_screen, sizeof a);
+    for (k = 0; k < 40u; k++)                         /* KNOB 1: DETUNE, through the real encoder path */
+        turn(EN_K1, 1);
+    frames(3);
+    det = scr_diff(a);
+    memcpy(a, host_screen, sizeof a);
+    for (k = 0; k < 40u; k++)                         /* KNOB 2: TILT */
+        turn(EN_K2, 1);
+    frames(3);
+    harm = scr_diff(a);
+    printf("ui:   (TILT: DETUNE moves %u px, TILT %u px)\n", det, harm);
+    bad += check("EDIT > TILT: DETUNE moves the graph, not only its number", det > 150);
+    bad += check("EDIT > TILT: TILT moves the graph", harm > 150);
+    /* LFO CURVE: CURVE's knob moves the drawn wave. (SLEW and INVERT sit on the same page and graph_lfo reads
+     * them with the engine's own law; the sweep's S_LFO_SHAPE scene renders the page with SLEW 40 / INVERT 90 and
+     * its frame is compared with the neutral one in build/ui_new -- the encoder path on this page is the LFO's
+     * own and does not reach the two extra slots, which is the page_desc branch chorus_rate_test checks.) */
+    TSEL->p[P_LSHP] = 24;
+    go_title("LFO CURVE"); frames(3);
+    memcpy(a, host_screen, sizeof a);
+    for (k = 0; k < 40u; k++)                         /* KNOB 1: CURVE */
+        turn(EN_K1, 1);
+    frames(3);
+    anim = scr_diff(a);
+    printf("ui:   (LFO CURVE: CURVE moves %u px)\n", anim);
+    bad += check("LFO CURVE: CURVE moves the drawn wave", anim > 150);
+    return bad;
+}
+
 static int test_qg15(void)
 {
     int bad = 0;
@@ -12114,6 +12174,7 @@ int main(void)
         }
     }
     bad += test_qg15();
+    bad += test_phase_graphs();
     bad += test_home_knobs();
     bad += test_home_viz();
     bad += test_large_face();

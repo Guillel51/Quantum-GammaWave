@@ -182,11 +182,19 @@ static uint8_t midi_learn_map[16];
 #define UP_SLOTS 32u             /* user presets (upreset.c) */
 #define NELEM(a) (sizeof(a) / sizeof((a)[0]))
 
+/* (this phase) THE CHORUS'S RATE, ONE WAY IN. Every path -- the page, the encoder, a CC, a preset, a restored
+ * project -- stores 0..127 and reaches the DSP through here, so no value can drive the bus past the 6.00 Hz cap
+ * CH_INC is generated with (tools/gen_tables.py). Out-of-range bytes clamp instead of wrapping the table. */
+static inline __attribute__((always_inline)) uint32_t chorus_inc(int32_t v)
+{
+    return CH_INC[v < 0 ? 0 : v > 127 ? 127 : v];
+}
 /* ------------------------------------------------------- parameters --- */
 enum {
     F_INT, F_PCT, F_BIPCT, F_TIME, F_LFOHZ, F_CUTOFF, F_DB, F_SEMI, F_ENUM, F_BPM, F_NOTE,
     F_ONOFF, F_OCT, F_STEPS,
-    F_PCTINV                     /* (JIANT 0.6.37) a share of 127 shown and turned the other way: 0 is 100 % */
+    F_PCTINV,                    /* (JIANT 0.6.37) a share of 127 shown and turned the other way: 0 is 100 % */
+    F_CHHZ                       /* (this phase) the CHORUS bus's RATE: 0.05 .. 6.00 Hz, its own tables */
 };
 
 typedef struct {
