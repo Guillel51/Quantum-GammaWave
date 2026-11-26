@@ -208,10 +208,17 @@ enum {
     F_CHHZ                       /* (this phase) the CHORUS bus's RATE: 0.05 .. 6.00 Hz, its own tables */
 };
 
+/* (FASE 1/10) THE DESCRIPTOR IS 16 BYTES, NOT 20: fmt, min, max and def were 8 bytes of range behind fmt's one
+ * byte and two of padding; one byte each keeps the declaration order every positional initializer already relies
+ * on and lands on 4 + 4 + 8. Measured over every PD/GP entry: min -99..40, max 0..240, def 0..127, fmt 0..15 --
+ * each width below holds its field with room, and nothing takes the address of min/max/def. 127 entries 4 B
+ * shorter is 508 B of TP alone, plus GP. */
 typedef struct {
     const char *label;
     uint8_t fmt;
-    int16_t min, max, def;
+    int8_t min;
+    uint8_t max;
+    uint8_t def;
     const char *const *names;   /* F_ENUM */
     const char *unit;           /* F_INT / F_ENUM optional unit */
 } param_desc_t;
