@@ -3,6 +3,14 @@
 Release de acumulación: todo lo que quedó «Sin publicar» desde 2.12.0 entra aquí, con el registro de glifo que
 acepta caras de más de 8 KiB y la medición real de text_spacing a 8 fases.
 
+### lo que sigue en rojo, dicho en la release
+
+- **text_spacing**: la cara S sigue midiendo **0,258 px** contra el límite de 0,25 en un solo par («Gl») y
+  `text_spacing_test.py` falla por eso. Las 8 fases lo bajan a **0,157 px** (y «Gl» a −0,025 px) pero el enlace no
+  entra: `region XIP overflowed by 5512 bytes`. El umbral no se bajó y este release no lo esconde.
+- El resto de la suite del host no se pudo completar dentro de la ventana de 5 minutos de este entorno; las pruebas
+  que se corrieron y pasan están en el commit del release.
+
 ### el registro de glifo acepta caras de más de 8 KiB (medida de las 8 fases de S)
 
 - **El bloqueo del generador**: `aag_t` empaquetaba el `off` del bitmap en 13 bits (máx. 8 191) y la cara S a 8 fases
