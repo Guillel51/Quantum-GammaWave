@@ -105,6 +105,15 @@ esta máquina) lleva los números de BASIC: **BASIC es el motor canónico**.
 - `sh -n` / `bash -n` sobre los scripts tocados; `yaml` de los workflows revisado a mano (PyYAML no está
   instalado en la VM).
 
+### 4.1 Verificación en CI del commit `d1e65f5a` **[CI]**
+
+| workflow | resultado |
+|---|---|
+| `target build` | **success** (antes: `region 'XIP' overflowed by 1420 bytes`) |
+| `emulator` (build + deploy) | **success** (antes: `no package anywhere`) |
+| `coherence`, `tag and publish`, `ci-diag` | success |
+| `host tests` | en curso al cerrar este informe |
+
 ## 5. Pendiente en esta fase
 
 - **`cloud_hot_test` (CLOUD driven hot)**: falla la comprobación «CLOUD's line never clamps». Medido
