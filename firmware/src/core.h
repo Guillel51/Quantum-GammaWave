@@ -6,6 +6,17 @@
  * engine (General MIDI map) on any part; the SAMPLE engine's PERC set is retired (drum_from_perc).
  * Sections: sizes, parameters, voices and engines, tracks and the song, system. */
 #include <stdint.h>
+/* (FASE 3) THE GENERATED TABLES, HERE. chorus_inc() (below) is an inline in this header and reads CH_INC, which
+ * tools/gen_tables.py writes into build/gen/felucca_tables.h: felucca.c included it, so the firmware compiled and
+ * tests/upreset_test.c -- which includes core.h on its own -- did not, and the whole suite stopped there. Included
+ * here, every translation unit that sees the header sees the table (the file is #pragma once, so the firmware's
+ * own include costs nothing), and with no generated headers in the include path the guard keeps the old behaviour
+ * instead of failing outright. */
+#if defined(__has_include)
+#   if __has_include("felucca_tables.h")
+#       include "felucca_tables.h"
+#   endif
+#endif
 
 /* (1.8) Audio meters published by fx.c: 0..2 the chorus/delay/reverb sends, 3..5 their wet returns. */
 extern volatile int32_t fx_vu[8];

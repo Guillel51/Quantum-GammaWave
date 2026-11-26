@@ -1,3 +1,28 @@
+## v2.14.4 — FASE 3/6: profundidad y ambiente compartidos, y la suite vuelve a arrancar
+
+- **`ux_ambient()` (gfx.c)**: un solo componente para el fondo de la banda de cuerpo. Seis bloques en tres filas de
+  profundidad —más oscuros que la placa, con borde superior iluminado, pie en sombra y canto lateral, el acento en
+  el borde de la fila cercana— y dieciocho motas en tres profundidades (1/2/3 px de tamaño, 1/2/3 px por paso,
+  brillo creciente). Todo sale de un hash de (índice, semilla): sin reservas, sin RNG, sin flotantes, sin tabla; el
+  mismo `t` dibuja los mismos píxeles. Sembrado por capa, así que dos capas no abren con la misma imagen.
+- **Bordes de la placa** en `draw_layer`: borde superior iluminado, pie teñido de acento y laterales en sombra (tres
+  fills), para que el cuerpo esté delante del ambiente y no sea un recorte plano.
+- **Reloj de ambiente** en la firma de redibujo: `ui.frame / 15` (~2 Hz), sólo fuera de FX y de MONO/BW. La banda se
+  repinta dos veces por segundo en reposo; el ambiente añade ~1 500 px a un repintado de 29 280 (≈5 %) que ya
+  ocurría.
+- **La suite vuelve a compilar**: `core.h` incluye las tablas generadas bajo `__has_include` porque su inline
+  `chorus_inc()` lee `CH_INC`; `tests/upreset_test.c` incluía `core.h` sin ellas y cortaba `tests/run_tests.sh` en
+  la primera parada.
+- **Pendientes de las fases 1 y 2, medidos y registrados** (`docs/FASE3_3D_AMBIENTE_2026-11-26.md`): el CLOUD a
+  SIZE 127/RATE 127 queda 0,1 dB corto y la compensación del lazo no cambia nada porque la línea está congelada
+  (revertida, sin relajar la aserción); el interletraje `Gl` a 12 px da 0,258 px contra 0,25 por cuantización del
+  rodamiento de la tabla rasterizada, y arreglarlo exige regenerar las tablas AA y re-basar el barrido entero.
+- **Tercer pendiente, también preexistente**: `preset_audit --gate-sound 0.05` marca ANALOG 'HARP PLUCK' /
+  'SLOW TIDE' a 0,044 (reproducido en el árbol anterior); es rediseño de contenido y queda registrado.
+- **Medido [AC791N]**: imagen **579 988 B** de 583 612 (3 624 libres), alcance de llamadas desde RAM **10 540 B**
+  (mínimo 8 192), RAM 75 664, POOL y LOWBUF iguales. **[HOST]**: 3 305 cuadros con 0 hallazgos de lint, 0 tintas
+  sobre su propio color, 0 desalineaciones y 0 píxeles GREY/MONO fuera de gris.
+
 ## v2.14.3 — FASE FX LATCH: la capa de performance deja de ser una pantalla aparte
 
 - **FX LATCH usa la fila de tarjetas del instrumento.** `layer_cards(LAYER_FX)` dibuja LATCH (estado real de

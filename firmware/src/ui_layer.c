@@ -1433,6 +1433,12 @@ static __attribute__((noinline)) void draw_layer(void)
     else
         sig += snd_id() * 31u + (uint32_t)chain_busy() * 3u + (uint32_t)(project_recall_slot() + 1) * 5u + dx_mute * 7919u +
                (uint32_t)drum_track(TSEL) * 11u + up_gen * 101u;
+    /* (FASE 3) THE AMBIENT CLOCK: the room behind the body drifts one step every 15 frames (~2 Hz at the main
+     * loop's rate), so a screen nobody is touching still breathes without repainting at the frame rate: the band
+     * is redrawn twice a second, not thirty times. Zero when the ambient is off (MONO, where a field of specks is
+     * noise, and the FX map, which has its own rank). */
+    if (l != LAYER_FX && !(ux.mono || ux.bw))
+        sig += (ui.frame / 15u) & 3u;
     if (ui.force || sig != ui.layer_sig) {
         ui.layer_sig = sig;
         if (l == LAYER_FX) {                           /* (FASE FX LATCH) one band: the map is the graph's 122 px */
@@ -1446,6 +1452,16 @@ static __attribute__((noinline)) void draw_layer(void)
             cv_begin(240, H_GRAPH, T_BG);
             cv_rrect(3, 0, 234, H_GRAPH, 5, T_SURF, T_BG);
             cv_bg = T_SURF;
+            /* (FASE 3) THE PLATE'S OWN EDGES: a lit top, an accent-tinted foot and a shadowed side, so the body
+             * sits in front of the room instead of being a flat cut-out of it. Three fills, no gradient pass. */
+            cv_rect(6, 1, 228, 1, ux_mix(T_SURF, T_TEXT, 22));
+            cv_rect(6, H_GRAPH - 2, 228, 1, ux_mix(T_SURF, T_ACCENT, 26));
+            cv_rect(4, 5, 1, H_GRAPH - 10, ux_mix(T_SURF, T_INK, 45));
+            cv_rect(235, 5, 1, H_GRAPH - 10, ux_mix(T_SURF, T_INK, 45));
+            /* (FASE 3) THE ROOM: every layer's body gets the same back rank and the same dust, seeded by the
+             * layer so no two layers open on the same picture, and stepped by the ambient clock (ui.frame / 15,
+             * ~2 Hz). Inside the plate: x 8..232, and the rank's foot stops 10 px above the plate's own. */
+            ux_ambient(8, 2, 224, H_GRAPH - 12, (uint32_t)l * 2654435761u + ux.gen, ui.frame / 15u);
             if (l == LAYER_GLO)
                 layer_glo();
             else if (l == LAYER_SCL)

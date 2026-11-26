@@ -1237,6 +1237,46 @@ static uint16_t ux_ground_at(int32_t j, int32_t h, int32_t b0, int32_t b1)
     k = k * k / 100;                                     /* (FASE 4) the same dark-heavy curve as the rows */
     return ux_mix(T_BG, T_ACCENT, (b0 + (b1 - b0) * k / 100) / 2);
 }
+/* (FASE 3) THE ROOM BEHIND THE PAGE. One component for every screen: a rank of blocks receding along the bottom
+ * of a band -- two rows, the far one at 22 % of the panel's lift and the near one at 46 %, each with a lit top
+ * edge and a shadowed foot, their widths, heights and places hashed so the rank reads as perspective instead of
+ * as a fence -- and a field of dust at three depths (1, 2 and 3 px, 1, 2 and 3 px of travel per step, brighter
+ * as it comes closer). Everything comes from a hash of (index, seed): the same `t` always draws the same pixels,
+ * so a still screen costs nothing and two steps of drift differ by a few specks. No allocation, no RNG state, no
+ * floats, no table. `t` is the ambient clock (ui.c: one step every 15 frames, ~2 Hz): slow enough to read as
+ * background, cheap enough that the band it lives in never has to repaint at the frame rate. */
+static void ux_ambient(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t seed, uint32_t t)
+{
+    uint32_t i;
+    if (w < 48 || h < 30)
+        return;                                          /* a strip too small to hold a room stays a strip */
+    /* THE RANK: three rows, the far ones small and dim, the near ones wide and lit. Each block is darker than
+     * the plate it stands on and carries a lit top edge, so it reads as a wall further back rather than as a gap
+     * in the panel; the near row's rim takes the accent, which is what makes the plane separation visible
+     * through the 2-4 px between two controls. */
+    for (i = 0; i < 6u; i++) {
+        uint32_t k = seed * 2654435761u + i * 40503u, d = i % 3u;
+        uint16_t body = ux_mix(T_SURF, T_BG, d == 0 ? 70 : d == 1 ? 52 : 34);
+        int32_t bw = 14 + (int32_t)d * 6 + (int32_t)((k >> 8) % 9u);
+        int32_t bh = 6 + (int32_t)d * 3 + (int32_t)((k >> 24) % 5u);
+        int32_t bx = x + (int32_t)((k >> 16) % (uint32_t)w), by = y + h - bh - (int32_t)d * 3;
+        if (bx + bw > x + w)
+            bx = x + w - bw;
+        cv_rect(bx, by, bw, bh, body);
+        cv_rect(bx, by, bw, 1, ux_mix(body, d == 2 ? T_ACCENT : T_TEXT, d == 2 ? 45 : 22));   /* the lit top */
+        cv_rect(bx, by + bh - 1, bw, 1, ux_mix(body, T_INK, 60));                            /* the foot */
+        cv_rect(bx, by + 1, 1, bh - 2, ux_mix(body, T_TEXT, d == 2 ? 26 : 12));               /* the near side */
+    }
+    /* THE DUST: three depths, three speeds, three sizes, brighter as it comes closer (18 specks: the field is
+     * texture, not weather; the sizes and the speeds are what make the depth readable without motion blur). */
+    for (i = 0; i < 18u; i++) {
+        uint32_t d = i % 3u, hs = (seed + 1u) * 2246822519u + i * 3266489917u;
+        int32_t sp = (int32_t)d + 1, sz = (int32_t)d + 1;
+        int32_t px = x + (int32_t)((hs >> 8) % (uint32_t)w);
+        int32_t py = y + (int32_t)(((hs >> 20) + t * (uint32_t)sp * 3u) % (uint32_t)h);
+        cv_rect(px, py, sz, sz, ux_mix(T_BG, T_ACCENT, 16 + (int32_t)d * 14));
+    }
+}
 /* (FASE 6) A RAMP BETWEEN TWO COLOURS, in `n` solid bands. ux_ground_bands walks two of the palette's own
  * ramps (T_BG -> T_SURF, T_BG -> T_ACCENT) because HOME and FX > BUSES start from the page behind the panel;
  * a page's own panel starts ON T_SURF, so interpolating from T_BG there painted a dark block in the middle of
