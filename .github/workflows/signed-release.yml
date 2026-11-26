@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install cryptography
+      - run: pip install -r tools/requirements.txt
       - name: at least one key is pinned (fail-closed otherwise)
         run: python3 tools/fm1_sign.py check --require-key
       - name: every package in release/ verifies against its own manifest (signature when present)

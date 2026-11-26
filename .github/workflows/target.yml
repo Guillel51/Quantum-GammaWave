@@ -46,7 +46,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install Pillow numpy fonttools
+      - run: pip install -r tools/requirements.txt
       # The strict check below asks for all three inputs, so this job installs the same Emscripten
       # the emulator job uses rather than scoping the check down to the firmware.
       - uses: mymindstorm/setup-emsdk@v14
@@ -160,7 +160,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install Pillow numpy fonttools
+      - run: pip install -r tools/requirements.txt
       - name: toolchain cache (keyed by the pinned archive hash)
         if: vars.JIELI_TOOLCHAIN_SHA256 != ''
         uses: actions/cache@v4
@@ -198,7 +198,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install Pillow numpy fonttools
+      - run: pip install -r tools/requirements.txt
       - uses: actions/setup-node@v4
         with:
           node-version: "20"

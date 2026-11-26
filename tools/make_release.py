@@ -297,12 +297,19 @@ def check(root):
         # and comparing against the unversioned file -- one an earlier build left there -- either fails a good
         # release or passes a wrong one (v1.5.24 shipped its predecessor's bytes this way).
         built = os.path.join(root, "build", str(bm.get("package") or "felucca.fwsc"))
-        if os.path.isfile(built):
+        bm_now = os.path.join(root, "build", "manifest.json")
+        # (v2.12.0) A REBUILD AT ANOTHER COMMIT IS NOT A DIFFERENT RELEASE. The tag-and-publish flow builds
+        # the package at the source commit, commits release/ on top, and CI then rebuilds the tree AT THE TAG:
+        # that record names another commit (and its bytes can differ in the fields that name it), so comparing
+        # them unconditionally failed the release set of a release that was assembled correctly. The bytes are
+        # compared only when build/ holds a record of the SAME commit as the release record; a rebuild at the
+        # release's own source commit is still enforced, which is what the check is for.
+        same_build = os.path.isfile(bm_now) and load(bm_now).get("commit") == bm.get("commit")
+        if os.path.isfile(built) and same_build:
             if open(built, "rb").read() != raw:
                 problems.append("release/ and build/ hold different packages: the release was not assembled "
                                 "from this build (run --sync)")
-            bm_now = os.path.join(root, "build", "manifest.json")
-            if os.path.isfile(bm_now) and load(bm_now) != bm:
+            if load(bm_now) != bm:
                 problems.append("release/build-manifest-%s.json is not this build's record (run --sync)" % v)
         if (bm.get("artifacts") or {}).get("felucca.fwsc", {}).get("sha256") not in (None, digest):
             problems.append("the build record names another package hash")

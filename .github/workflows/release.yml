@@ -81,7 +81,7 @@ jobs:
         git checkout -q "refs/tags/$V"
         test "$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)" = "$V"
         echo "building $(git describe --tags --always) ($(git rev-parse HEAD))"
-        python3 -m pip install --quiet Pillow fonttools numpy
+        python3 -m pip install --quiet -r tools/requirements.txt
         ./build.sh --release "${V#v}"
       packages: build/*.fwsc
       # blocking: the host suite, then the installer, the package bounds and the provenance gate. A

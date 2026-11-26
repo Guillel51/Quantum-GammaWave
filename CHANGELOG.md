@@ -1,3 +1,18 @@
+## v2.12.0 — desbloqueo de la publicación: el conjunto de release ya no se compara contra otro commit
+
+- **`make_release --check` fallaba en CI sobre un release correcto.** El flujo construye el paquete en el commit
+  de fuente, commitea `release/` encima y CI vuelve a construir el árbol **en el tag**: el registro reconstruido
+  nombra otro commit (y sus bytes cambian en los campos que lo nombran), así que la comprobación incondicional
+  fallaba con dos problemas. Ahora los bytes se comparan **solo cuando `build/` tiene un registro del mismo commit
+  que el release**; reconstruir en el commit de fuente del release se sigue exigiendo igual. Es la condición que
+  apartaba la atestación de cada release desde v2.10.0.
+- **Las dependencias que rasterizan la UI están fijadas** en `tools/requirements.txt` (Pillow 13.0.0,
+  fontTools 4.69.1, numpy 2.5.5, cryptography 50.0.2) y los cinco workflows instalan ese archivo. La puerta de
+  píxeles hashea cada cuadro dibujado: una versión distinta de Pillow/fontTools rasteriza la misma fuente en
+  bitmaps distintos y la base falla en el runner aunque pase aquí. Fijarlas hace que CI y el árbol generen lo
+  mismo.
+- Sin cambios de firmware, audio, memoria ni pantallas: versión, empaquetado y cadena de publicación.
+
 ## v2.11.1 — el filtro VOWEL responde a CUT y RES, y sus formantes tienen cuerpo
 
 - **En EDIT > FILTER 5/9 con TYPE VOWEL, la gráfica no seguía a CUT ni a RES.** La curva dibujaba tres formantes

@@ -1,0 +1,8 @@
+# (v2.12.0) The versions the UI tables (fonts, icons, palettes) and the release tools are generated with.
+# The layout gate hashes every drawn frame; a different Pillow or fontTools rasterises the same TTF into
+# different glyph bitmaps, and the baseline then fails on the runner while passing here. Pin them, and let
+# CI install exactly these (workflows use `pip install -r tools/requirements.txt`).
+Pillow==13.0.0
+fonttools==4.69.1
+numpy==2.5.5
+cryptography==50.0.2
