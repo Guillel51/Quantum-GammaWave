@@ -9,8 +9,9 @@
 - **Medido**: 207 pantallas × 22 paletas con **0 hallazgos de lint, 0 tintas sobre su propio color, 0 desalineaciones
   y 0 píxeles GREY/MONO fuera de gris**; 96 cuadros cambiados (MORPH y TILT en sus paletas), base de píxeles al día.
   `ui_test` y `engine_param_test` pasan.
-- **[AC791N]**: XIP **575 616 B** (código 453 868 + constantes 121 748) contra 575 584 B antes (misma imagen de
-  **580 396 B**, 3 216 libres): sólo cambian etiquetas de página, no se añadió código ni datos. RAM 75 664 / 98 304,
+- **[AC791N]**: XIP **575 616 B** antes y después (código 453 868 + constantes 121 748) e imagen **580 396 B**
+  (3 216 libres) también antes y después: las páginas ya existían y sólo cambia qué parámetro ocupa cada tarjeta, así
+  que no se añadió código ni datos. RAM 75 664 / 98 304, POOL 296 156, LOWBUF 28 488, alcance 10 228 B. RAM 75 664 / 98 304,
   POOL 296 156, LOWBUF 28 488, alcance 10 228 B.
 
 ## Sin publicar — camino a 3.0: trabajo por bloque fuera del filtro de pista
