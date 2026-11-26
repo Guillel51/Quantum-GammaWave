@@ -468,13 +468,13 @@ void gfx_panel_forget(void)
     cv_fl_yb[0] = 240u;
     cv_fl_n = 1u;
 }
-/* (FASE 6) THE NARROW-WINDOW CACHE: MEASURED, OFF UNTIL XIP HAS ~2,8 KB MORE. With the flag on the host harness
- * measures 21 440 px per idle frame (29 952 with it off) and the 3 056 frames of its sweep are identical;
- * `FELUCCA_WINCACHE=1 ./build.sh` does not link -- region `XIP' overflowed by 2 752 bytes -- and cutting code does
- * not pay, because this TU's size pass re-decides globally: a ten-instruction probe in cv_blit costs +2 592 B and
- * 306 of the 1 645 functions move by a median of 4 B. docs/FASE6_XIP_NARROW.md has the numbers and the way out. */
+/* (FASE 6) THE NARROW-WINDOW CACHE: ON. With the flag on the host harness measures 21 440 px per idle frame
+ * (29 952 with it off) and every frame of the sweep is identical. It stayed off because `XIP' overflowed by
+ * 2 752 B (docs/FASE6_XIP_NARROW.md); (FASE 2/6, 2026-11-26) the tree has the room: the flag costs 3 288 B of
+ * XIP and the image keeps 1 476 B free, and RAMTEXT moved up 3 KiB (app.ld) so the RAM code's call window keeps
+ * its 8 KiB guard. Measured again in that phase: 29 952 -> 21 440 px per quiet frame, 3 305 frames identical. */
 #ifndef FELUCCA_WINCACHE
-#define FELUCCA_WINCACHE 0
+#define FELUCCA_WINCACHE 1
 #endif
 #if FELUCCA_WINCACHE
 /* THE NARROW WINDOWS THE PANEL ALREADY HAS ARE NOT SENT EITHER. The row table speaks only for a canvas

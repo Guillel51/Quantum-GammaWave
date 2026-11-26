@@ -1,3 +1,23 @@
+## v2.14.2 — FASE 2/6: la caché de ventanas angostas entra en el presupuesto de XIP
+
+- **La caché de ventanas angostas (`FELUCCA_WINCACHE`) queda encendida.** Llevaba implementada desde la Fase 6,
+  medida y apagada porque el enlace se pasaba de XIP por 2 752 B. Cuesta **3 288 B** y ahora entra: **29 952 → 21 440
+  px por cuadro quieto (−28,4 %)** con los **3 305 cuadros del barrido idénticos** y 0 píxeles cambiados. Son las
+  columnas de EDIT, las tiras del MIXER y los módulos de FX > BUSES: ventanas angostas que la tabla de filas de 240
+  no cubre y que se reenviaban enteras aunque no cambiaran.
+- **Linker**: RAMTEXT sube 2,5 KiB (`0x01C70C00` → `0x01C71600`, longitud `0x5C00` → `0x5200`) porque el código en
+  RAM perdía su ventana de 8 KiB de llamadas con la caché encendida (5 856 B → **8 416 B**). La banda de guarda
+  sigue en `0x01C76800`. `.noinit` gana 48 B (cuatro ventanas) y queda con 76 B libres.
+- **Medido [AC791N]**: imagen **582 136 B** de 583 612 (1 476 libres), XIP 455 680 de código + 121 676 de
+  constantes, RAM 75 632 (=), POOL 303 328 (=), LOWBUF 28 488 (=). `xip_audit` regenerado: **0 secciones muertas**,
+  0 B de relleno; fuentes 20 660 B, presets 13 564 B, cadenas 25 562 B. **Los cinco controles del build pasan.**
+- **[HOST]** 316 renders dorados idénticos, barrido de 207 pantallas × 22 paletas con 0 desalineaciones, `ui_test`,
+  `ui_flicker_test`, `ui_nav_test`, `theme_test`, el arnés de presets (296/296), `install_test`, las tres pruebas de
+  web y la tabla de panel: pasan. `memory_map_test` pasa con el mapa nuevo.
+- **No se reintenta lo descartado con medida**: compresión de cadenas (`STR_PACK.md`), duraciones por paso
+  (agotaba LOWBUF), compresión de presets / `UAC_FIR` / descriptores. **WASM queda bloqueado**: no hay `emcc` en este
+  entorno y el repositorio no guarda un `.wasm`, así que no se compara su tamaño.
+
 ## v2.14.1 — FASE 1/6: lo que se paga dos veces dentro del bloque y en cada cuadro
 
 - **`fx_trip()` (la ruta de fallo del audio) ponía a cero `dly_buf` dos veces**: un `for` de 65 536 iteraciones
