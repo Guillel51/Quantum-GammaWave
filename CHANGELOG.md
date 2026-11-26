@@ -11,6 +11,9 @@
   legacy que nunca se listan). Se corrigió en la pantalla, el README, BUILDING.md y el JSON del Firmware Hub, y la
   fuente que se cita es `preset_audit_test` (que lee las tablas del motor), no un test que cuenta con una expresión
   regular y da 295.
+- **El Web Studio ya conoce los seis presets nuevos.** Las tablas mock del editor (`web/editor.html` y su copia
+  del sitio) iban cinco sonidos por detrás del firmware (WTABLE 26 y ADDTV 12): el test `editor: mock tables ==
+  firmware` fallaba. Se añadieron con sus ocho parámetros, sus cuatro de envolvente, su PAT e índices reales.
 - **El manual documenta HOLD.** La perilla 4 de SEQ > TIMING (la duración real grabada, GATE o 1/16 … 15/16) estaba
   en el firmware y en el CHANGELOG de la fase 4, pero no en las tablas ni en el texto de `docs/MANUAL.md` y
   `docs/MANUAL.es.md`.

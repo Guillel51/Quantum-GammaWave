@@ -4350,3 +4350,15 @@ Detalle y cifras: `docs/XIP_AUDIT.md`, generado por `tools/xip_audit.py` desde e
 |---|---|---|---|
 | Auditor que diga qué datos de XIP no referencia ningún camino alcanzable | **PASS** | `tools/xip_audit.py`: 627 secciones de sólo lectura, 126 155 B, referencia por dirección (palabra de 32 bits dentro del rango de la sección), **0 secciones muertas, 0 B de padding** | TARGET |
 | Recuperar ~5 KB para los 8 KB libres sin quitar funciones ni calidad | **BLOQUEADO (con la medición)** | no queda dato inalcanzable: `--gc-sections` ya lo quitó. Los 126 KB están en cadenas (25,6 KB), curvas (28,3 KB), fuentes (23,4 KB) y presets (13,4 KB), todos leídos. Recuperar 5 KB exige un cambio de representación (diccionario de cadenas, segunda etapa de fuentes), no un borrado | TARGET |
+
+## 31. Cierre 2026-11-26 — FASE 5/5 (v2.6.0)
+
+| Requisito | Estado | Evidencia | Clase |
+|---|---|---|---|
+| Las pruebas de tablas compactas prueban el formato real (3 bits) | **PASS** | `sine_table_test` 6/6 y `fm6_exp2_test` 7/7 decodifican con el lazo de `sine_init` / `fm6_exp2_init`; 384 B cada tabla | HOST |
+| Números públicos = firmware | **PASS** | 296 presets de fábrica (298 entradas − 2 kits legacy) en ABOUT, README, BUILDING, `fmhub.json`, `preset_library_test`; `preset_audit_test` los lee de las tablas | HOST |
+| Web Studio igual al firmware | **PASS** | `node web/test_web.mjs`: mock tables == firmware, 0 diferencias (los seis sonidos que faltaban añadidos) | HOST |
+| Base de píxeles al día | **PASS** | `ui_pixels.py --update` solo tras comprobar 89 cuadros de versión/ABOUT; 3 241 cuadros idénticos después | HOST |
+| Suite completa | **PARCIAL** | `build/tests_full.log`: 0 fallos nuevos; quedan `text_spacing` (0,258 px en «Gl», límite 0,25, ya documentado en fase 2) y `cloud_hot` (6,1 dB vs 6,0 en FREEZE+RATE 127, sin clamp ni click). Se reportan, no se relajan | HOST |
+| Memoria/CPU | **PASS** | RAM 75 600 B (22 704 libres), POOL 24 352 libres, LOWBUF 28 488 B, RAMTEXT 20 596 B, NOINIT 124 libres, XIP 576 552 B (7 060 libres); BLOCK_PATH +4 % del límite +10 % | TARGET |
+| Unidad física | **N/A** | No se tocó ni se midió el FM-1 del propietario | — |
