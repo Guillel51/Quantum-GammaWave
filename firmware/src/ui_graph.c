@@ -573,7 +573,8 @@ static int32_t lfo_lvl(void *ctx, int32_t k, int32_t u)
 }
 static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
 {
-    int32_t x, g, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, xp = PANEL_W / 4;
+    int32_t curvy = str_eq(cur_page()->title, "LFO CURVE");   /* (3.2) the page whose band the audit measured */
+    int32_t x, g, cy = graph_ht / 2, a = (curvy ? 46 : 38) * graph_ht / 100, py = cy, xp = PANEL_W / 4;
     /* (this phase) SLEW AND INVERT ARE DRAWN. Both were only numbers: CURVE's page now carries them, and the page
      * is the wave, so they belong in it. The wave is walked left to right, which is the same walk the DSP does in
      * time, so SLEW is the very one-pole the engine applies (its own coefficient: 32767 / (1 + sl * sl / 8)) run
@@ -621,12 +622,69 @@ static __attribute__((noinline)) void graph_lfo(const track_t *t, uint16_t c)
     }
     cv_rect(PANEL_X0 + xp, cy - a - 4, 1, 2 * a + 8, T_MID);   /* the playhead */
     cv_rrect(PANEL_X0 + xp - 3, now - 3, 7, 7, 3, T_TEXT, T_SURF);
+    /* (3.2) THE SCALE. The wave took 38/100 of the panel and the band under it stayed flat (70 px in the audit):
+     * it takes 46/100 now -- the same picture, one step taller, its phase and value untouched -- and the foot
+     * carries the half-amplitude guides and the axis, so the drawing reads against a scale instead of floating. */
+    for (x = PANEL_X0; curvy && x < PANEL_X0 + (int32_t)PANEL_W; x += 6) {
+        cv_rect(x, cy - a / 2, 2, 1, T_RAISE);
+        cv_rect(x, cy + a / 2, 2, 1, T_RAISE);
+    }
+    if (curvy && graph_ht >= 100) {                           /* the tall panel: the strip under MENU > LARGE has no room */
+        cv_rect(PANEL_X0, cy + a + 1, PANEL_W, 1, T_LINE);
+        cv_text_on(PANEL_X0, cy + a + 2, &AF_S, "+FULL", T_DIM, T_SURF);
+        cv_text_on(PANEL_X0 + 104, cy + a + 2, &AF_S, "0", T_MID, T_SURF);
+        cv_text_on(PANEL_X0 + (int32_t)PANEL_W - 34, cy + a + 2, &AF_S, "-FULL", T_DIM, T_SURF);
+    }
 }
 
 /* step bar x of step i of a 16-step row: 4 groups, as the footer (9 px bars, 13 px apart, 4 px between groups),
  * the row centred: x 12 .. 228 */
 static int32_t bar_x(uint32_t i) { return 12 + (int32_t)(i % 16u) * 13 + (int32_t)(i % 16u / 4u) * 4; }
 
+/* (3.2) THE BAND UNDER THE STEP BARS. PATTERN and SHIFT kept their numbers in the cards and left 90 px of the
+ * panel flat -- the audit's worst hole after the sequencer's own. Both draw here what the page is about, with the
+ * values the engine reads: PATTERN the loop and the gate's width a step, the swing's displacement and the lane's
+ * C.LEN; SHIFT the step each visible one plays (OFFSET, wrapped round the pattern), its lane and its chance.
+ * Nothing is invented: every bar, tick and number comes from t->p[] or the step itself. */
+static void gauge_row(int32_t y, const char *label, const char *val, int32_t ratio, uint16_t col)
+{
+    cv_text_on(12, y, &AF_S, label, T_DIM, T_SURF);
+    cv_text_on(66, y, &AF_S, val, T_TEXT, T_SURF);
+    cv_rect(112, y + 3, 114, 1, T_RAISE);
+    cv_rect(112 + 56, y + 1, 1, 5, T_LINE);
+    cv_rrect(110 + clamp(ratio, 0, 100) * 116 / 100, y + 1, 5, 5, 2, col, T_SURF);
+}
+static void steps_fill(const track_t *t, uint16_t c)
+{
+    char v[8];
+    uint32_t i;
+    int32_t len = clamp(t->p[P_SLEN], 0, NSTEP), gate = clamp(t->p[P_SGATE], 1, 127);
+    int32_t swing = clamp(t->p[P_SSWING], 0, 100), ofs = clamp(t->p[P_SOFS], -32, 32);
+    int32_t cl = clamp(t->p[P_CLEN], 0, NSTEP), y = 50;
+    if (str_eq(cur_page()->title, "SHIFT")) {           /* the rotation: each visible step plays another one */
+        for (i = 0; i < 16u; i++) {
+            int32_t src = (int32_t)(ui.bank * 16u + i) + ofs;
+            src = (src % NSTEP + NSTEP) % NSTEP;
+            cv_rect(bar_x(i), y, 9, 8, step_on(&seq_steps(t)[src]) ? step_heat(&seq_steps(t)[src], 0, c) : T_RAISE);
+        }
+        v[0] = ofs < 0 ? '-' : '+'; fmt_int(v + 1, ofs < 0 ? -ofs : ofs);
+        gauge_row(y + 14, "OFFSET", v, (ofs + 32) * 100 / 64, T_ACCENT);
+        if (cl) { fmt_int(v, cl); }
+        else str_cpy(v, "OFF", 4);
+        gauge_row(y + 26, "C.LEN", v, cl * 100 / NSTEP, T_MID);
+    } else {                                            /* the gate, as wide as the dial says, on the ruler */
+        cv_rect(12, y + 9, 216, 1, T_RAISE);
+        for (i = 0; i < 16u; i++) {
+            const step_t *st = &seq_steps(t)[ui.bank * 16u + i];
+            int32_t x = bar_x(i) + ((i & 1u) ? swing * 5 / 100 : 0), h = 3 + gate * 7 / 127;
+            cv_rrect(x, y + 9 - h, 9, h, 2, i < (uint32_t)len ? step_heat(st, st->flags & SF_ACCENT, c) : T_RAISE, T_SURF);
+        }
+        fmt_int(v, len);
+        gauge_row(y + 14, "LEN", v, len * 100 / NSTEP, T_THEME);
+        fmt_int(v, gate * 100 / 127); str_cpy(v + 3, "%", 2);
+        gauge_row(y + 26, "GATE", v, gate * 100 / 127, T_ACCENT);
+    }
+}
 /* PATTERN page: the 64 steps as 4 rows of 16 bars (an accent: the accent colour, a tie: a lower bar,
  * empty: a stub), the cursor and the playhead under them */
 /* (ETAPA 6) CHANCE: the whole pattern's probability at a glance, not just the cursor's step.
@@ -703,6 +761,8 @@ static __attribute__((noinline)) void graph_steps(const track_t *t, uint16_t c)
         else if (song.playing && i == seq_src(t, t->seq_idx))
             cv_rect(x, y + bh + 2 - sm, 9, 2, T_TEXT);
     }
+    if (!sm && (str_eq(cur_page()->title, "PATTERN") || str_eq(cur_page()->title, "SHIFT")))
+        steps_fill(t, c);                                /* (3.2) the band the cards left flat */
 }
 
 /* (0.6.39) SEQ > COMP: the cursor's 16 steps as on PATTERN, each with its mark under it (an ARP component: heat
@@ -3371,6 +3431,19 @@ static __attribute__((noinline)) void graph_browse(void)
             panel_note("NO SOUNDS", "IN THIS CATEGORY", 0);
         else
             panel_note("NO FAVORITES", "LIST ALL TO ADD SOUNDS", 0);
+        /* (3.2) THE ROWS IT HAS. The note took 60 px and left 63 flat: the browser says which list is empty and
+         * leaves the rows a sound would fill, dashed, so a filtered list reads as a list with nothing in it and
+         * not as a page that stopped drawing. */
+        {
+            int32_t yy, rx;
+            const char *nm = pcat < PCAT_N ? PCAT_NAME[pcat] : PCAT_NAME[0];
+            cv_text_on(16, 88, &AF_S, nm, T_MID, T_SURF);
+            if (favorites.filter)
+                cv_text_on(16 + (int32_t)text_w(&AF_S, nm) + 8, 88, &AF_S, "FAV", T_ACCENT, T_SURF);
+            for (yy = 0; yy < 2; yy++)
+                for (rx = 16; rx < 224; rx += 6)
+                    cv_rect(rx, 98 + yy * 9, 3, 1, yy ? T_RAISE : T_LINE);
+        }
         return;
     }
     {   /* (v1.11) the pop-up's five rows are the pop-up's: painted by its band, not here (see graph_preset_pop) */
@@ -4665,6 +4738,16 @@ static __attribute__((noinline)) void graph_master(void)
     /* (3.1) The LVL / LIM / CPU / PK band is gone by request: MASTER shows what it controls (CLIP,
      * PUNCH, DUCK, REL) and the output meters, not the CPU or the limiter's internal envelope. The
      * space it held is the VU's now, so the page has no empty hole and nothing moved off the panel. */
+    /* (3.2) THE CHAIN, in the band the meters left (42 px in the audit): what the page's four controls feed, in
+     * order, each word lit by its own state -- CLIP and REL always in the path, PUNCH and DUCK only when their
+     * dial leaves zero. The states are the same song.g[] the graphs above read. */
+    cv_text_on(12, 104, &AF_S, "CLIP", T_THEME, T_SURF);
+    cv_text_on(52, 104, &AF_S, "PUNCH", punch > 0 ? T_ACCENT : T_DIM, T_SURF);
+    cv_text_on(100, 104, &AF_S, "DUCK", duck > 0 ? T_ACCENT : T_DIM, T_SURF);
+    cv_text_on(140, 104, &AF_S, "REL", T_THEME, T_SURF);
+    cv_text_on(176, 104, &AF_S, "OUT", T_TEXT, T_SURF);
+    for (i = 0; i < 4; i++)
+        cv_rect(126 + i * 12, 108, 3, 1, T_RAISE);
 }
 
 static __attribute__((noinline)) void draw_graph(void)
