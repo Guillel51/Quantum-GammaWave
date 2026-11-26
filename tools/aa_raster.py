@@ -21,6 +21,16 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 
+# (2.16) ONE LAYOUT ENGINE, EVERYWHERE. This used to ask for RAQM unconditionally. On a machine without
+# libraqm (this project's own dev box) Pillow fell back to BASIC with a warning; on the CI runner, which
+# has libraqm, it used RAQM. The two shape text differently: the S face came out with 1 437 B of kerning
+# on the runner and 0 B here (+3 B in the bitmaps), which made the AC791N link fail there with
+# "region `XIP' overflowed by 1420 bytes" while it linked here with 4 B to spare. The shipped package
+# (610 933 B) carries the BASIC numbers, so BASIC is the canonical engine and it is requested by name:
+# installing libraqm must not change the glyphs, the kerning or the image size.
+LAYOUT = ImageFont.Layout.BASIC
+
+
 def open_font(spec, px):
     """spec = "path[#index][@wght]" (a .ttc takes the face index, a variable font the weight); '~' is expanded."""
     spec, _, wght = spec.partition("@")
@@ -28,7 +38,7 @@ def open_font(spec, px):
     path = os.path.expanduser(path)
     if not os.path.exists(path):
         raise SystemExit(f"font not found: {path}")
-    f = ImageFont.truetype(path, px, index=int(idx) if idx else 0, layout_engine=ImageFont.Layout.RAQM)
+    f = ImageFont.truetype(path, px, index=int(idx) if idx else 0, layout_engine=LAYOUT)
     if wght:
         f.set_variation_by_axes([float(wght)])
     return f
@@ -119,7 +129,7 @@ def raster_font(spec, px, chars, tracking=0.0, gamma=1.0, tabular=True, kern_min
     pad = px                                   # canvas margin around the glyph (overhang, accents)
     cw, chh = px * 3, asc + desc + 2 * pad
     base = pad + asc                           # baseline row of the canvas
-    has_raqm = getattr(ImageFont.core, "check", lambda _: False)("raqm")
+    has_raqm = LAYOUT == ImageFont.Layout.RAQM and getattr(ImageFont.core, "check", lambda _: False)("raqm")
     feats = ["tnum"] if (tabular and has_raqm) else None
     glyphs, adv, nat = {}, {}, {}
     for ch in chars:

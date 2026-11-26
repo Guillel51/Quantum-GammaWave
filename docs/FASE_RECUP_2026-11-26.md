@@ -48,6 +48,26 @@ El paso del paquete es `continue-on-error`, así que el fallo real sólo se ve d
 **El error del linker no se pudo leer**: ver 2.4. La misma compilación **[AC791N]** aquí enlaza bien, de modo
 que la diferencia está en el entorno del runner (toolchain de caché, ver 2.3) o en el margen de 4 B de XIP.
 
+### 2.6 CI: el build de destino desborda XIP por 1 420 B (motor de layout del texto)
+**[CI]** run `45851950501` (`main` @ `e7ef4d07`) y `45851950490`, leídos del `ci/last-run.log` ya con contexto:
+
+```
+pi32v2/bin/ld: build/felucca.elf section `.ram_text' will not fit in region `XIP'
+pi32v2/bin/ld: region `XIP' overflowed by 1420 bytes
+```
+
+La diferencia con el build **[AC791N]** de esta máquina está en la generación de fuentes:
+
+| | cara S (ChakraPetch 12 px) | kerning | `ui_fonts.h` |
+|---|---|---|---|
+| runner (libraqm) | data 8 958 B | **1 437 B / 479 pares** | RAQM |
+| aquí (sin libraqm) | data 8 961 B | **0 B / 0 pares** | BASIC (fallback) |
+
+`tools/aa_raster.py` pedía `layout_engine=ImageFont.Layout.RAQM` **siempre**. Sin libraqm, Pillow cae a
+BASIC con un warning; con libraqm (el runner de Ubuntu lo trae) usa RAQM, que mueve los avances y el
+kerning. El paquete publicado (`release/felucca-v2.5.4.fwsc`, **610 933 B**, el mismo tamaño que produce
+esta máquina) lleva los números de BASIC: **BASIC es el motor canónico**.
+
 ## 3. Correcciones aplicadas
 
 1. **`tools/emu_env.sh`** (nuevo): `emu_find_emcc` busca en `PATH`, `$EMSDK`, `~/emsdk`, `/opt/emsdk`,
@@ -67,6 +87,14 @@ que la diferencia está en el entorno del runner (toolchain de caché, ver 2.3) 
    imprime la identidad del compilador y el stamp en el log.
 7. **`.github/workflows/ci_diag.yml`**: sección nueva que guarda 25 líneas antes y 8 después de cada marcador
    de fallo (`::error`, `build: … failed`, `overflowed`, `undefined reference`, `cannot find`, `No such file`).
+   Fue lo que destapó el desborde de XIP de 2.6 en el primer run tras el push.
+8. **`tools/aa_raster.py`**: motor de layout **fijo en BASIC** (`LAYOUT = ImageFont.Layout.BASIC`),
+   pedido por nombre. Instalar libraqm ya no cambia glifos, kerning ni el tamaño de la imagen. Verificado
+   **[HOST x86]**: `ui_fonts.h` sale con el mismo sha256 que antes (`3ee81b28…`, 142 118 B) y el build
+   **[AC791N]** sigue en 583 608 / 583 612 B.
+9. **`tools/build.py`**: `generate()` imprime ahora las versiones usadas (Python, Pillow, fontTools) y un
+   sha256 por header generado. Dos logs bastan para saber si una deriva de imagen viene del entorno o de
+   este árbol, en vez de descubrirlo con un desborde de XIP.
 
 ## 4. Pruebas ejecutadas en esta fase
 
@@ -84,9 +112,9 @@ que la diferencia está en el entorno del runner (toolchain de caché, ver 2.3) 
   `rv_knee` no puede llegar al riel (su tope es ≈32 440, `TANH_Q15[256] = 31 588`), así que el valor entra
   por otra escritura que no se identificó todavía; llenar `cloud_buf` con un centinela antes del render no
   cambia el conteo. Necesita instrumentación dedicada; **no** se tocó ningún umbral.
-- **Margen XIP de 4 B**: cualquier deriva de generación o de toolchain rompe el link. Los recortes medidos
-  no dan bytes sin tocar contenido visible (§ informe del 25/11: `ui_shapes.h` no entra en la imagen, las
-  celdas de iconos de 12 px se dibujan todas).
+- **Margen XIP de 4 B**: con el layout fijado, runner y esta máquina generan los mismos headers, pero el
+  margen sigue siendo de 4 B. Los recortes medidos no dan bytes sin tocar contenido visible (§ informe del
+  25/11: `ui_shapes.h` no entra en la imagen, las celdas de iconos de 12 px se dibujan todas).
 - **Resto de la lista de CI** (`themes`, `UI pixels`, `PRESETS`, `UBSan strict`, tablas `exp2`/`sine`,
   ST7789): no reproducidos en esta ronda; la suite completa no entra en la ventana de 5 minutos de este
   entorno y se corrieron sólo las pruebas afectadas por los cambios.

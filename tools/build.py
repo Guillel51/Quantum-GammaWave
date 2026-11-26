@@ -133,6 +133,20 @@ def generate():
             failed.append(c[0].name)
     if failed:
         raise SystemExit(f"build: {', '.join(failed)} failed")
+    # (2.16) WHAT THE BUILD WAS GENERATED WITH, AND WHAT CAME OUT. The AC791N build was 1 420 B over XIP on
+    # the CI runner while it linked here with 4 B to spare, and the only visible difference was the S face's
+    # kerning table (1 437 B on the runner, 0 B here): the same pinned requirements produced different
+    # headers. An XIP overflow is a terrible way to learn that, so every run prints the versions and a
+    # sha256 per header -- two logs are enough to see whether the drift is fontTools/Pillow or this tree.
+    try:
+        import PIL, fontTools  # noqa: F401  (reported, not required by every code path)
+        ver = f"Pillow {PIL.__version__}, fontTools {fontTools.version}"
+    except Exception as e:                                   # noqa: BLE001 (a report must never fail the build)
+        ver = f"(versions unavailable: {e})"
+    import hashlib
+    print(f"generate: python {sys.version.split()[0]}, {ver}")
+    for h in sorted(GEN.glob("*.h")):
+        print(f"generate: {h.name} {hashlib.sha256(h.read_bytes()).hexdigest()[:16]} {h.stat().st_size} B")
 
 
 # ---- update loader
