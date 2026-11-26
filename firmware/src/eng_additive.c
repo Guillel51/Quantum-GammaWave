@@ -242,33 +242,33 @@ static __attribute__((noinline)) void add_render(track_t *t, voice_t *v, int32_t
 
 static const preset_t AD_PRESETS[] = {
     /* name, {SPECTRUM, TILT, DECAY, STRETCH, CUT, RES, DRIVE, SUB}, {A D S R}, fenv, mono */
-    {"ADDTV ORGAN", {0, 64, 0, 0, 108, 10, 0, 0}, {0, 64, 127, 45}, 0, 0, FX(0, 26, 8, 28), PAT(5),
+    {0, {0, 64, 0, 0, 108, 10, 0, 0}, {0, 64, 127, 45}, 0, 0, FX(0, 26, 8, 28), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6), XP(P_LSHP, 20), XP(P_LSHP, 20)}},
-    {"GLASS BELL", {55, 78, 78, 42, 118, 14, 0, 0}, {0, 72, 24, 66}, 8, 0, FX(0, 30, 26, 62), PAT(3),
+    {12, {55, 78, 78, 42, 118, 14, 0, 0}, {0, 72, 24, 66}, 8, 0, FX(0, 30, 26, 62), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14), XP(P_LEVEL, 118), XP(P_HARM, 24), XP(P_HARM, 24)}},
-    {"CRYSTAL PLUCK", {44, 90, 56, 20, 110, 26, 22, 28}, {0, 76, 0, 40}, 18, 0, FX(8, 20, 40, 34), PAT(3),
+    {23, {44, 90, 56, 20, 110, 26, 22, 28}, {0, 76, 0, 40}, 18, 0, FX(8, 20, 40, 34), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_ELOOP, 2), XP(P_ELOOP, 2)}},
-    {"SPECTRAL PAD", {14, 54, 8, 12, 82, 24, 4, 12}, {52, 88, 120, 92}, 0, 0, FX(0, 52, 32, 84), PAT(5),
+    {37, {14, 54, 8, 12, 82, 24, 4, 12}, {52, 88, 120, 92}, 0, 0, FX(0, 52, 32, 84), PAT(5),
      {XP(P_LRATE, 11), XP(P_LWAVE, 6), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 30), XP(P_LD_FLT, 14)}},
-    {"TINE EP", {24, 66, 58, 0, 100, 8, 2, 0}, {0, 66, 40, 44}, 20, 0, FX(0, 16, 22, 32), PAT(3),
+    {50, {24, 66, 58, 0, 100, 8, 2, 0}, {0, 66, 40, 44}, 20, 0, FX(0, 16, 22, 32), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_HARM, 12), XP(P_HARM, 12)}},
-    {"GONG DEEP", {62, 40, 48, 96, 92, 18, 10, 24}, {0, 84, 12, 96}, 6, 0, FX(6, 34, 30, 88), PAT(7),
+    {58, {62, 40, 48, 96, 92, 18, 10, 24}, {0, 84, 12, 96}, 6, 0, FX(6, 34, 30, 88), PAT(7),
      {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_HARM, -20), XP(P_HARM, -20)}},
-    {"HARMONIC BASS", {1, 44, 26, 0, 58, 30, 26, 92}, {0, 58, 112, 30}, 0, 1, FX(22, 0, 0, 8), PAT(2),
+    {68, {1, 44, 26, 0, 58, 30, 26, 92}, {0, 58, 112, 30}, 0, 1, FX(22, 0, 0, 8), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 8), XP(P_HARM, 8)}},
-    {"METAL CLUSTER", {127, 96, 64, 74, 114, 40, 40, 26}, {2, 70, 30, 58}, 22, 0, FX(24, 12, 28, 44), PAT(1),
+    {82, {127, 96, 64, 74, 114, 40, 40, 26}, {2, 70, 30, 58}, 22, 0, FX(24, 12, 28, 44), PAT(1),
      {XP(P_LRATE, 44), XP(P_LWAVE, 4), XP(P_M1SRC, 7), XP(P_M1DST, 3), XP(P_M1AMT, 10), XP(P_HARM, 26)}},
     /* (1.3.4) the two sounds the bank asked for: odd partials through a soft knee make a reed a reed (SPECTR low,
      * TILT up), and STRETCH holds a choir's partials apart while the slow LFO opens its filter */
-    {"REED HORN", {8, 92, 20, 30, 76, 44, 18, 20}, {18, 80, 100, 50}, 35, 1, FX(0, 18, 24, 30), PAT(6),
+    {96, {8, 92, 20, 30, 76, 44, 18, 20}, {18, 80, 100, 50}, 35, 1, FX(0, 18, 24, 30), PAT(6),
      {XP(P_LRATE, 26), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
-    {"AIR CHOIR", {26, 30, 10, 74, 96, 12, 0, 0}, {70, 92, 116, 96}, -20, 0, FX(0, 58, 36, 80), PAT(4),
+    {106, {26, 30, 10, 74, 96, 12, 0, 0}, {70, 92, 116, 96}, -20, 0, FX(0, 58, 36, 80), PAT(4),
      {XP(P_LRATE, 6), XP(P_LWAVE, 6), XP(P_LD_AMP, 8), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 26)}},
     /* (FASE 3) the two new roads: RULE's generated spectrum, and DRAW's own partial levels (the preset sets
      * the first four: the other four stay where the track has them, DRAW is a per-track control) */
-    {"RULE METAL", {120, 92, 72, 60, 112, 36, 34, 24}, {2, 72, 26, 56}, 20, 0, FX(22, 12, 26, 42), PAT(1),
+    {116, {120, 92, 72, 60, 112, 36, 34, 24}, {2, 72, 26, 56}, 20, 0, FX(22, 12, 26, 42), PAT(1),
      {XP(P_X1, 22), XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_M1SRC, 7), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
-    {"ORGAN DRAW", {12, 40, 16, 0, 84, 8, 4, 30}, {0, 64, 127, 20}, 0, 0, FX(0, 34, 18, 30), PAT(5),
+    {127, {12, 40, 16, 0, 84, 8, 4, 30}, {0, 64, 127, 20}, 0, 0, FX(0, 34, 18, 30), PAT(5),
      {XP(P_LN0, 127), XP(P_LN1, 90), XP(P_LN2, 64), XP(P_LN3, 40), XP(P_LRATE, 12), XP(P_LD_AMP, 6)}},
 };
 

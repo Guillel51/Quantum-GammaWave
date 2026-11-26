@@ -36,7 +36,7 @@ static void hv_bar(int32_t x, int32_t y, int32_t w, int32_t h, int32_t v, int32_
 }
 
 /* (FASE 2) the ambience (defined below, after the views that now start with it) */
-static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed);
+static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed, int floor);
 
 /* (4.1) the ground every HOME screen sits on: four bands dithered from the panel's ceiling down to its foot, the
  * accent rising as the rows come down (gw_dither is what a 16-bit panel has instead of a blend). Drawn first, under
@@ -84,7 +84,7 @@ static void hv_sound_name(const track_t *t, char *b)
     if (user_of(t) < UP_SLOTS)
         up_name(user_of(t), b);
     else if (e->npresets)
-        str_cpy(b, e->presets[t->preset % e->npresets].name, 16);
+        str_cpy(b, PR_NAME(&e->presets[t->preset % e->npresets]), 16);
 }
 
 
@@ -148,7 +148,7 @@ static void hv_overview(const track_t *t, uint16_t c)
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
     hv_grad();                                         /* (4.1) the ground */
-    hv_air(Y_LABEL, 202 - Y_LABEL, c, 6u);                            /* (FASE 2) OVERVIEW had no ambience at all */
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 6u, 1);                         /* (FASE 2) OVERVIEW had no ambience at all */
 
     /* pass 0: what is loaded and what it is doing */
     hv_strip(29, c);                                   /* (4.1) which screen this is, as an icon */
@@ -240,7 +240,12 @@ static void hv_overview(const track_t *t, uint16_t c)
  * level. Everything is 1 px rects in the panel's own steps (SURF/RAISE/LINE), drawn first so the text sits on top,
  * so no palette can make it unreadable and it costs nothing but rects -- no allocation, no per-pixel path. */
 static uint32_t hv_fr;
-static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed)
+/* (FASE 1/10) `floor` IS THE SCREEN'S, NOT THE SCREEN'S DECORATION. PERFORMANCE draws its four knobs down to
+ * row 192, and the floor of level bars this field ends in (one a track, as tall as the track's own vu) landed
+ * under them: the "vumetro" the owner reported at the very foot of HOME's third screen. OVERVIEW and MIXER
+ * still want their floor -- it is their footer -- so the field takes the flag and PERFORMANCE asks for embers
+ * only: the ambience stays, the meter is gone. */
+static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed, int floor)
 {
     uint32_t i;
     /* (3.1.2) THE PHASE IS THE FRAME, NOT A PRIVATE COUNTER. This used to be hv_fr++, so the embers stepped
@@ -256,7 +261,7 @@ static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed)
         int32_t y = y0 + (int32_t)((uint32_t)(h - 2) - (((s >> 3) & 63u) + hv_fr * (1u + (i % 3u))) % (uint32_t)(h - 2));
         cv_rect(x, y, (i & 7u) == 0 ? 2 : 1, 1, (i & 3u) == 0 ? T_LINE : T_RAISE);
     }
-    for (i = 0; i < NTRK; i++) {                       /* the floor: six bars, each the level it makes now */
+    for (i = 0; floor && i < NTRK; i++) {              /* the floor: six bars, each the level it makes now */
         const track_t *q = &trk[i];
         int32_t v = q->vu > 0 ? (int32_t)((uint32_t)q->vu * 18u / 32767u) : 0;
         if (v > 0)
@@ -284,7 +289,7 @@ static void hv_mix(const track_t *t, uint16_t c)
     uint32_t k;
     (void)t;
     hv_grad();
-    hv_air(Y_LABEL, 202 - Y_LABEL, c, 1u);
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 1u, 1);
     hv_strip(29, c);
     cv_text(14, 28, &AF_S, "MIXER", T_THEME);          /* (1.3.9) y = 28, not 34: AF_S's capitals are rows 3..11
                                                         * own row, clear of the panel's border and of the rule */         /* (3.5) its own title, where the knob strip was */
@@ -376,7 +381,7 @@ static void hv_perf(const track_t *t, uint16_t c)
     char b[28], q[20];
     uint32_t i;
     hv_grad();
-    hv_air(Y_LABEL, 202 - Y_LABEL, c, 2u);
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 2u, 0);          /* (FASE 1/10) no floor: the knobs own rows 164..192 */
     hv_strip(29, c);
     cv_text(14, 28, &AF_S, "PERFORMANCE", T_THEME);    /* (1.3.9) y = 28, not 34: AF_S's capitals are rows 3..11
                                                         * own row, clear of the panel's border and of the rule */   /* (3.5) its own title, where the knob strip was */

@@ -517,7 +517,7 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
         ed_b(a[0]);
         ed_b(engine_library(ENGINES[a[0]]));
         for (i = 0; i < engine_library(ENGINES[a[0]]); i++)   /* (FASE 2) the list's names: no legacy alias */
-            ed_str(ENGINES[a[0]]->presets[eng_preset_nth(ENGINES[a[0]], i)].name, 12);
+            ed_str(PR_NAME(&ENGINES[a[0]]->presets[eng_preset_nth(ENGINES[a[0]], i)]), 12);
         for (i = 0; i < 2u; i++)                           /* then the two edit-page titles */
             ed_str(ENGINES[a[0]]->page_title[i], 8);
         break;

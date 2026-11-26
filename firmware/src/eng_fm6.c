@@ -534,93 +534,93 @@ _Static_assert(NELEM(N_FM6_PATCH) == FM6_OWN + FM6_NBANK + 2u, "a SLOT name per 
 
 /* {ALG, FB, MLVL, MRAT, MEG, VMOD, DTUN, SLOT}: the factory patch F1..F8 as it is, DTUN on the pad */
 static const preset_t FM6_PRESETS[] = {
-    {"SILT KEYS", {0, 4, 0, 0, 0, 0, 10, 12}, {6, 74, 116, 58}, 0, 0, FX(0, 58, 34, 62), PAT(6),
+    {1099, {0, 4, 0, 0, 0, 0, 10, 12}, {6, 74, 116, 58}, 0, 0, FX(0, 58, 34, 62), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_HARM, 16)}},  /* C: hybrid */
-    {"BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 30, 72), PAT(7),
+    {1109, {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 30, 72), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 22)}},
-    {"FM BASS", {0, 0, 0, 0, 0, 0, 0, 2}, {0, 0, 127, 0}, 0, 1, FX(16, 0, 8, 8), PAT(2),
+    {1114, {0, 0, 0, 0, 0, 0, 0, 2}, {0, 0, 127, 0}, 0, 1, FX(16, 0, 8, 8), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 115), XP(P_HARM, -10)}},
-    {"BRASS", {0, 0, 0, 0, 0, 0, 0, 3}, {0, 0, 127, 0}, 0, 0, FX(8, 26, 22, 38), PAT(4),
+    {207, {0, 0, 0, 0, 0, 0, 0, 3}, {0, 0, 127, 0}, 0, 0, FX(8, 26, 22, 38), PAT(4),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 18)}},
-    {"PAD", {0, 0, 0, 0, 0, 0, 30, 4}, {0, 0, 127, 0}, 0, 0, FX(0, 62, 32, 72), PAT(5),
+    {1122, {0, 0, 0, 0, 0, 0, 30, 4}, {0, 0, 127, 0}, 0, 0, FX(0, 62, 32, 72), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LEVEL, 122)}},
-    {"MARIMBA", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 0, 26, 38), PAT(3),
+    {1126, {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 0, 26, 38), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_LEVEL, 127), XP(P_ELOOP, 2)}},
-    {"ORGAN", {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 127, 0}, 0, 0, FX(10, 42, 4, 28), PAT(6),
+    {1134, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 127, 0}, 0, 0, FX(10, 42, 4, 28), PAT(6),
      {XP(P_LRATE, 19), XP(P_LD_AMP, 6), XP(P_LSHP, 20)}},
-    {"PLUCK", {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 36, 28), PAT(13),
+    {201, {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 36, 28), PAT(13),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_ELOOP, 2)}},
     /* (1.2-GW, issue #17: ambient and expressive) on GW-1 KEYS, the bank FM6 has built in (B1.., fm6_vbank.c): electric
      * pianos, bells, mallets, pads; velocity opens their brightness (each voice's own KVS) */
-    {"SOFT EP", {0, 0, 0, 0, 0, 0, 0, 9}, {0, 0, 127, 0}, 0, 0, FX(0, 50, 26, 44), PAT(6),
+    {1140, {0, 0, 0, 0, 0, 0, 0, 9}, {0, 0, 127, 0}, 0, 0, FX(0, 50, 26, 44), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 8)}},
-    {"REED PIANO", {0, 0, 0, 0, 0, 0, 0, 10}, {0, 0, 127, 0}, 0, 0, FX(6, 40, 22, 34), PAT(6),
+    {1148, {0, 0, 0, 0, 0, 0, 0, 10}, {0, 0, 127, 0}, 0, 0, FX(6, 40, 22, 34), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 12)}},
-    {"FM PIANO", {0, 0, 0, 0, 0, 0, 0, 11}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 16, 44), PAT(6),
+    {1159, {0, 0, 0, 0, 0, 0, 0, 11}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 16, 44), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_HARM, 10)}},
-    {"GLASS KEYS", {0, 0, 0, 0, 0, 0, 10, 12}, {0, 0, 127, 0}, 0, 0, FX(0, 56, 36, 58), PAT(6),
+    {1168, {0, 0, 0, 0, 0, 0, 10, 12}, {0, 0, 127, 0}, 0, 0, FX(0, 56, 36, 58), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 20)}},
-    {"CRYSTAL BELL", {0, 0, 0, 0, 0, 0, 0, 13}, {0, 0, 127, 0}, 0, 0, FX(0, 30, 46, 84), PAT(7),
+    {1179, {0, 0, 0, 0, 0, 0, 0, 13}, {0, 0, 127, 0}, 0, 0, FX(0, 30, 46, 84), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 26)}},
-    {"KALIMBA", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(0, 14, 36, 54), PAT(3),
+    {1192, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(0, 14, 36, 54), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_ELOOP, 2)}},
-    {"VIBES", {0, 0, 0, 0, 0, 0, 0, 15}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 26, 58), PAT(7),
+    {1200, {0, 0, 0, 0, 0, 0, 0, 15}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 26, 58), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 16)}},
-    {"MUSIC BOX", {0, 0, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 0, 0, FX(0, 24, 42, 74), PAT(3),
+    {1206, {0, 0, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 0, 0, FX(0, 24, 42, 74), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_ELOOP, 2)}},
-    {"WARM PAD", {0, 0, 0, 0, 0, 0, 20, 17}, {0, 0, 127, 0}, 0, 0, FX(0, 68, 30, 84), PAT(5),
+    {1216, {0, 0, 0, 0, 0, 0, 20, 17}, {0, 0, 127, 0}, 0, 0, FX(0, 68, 30, 84), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 10), XP(P_LD_AMP, 6)}},
-    {"GLASS PAD", {0, 0, 0, 0, 0, 0, 20, 18}, {0, 0, 127, 0}, 0, 0, FX(0, 68, 36, 88), PAT(5),
+    {1225, {0, 0, 0, 0, 0, 0, 20, 18}, {0, 0, 127, 0}, 0, 0, FX(0, 68, 36, 88), PAT(5),
      {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
-    {"CELESTA", {0, 0, 0, 0, 0, 0, 0, 19}, {0, 0, 127, 0}, 0, 0, FX(0, 24, 36, 64), PAT(7),
+    {1235, {0, 0, 0, 0, 0, 0, 0, 19}, {0, 0, 127, 0}, 0, 0, FX(0, 24, 36, 64), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 18)}},
     /* (QG-1 EXPANSION: Bells, Acoustic, Ethnic & Experimental) */
-    {"TEMPLE BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 34, 42, 88), PAT(7),
+    {1243, {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 34, 42, 88), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -8)}},
-    {"TIBET BOWL", {0, 0, 0, 0, 0, 0, 12, 13}, {0, 0, 127, 0}, 0, 0, FX(0, 48, 44, 92), PAT(7),
+    {1255, {0, 0, 0, 0, 0, 0, 12, 13}, {0, 0, 127, 0}, 0, 0, FX(0, 48, 44, 92), PAT(7),
      {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
-    {"GONG SHIMMER", {0, 4, 16, 0, -10, 2, 26, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 38, 48, 86), PAT(7),
+    {1266, {0, 4, 16, 0, -10, 2, 26, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 38, 48, 86), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -18)}},
     /* (FASE 3) KOTO HARP now carries two of the four new values: the part filter is a NOTCH (the cut taken out,
      * so the pluck rings hollow) and the LFO is PLUK, a decay inside every cycle (its `(1-x)^4` falls where the
      * sine would still be rising), sweeping that cut. Velocity still opens the cut. */
-    {"KOTO HARP", {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 18, 32, 44), PAT(15),
+    {1279, {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 18, 32, 44), PAT(15),
      {XP(P_FTYPE, 6), XP(P_FCUT, 58), XP(P_LRATE, 30), XP(P_LWAVE, 9), XP(P_LD_FLT, 44)}},
     /* (FASE 3) SITAR RESON carries the other two: a SHELF (x + LP: +6 dB under the corner, the top where it was)
      * and the matrix's RES destination, so the velocity opens the resonance of that shelf instead of its cut. */
-    {"SITAR RESON", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(16, 28, 36, 58), PAT(3),
+    {1289, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(16, 28, 36, 58), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 26), XP(P_M1AMT, 24), XP(P_FTYPE, 7), XP(P_FCUT, 44), XP(P_HARM, 14)}},
-    {"IRON PLUCK", {0, 0, 62, 0, 0, 0, 0, 5}, {0, 0, 112, 18}, 0, 0, FX(0, 18, 40, 54), PAT(3),
+    {1301, {0, 0, 62, 0, 0, 0, 0, 5}, {0, 0, 112, 18}, 0, 0, FX(0, 18, 40, 54), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 30), XP(P_HARM, 22)}},  /* C: performance */
-    {"STEEL DRUM", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 26, 48), PAT(3),
+    {1312, {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 26, 48), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119), XP(P_ELOOP, 2)}},
 
     /* (QG-1 1.6) EVOLVE: the bell's tail keeps moving while it rings */
-    {"EVOLVE BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 25, 30, 74), PAT(7),
+    {1323, {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 25, 30, 74), PAT(7),
      {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LFADE, 70), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},
     /* (QG-1 1.6) TOUCH: the EP's brightness follows velocity, its vibrato the pressure */
-    {"VELVET EP", {0, 0, 0, 0, 0, 0, 0, 0}, {0, 70, 30, 25}, 0, 0, FX(0, 55, 30, 48), PAT(6),
+    {1335, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 70, 30, 25}, 0, 0, FX(0, 55, 30, 48), PAT(6),
      {XP(P_M1AMT, 40), XP(P_M2AMT, 24), XP(P_HARM, 6)}},
 
 
-    {"AURORA FM", {0, 0, 0, 0, 0, 0, 0, 4}, {30, 90, 60, 8}, 0, 0, FX(0, 52, 35, 64), PAT(5),
+    {1345, {0, 0, 0, 0, 0, 0, 0, 4}, {30, 90, 60, 8}, 0, 0, FX(0, 52, 35, 64), PAT(5),
      {XP(P_LRATE, -3), XP(P_LWAVE, 6), XP(P_LFADE, 80), XP(P_LD_FLT, 20), XP(P_LD_AMP, 10)}},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"EMBER TINES", {0, 2, 0, 0, 0, 0, 10, 0}, {0, 0, 127, 0}, 18, 0, FX(4, 40, 28, 40), PAT(6),
+    {1355, {0, 2, 0, 0, 0, 0, 10, 0}, {0, 0, 127, 0}, 18, 0, FX(4, 40, 28, 40), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_HARM, 10)}},  /* C: EP */
-    {"FROST MUSIC", {0, -3, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 10, 0, FX(0, 24, 44, 72), PAT(6),
+    {1367, {0, -3, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 10, 0, FX(0, 24, 44, 72), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 24)}},  /* C: music box */
-    {"FERROUS PAD", {0, 0, 0, 0, 0, 0, 0, 6}, {46, 84, 108, 92}, 0, 0, FX(0, 48, 30, 80), PAT(6),
+    {1379, {0, 0, 0, 0, 0, 0, 0, 6}, {46, 84, 108, 92}, 0, 0, FX(0, 48, 30, 80), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 96)}},  /* C: texture */
-    {"ALLOY BASS", {0, 6, 0, 0, 0, 0, 0, 2}, {0, 62, 72, 22}, 30, 1, FX(22, 0, 6, 6), PAT(2),
+    {1391, {0, 6, 0, 0, 0, 0, 0, 2}, {0, 62, 72, 22}, 30, 1, FX(22, 0, 6, 6), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -6)}},  /* E: FM bass */
-    {"SUBMARINE BELL", {0, 0, 0, 0, 0, 0, 14, 13}, {0, 0, 127, 0}, 8, 0, FX(0, 28, 48, 88), PAT(6),
+    {1402, {0, 0, 0, 0, 0, 0, 14, 13}, {0, 0, 127, 0}, 8, 0, FX(0, 28, 48, 88), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -14)}},  /* C: bell */
-    {"PAPER ORGAN", {0, 4, 0, 0, 0, 0, 6, 6}, {10, 0, 127, 25}, 12, 0, FX(10, 44, 6, 30), PAT(6),
+    {1417, {0, 4, 0, 0, 0, 0, 6, 6}, {10, 0, 127, 25}, 12, 0, FX(10, 44, 6, 30), PAT(6),
      {XP(P_LRATE, 20), XP(P_LD_AMP, 6), XP(P_LSHP, 22)}},  /* KEYS: organ */
-    {"CINTA MAGNETICA", {0, -2, 0, 0, 0, 0, 20, 9}, {20, 0, 127, 40}, 16, 0, FX(8, 52, 30, 64), PAT(6),
+    {1429, {0, -2, 0, 0, 0, 0, 20, 9}, {20, 0, 127, 40}, 16, 0, FX(8, 52, 30, 64), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, -10)}},  /* G: tape keys */
-    {"TEMPLE CIRCUIT", {0, 3, -12, -5, 12, 0, 8, 1}, {0, 0, 127, 0}, 12, 0, FX(0, 32, 46, 90), PAT(6),
+    {1445, {0, 3, -12, -5, 12, 0, 8, 1}, {0, 0, 127, 0}, 12, 0, FX(0, 32, 46, 90), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -12)}},  /* C: temple bell */
 };
 

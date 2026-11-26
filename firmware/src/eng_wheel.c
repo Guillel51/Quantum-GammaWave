@@ -323,56 +323,56 @@ static void wheel_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 
 static const preset_t WHEEL_PRESETS[] = {
     /* name, {REG, SUB, BODY, TOP, PERC, CLICK, DRIVE, ROTR}, {A D S R}, fenv, mono */
-    {"FULL ORGAN", {15, 0, 0, 0, 0, 30, 20, 1}, {0, 64, 127, 45}, 0, 0, FX(0, 28, 8, 30), PAT(5),
+    {2862, {15, 0, 0, 0, 0, 30, 20, 1}, {0, 64, 127, 45}, 0, 0, FX(0, 28, 8, 30), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6), XP(P_HARM, 6)}},
-    {"JAZZ PERC", {4, 0, 0, 0, 2, 50, 8, 1}, {0, 64, 127, 40}, 0, 0, FX(0, 20, 4, 22), PAT(3),
+    {2873, {4, 0, 0, 0, 2, 50, 8, 1}, {0, 64, 127, 40}, 0, 0, FX(0, 20, 4, 22), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, 14)}},
-    {"GOSPEL", {6, 0, 0, 0, 1, 60, 40, 2}, {0, 64, 127, 45}, 0, 0, FX(6, 32, 4, 38), PAT(6),
+    {2883, {6, 0, 0, 0, 1, 60, 40, 2}, {0, 64, 127, 45}, 0, 0, FX(6, 32, 4, 38), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 0), XP(P_LD_AMP, 8)}},
-    {"SOFT FLUTE", {1, 0, -2, 0, 0, 10, 0, 1}, {0, 64, 127, 55}, 0, 0, FX(0, 22, 16, 54), PAT(5),
+    {2890, {1, 0, -2, 0, 0, 10, 0, 1}, {0, 64, 127, 55}, 0, 0, FX(0, 22, 16, 54), PAT(5),
      {XP(P_LRATE, 26), XP(P_LWAVE, 0), XP(P_LD_PIT, 4), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
-    {"ROCK DRIVE", {7, 0, 0, 0, 0, 70, 100, 2}, {0, 64, 127, 40}, 0, 0, FX(38, 0, 10, 22), PAT(4),
+    {2901, {7, 0, 0, 0, 0, 70, 100, 2}, {0, 64, 127, 40}, 0, 0, FX(38, 0, 10, 22), PAT(4),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 18)}},
     /* (GAMMAWAVE) cathedral & overdriven tonewheel patches */
-    {"DOOM CATH", {15, 6, 4, 3, 0, 45, 78, 1}, {20, 85, 127, 75}, 0, 0, FX(36, 28, 24, 86), PAT(5),
+    {2912, {15, 6, 4, 3, 0, 45, 78, 1}, {20, 85, 127, 75}, 0, 0, FX(36, 28, 24, 86), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8)}},
-    {"BAKELITE", {11, 4, 2, -2, 3, 65, 92, 2}, {2, 70, 120, 50}, 0, 0, FX(44, 18, 30, 42), PAT(6),
+    {2922, {11, 4, 2, -2, 3, 65, 92, 2}, {2, 70, 120, 50}, 0, 0, FX(44, 18, 30, 42), PAT(6),
      {XP(P_LRATE, 24), XP(P_LWAVE, 4), XP(P_LD_FLT, 12)}},
     /* (1.2-GW, issue #17: ambient and expressive) an organ drone: flutes, the slow rotor, a long swell */
-    {"DRONE ORGAN", {0, 4, 2, -4, 0, 0, 0, 1}, {60, 64, 127, 90}, 0, 0, FX(0, 38, 20, 86), PAT(5),
+    {2931, {0, 4, 2, -4, 0, 0, 0, 1}, {60, 64, 127, 90}, 0, 0, FX(0, 38, 20, 86), PAT(5),
      {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
     /* (QUANTUM // QG-1) a bright drawbar set with percussion, a soft chapel */
-    {"QUANTUM DRAW", {9, 2, 1, 1, 2, 40, 30, 2}, {0, 64, 127, 45}, 0, 0, FX(12, 20, 16, 38), PAT(6),
+    {2943, {9, 2, 1, 1, 2, 40, 30, 2}, {0, 64, 127, 45}, 0, 0, FX(12, 20, 16, 38), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 10)}},
-    {"CHAPEL SOFT", {2, 2, -1, 0, 0, 5, 0, 1}, {40, 64, 127, 80}, 0, 0, FX(0, 28, 20, 82), PAT(5),
+    {2956, {2, 2, -1, 0, 0, 5, 0, 1}, {40, 64, 127, 80}, 0, 0, FX(0, 28, 20, 82), PAT(5),
      {XP(P_LRATE, 11), XP(P_LWAVE, 6), XP(P_LD_FLT, 10), XP(P_HARM, -8)}},
     /* (QG-1 EXPANSION: Hurdy Gurdy & Acoustic Traditional) */
-    {"HURDY GURDY", {10, 4, 3, -2, 1, 85, 45, 0}, {5, 60, 127, 40}, 0, 1, FX(16, 10, 16, 28), PAT(3),
+    {2968, {10, 4, 3, -2, 1, 85, 45, 0}, {5, 60, 127, 40}, 0, 1, FX(16, 10, 16, 28), PAT(3),
      {XP(P_LRATE, 34), XP(P_LWAVE, 1), XP(P_LD_PIT, 5), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
-    {"GURDY DRONE", {8, 6, 4, -4, 0, 95, 60, 0}, {20, 80, 127, 70}, 0, 0, FX(24, 18, 20, 58), PAT(5),
+    {2980, {8, 6, 4, -4, 0, 95, 60, 0}, {20, 80, 127, 70}, 0, 0, FX(24, 18, 20, 58), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_PIT, 4), XP(P_LD_FLT, 10)}},
-    {"MEDIEVAL VIEL", {6, 3, 2, -1, 0, 40, 25, 0}, {10, 70, 120, 50}, 0, 1, FX(10, 14, 16, 44), PAT(4),
+    {2992, {6, 3, 2, -1, 0, 40, 25, 0}, {10, 70, 120, 50}, 0, 1, FX(10, 14, 16, 44), PAT(4),
      {XP(P_LRATE, 28), XP(P_LWAVE, 1), XP(P_LD_FLT, 8)}},
-    {"FOLK DRONE", {12, 5, 3, 0, 0, 50, 35, 1}, {45, 80, 127, 85}, 0, 0, FX(12, 24, 24, 74), PAT(5),
+    {3006, {12, 5, 3, 0, 0, 50, 35, 1}, {45, 80, 127, 85}, 0, 0, FX(12, 24, 24, 74), PAT(5),
      {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 12)}},
-    {"NORDIC ORGAN", {7, 3, 0, 1, 1, 30, 15, 1}, {15, 64, 127, 65}, 0, 0, FX(0, 34, 28, 68), PAT(6),
+    {3017, {7, 3, 0, 1, 1, 30, 15, 1}, {15, 64, 127, 65}, 0, 0, FX(0, 34, 28, 68), PAT(6),
      {XP(P_LRATE, 19), XP(P_LWAVE, 0), XP(P_LD_AMP, 6)}},
-    {"GOTHIC SHRINE", {15, 7, 5, 4, 0, 60, 85, 2}, {30, 90, 127, 95}, 0, 0, FX(38, 42, 34, 94), PAT(5),
+    {3030, {15, 7, 5, 4, 0, 60, 85, 2}, {30, 90, 127, 95}, 0, 0, FX(38, 42, 34, 94), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
 
     /* (QG-1 1.6) EVOLVE: the rotor's swell and the filter wander together, slowly */
-    {"CATHEDRAL REED", {5, 2, 3, 1, 2, 30, 10, 1}, {45, 70, 127, 90}, 0, 0, FX(0, 35, 25, 88), PAT(5),
+    {3044, {5, 2, 3, 1, 2, 30, 10, 1}, {45, 70, 127, 90}, 0, 0, FX(0, 35, 25, 88), PAT(5),
      {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8)}},
-    {"TIDAL ORGAN", {13, 6, 6, 3, 0, 55, 45, 2}, {60, 85, 127, 95}, 0, 0, FX(15, 50, 30, 85), PAT(5),
+    {3059, {13, 6, 6, 3, 0, 55, 45, 2}, {60, 85, 127, 95}, 0, 0, FX(15, 50, 30, 85), PAT(5),
      {XP(P_LRATE, 3), XP(P_LWAVE, 6), XP(P_LD_FLT, 20)}},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"TONE CABINET", {6, 1, 2, 1, 1, 35, 25, 1}, {0, 72, 100, 40}, 16, 0, FX(0, 40, 10, 34), PAT(6),
+    {3071, {6, 1, 2, 1, 1, 35, 25, 1}, {0, 72, 100, 40}, 16, 0, FX(0, 40, 10, 34), PAT(6),
      {XP(P_LRATE, 22), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},  /* KEYS: organ */
-    {"SALT REED", {3, 2, -1, 2, 2, 25, 18, 1}, {8, 78, 92, 56}, 10, 0, FX(0, 30, 18, 52), PAT(6),
+    {3084, {3, 2, -1, 2, 2, 25, 18, 1}, {8, 78, 92, 56}, 10, 0, FX(0, 30, 18, 52), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, 8)}},  /* KEYS: reed */
-    {"BARKING PIPE", {11, 3, 3, -2, 4, 80, 55, 0}, {0, 74, 66, 40}, 28, 1, FX(20, 12, 20, 30), PAT(1),
+    {3094, {11, 3, 3, -2, 4, 80, 55, 0}, {0, 74, 66, 40}, 28, 1, FX(20, 12, 20, 30), PAT(1),
      {XP(P_LRATE, 32), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},  /* D: industrial reed */
-    {"CORAL ORGAN", {13, 2, 4, 2, 0, 20, 8, 2}, {30, 90, 116, 88}, 6, 0, FX(0, 52, 26, 70), PAT(5),
+    {3107, {13, 2, 4, 2, 0, 20, 8, 2}, {30, 90, 116, 88}, 6, 0, FX(0, 52, 26, 70), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 1), XP(P_LD_FLT, 10)}},  /* B: organ pad */
 };
 

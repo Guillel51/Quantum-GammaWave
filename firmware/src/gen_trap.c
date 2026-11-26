@@ -474,7 +474,7 @@ static void trap_preset(track_t *t, uint32_t eng, const char *w1)
     en = ENGINES[t->eng_req % NENGINES];
     n = gen_npresets(t->eng_req);                       /* (1.2-GW: the presets of before 1.2, ui.c) */
     if (!n) return;
-    for (i = 0; i < n; i++) if (dname_has(en->presets[i].name, w1)) { apply_preset_to(t, i); return; }
+    for (i = 0; i < n; i++) if (dname_has(PR_NAME(&en->presets[i]), w1)) { apply_preset_to(t, i); return; }
     apply_preset_to(t, 0);
 }
 typedef struct { uint8_t eng; const char *w; int8_t lo, hi; uint8_t sus; int8_t trim; } tsound_t;   /* (lo, hi: the melody's

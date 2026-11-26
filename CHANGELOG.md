@@ -1,3 +1,52 @@
+## v2.16.0 — 2.16: el glide en perspectiva, el vúmetro fuera de PERFORMANCE y 1 512 B de XIP
+
+Fase de recuperación de XIP con dos arreglos de interfaz que estaban abiertos. Sin cambios de DSP, de
+motores, de presets guardados ni de calidad visual.
+
+### lo que se ve
+
+- **EDIT > VOICE y EDIT > VOICE 2 tienen gráfico.** Las dos últimas páginas de EDIT eran `GR_NONE`: cuatro
+  números y la placa vacía. Ahora dibujan el portamento en profundidad, como el túnel del visualizador: dos
+  raíles que convergen en un punto de fuga, travesaños que se cierran con la distancia y el recorrido de la
+  voz desde el carril cercano hasta la nota. El degradado es real (de `T_SURF` en el fondo al acento de la
+  página delante), no un tramado. GLIDE (o M.STRT en VOICE 2) decide en qué travesaño se engancha la nota
+  (0: ya está, 127: hasta el punto de fuga); GLMODE RATE suaviza la caminata y TIME la reparte; PRIO y ALLOC
+  mandan la voz por el lado izquierdo o el derecho del camino. Todo lo que se lee es el valor que corre el
+  DSP.
+- **HOME > PERFORMANCE ya no termina en un vúmetro.** La banda de barras de nivel que cierra el fondo de
+  OVERVIEW y MIXER caía bajo los cuatro mandos de PERFORMANCE (filas 164..192): era el «vúmetro» que se veía
+  abajo del todo en la tercera pantalla. El campo de ambiente pide ahora su suelo por parámetro y
+  PERFORMANCE se queda sin él: quedan las brasas, se va el medidor.
+
+### los bytes, medidos [AC791N]
+
+| cambio | XIP |
+|---|---:|
+| `DRUM_MAP` de punteros a índices de un byte + `DM_PAT` | **−592 B** |
+| `param_desc_t` a 16 B (fmt, min, max, def de un byte) | **−1 692 B** |
+| `preset_t.name` de puntero a índice de 16 bits en `PRESET_NAMES` | **−568 B** |
+| el gráfico nuevo de VOICE / VOICE 2 | +730 B |
+
+Imagen **582 064 B** de 583 612 (1 548 libres; eran **36** al empezar la fase). Las tablas de páginas y de
+iconos se probaron y **se revirtieron con su medida**: pasar sus nombres a índices costaba 182 B y 92 B
+respectivamente porque el linker ya fusiona esos literales con los del resto de la UI.
+
+**Sigue en rojo:** `tools/resource_map.py --check` da `FAIL XIP free 1548 < floor 2048`. Faltan 500 B y este
+release no lo esconde: el camino grande que queda es codificar los presets de fábrica por diferencias contra
+el vector por defecto de cada motor (13 564 B de tablas, 5-6 KB recuperables), con su decodificador probado
+valor por valor en las nueve rutas de carga.
+
+### verificación
+
+- **[AC791N]** `./build.sh` enlaza; `drumx_test`, `pattern_len_test`, `preset_audit_test`, `project_test`,
+  `backup_test`, `ui_test` y `text_ref_test` (6 732 cadenas × caras × paletas) pasan.
+- **[HOST x86]** `ui_render`: **208 pantallas × 22 paletas**, 0 hallazgos de lint, 0 tintas sobre su propio
+  color, 0 GREY/MONO fuera de gama, **4 234 479 medidas de alineación y 0 desviaciones**. La escena
+  `voice2` es nueva: la segunda página tenía frame propio desde ahora.
+- **[HOST x86]** `tools/gen_preset_categories.py` lee los nombres por el índice nuevo: `docs/PRESET_CATEGORIES.md`
+  y `build/gen/preset_cats.h` salen **idénticos** a los de antes (296 presets, mismas categorías).
+- **[unidad FM-1]** no medida: no hay unidad en este entorno.
+
 ## Sin publicar — 8 fases sólo donde la cara S las necesita
 
 `text_spacing` cierra: la S mide **0,202 px** (rms 0,059, **0 pares sobre 0,25**), «Gl» pasa de −0,26 px a

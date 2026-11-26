@@ -252,66 +252,66 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
 
 static const preset_t WT_PRESETS[] = {
     /* name, {MORPH, DETUNE, UNI, SUB, CUT, RES, DRIVE, HARM}, {A D S R}, fenv, mono */
-    {"GLASS PAD", {18, 22, 1, 10, 92, 10, 0, 76}, {25, 70, 110, 75}, 0, 0, FX(0, 48, 42, 72), PAT(5),
+    {1225, {18, 22, 1, 10, 92, 10, 0, 76}, {25, 70, 110, 75}, 0, 0, FX(0, 48, 42, 72), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
-    {"MORPH LEAD", {54, 12, 1, 0, 104, 24, 18, 80}, {3, 60, 110, 35}, 0, 1, FX(20, 22, 26, 26), PAT(4),
+    {2599, {54, 12, 1, 0, 104, 24, 18, 80}, {3, 60, 110, 35}, 0, 1, FX(20, 22, 26, 26), PAT(4),
      {XP(P_LRATE, 40), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
-    {"SINE KEY", {0, 0, 0, 0, 118, 0, 0, 40}, {2, 55, 100, 40}, 0, 0, FX(0, 12, 14, 24), PAT(3),
+    {178, {0, 0, 0, 0, 118, 0, 0, 40}, {2, 55, 100, 40}, 0, 0, FX(0, 12, 14, 24), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 10)}},
-    {"VOCAL AAH", {127, 8, 1, 4, 88, 30, 6, 66}, {35, 80, 127, 70}, 0, 0, FX(0, 36, 32, 64), PAT(5),
+    {2610, {127, 8, 1, 4, 88, 30, 6, 66}, {35, 80, 127, 70}, 0, 0, FX(0, 36, 32, 64), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 0), XP(P_LD_FLT, 12)}},
-    {"METAL BELL", {98, 0, 0, 0, 116, 12, 0, 92}, {0, 50, 40, 55}, 0, 0, FX(0, 24, 22, 40), PAT(3),
+    {2620, {98, 0, 0, 0, 116, 12, 0, 92}, {0, 50, 40, 55}, 0, 0, FX(0, 24, 22, 40), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, 24)}},
-    {"HOLLOW WOOD", {72, 6, 0, 0, 96, 44, 10, 30}, {0, 60, 70, 45}, 0, 0, FX(10, 14, 16, 28), PAT(2),
+    {2631, {72, 6, 0, 0, 96, 44, 10, 30}, {0, 60, 70, 45}, 0, 0, FX(10, 14, 16, 28), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119), XP(P_ELOOP, 2)}},
-    {"BRASS SWELL", {36, 18, 1, 0, 78, 20, 30, 88}, {45, 75, 127, 60}, 0, 0, FX(26, 32, 22, 48), PAT(6),
+    {2643, {36, 18, 1, 0, 78, 20, 30, 88}, {45, 75, 127, 60}, 0, 0, FX(26, 32, 22, 48), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
-    {"SUB BASS", {10, 0, 0, 90, 60, 26, 8, 20}, {0, 55, 120, 35}, 0, 1, FX(20, 0, 0, 10), PAT(2),
+    {192, {10, 0, 0, 90, 60, 26, 8, 20}, {0, 55, 120, 35}, 0, 1, FX(20, 0, 0, 10), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -16)}},
-    {"PULSE ORGAN", {78, 14, 1, 0, 100, 8, 0, 58}, {0, 64, 127, 40}, 0, 0, FX(0, 32, 20, 34), PAT(5),
+    {2655, {78, 14, 1, 0, 100, 8, 0, 58}, {0, 64, 127, 40}, 0, 0, FX(0, 32, 20, 34), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},
-    {"QUANTUM MASS", {44, 26, 1, 30, 66, 36, 22, 84}, {55, 90, 127, 95}, 0, 0, FX(30, 52, 46, 88), PAT(5),
+    {2667, {44, 26, 1, 30, 66, 36, 22, 84}, {55, 90, 127, 95}, 0, 0, FX(30, 52, 46, 88), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"VELVET MORPH", {40, 26, 1, 8, 86, 12, 10, 70}, {46, 88, 106, 88}, 8, 0, FX(0, 58, 30, 76), PAT(5),
+    {2680, {40, 26, 1, 8, 86, 12, 10, 70}, {46, 88, 106, 88}, 8, 0, FX(0, 58, 30, 76), PAT(5),
      {XP(P_LRATE, 15), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LSHP, 20)}},  /* B: pad */
-    {"SPECTRAL REED", {58, 14, 1, 0, 100, 26, 16, 62}, {6, 80, 84, 56}, 20, 1, FX(14, 24, 36, 40), PAT(4),
+    {2693, {58, 14, 1, 0, 100, 26, 16, 62}, {6, 80, 84, 56}, 20, 1, FX(14, 24, 36, 40), PAT(4),
      {XP(P_LRATE, 36), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 8)}},  /* A: reed lead */
-    {"CHROME PLUCK", {84, 10, 0, 0, 110, 30, 20, 88}, {0, 78, 0, 52}, 26, 0, FX(10, 18, 48, 32), PAT(3),
+    {2707, {84, 10, 0, 0, 110, 30, 20, 88}, {0, 78, 0, 52}, 26, 0, FX(10, 18, 48, 32), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 125), XP(P_ELOOP, 2)}},  /* PLUCK */
-    {"BARRO Y LUZ", {28, 32, 1, 12, 74, 18, 6, 54}, {70, 92, 112, 98}, 6, 0, FX(0, 62, 34, 84), PAT(5),
+    {2720, {28, 32, 1, 12, 74, 18, 6, 54}, {70, 92, 112, 98}, 6, 0, FX(0, 62, 34, 84), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: pad */
     /* (3.0) the morph family: each one moves MORPH itself (the matrix's E1) or lets POSMOD walk it, so the
      * table is heard as a road and not as fourteen still frames; the LFO stays on the filter where noted */
-    {"MAREJADA", {64, 18, 1, 6, 88, 20, 0, 68}, {32, 82, 112, 86}, 0, 0, FX(0, 50, 40, 82), PAT(5),
+    {2732, {64, 18, 1, 6, 88, 20, 0, 68}, {32, 82, 112, 86}, 0, 0, FX(0, 50, 40, 82), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 38), XP(P_LD_FLT, 20)}},
-    {"PRISMA", {74, 8, 0, 0, 104, 18, 8, 88}, {4, 70, 96, 42}, 12, 1, FX(16, 28, 34, 44), PAT(4),
+    {2741, {74, 8, 0, 0, 104, 18, 8, 88}, {4, 70, 96, 42}, 12, 1, FX(16, 28, 34, 44), PAT(4),
      {XP(P_LRATE, 52), XP(P_LWAVE, 1), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 46), XP(P_LD_FLT, 10)}},
-    {"CORAL GLASS", {22, 20, 1, 4, 90, 14, 0, 72}, {30, 78, 112, 84}, 0, 0, FX(0, 60, 38, 80), PAT(5),
+    {2748, {22, 20, 1, 4, 90, 14, 0, 72}, {30, 78, 112, 84}, 0, 0, FX(0, 60, 38, 80), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_X1, 26), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8), XP(P_LEVEL, 108)}},
-    {"VOCAL TIDE", {112, 10, 1, 2, 86, 26, 4, 60}, {42, 84, 120, 80}, 0, 0, FX(0, 46, 36, 76), PAT(5),
+    {2760, {112, 10, 1, 2, 86, 26, 4, 60}, {42, 84, 120, 80}, 0, 0, FX(0, 46, 36, 76), PAT(5),
      {XP(P_LRATE, 10), XP(P_LWAVE, 0), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 14), XP(P_X1, 34)}},
-    {"ARCO SOLAR", {48, 6, 0, 0, 108, 22, 16, 90}, {8, 66, 100, 48}, 16, 1, FX(22, 30, 30, 40), PAT(4),
+    {2771, {48, 6, 0, 0, 108, 22, 16, 90}, {8, 66, 100, 48}, 16, 1, FX(22, 30, 30, 40), PAT(4),
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 42), XP(P_X0, 26)}},
-    {"MORPH SUB", {12, 0, 0, 84, 56, 24, 8, 16}, {0, 52, 120, 30}, 0, 1, FX(8, 0, 0, 12), PAT(2),
+    {2782, {12, 0, 0, 84, 56, 24, 8, 16}, {0, 52, 120, 30}, 0, 1, FX(8, 0, 0, 12), PAT(2),
      {XP(P_LRATE, 8), XP(P_LWAVE, 0), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 10), XP(P_X1, 8)}},
     /* (FASE 5) Two families the bank was missing, both built from what the engine already does: a tine
      * electric piano (the frame near HOLLOW, the filter env a fast attack then a body, no sub) and a
      * crystal bell (the METAL frame, a short filter env and a long tail, sent to the reverb). Neither
      * adds DSP: MORPH picks the frame, HARM the tilt, CUT/RES the body. */
-    {"ELECTRIC TINE", {34, 6, 0, 0, 96, 8, 4, 72}, {0, 62, 44, 40}, 22, 0, FX(0, 18, 20, 30), PAT(3),
+    {2792, {34, 6, 0, 0, 96, 8, 4, 72}, {0, 62, 44, 40}, 22, 0, FX(0, 18, 20, 30), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 112), XP(P_HARM, 12)}},
-    {"GLASS CHIME", {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 18, 62}, 10, 0, FX(0, 24, 26, 52), PAT(3),
+    {2806, {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 18, 62}, 10, 0, FX(0, 24, 26, 52), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 116), XP(P_HARM, 20)}},
-    {"TIDAL MIRROR", {44, 26, 1, 14, 86, 20, 18, 58}, {28, 78, 102, 84}, 10, 0, FX(24, 50, 42, 72), PAT(5),
+    {2818, {44, 26, 1, 14, 86, 20, 18, 58}, {28, 78, 102, 84}, 10, 0, FX(24, 50, 42, 72), PAT(5),
      {XP(P_LRATE, 9), XP(P_LWAVE, 7), XP(P_LD_FLT, 20), XP(P_M1SRC, 4), XP(P_M1DST, 1), XP(P_M1AMT, 14)}},  /* (v1.5.19) the table morphing under the cut */
     /* (FASE 3) PHASE's three transforms, one preset each: they add nothing to a sound until WARP asks for it,
      * and the preset writes the mode in the retired slot (P_LRTRG) and WARP's depth on CHARACTER 1. */
-    {"KNEE REED", {58, 8, 1, 0, 100, 26, 12, 72}, {6, 74, 96, 56}, 18, 1, FX(14, 24, 30, 36), PAT(4),
+    {2831, {58, 8, 1, 0, 100, 26, 12, 72}, {6, 74, 96, 56}, 18, 1, FX(14, 24, 30, 36), PAT(4),
      {XP(P_LRTRG, 1), XP(P_X0, 20), XP(P_X1, 8), XP(P_LRATE, 28), XP(P_LD_FLT, 12), XP(P_M1AMT, 8)}},
-    {"HOLD GLASS", {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 30, 64}, 10, 0, FX(0, 22, 26, 54), PAT(3),
+    {2841, {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 30, 64}, 10, 0, FX(0, 22, 26, 54), PAT(3),
      {XP(P_LRTRG, 2), XP(P_X0, 30), XP(P_X1, 18), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
-    {"OCTAVE X2", {30, 12, 1, 0, 108, 16, 8, 82}, {0, 60, 120, 40}, 0, 1, FX(18, 18, 24, 26), PAT(2),
+    {2852, {30, 12, 1, 0, 108, 16, 8, 82}, {0, 60, 120, 40}, 0, 1, FX(18, 18, 24, 26), PAT(2),
      {XP(P_LRTRG, 3), XP(P_X0, 36), XP(P_X1, 20), XP(P_LRATE, 22), XP(P_LD_FLT, 10), XP(P_M1AMT, 10)}},
 };
 

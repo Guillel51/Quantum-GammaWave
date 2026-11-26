@@ -264,83 +264,83 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 
 static const preset_t PHASE_PRESETS[] = {
     /* name, {WAVE, WAVE2, DCW, ENV, DTN, LINE, SUB, -}, {A D S R}, fenv, mono */
-    {"BRASS", {0, 0, 30, 90, 0, 0, 0, 0}, {8, 70, 90, 40}, 0, 0, FX(10, 24, 22, 36), PAT(6),
+    {207, {0, 0, 30, 90, 0, 0, 0, 0}, {8, 70, 90, 40}, 0, 0, FX(10, 24, 22, 36), PAT(6),
      {XP(P_LRATE, 26), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
-    {"ORGAN", {3, 0, 40, 0, 0, 0, 0, 0}, {0, 127, 127, 30}, 0, 0, FX(0, 46, 8, 28), PAT(6),
+    {1134, {3, 0, 40, 0, 0, 0, 0, 0}, {0, 127, 127, 30}, 0, 0, FX(0, 46, 8, 28), PAT(6),
      {XP(P_LRATE, 20), XP(P_LD_AMP, 8), XP(P_LEVEL, 83)}},
-    {"STRING", {0, 4, 50, 40, 12, 0, 0, 0}, {40, 90, 100, 70}, 0, 0, FX(0, 54, 24, 64), PAT(5),
+    {2258, {0, 4, 50, 40, 12, 0, 0, 0}, {40, 90, 100, 70}, 0, 0, FX(0, 54, 24, 64), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
-    {"RESO", {5, 0, 60, 60, 0, 0, 0, 0}, {0, 70, 30, 60}, 0, 0, FX(0, 0, 42, 38), PAT(1),
+    {2265, {5, 0, 60, 60, 0, 0, 0, 0}, {0, 70, 30, 60}, 0, 0, FX(0, 0, 42, 38), PAT(1),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_HARM, 20)}},
-    {"BELL", {6, 0, 80, 50, 0, 0, 0, 0}, {0, 95, 0, 90}, 0, 0, FX(0, 0, 32, 72), PAT(7),
+    {1109, {6, 0, 80, 50, 0, 0, 0, 0}, {0, 95, 0, 90}, 0, 0, FX(0, 0, 32, 72), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 22)}},
-    {"WIRE", {4, 7, 70, 40, 7, 0, 0, 0}, {10, 80, 80, 60}, 0, 0, FX(18, 30, 32, 38), PAT(4),
+    {2270, {4, 7, 70, 40, 7, 0, 0, 0}, {10, 80, 80, 60}, 0, 0, FX(18, 30, 32, 38), PAT(4),
      {XP(P_LRATE, 34), XP(P_LWAVE, 4), XP(P_LD_FLT, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
     /* (JIANT 0.4) FB: the phase fed back */
-    {"GROWL", {0, 0, 70, 80, 0, 0, 40, 55}, {2, 70, 90, 40}, 0, 1, FX(24, 0, 28, 24), PAT(4),
+    {2275, {0, 0, 70, 80, 0, 0, 40, 55}, {2, 70, 90, 40}, 0, 1, FX(24, 0, 28, 24), PAT(4),
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_LD_SHP, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
-    {"FB BASS", {1, 0, 45, 60, 0, 0, 70, 35}, {0, 60, 60, 25}, 0, 1, FX(22, 0, 0, 8), PAT(2),
+    {2281, {1, 0, 45, 60, 0, 0, 70, 35}, {0, 60, 60, 25}, 0, 1, FX(22, 0, 0, 8), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_HARM, -10)}},
     /* (GAMMAWAVE / WRAITH) phase-distortion plasma patches */
-    {"PLASMA CORE", {5, 4, 82, 90, 14, 1, 65, 78}, {0, 68, 85, 36}, 32, 1, FX(44, 18, 24, 22), PAT(2),
+    {2289, {5, 4, 82, 90, 14, 1, 65, 78}, {0, 68, 85, 36}, 32, 1, FX(44, 18, 24, 22), PAT(2),
      {XP(P_LRATE, 26), XP(P_LWAVE, 6), XP(P_LD_FLT, 20), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
-    {"WARP REESE", {0, 5, 76, 65, 22, 0, 85, 64}, {6, 82, 105, 48}, 24, 1, FX(40, 34, 12, 20), PAT(8),
+    {2301, {0, 5, 76, 65, 22, 0, 85, 64}, {6, 82, 105, 48}, 24, 1, FX(40, 34, 12, 20), PAT(8),
      {XP(P_LRATE, 24), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
-    {"CRYPT BELL", {6, 7, 88, 70, 9, 1, 20, 48}, {0, 96, 0, 92}, 0, 0, FX(10, 28, 44, 78), PAT(7),
+    {2312, {6, 7, 88, 70, 9, 1, 20, 48}, {0, 96, 0, 92}, 0, 0, FX(10, 28, 44, 78), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_AMP, 8)}},
-    {"WITCHFIRE", {4, 6, 74, 55, 18, 0, 40, 70}, {45, 90, 110, 88}, 18, 0, FX(26, 52, 38, 72), PAT(5),
+    {2323, {4, 6, 74, 55, 18, 0, 40, 70}, {45, 90, 110, 88}, 18, 0, FX(26, 52, 38, 72), PAT(5),
      {XP(P_LRATE, 22), XP(P_LWAVE, 4), XP(P_LD_FLT, 18), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
     /* (1.2-GW, issue #17: ambient and expressive) a crystal pad (its DCW swept by a slow LFO), strings in a haze */
-    {"CRYSTAL PAD", {3, 0, 50, 70, 20, 0, 20, 0}, {85, 90, 110, 100}, 0, 0, FX(0, 70, 30, 85), PAT(5),
+    {2333, {3, 0, 50, 70, 20, 0, 20, 0}, {85, 90, 110, 100}, 0, 0, FX(0, 70, 30, 85), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 1), XP(P_LFADE, 60), XP(P_LD_SHP, 18)}},
-    {"HAZE STRINGS", {0, 7, 40, 60, 30, 0, 10, 0}, {70, 90, 115, 90}, 0, 0, FX(0, 90, 20, 75), PAT(5),
+    {2345, {0, 7, 40, 60, 30, 0, 10, 0}, {70, 90, 115, 90}, 0, 0, FX(0, 90, 20, 75), PAT(5),
      {XP(P_LRATE, 48), XP(P_LD_PIT, 2), XP(P_M1SRC, 5), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
     /* (QUANTUM // QG-1) keys, a phase 808, a sweep that opens by itself */
-    {"QBIT KEYS", {3, 6, 60, 50, 8, 0, 10, 0}, {0, 85, 40, 60}, 0, 0, FX(0, 32, 36, 44), PAT(6),
+    {2358, {3, 6, 60, 50, 8, 0, 10, 0}, {0, 85, 40, 60}, 0, 0, FX(0, 32, 36, 44), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_AMP, 6)}},
-    {"PD EPIANO", {6, 3, 55, 60, 6, 0, 0, 0}, {0, 88, 30, 65}, 0, 0, FX(0, 38, 28, 46), PAT(6),
+    {2368, {6, 3, 55, 60, 6, 0, 0, 0}, {0, 88, 30, 65}, 0, 0, FX(0, 38, 28, 46), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_HARM, 12)}},
-    {"PD 808", {3, 0, 20, 30, 0, 0, 90, 20}, {0, 80, 60, 40}, 0, 1, FX(30, 0, 0, 5), PAT(2),
+    {2378, {3, 0, 20, 30, 0, 0, 90, 20}, {0, 80, 60, 40}, 0, 1, FX(30, 0, 0, 5), PAT(2),
      {XP(P_GLIDE, 40), XP(P_HARM, -18)}},
-    {"ION SWEEP", {5, 4, 70, 80, 16, 0, 30, 40}, {60, 90, 110, 90}, 10, 0, FX(10, 60, 40, 80), PAT(5),
+    {2385, {5, 4, 70, 80, 16, 0, 30, 40}, {60, 90, 110, 90}, 10, 0, FX(10, 60, 40, 80), PAT(5),
      {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_SHP, 20)}},
     /* (QG-1 EXPANSION: Organic Plucks, Bells & Evolving Textures) */
-    {"SHRINE BELL", {6, 2, 75, 60, 6, 0, 15, 30}, {0, 90, 0, 85}, 0, 0, FX(0, 24, 42, 76), PAT(7),
+    {2395, {6, 2, 75, 60, 6, 0, 15, 30}, {0, 90, 0, 85}, 0, 0, FX(0, 24, 42, 76), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 14)}},
-    {"CHIME TREE", {6, 0, 85, 45, 10, 0, 0, 20}, {0, 92, 0, 90}, 0, 0, FX(0, 34, 46, 84), PAT(7),
+    {2407, {6, 0, 85, 45, 10, 0, 0, 20}, {0, 92, 0, 90}, 0, 0, FX(0, 34, 46, 84), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_LRATE, 24), XP(P_LWAVE, 0), XP(P_LD_AMP, 8)}},
-    {"FOLK PLUCK", {4, 0, 50, 40, 0, 0, 20, 15}, {0, 70, 0, 45}, 35, 0, FX(0, 14, 36, 32), PAT(15),
+    {2418, {4, 0, 50, 40, 0, 0, 20, 15}, {0, 70, 0, 45}, 35, 0, FX(0, 14, 36, 32), PAT(15),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_ELOOP, 2)}},
-    {"BALAFON", {5, 0, 65, 55, 0, 0, 10, 25}, {0, 75, 10, 40}, 20, 0, FX(0, 10, 30, 38), PAT(3),
+    {2429, {5, 0, 65, 55, 0, 0, 10, 25}, {0, 75, 10, 40}, 20, 0, FX(0, 10, 30, 38), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_LEVEL, 117), XP(P_ELOOP, 2)}},
-    {"ETHNIC PLUCK", {4, 3, 58, 48, 8, 0, 25, 35}, {0, 72, 0, 50}, 40, 0, FX(0, 18, 42, 44), PAT(15),
+    {2437, {4, 3, 58, 48, 8, 0, 25, 35}, {0, 72, 0, 50}, 40, 0, FX(0, 18, 42, 44), PAT(15),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 8)}},
-    {"WRAITH DRONE", {0, 5, 68, 50, 25, 0, 60, 80}, {90, 90, 120, 105}, 15, 0, FX(16, 38, 28, 90), PAT(5),
+    {2450, {0, 5, 68, 50, 25, 0, 60, 80}, {90, 90, 120, 105}, 15, 0, FX(16, 38, 28, 90), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_FLT, 22), XP(P_LD_AMP, 6)}},
 
     /* (QG-1 1.6) EVOLVE: a slow, free wander of the filter, the phase wave underneath it */
-    {"EVOLVING GLASS", {6, 2, 70, 40, 15, 0, 10, 20}, {82, 92, 118, 102}, 8, 0, FX(0, 60, 35, 82), PAT(5),
+    {2463, {6, 2, 70, 40, 15, 0, 10, 20}, {82, 92, 118, 102}, 8, 0, FX(0, 60, 35, 82), PAT(5),
      {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LFADE, 60), XP(P_LD_FLT, 18), XP(P_LD_AMP, 10)}},
 
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"MERCURY BLOOM", {0, 4, 46, 72, 10, 0, 12, 0}, {66, 90, 108, 94}, 20, 0, FX(0, 56, 26, 72), PAT(5),
+    {2478, {0, 4, 46, 72, 10, 0, 12, 0}, {66, 90, 108, 94}, 20, 0, FX(0, 56, 26, 72), PAT(5),
      {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LEVEL, 86)}},  /* B: pad */
-    {"IRON FILAMENT", {5, 7, 74, 86, 24, 1, 30, 50}, {40, 88, 96, 70}, 36, 0, FX(20, 40, 34, 58), PAT(5),
+    {2492, {5, 7, 74, 86, 24, 1, 30, 50}, {40, 88, 96, 70}, 36, 0, FX(20, 40, 34, 58), PAT(5),
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_LD_FLT, 20), XP(P_LD_SHP, 10)}},  /* D: texture */
-    {"BELL FOUNDRY", {6, 1, 66, 58, 8, 0, 10, 16}, {0, 90, 0, 82}, 14, 0, FX(0, 26, 40, 62), PAT(6),
+    {2506, {6, 1, 66, 58, 8, 0, 10, 16}, {0, 90, 0, 82}, 14, 0, FX(0, 26, 40, 62), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_HARM, 24)}},  /* C: bell */
-    {"NULL POINT", {7, 5, 88, 44, 16, 1, 0, 62}, {2, 84, 60, 50}, 52, 0, FX(34, 24, 44, 40), PAT(1),
+    {2519, {7, 5, 88, 44, 16, 1, 0, 62}, {2, 84, 60, 50}, 52, 0, FX(34, 24, 44, 40), PAT(1),
      {XP(P_LRATE, 44), XP(P_LWAVE, 4), XP(P_LD_FLT, 22), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},  /* D: experimental */
-    {"CHORAL GLASS", {3, 6, 52, 66, 6, 0, 14, 8}, {24, 84, 70, 68}, 18, 0, FX(0, 44, 30, 54), PAT(6),
+    {2530, {3, 6, 52, 66, 6, 0, 14, 8}, {24, 84, 70, 68}, 18, 0, FX(0, 44, 30, 54), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_LRATE, 22), XP(P_LWAVE, 0), XP(P_LD_AMP, 6)}},  /* C: keys */
-    {"PIEDRA Y VIENTO", {1, 4, 64, 70, 14, 0, 22, 24}, {78, 92, 112, 98}, 22, 0, FX(8, 54, 36, 74), PAT(5),
+    {2543, {1, 4, 64, 70, 14, 0, 22, 24}, {78, 92, 112, 98}, 22, 0, FX(8, 54, 36, 74), PAT(5),
      {XP(P_LRATE, 15), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},  /* G: texture */
-    {"STRAY SIGNAL", {7, 6, 96, 20, 20, 1, 40, 76}, {0, 70, 30, 36}, 60, 1, FX(40, 10, 40, 24), PAT(1),
+    {2559, {7, 6, 96, 20, 20, 1, 40, 76}, {0, 70, 30, 36}, 60, 1, FX(40, 10, 40, 24), PAT(1),
      {XP(P_LRATE, 62), XP(P_LWAVE, 4), XP(P_LD_FLT, 24), XP(P_LSHP, 22)}},  /* D: glitch */
-    {"ROTOR GLASS", {1, 3, 70, 40, 14, 1, 0, 0}, {6, 62, 74, 52}, 0, 0, FX(30, 36, 30, 46), PAT(6),
+    {2572, {1, 3, 70, 40, 14, 1, 0, 0}, {6, 62, 74, 52}, 0, 0, FX(30, 36, 30, 46), PAT(6),
      {XP(P_LRATE, 52), XP(P_LWAVE, 0), XP(P_LD_PIT, 4), XP(P_M1SRC, 3), XP(P_M1DST, 0), XP(P_M1AMT, 10)}},  /* (v1.5.19) two phases turning against each other */
     /* (ETAPA 4) the ninth wave: SYNC, DCW its ratio (2.4x), a slow shimmer over it */
-    {"SYNC CATHEDRAL", {8, 0, 76, 46, 0, 0, 30, 26}, {0, 86, 34, 82}, 18, 0, FX(0, 34, 44, 86), PAT(5),
+    {2584, {8, 0, 76, 46, 0, 0, 30, 26}, {0, 86, 34, 82}, 18, 0, FX(0, 34, 44, 86), PAT(5),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LRATE, 22), XP(P_LWAVE, 0), XP(P_LD_FLT, 12)}},
 };
 

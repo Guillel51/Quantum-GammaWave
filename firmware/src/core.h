@@ -514,8 +514,14 @@ typedef struct {                 /* per-voice control-rate modulation, computed 
     int32_t fine;                /* the residual below 1/16 semitone in inc: unison detune, TUNE, bend (1/4096) */
 } vmod_t;
 
+/* (FASE 1/10) THE NAME IS AN OFFSET, NOT A POINTER. 306 presets carried a 4-byte pointer each (1 224 B) to 291
+ * distinct strings; the strings live once in PRESET_NAMES (preset_names.c, 3 141 B) and each preset holds the
+ * 2-byte offset of its own: 612 B instead of 1 224 B over the same text, 612 B of XIP. PR_NAME() adds the offset
+ * back, so every reader (the browser, the footer, the generator, the console) still gets a plain const char *. */
+extern const char PRESET_NAMES[];                   /* (FASE 1/10) preset_names.c */
+#define PR_NAME(p) (PRESET_NAMES + (int32_t)(p)->name)
 typedef struct {
-    const char *name;
+    uint16_t name;               /* (FASE 1/10) the offset in PRESET_NAMES: PR_NAME(&preset) */
     int8_t e[8];                 /* P_E0..P_E7 (signed: an interval below the note; every value fits) */
     uint8_t env[4];              /* ATK DEC SUS REL */
     int8_t fenv;                 /* ENV -> FILTER amount (-64..63) */

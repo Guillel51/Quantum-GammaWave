@@ -956,14 +956,14 @@ static void gen_sound(track_t *t, uint32_t role, uint32_t ri)
     n = gen_npresets(t->eng_req);
     if (!n) return;
     for (i = 0; i < n; i++) {
-        const char *pn = en->presets[i].name;
+        const char *pn = PR_NAME(&en->presets[i]);   /* (FASE 1/10) the name is an offset in PRESET_NAMES */
         if (gnever(pn)) continue;
         if (role != RL_BASS && (dname_has(pn, "BASS") || dname_has(pn, "GROWL") || dname_has(pn, "ACID"))) continue;
         if (na < sizeof any) any[na++] = (uint8_t)i;
     }
     for (k = 0; k < 3u && r->w[k] && !nm; k++)         /* (0.6.93) the recipe's words in order: the first that fits */
         for (i = 0; i < n; i++) {
-            const char *pn = en->presets[i].name;
+            const char *pn = PR_NAME(&en->presets[i]);   /* (FASE 1/10) the name is an offset in PRESET_NAMES */
             if (!gnever(pn) && dname_has(pn, r->w[k]) && nm < sizeof m) m[nm++] = (uint8_t)i;
         }
     apply_preset_to(t, nm ? m[gr() % nm] : na ? any[gr() % na] : gr() % n);

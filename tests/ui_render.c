@@ -759,7 +759,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
        S_SCL_SCALE, S_SCL_CHORD, S_SCL_TUNE, S_SCL_TUNE_PLAY, S_SCL_PROG, S_FX_BUSES, S_SEQ_TOOLS_EDITS,
        S_TILT, S_LFO_CURVE, S_EDIT_FILTER, S_FM_OP_ENV, S_EDIT_FILTER_SHELF, S_EDIT_FILTER_NOTCH,
-       S_EDIT_FILTER_VOWEL, S_EDIT_FILTER_SCREAM,                       /* (v1.12.9) the two pages v1.12.4 and v1.12.5 added: they had no
+       S_EDIT_FILTER_VOWEL, S_EDIT_FILTER_SCREAM, S_VOICE2,   /* (FASE 1/10) EDIT > VOICE 2: the second of the two pages GR_GLIDE draws */                       /* (v1.12.9) the two pages v1.12.4 and v1.12.5 added: they had no
                                                    * frame in this sweep at all, so neither the pixel baseline nor
                                                    * the alignment lint had ever seen them. BEFORE S_MOCK_HOME, which
                                                    * starts the mock branch: after it, setup() never reaches them */   S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
@@ -785,7 +785,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_tune", "scl_tune_play", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "edit_filter", "fm_op_env", "filter_shelf", "filter_notch", "filter_vowel", "filter_scream", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
+    "scl_scale", "scl_chord", "scl_tune", "scl_tune_play", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "edit_filter", "fm_op_env", "filter_shelf", "filter_notch", "filter_vowel", "filter_scream", "voice2", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1186,6 +1186,7 @@ static void setup(int s)
         TSEL->arp_off = div_samples(2) * 80 / 128 - TSEL->arp_pos / 2;
         go_title("ARP"); break;
     case S_VOICE: go_title("VOICE"); break;
+    case S_VOICE2: go_title("VOICE 2"); break;   /* (FASE 1/10) the page GR_GLIDE draws for M.STRT / N.RATE / IMAGE / ALLOC */
     case S_GLOBAL: go_title("GLOBAL"); break;
     case S_SYSTEM: go_title("SYSTEM"); break;
     case S_MONITOR: go_title("MONITOR"); break;   /* (QG-1) GLO > MONITOR: the live diagnostics */

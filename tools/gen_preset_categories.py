@@ -51,6 +51,29 @@ RULES = [
 ]
 
 
+# (FASE 1/10) THE TABLES HOLD OFFSETS NOW, NOT POINTERS. Each preset_t starts with the 16-bit offset of its name in
+# PRESET_NAMES (params.c) instead of a const char *: 306 pointers of 4 B were 1 224 B of XIP for 291 distinct
+# strings. The names did not change and neither did their order, so this tool reads the blob once and resolves the
+# offset exactly as the firmware's PR_NAME() does -- the categories below are the same table as before the change.
+_NAMES = None
+
+
+def preset_names():
+    global _NAMES
+    if _NAMES is None:
+        s = open(os.path.join(ROOT, "firmware/src/params.c"), encoding="utf-8").read()
+        m = re.search(r"const char PRESET_NAMES\[\] =\n(.*?);\n", s, re.S)
+        if not m:
+            raise SystemExit("no PRESET_NAMES in firmware/src/params.c")
+        _NAMES = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1))).replace("\\0", "\x00")
+    return _NAMES
+
+
+def preset_name(off):
+    b = preset_names()
+    return b[off:b.index("\x00", off)]
+
+
 def entries(path, array):
     """the preset table as the firmware has it: (name, legacy) for every entry, in table order"""
     s = open(path, encoding="utf-8").read()
@@ -79,8 +102,11 @@ def entries(path, array):
             if depth == 0 and start is not None:
                 entry = body[start:j + 1]
                 nm = re.match(r'\{\s*"([^"]+)"\s*,', entry)
+                om = None if nm else re.match(r'\{\s*(\d+)\s*,', entry)
                 if nm:
                     out.append((nm.group(1), bool(re.search(r"\.legacy\s*=\s*1", entry))))
+                elif om:
+                    out.append((preset_name(int(om.group(1))), bool(re.search(r"\.legacy\s*=\s*1", entry))))
                 start = None
             if depth < 0:
                 break

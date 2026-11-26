@@ -3213,6 +3213,14 @@ static uint32_t graph_signature(void)
             h = (h ^ ((uint32_t)fg_set[ti][k].rate | (uint32_t)fg_set[ti][k].dir << 4 | (uint32_t)(uint8_t)fg_set[ti][k].ivl << 8 |
                       (song.playing ? (uint32_t)fg_head[ti][k].idx << 16 : 0u))) * 16777619u;
     }
+    if (pg->graph == GR_GLIDE)                       /* (FASE 1/10) VOICE / VOICE 2: its four knobs are the state,
+                                                      * and the head walks the road while ANIM allows it */
+    {
+        for (i = 0; i < 4u; i++)
+            h = (h ^ (uint32_t)(uint16_t)(pg->id[i] == 0xFF ? 0 : t->p[pg->id[i]])) * 16777619u;
+        if (!ANIM_SNAP())
+            h ^= (ui.frame / 2u) * 2654435761u;
+    }
     if (pg->graph == GR_DXIMG)                       /* (0.6.48) IMAGE and how wide it plays */
         h = (h ^ ((uint32_t)t->p[P_DXIMG] << 16 | (uint32_t)dx_img_k(t))) * 16777619u;
     if (pg->graph == GR_MORPH)                       /* (0.6.45) the wave, MORPH */
@@ -3395,7 +3403,7 @@ static __attribute__((noinline)) void graph_browse(void)
             up_name(k, nm);
         } else {
             str_cpy(tag, eng_abbr(ENGINES[e]->name), sizeof tag);
-            str_cpy(nm, ENGINES[e]->presets[k].name, sizeof nm);
+            str_cpy(nm, PR_NAME(&ENGINES[e]->presets[k]), sizeof nm);
         }
         if (hint >= 0) {
             pat_label((uint32_t)hint, pt, pn);
@@ -3503,7 +3511,7 @@ static __attribute__((noinline)) void graph_pop_plate(int32_t x0, int32_t oy)
             up_name(k, nm);
         } else {
             str_cpy(tag, eng_abbr(ENGINES[e]->name), sizeof tag);
-            str_cpy(nm, ENGINES[e]->presets[k].name, sizeof nm);
+            str_cpy(nm, PR_NAME(&ENGINES[e]->presets[k]), sizeof nm);
         }
         fav = favorite_has(e, k);
         if (fav)
@@ -3599,7 +3607,7 @@ static void engine_sound_row(int32_t y)
         tag[0] = (char)('0' + (cur + 1u) / 10u % 10u);
         tag[1] = (char)('0' + (cur + 1u) % 10u);
         tag[2] = 0;
-        str_cpy(nm, e->npresets ? e->presets[TSEL->preset % e->npresets].name : "", sizeof nm);
+        str_cpy(nm, e->npresets ? PR_NAME(&e->presets[TSEL->preset % e->npresets]) : "", sizeof nm);
     }
     list_row(y, 1, tag, T_DIM, nm, T_TEXT, fav ? 212 : 232);
     if (fav) {
@@ -3964,7 +3972,7 @@ static void trk_short_name(uint32_t c, char *b)      /* the track's sound, b hol
     if (user_of(t) < UP_SLOTS)
         up_name(user_of(t), b);
     else if (e->npresets)
-        str_cpy(b, e->presets[t->preset % e->npresets].name, 13);
+        str_cpy(b, PR_NAME(&e->presets[t->preset % e->npresets]), 13);
     else
         str_cpy(b, e->name, 13);
 }
@@ -4673,6 +4681,53 @@ static __attribute__((noinline)) void graph_master(void)
      * space it held is the VU's now, so the page has no empty hole and nothing moved off the panel. */
 }
 
+/* (FASE 1/10) THE VOICE PAGES IN PERSPECTIVE. VOICE and VOICE 2 were the last two pages of EDIT with no graph
+ * (GR_NONE): four numbers and an empty plate. What they describe is a movement in depth -- a voice leaves the pitch
+ * it was holding and reaches the one just played -- so the picture is the road that movement takes, drawn the way
+ * the visualizer's tunnel is: two rails converging on a vanishing point, rungs that close with distance, and the
+ * travel itself as a curve that climbs from the near lane to the far one, the ground dark far away and the accent
+ * bright close up.
+ *
+ * Every number read is the one the DSP runs. GLIDE (M.STRT on VOICE 2) is how far along the road the voice is still
+ * travelling: 0 locks it on the near rung, 127 not until the vanishing point. GLMODE RATE eases that walk, TIME
+ * walks it evenly (N.RATE bends it on the second page). PRIO and ALLOC send it off the left or the right side of
+ * the road, so the knob that decides which note wins is visible too. Colour is ux_mix from T_SURF (far) to the
+ * page's accent (near): a real gradient, not a dither, and no layer moves on its own. */
+static __attribute__((noinline)) void graph_glide(const track_t *t, uint16_t c)
+{
+    const page_t *pg = cur_page();
+    int32_t glide = pg->id[1] == P_GLIDE;              /* VOICE {VOICE,GLIDE,GLMODE,PRIO} / VOICE 2 {M.STRT,N.RATE,IMAGE,ALLOC} */
+    int32_t gl = clamp((int32_t)t->p[glide ? pg->id[1] : pg->id[0]], 0, 127);   /* the time to reach the note / the scatter */
+    int32_t md = clamp((int32_t)t->p[glide ? pg->id[2] : pg->id[1]], 0, 127);   /* GLMODE RATE/TIME, N.RATE */
+    int32_t vx = PANEL_X0 + PANEL_W / 2, vy = graph_ht * 14 / 100, nr = graph_ht * 86 / 100;
+    int32_t n = 8, d, off = PANEL_W * 30 / 100;
+    int32_t dc = (glide ? gl : 127 - md) * n / 127;    /* the rung it locks on */
+    if (t->p[glide ? pg->id[3] : pg->id[3]] & 1)       /* PRIO LOW|HIGH / ALLOC REUSE: the other side of the road */
+        off = -off;
+    cv_line_a(PANEL_X0 + 5, nr, vx - 2, vy, ux_mix(T_BG, T_MID, 62), 620, 1);     /* the two rails */
+    cv_line_a(PANEL_X0 + PANEL_W - 6, nr, vx + 2, vy, ux_mix(T_BG, T_MID, 62), 620, 1);
+    for (d = 0; d <= n; d++) {                          /* the rungs: the plate's own gradient, ground far, accent near */
+        int32_t y = vy + (nr - vy) * 3 / (3 + d), w = (PANEL_W - 26) * 3 / (3 + d);
+        cv_rect(vx - w / 2, y, w, 1, ux_mix(T_SURF, c, 88 - d * 8));
+    }
+    {   int32_t px = 0, py = 0, last = dc < n ? dc : n;   /* only the rungs it has walked: at GLIDE 0 the voice is
+                                                          * already there and there is no line to draw */
+        for (d = 0; d <= last; d++) {                   /* the travel: near lane to the target, eased as RATE says */
+            int32_t y = vy + (nr - vy) * 3 / (3 + d), u, x;
+            u = dc > 0 ? (d >= dc ? 1000 : d * 1000 / dc) : 1000;
+            if (!glide || md == 0)
+                u = 1000 - (1000 - u) * (1000 - u) / 1000;
+            x = vx + (off * (1000 - u)) / 1000;
+            if (d)
+                cv_line_t(px, py, x, y, ux_mix(T_SURF, c, 96 - d * 10), 2 - (d / 5));
+            px = x;
+            py = y;
+        }
+    }
+    cv_rrect(vx - 2, vy - 1, 5, 3, 1, T_TEXT, T_SURF); /* the pitch played, at the vanishing point */
+    cv_rect(vx + off - 1, nr - 1, 3, 2, ux_mix(T_SURF, T_MID, 80));   /* where the voice sets off */
+}
+
 static __attribute__((noinline)) void draw_graph(void)
 {
     const page_t *pg = cur_page();
@@ -4825,6 +4880,10 @@ static __attribute__((noinline)) void draw_graph(void)
         case GR_CHORUS:                              /* (this phase) the bus: RATE, DEPTH, STEREO, TYPE */
             cv_oy = 0;
             graph_chorus(t, c);
+            break;
+        case GR_GLIDE:                               /* (FASE 1/10) VOICE and VOICE 2: the move, in perspective */
+            cv_oy = 0;
+            graph_glide(t, c);
             break;
         case GR_DIAG:
             graph_diag(c);

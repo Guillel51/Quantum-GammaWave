@@ -1394,7 +1394,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
         char nb[40];
         str_cpy(nb, e->name, sizeof nb);
         str_cpy(nb + str_len(nb), " ", sizeof nb - str_len(nb));
-        str_cpy(nb + str_len(nb), e->presets[pi].name, sizeof nb - str_len(nb));
+        str_cpy(nb + str_len(nb), PR_NAME(&e->presets[pi]), sizeof nb - str_len(nb));
         ann_say(nb, 0, ANN_NOW);
     }
 #endif
@@ -1879,7 +1879,7 @@ static uint32_t dx_pagen(const page_t *pg)            /* SOUND 1..3; (0.5.1) X-M
 static void dx_knob(const page_t *pg, uint32_t k, int32_t s);
 static void dx_cards(const page_t *pg);
 static void dx_kit3_knob(uint32_t k, int32_t s);      /* (0.6.54) KIT 3: TONE's BP, FEEDBK */
-#define DX_KIT3(pg) ((pg)->graph == GR_DXIMG && (pg)->title[0] == 'K')   /* (0.6.58) GR_DXIMG: KIT 3, or STEREO (IMAGE) */
+#define DX_KIT3(pg) ((pg)->graph == GR_DXIMG && pg->title[0] == 'K')   /* (0.6.58) GR_DXIMG: KIT 3, or STEREO (IMAGE) */
 static void dx_kit3_cards(void);
 static uint32_t dx_sig(void);
 

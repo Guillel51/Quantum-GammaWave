@@ -863,7 +863,7 @@ static void sound_name(const track_t *t, char *b)
     if (user_of(t) < UP_SLOTS)
         up_name(user_of(t), b);
     else if (e->npresets)
-        str_cpy(b, e->presets[t->preset % e->npresets].name, 16);
+        str_cpy(b, PR_NAME(&e->presets[t->preset % e->npresets]), 16);
 }
 
 static __attribute__((noinline)) void draw_foot(void)
