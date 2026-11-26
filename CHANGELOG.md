@@ -1,4 +1,4 @@
-## v2.16.0 — 2.16: el glide en perspectiva, el vúmetro fuera de PERFORMANCE y 1 512 B de XIP
+## v2.16.0 — 2.16: el glide en perspectiva, el vúmetro fuera de PERFORMANCE y 1 496 B de XIP
 
 Fase de recuperación de XIP con dos arreglos de interfaz que estaban abiertos. Sin cambios de DSP, de
 motores, de presets guardados ni de calidad visual.
@@ -27,11 +27,11 @@ motores, de presets guardados ni de calidad visual.
 | `preset_t.name` de puntero a índice de 16 bits en `PRESET_NAMES` | **−568 B** |
 | el gráfico nuevo de VOICE / VOICE 2 | +730 B |
 
-Imagen **582 064 B** de 583 612 (1 548 libres; eran **36** al empezar la fase). Las tablas de páginas y de
+Imagen **582 064 B** de 583 612 (1 532 libres; eran **36** al empezar la fase). Las tablas de páginas y de
 iconos se probaron y **se revirtieron con su medida**: pasar sus nombres a índices costaba 182 B y 92 B
 respectivamente porque el linker ya fusiona esos literales con los del resto de la UI.
 
-**Sigue en rojo:** `tools/resource_map.py --check` da `FAIL XIP free 1548 < floor 2048`. Faltan 500 B y este
+**Sigue en rojo:** `tools/resource_map.py --check` da `FAIL XIP free 1532 < floor 2048`. Faltan 516 B y este
 release no lo esconde: el camino grande que queda es codificar los presets de fábrica por diferencias contra
 el vector por defecto de cada motor (13 564 B de tablas, 5-6 KB recuperables), con su decodificador probado
 valor por valor en las nueve rutas de carga.
