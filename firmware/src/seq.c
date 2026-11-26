@@ -836,8 +836,7 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
         if (s->time != ST_NOTE || (!s->n && !s->hit)) {
             s->n = s->hit = s->acc = 0;
             s->flags = 0;
-            s->vel = 0;
-            s->dur = 0;                             /* (FASE 3) a fresh step has no recorded length yet */
+            s->vel = 0;                             /* (a fresh step: step_set_dur is in flags, cleared above) */
             ST_MICRO_SET(s, mic);                       /* (0.6.88) its place off the grid (REC Q) */
         }
         s->time = ST_NOTE;
@@ -870,9 +869,8 @@ static void rec_note(track_t *t, uint32_t note, uint32_t vel)
     }
     if (s->time != ST_NOTE || !s->n || trk_vmode(t) != V_POLY) {
         s->n = 0;                                   /* a fresh step */
-        s->flags = 0;
+        s->flags = 0;                               /* (FASE 4: the recorded length lives in flags, cleared too) */
         s->vel = 0;
-        s->dur = 0;                                 /* (FASE 3) nor a recorded length */
 
         ST_MICRO_SET(s, mic);                       /* (0.6.88) its place off the grid (REC Q) */
     }
@@ -967,17 +965,19 @@ static void rec_release(track_t *t, uint32_t note)
          * release came a step later with no TIE behind it keeps the TIE model, exactly as before. The last key up
          * writes it, so a chord keeps its LONGEST note (the others are the price of one gate a step). */
         uint32_t q = trk_index(t), len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
-        int32_t gp = (int32_t)t->seq_pos - (int32_t)t->ext, d;
-        step_t *st = 0;
+        int32_t gp = (int32_t)t->seq_pos - (int32_t)t->ext, d = 0;
+        uint32_t sti = 0xFFFFu;
         if (t->rh_ties && seq_src(t, t->seq_idx) == t->rh_last && rdq[q].idx != (uint8_t)(t->seq_idx % len))
-            st = &t->step[t->rh_last], d = gp;      /* it crossed: the tail is this step's part */
+            sti = t->rh_last, d = gp;               /* it crossed: the tail is this step's part */
         else if (rdq[q].idx == (uint8_t)(t->seq_idx % len))
-            st = &t->step[seq_src(t, rdq[q].idx)], d = gp - (int32_t)rdq[q].off;
-        if (st && d > 0) {
-            int32_t u = (d * 16 + (int32_t)rdq[q].slen / 2) / (int32_t)rdq[q].slen;   /* rounded (the pi32v2 build
+            sti = seq_src(t, rdq[q].idx), d = gp - (int32_t)rdq[q].off;
+        if (sti != 0xFFFFu && d > 0) {
+            step_t *st = &t->step[sti];
+            int32_t du = (d * 16 + (int32_t)rdq[q].slen / 2) / (int32_t)rdq[q].slen;   /* rounded (the pi32v2 build
                                                                  * has no __divdi3) */
-            if (u >= 1 && (st->time == ST_NOTE || st->time == ST_TIE) && (uint32_t)u > ST_DUR(st))
-                st->dur = (uint8_t)(u > 15 ? 15 : u);   /* 15: just short of the step; a full one is the GATE */
+            if (du >= 1 && (st->time == ST_NOTE || st->time == ST_TIE) && (uint32_t)du > step_dur(st))
+                step_set_dur(st, (uint32_t)du > 15u ? 15u : (uint32_t)du);   /* 15: just short of the step; a
+                                                                              * full one is the GATE */
         }
     }
 }

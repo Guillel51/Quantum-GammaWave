@@ -796,7 +796,9 @@ static void note_edit(uint32_t slot, int32_t steps)
 }
 
 /* (0.6.88) SEQ > TIMING: KNOB 1 the step, KNOB 2 its OFFSET off the grid (-8 .. +7 sixteenths: early / late; a step
- * with nothing to play keeps 0), KNOB 3 the track's REC Q (how much live recording snaps to the grid). EDIT: back on it */
+ * with nothing to play keeps 0), KNOB 3 the track's REC Q (how much live recording snaps to the grid), KNOB 4 the
+ * step's recorded HOLD (FASE 4: the length the player held, 0 = the track's GATE, 1..15 sixteenths of the step),
+ * which is what live recording writes at the note-off and what playback reads. EDIT: back on it */
 static void timing_edit(uint32_t slot, int32_t steps)
 {
     step_t *st = &TSEL->step[ui.cursor];
@@ -808,6 +810,17 @@ static void timing_edit(uint32_t slot, int32_t steps)
     }
     if (slot == 2u)
         TSEL->p[P_HRQ] = (int16_t)clamp(TSEL->p[P_HRQ] + steps, 0, 127);
+    if (slot == 3u) {                                   /* (FASE 4) HOLD: the recorded length, editable */
+        int32_t d;
+        if (st->time != ST_NOTE && st->time != ST_TIE) { ui_message("NO NOTE HERE"); return; }
+        d = clamp((int32_t)step_dur(st) + (steps > 0 ? 1 : -1), 0, 15);
+        if (d == (int32_t)step_dur(st)) {
+            if (steps)
+                ui_message(d ? "FULL STEP" : "GATE");
+            return;
+        }
+        step_set_dur(st, (uint32_t)d);
+    }
 }
 static void step_edit(uint32_t slot, int32_t steps)
 {

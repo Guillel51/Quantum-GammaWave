@@ -1,3 +1,35 @@
+## v2.5.4 — FASE 4/5: la duración real cabe en cuatro bits, y la auditoría de expresión, motores y presets
+
+- **La duración grabada deja de costar un byte por paso.** El valor (1..15 dieciseisavos del paso, 0 = el GATE)
+  ahora vive en **cuatro bits libres de `flags`** (bits 5, 6, 7 y 2), con `step_dur()` / `step_set_dur()`: el paso
+  baja de 18 a **17 B**, **384 B de RAM** menos en seis pistas (**448 B** en total con el resto del cambio), y
+  viaja dentro del paso: un movimiento de patrón, un kit, un proyecto o una copia lo llevan sin una segunda
+  estructura que mantener en sincronía. Se descartó la tabla dispersa de excepciones: una interpretación con más
+  excepciones que entradas perdería duraciones reales, y aquí las cuatro bits son exactas siempre.
+- **Se puede ver y editar.** SEQ > TIMING gana **HOLD** en la perilla 4: el valor grabado del paso (0 = GATE,
+  1..15/16), lo que la grabación en vivo escribe al note-off y lo que la reproducción lee. No es decorativa:
+  `timing_edit` la escribe y el render de la página la muestra.
+- **El formato del proyecto no cambia.** `D` `U` sigue llevando un byte sólo donde la duración no es el GATE (0),
+  así que los proyectos anteriores cargan igual y los nuevos no gastan un byte por paso.
+- **Auditoría de MIDI y expresividad, sin duplicar nada.** CC1/CC2/CC11/aftertouch ya alimentan la matriz como
+  fuentes (`mod.c`), CC2 tiene su propio byte para convivir con CC11, CC5 ya está en el mapa estándar
+  (`{5, P_GLIDE}`) y el **pitch bend ya está suavizado** (~6 ms con aterrizaje exacto, `voice.c`), con RPN de
+  rango. Las fuentes de CC se leen una vez por bloque (2,9 ms): el salto máximo es 1/127 por bloque, y CC5 no es
+  una señal sino un tiempo por nota. No se añadió otra matriz ni otro LFO.
+- **Auditoría de los diez motores.** Los 8 slots de EDIT están usados en todos (no hay slots libres que "aprovechar"
+  sin retirar un control), CHARACTER tiene 2 o 3 slots y WAVETABLE/ADDITIVE ya integran PHASE, DRAW y RULE de la
+  fase 3. ANALOG ya expone KTR+ (seguimiento de filtro) y FORMANT su seguimiento fijo; no se agregaron controles
+  decorativos ni se cambió ningún DSP.
+- **Presets medidos, no tocados a ciegas.** `preset_audit_test`: 298 presets, **0 silenciosos, 0 pasados de nivel,
+  0 duplicados exactos, 0 nombres repetidos, 0 fuera de rango**; 5 con DC entre 2 y 3,6 % quedan reportados (el
+  test los informa, no los falla). No se agregaron kits DRUM-X ni se cambiaron índices ni categorías.
+- **Coste `[AC791N]`**: RAM `.data+.bss` **76 048 → 75 600 B** (22 704 libres); imagen 576 172 → **576 200 B**
+  (+28 B de código de acceso a los bits). XIP 571 392 → 571 420 B. Sin cambios en POOL, LOWBUF ni código RAM.
+- **Lo existente sigue igual**: 316 goldens de `regress` **0 cambiados**, `seq_dur_test` (grabación de un cuarto de
+  paso, acorde con su nota más larga, nota que cruza con su cola real, proyecto de ida y vuelta), `six_track_live`
+  61/61, `ui_test`, `project_test`, `editor_test`, `seq_tools_test`, 203 pantallas × 22 paletas con **0 hallazgos**
+  de lint y **0** medidas de alineación fuera de 1 px.
+
 ## v2.5.3 — FASE 3/5: PHASE en WAVETABLE, DRAW y RULE en ADDITIVE
 
 - **Tres transformaciones de fase, originales y baratas.** WAVETABLE gana **PHASE** (una perilla): SINE es el

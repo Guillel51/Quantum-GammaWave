@@ -207,7 +207,7 @@ static void gnote(step_t *s, const int32_t *n, uint32_t cnt, int32_t vel, uint32
         if (j < cnt && n[j] > top) top = n[j];
     }
     s->time = ST_NOTE;
-    s->flags = (uint8_t)flags;
+    s->flags = (uint8_t)((flags & ~SF_DUR) | (s->flags & SF_DUR));   /* (FASE 4: a recorded length survives) */
     if (top > 74) vel -= (top - 74) * 2 < 30 ? (top - 74) * 2 : 30;   /* (high notes measured: softer) */
     s->vel = (uint8_t)clamp(vel, 30, 127);
 }

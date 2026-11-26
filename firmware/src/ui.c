@@ -1114,7 +1114,8 @@ static void load_pat16(track_t *t, const uint8_t *note, const uint8_t *flags)
         s->note[0] = n;
         s->n = n ? 1 : 0;
         s->time = (fl & 4u) ? ST_TIE : n ? ST_NOTE : ST_REST;
-        s->flags = n ? (fl & (SF_ACCENT | SF_SLIDE | SF_RATCH)) : 0;
+        s->flags = (uint8_t)((n ? (fl & (SF_ACCENT | SF_SLIDE | SF_RATCH)) : 0u) |
+                             (s->flags & SF_DUR));   /* (FASE 4: a recorded length survives a pattern load) */
         s->vel = n ? 96 : 0;
         s->hit = s->acc = 0;
         s->probability = 0;

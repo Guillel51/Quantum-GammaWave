@@ -69,13 +69,33 @@ int main(void)
     seq_tick(t, step);
     off_gate = t->seq_off;
     seq_reset(t, 4u, 127u);
-    t->step[0].dur = 8;                     /* held half the step */
+    ST_DUR_SET(&t->step[0], 8);             /* held half the step */
     seq_tick(t, step);
     off_half = t->seq_off;
     printf("dur: A step %u samples, gate %u, dur 8/16 -> %u\n", step, off_gate, off_half);
     check("A: a step recorded at half stays half, well under the track's GATE",
           off_half > 0u && off_half < off_gate / 2u + step / 8u && off_half <= step / 2u + 2u);
     check("B: dur 0 is the GATE it always was", off_gate > step / 2u && off_gate <= step);
+
+    /* ---- F: the length is four bits in the step, not a byte, and it shares it with every flag -------- */
+    {
+        step_t s, c;
+        memset(&s, 0, sizeof s);
+        s.flags = SF_ACCENT | SF_SLIDE;
+        step_set_ratchet(&s, 3u);
+        ST_DUR_SET(&s, 13u);
+        c = s;                                  /* a copy of a step (a pattern move) carries it */
+        printf("dur: F sizeof(step_t) %u, flags %02x, dur %u, ratchet %u\n", (unsigned)sizeof(step_t), s.flags,
+               ST_DUR(&s), step_ratchet(&s));
+        check("F: a step is 17 B (no duration byte) and the four bits live in spare flag bits",
+              sizeof(step_t) == 17u);
+        check("F: accent, slide and RATCH survive the length, and a copy keeps it",
+              ST_DUR(&s) == 13u && (s.flags & (SF_ACCENT | SF_SLIDE)) == (SF_ACCENT | SF_SLIDE) &&
+              step_ratchet(&s) == 3u && ST_DUR(&c) == 13u);
+        ST_DUR_SET(&s, 0u);
+        check("F: clearing the length leaves the flags it shared bits with",
+              ST_DUR(&s) == 0u && (s.flags & (SF_ACCENT | SF_SLIDE)) == (SF_ACCENT | SF_SLIDE) && step_ratchet(&s) == 3u);
+    }
 
     /* ---- C: recording measures the length the key was held ---------------------------------------- */
     memset(trk, 0, sizeof trk);
@@ -142,9 +162,9 @@ int main(void)
             q.t[i].p[k] = proj_pdef(0, k);
     }
     q.t[0].step[3] = (step_t){ .note = { 67, 0, 0, 0 }, .n = 1, .time = ST_NOTE, .vel = 100 };
-    q.t[0].step[3].dur = 9;
+    ST_DUR_SET(&q.t[0].step[3], 9);
     q.t[2].step[0] = (step_t){ .note = { 48, 0, 0, 0 }, .n = 1, .time = ST_NOTE, .vel = 100 };
-    q.t[2].step[0].dur = 2;
+    ST_DUR_SET(&q.t[2].step[0], 2);
     q.sum = proj_sum(&q);
     memcpy(buf.raw, &q, sizeof q);
     ok = proj_import(&q2, buf.raw, (int)sizeof q);
@@ -155,7 +175,7 @@ int main(void)
                                                      ST_DUR(&q2.t[1].step[0]) == 0u);
     for (i = 0; i < NTRK; i++)
         for (uint32_t k = 0; k < NSTEP; k++)
-            q.t[i].step[k].dur = 0;
+            ST_DUR_SET(&q.t[i].step[k], 0);
     q.sum = proj_sum(&q);
     memcpy(buf.raw, &q, sizeof q);
     ok = proj_import(&q2, buf.raw, (int)sizeof q);

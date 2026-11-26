@@ -327,7 +327,7 @@ static void trap_808(track_t *t, uint32_t len, uint32_t var)
         s->n = 1;
         s->note[0] = (uint8_t)clamp(n, 0, 127);
         s->vel = (uint8_t)(c == 'X' ? 118 : c == 'x' ? 106 : 100);
-        s->flags = c == 'X' ? SF_ACCENT : 0u;
+        s->flags = (uint8_t)((c == 'X' ? SF_ACCENT : 0u) | (s->flags & SF_DUR));   /* (FASE 4) keep the length */
         prev = n;
         start = i;
     }

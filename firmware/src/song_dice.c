@@ -226,7 +226,7 @@ static void dstep_note(step_t *s, const int32_t *n, uint32_t cnt, uint32_t vel, 
         if (j < cnt && n[j] > top) top = n[j];
     }
     s->time = ST_NOTE;
-    s->flags = (uint8_t)flags;
+    s->flags = (uint8_t)((flags & ~SF_DUR) | (s->flags & SF_DUR));   /* (FASE 4: a recorded length survives) */
     if (top > 74) vel -= (uint32_t)((top - 74) * 2 < 30 ? (top - 74) * 2 : 30);   /* (high notes measured: softer) */
     s->vel = (uint8_t)clamp((int32_t)vel + rr(-6, 6), 40, 127);   /* (a human's hand: never twice the same) */
 }

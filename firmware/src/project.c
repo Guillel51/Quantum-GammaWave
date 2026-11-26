@@ -744,7 +744,8 @@ static uint32_t proj_step_x(const step_t *s, uint32_t *nn)   /* its x byte (0: n
     return (s->hit || s->acc ? 1u : 0u) | (s->probability ? 2u : 0u) | (r & 2u ? 4u : 0u) | (all ? 8u : 0u) |
            (s->comp ? 16u : 0u) |                       /* (0.6.39) a component: two bytes, its type and arguments */
            (s->comp2 || s->cwhen || s->ctime ? 32u : 0u) |   /* (0.6.82) the second, WHEN, DIV / LEN: four more */
-           (s->dur ? 64u : 0u);                              /* (FASE 3) the recorded length: one byte, in the step */
+           (step_dur(s) ? 64u : 0u);                         /* (FASE 4) the recorded length: four bits in the step,
+                                                              * one byte on disk only where it is not the GATE */
 }
 static uint32_t proj_step_size(const step_t *s)
 {
@@ -808,7 +809,7 @@ static int proj_pack(project_store_t *out, const project_t *q)
             const step_t *s = &q->t[t].step[i];
             if (s->n > 4u || s->time > ST_REST || (s->flags & ~(3u | SF_RATCH)) || s->probability > 101u ||
                 s->comp >= CP_N || s->comp2 >= CP_N || CT_DIV(s) >= CT_NDIV || s->ctime > 127u ||
-                s->dur > 15u) return 0;
+                (s->flags & ~(3u | SF_RATCH | SF_DUR))) return 0;
         }
     }
     if (!chain_valid(&q->chain) || !motion_valid(&q->motion) || P_COUNT > 127u || !dx_kit_ok(q->dx)) return 0;
@@ -847,7 +848,7 @@ static int proj_pack(project_store_t *out, const project_t *q)
             if (x & 2u) b[pos++] = s->probability;
             if (x & 16u) { b[pos++] = s->comp; b[pos++] = s->carg; }
             if (x & 32u) { b[pos++] = s->comp2; b[pos++] = s->carg2; b[pos++] = s->cwhen; b[pos++] = s->ctime; }
-            if (x & 64u) b[pos++] = s->dur;               /* (FASE 3) the length the player held, in the step it
+            if (x & 64u) b[pos++] = (uint8_t)step_dur(s);   /* (FASE 4) the length the player held, in the step it
                                                            * belongs to: no separate block, no second pass */
         }
     }
@@ -966,7 +967,7 @@ static int proj_pack_vb(project_store_t *out, const project_t *q)
         for (i = 0; i < NSTEP; i++) {
             const step_t *s = &q->t[t].step[i];
             uint32_t r = step_ratchet(s) - 1u;          /* RATCH: bit 7 of the velocity and chance bytes (see the top) */
-            if (s->n > 4u || s->time > ST_REST || (s->flags & ~(3u | SF_RATCH)) || s->probability > 101u) return 0;
+            if (s->n > 4u || s->time > ST_REST || (s->flags & ~(3u | SF_RATCH | SF_DUR)) || s->probability > 101u) return 0;
             for (uint32_t j = 0; j < 4u; j++)           /* what proj_unpack checks, so a saved project always loads: */
                 b[pos++] = s->note[j] > 127u ? 127u : s->note[j];   /* notes and velocity 0..127, accents */
             b[pos++] = (uint8_t)(s->n | s->time << 3 | (s->flags & 3u) << 5);   /* only on hits */
@@ -1096,8 +1097,10 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
                 if (CT_DIV(s) >= CT_NDIV || s->ctime > 127u) return 0;
             }
 
-            if (x & 64u) {                              /* (FASE 3) the recorded length, if the step carries one */
-                if (pos + 1u > room || (s->dur = b[pos++]) > 15u) return 0;
+            if (x & 64u) {                              /* (FASE 4) the recorded length, if the step carries one */
+                uint32_t d;
+                if (pos + 1u > room || (d = b[pos++]) > 15u) return 0;
+                step_set_dur(s, d);
             }
             r |= (x >> 1) & 2u;
             step_set_ratchet(s, r + 1u);
@@ -1172,7 +1175,7 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
     for (t = 0; t < NTRK; t++)                          /* (FASE 3) no length unless the step's own x byte says so:
                                                          * a project written before the field plays as it did */
         for (i = 0; i < NSTEP; i++)
-            q->t[t].step[i].dur = 0;
+            step_set_dur(&q->t[t].step[i], 0u);
     proj_new_tracks(q, nt);                             /* (a FUNC of fewer tracks: the rest at power-on) */
     for (t = nt; t < NTRK; t++)
         memcpy(q->fm6[t], FM6_INIT, FM6_PACKED);

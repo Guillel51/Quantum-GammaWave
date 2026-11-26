@@ -1395,18 +1395,21 @@ static __attribute__((noinline)) void draw_columns(void)
         draw_column(3, "ACC", ac ? "ON" : "--", "", ac ? VAL(3u) : T_DIM, -1, ICON_AUTO);
         return;
     }
-    if (cur_page()->scope == SC_STEP && cur_page()->id[0] == 8u) {   /* (0.6.88) SEQ > TIMING: STEP OFFSET REC Q */
+    if (cur_page()->scope == SC_STEP && cur_page()->id[0] == 8u) {   /* (0.6.88) SEQ > TIMING: STEP OFFSET REC Q HOLD */
         const step_t *st = &seq_steps(TSEL)[ui.cursor];
         int32_t m = ST_MICRO(st), on = st->time == ST_NOTE && (st->n || st->hit), q = TSEL->p[P_HRQ];
-        char sn[8], mo[10], rq[8];
+        uint32_t du = step_dur(st);
+        char sn[8], mo[10], rq[8], ho[8];
         fmt_int(sn, (int32_t)ui.cursor + 1);
         if (!m) str_cpy(mo, on ? "GRID" : "--", sizeof mo);
         else { mo[0] = m < 0 ? '-' : '+'; fmt_int(mo + 1, m < 0 ? -m : m); str_cpy(mo + str_len(mo), "/16", 4); }
         fmt_int(rq, (q * 100 + 63) / 127);
+        if (!du) str_cpy(ho, on ? "GATE" : "--", sizeof ho);      /* (FASE 4) the recorded length */
+        else { fmt_int(ho, (int32_t)du); str_cpy(ho + str_len(ho), "/16", 4); }
         draw_column(0, "STEP", sn, "", VAL(0u), -1, ICON_AUTO);
         draw_column(1, "OFFSET", mo, "", on && m ? VAL(1u) : T_DIM, on ? (m + 8) * 1000 / 15 : -1, ICON_ORDER);
         draw_column(2, "REC Q", rq, "%", q < 127 ? VAL(2u) : T_DIM, q * 1000 / 127, ICON_X_PATTERN);
-        draw_column(3, "", "", "", T_THEME, -1, ICON_NONE);
+        draw_column(3, "HOLD", ho, "", on && du ? VAL(3u) : T_DIM, (int32_t)du * 1000 / 16, ICON_ORDER);
         return;
     }
     if (cur_page()->scope == SC_STEP && cur_page()->id[0] == 4u) {   /* (0.6.81) SEQ > NOTE: FOCUS PITCH MOVE LEN */
