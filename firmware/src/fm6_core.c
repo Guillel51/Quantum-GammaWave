@@ -46,9 +46,9 @@ enum {
 
 /* ---------------------------------------------------------------- math --- */
 /* (ETAPA 1) THE EXP2 TABLE, IN RAM, DECODED ONCE. The 1025 points of 2^(i/1024) - 1 are a smooth curve, so the
- * generated header stores only their second difference (an int16 each: 491..983 here) plus the first point and the
- * first step, and this rebuilds the very same integers with adds -- no floating point, no rounding, no table of
- * 4100 B in the app slot, which is the resource this firmware runs out of first. The decoded copy lives in .bss
+ * generated header stores only the change of that second difference, three bits each with +3 (384 B), plus the first
+ * point, the first step and the first change, and this rebuilds the very same integers with adds -- no floating
+ * point, no rounding, no table of 4100 B in the app slot, which is the resource this firmware runs out of first. The decoded copy lives in .bss
  * (4100 B of the 10.8 KB the linker leaves free) and every lookup is now a RAM read instead of an XIP one, so the
  * hot path of the FM6 engine does not get slower. fm6_exp2_init runs at boot beside wt_gen_init, which is the same
  * arrangement WAVETABLE's band limits already use. */

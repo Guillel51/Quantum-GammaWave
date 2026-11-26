@@ -3,9 +3,11 @@
 /* (ETAPA 2) THE SINE, STORED AS ITS SECOND DIFFERENCE AND REBUILT AT BOOT.
  *
  * The app slot is still the resource this firmware runs out of first, and SINE was 2 050 B of it -- 1 025 int16
- * points of a curve whose step never exceeds 201 and whose step changes by at most 3. That fits an int8 per
- * point (1 025 B, halving the table), and dsp.c's sine_init turns the differences back into the same integers
- * with plain adds, into .bss where every caller (sine_i, ADDTV, ANALOG's formant, FM6's fm6_sin) reads it.
+ * points of a curve whose step never exceeds 201 and whose step changes by at most 3. The change is stored in
+ * THREE bits (value + 3, 0..7), so the 1 023 changes are 384 B, and dsp.c's sine_init turns them back into the
+ * same integers with plain adds, into .bss where every caller (sine_i, ADDTV, ANALOG's formant, FM6's fm6_sin)
+ * reads it. The decode below is the same loop, on the same packed bytes: a test that read the array as int8
+ * would be checking a format the firmware no longer writes.
  *
  * What this proves:
  *   exact     every one of the 1 025 decoded points is the generator's integer, bit for bit: the reference here
@@ -38,13 +40,21 @@ int main(void)
     int16_t tab[SINE_N];
     int32_t i, v = SINE_V0, d = SINE_D1;
     int bad = 0, first = -1;
+    uint32_t acc = 0, bits = 0;
+    const uint8_t *p = SINE_D2;
 
     tab[0] = (int16_t)v;
     for (i = 1; i < (int32_t)SINE_N; i++) {
         v += d;
         tab[i] = (int16_t)v;
-        if (i <= (int32_t)SINE_D2_N)
-            d += SINE_D2[i - 1];
+        if (i <= (int32_t)SINE_D2_N) {
+            while (bits < 3u) {
+                acc = acc << 8 | *p++;
+                bits += 8u;
+            }
+            d += (int32_t)((acc >> (bits - 3u)) & 7u) - 3;
+            bits -= 3u;
+        }
     }
 
     check("the decode fills 1025 points (the 1025th repeats the 1st)",
@@ -66,11 +76,10 @@ int main(void)
     check("every decoded point is the generator's integer (all 1025)", bad == 0);
 
     {
-        int range = 1;
-        for (i = 0; i < (int32_t)SINE_D2_N; i++)
-            if (SINE_D2[i] < -128 || SINE_D2[i] > 127)
-                range = 0;
-        check("every stored difference fits the int8 the header declares", range);
+        /* the packed form has no out-of-range value by construction; what has to hold is that it is the
+         * size the header declares and that the last byte is not padding the decode would read. */
+        int range = (int)(sizeof SINE_D2) == (SINE_D2_N * 3 + 7) / 8;
+        check("every stored difference fits the three bits the header declares", range);
     }
     check("the quarter point is the full scale (32767 at i = 256)",
           tab[256] == 32767 && tab[768] == -32767);
@@ -83,7 +92,7 @@ int main(void)
     }
 
     printf("sine table: %u points, %u B of XIP instead of 2050 (saved %u), decoded at boot\n",
-           SINE_N, (unsigned)(SINE_D2_N + 2), (unsigned)(2050u - (SINE_D2_N + 2)));
+           SINE_N, (unsigned)sizeof SINE_D2, (unsigned)(2050u - sizeof SINE_D2));
     printf(fails ? "SINE TABLE TEST FAILED (%d)\n" : "sine table: 6 checks, 0 FAILED\n", fails ? fails : 6);
     return fails ? 1 : 0;
 }

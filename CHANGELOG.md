@@ -1,3 +1,32 @@
+## v2.6.0 — FASE 5/5: cierre, los números públicos al día y dos pruebas que miraban un formato que ya no existe
+
+- **Las pruebas de las tablas compactas vuelven a probar lo que el firmware hace.** `sine_table_test` y
+  `fm6_exp2_test` decodificaban las tablas como diferencias de 8 y 16 bits, pero desde la compactación a tres bits
+  (`SINE_D2` 384 B, `FM6_EXP2_D2` 384 B) el array se lee empaquetado: las dos pruebas fallaban desde entonces y con
+  ellas la suite entera. Ahora decodifican con **el mismo lazo que `sine_init` / `fm6_exp2_init`** y vuelven a
+  probar los 1 025 puntos contra el generador, bit a bit: 6 y 7 comprobaciones en verde, y el ahorro real medido
+  (2 050 → 384 B y 4 100 → 384 B de XIP, 5 382 B entre las dos). No se tocó el DSP ni ningún golden.
+- **El recuento público deja de mentir.** ABOUT decía «10 Engines. 290 Presets.» y el README, BUILDING y
+  `fmhub.json` lo repetían: las tablas tienen **296 presets de fábrica** (298 entradas menos los dos kits DRUM
+  legacy que nunca se listan). Se corrigió en la pantalla, el README, BUILDING.md y el JSON del Firmware Hub, y la
+  fuente que se cita es `preset_audit_test` (que lee las tablas del motor), no un test que cuenta con una expresión
+  regular y da 295.
+- **El manual documenta HOLD.** La perilla 4 de SEQ > TIMING (la duración real grabada, GATE o 1/16 … 15/16) estaba
+  en el firmware y en el CHANGELOG de la fase 4, pero no en las tablas ni en el texto de `docs/MANUAL.md` y
+  `docs/MANUAL.es.md`.
+- **La puerta de píxeles vuelve a describir el árbol.** `tests/ui_pixels.txt` se había quedado en v2.5.1: desde
+  v2.5.2 la cadena de versión (splash, ABOUT, tarjetas del hub) hacía fallar 89 cuadros en todas las paletas. Se
+  regeneró la base con la versión nueva y el recuento corregido, y solo esos cuadros cambian.
+- **Capturas reales regeneradas** desde el código de dibujo (`tools/generate_screenshots.py`), con la versión y los
+  números que el firmware muestra.
+- **Medidas finales `[AC791N]`**: RAM `.data+.bss` **75 600 B** (22 704 libres), POOL 303 328 B (24 352 de sobra),
+  LOWBUF 28 488 B, RAMTEXT 20 596 B, NOINIT 15 572 B (124 libres), XIP **576 552 B** (7 060 libres). Sin cambios de
+  DSP en esta fase: los goldens de audio no se movieron.
+- **Lo que sigue abierto, medido y no maquillado**: `text_spacing_test` da **0,258 px** en el par «Gl» de la fuente S
+  contra un límite de 0,25 (documentado desde la fase 2, se reproduce igual sin estos cambios); `cloud_hot_test`
+  mide en FREEZE con RATE 127 una caída de **6,1 dB** donde su criterio pide ≤ 6,0 (sin clamp, sin click ni
+  desborde: es un umbral de 0,1 dB en el extremo). Ninguno de los dos se "arregló" bajando la exigencia.
+
 ## v2.5.4 — FASE 4/5: la duración real cabe en cuatro bits, y la auditoría de expresión, motores y presets
 
 - **La duración grabada deja de costar un byte por paso.** El valor (1..15 dieciseisavos del paso, 0 = el GATE)

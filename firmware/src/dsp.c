@@ -34,7 +34,7 @@ static inline int32_t clamp_sym(int32_t v, int32_t k)
 }
 
 /* (ETAPA 2) the sine, rebuilt here instead of stored: the app slot keeps SINE_D2, the 1 025 points' second
- * differences as int8 (1 025 B, was 2 050 B of the one resource this firmware runs out of first), and this turns
+ * differences in three bits each (384 B, was 2 050 B of the one resource this firmware runs out of first), and this turns
  * them back into the exact same integers with adds. It lives in .bss and every caller below reads it as before,
  * so a lookup is a RAM read instead of an XIP one. Same arrangement as WT_GEN and FM6's exp2 curve. */
 int16_t SINE[SINE_N];

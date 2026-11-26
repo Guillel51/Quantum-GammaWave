@@ -131,7 +131,7 @@ static int32_t menu_document(int32_t y, int draw)
         cv_text_r(232, y + 61, &AF_S, __DATE__, T_MID, T_BG);
         cv_text(6, y + 82, &AF_S, "12-Voice Poly. Peak/Notch EQ.", T_ACCENT);
         cv_text(6, y + 100, &AF_S, "4 Warm Tape/Hearth/Flux Shapes.", T_TEXT);
-        cv_text(6, y + 118, &AF_S, "10 Engines. 290 Presets.", T_TEXT);
+        cv_text(6, y + 118, &AF_S, "10 Engines. 296 Presets.", T_TEXT);
         cv_text(6, y + 138, &AF_S, "GUILLEL51 GITHUB", T_THEME);
         cv_text(6, y + 156, &AF_S, "QUANTUM GAMMAWAVE", T_ACCENT);
         cv_text(6, y + 174, &AF_S, "OCT+: SECRET VIZ", T_THEME);

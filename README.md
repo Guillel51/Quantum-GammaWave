@@ -100,7 +100,7 @@ What you hold is one instrument in four pieces:
 | | |
 |---|---|
 | **Voices / tracks / engines** | 12 · 6 · 10 (ANALOG, PHASE, FM6, LOFI, VOICE, WHEEL, NOISE, DRUM, WTABLE, ADDTV) |
-| **Sound bank** | 290 factory presets across the ten engines, counted from the tables by the suite (`tests/preset_slots_test.py`), plus two pre-1.6 DRUM kits kept as legacy entries |
+| **Sound bank** | 296 factory presets across the ten engines, counted from the engine tables by the suite (`tests/preset_audit_test`), plus two pre-1.6 DRUM kits kept as legacy entries |
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
 | **Screen** | 240 × 240 RGB565, twenty-two palettes (GREY and MONO included), each a set of named roles |
@@ -129,7 +129,7 @@ Ten engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and fr
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 | **ADDTV** | additive: eight partials, each with its own phase and decay; SPECTRUM morphs eight profiles, STRETCH makes them inharmonic | spectrum, tilt, spectral decay, stretch |
 
-290 factory presets are spread across them, plus the two pre-1.6 DRUM kits kept as legacy entries so a
+296 factory presets are spread across them, plus the two pre-1.6 DRUM kits kept as legacy entries so a
 project that names them loads the sound it saved, plus the user slots. Presets and projects from earlier
 versions keep loading.
 

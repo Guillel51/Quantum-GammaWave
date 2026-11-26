@@ -24,15 +24,16 @@ ENGINES = [
     ("FM6", "eng_fm6.c", "FM6_PRESETS", 37),
     # (FASE 5) WTABLE was missing here: 22 factory sounds (PRISM KEYS, ELECTRIC TINE, GLASS CHIME, MORPH SUB,
     # ARCO SOLAR ...) were outside this audit while the preset audit (preset_audit_test.c, reading the real
-    # engine_t) counted them. The total is the firmware's own: 273 browsable + 2 legacy kits = 275.
-    ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 23),
+    # engine_t) counted them. (FASE 5) three more joined (ORBIT, ...): 26, and the total is the firmware's
+    # own: 296 browsable + 2 legacy kits = 298 entries.
+    ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 26),
     # (1.2.6) ADDTV was missing here for the same reason WTABLE was in FASE 5: the eight additive presets
     # (GLASS BELL, HOLLOW REED, ...) live in eng_additive.c's AD_PRESETS and count in the firmware's total.
     # (1.3.4) ten: REED HORN and AIR CHOIR joined, the two sounds the engine did not have.
-    # (ETAPA 4) PHASE SYNC CATHEDRAL joined: 287 browsable + 2 legacy kits = 289.
-    ("ADDTV", "eng_additive.c", "AD_PRESETS", 10),
+    # (ETAPA 4) PHASE SYNC CATHEDRAL joined; (FASE 5) two more: 12, and 296 browsable in total.
+    ("ADDTV", "eng_additive.c", "AD_PRESETS", 12),
 ]
-TOTAL = 291
+TOTAL = 296
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "SUB FLOOR",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
              "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]

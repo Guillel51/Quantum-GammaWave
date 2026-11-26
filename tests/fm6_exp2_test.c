@@ -38,17 +38,27 @@ static void check(const char *what, int ok)
 int main(void)
 {
     uint32_t tab[FM6_EXP2_N];
-    int32_t i, a = (int32_t)FM6_EXP2_V0, b = a + (int32_t)FM6_EXP2_D1;
+    int32_t i, a = (int32_t)FM6_EXP2_V0, b = a + (int32_t)FM6_EXP2_D1, d2 = (int32_t)FM6_EXP2_D2_V0;
     int bad = 0, worst = -1;
     double worstd = 0.0;
+    uint32_t acc = 0, bits = 0;
+    const uint8_t *p = FM6_EXP2_D2;
 
     tab[0] = (uint32_t)a;
     tab[1] = (uint32_t)b;
     for (i = 0; i < (int32_t)FM6_EXP2_D2_N; i++) {
-        int32_t c = b + (b - a) + (int32_t)FM6_EXP2_D2[i];
+        int32_t c = b + (b - a) + d2;
         tab[i + 2] = (uint32_t)c;
         a = b;
         b = c;
+        if (i + 1 < (int32_t)FM6_EXP2_D2_N) {   /* the same three packed bits fm6_exp2_init reads */
+            while (bits < 3u) {
+                acc = acc << 8 | *p++;
+                bits += 8u;
+            }
+            d2 += (int32_t)((acc >> (bits - 3u)) & 7u) - 3;
+            bits -= 3u;
+        }
     }
 
     check("the decode fills 1025 points (fm6_mant reads k + 1 up to 1024)",
@@ -83,15 +93,12 @@ int main(void)
     }
 
     {
-        int range = 1;
-        for (i = 0; i < (int32_t)FM6_EXP2_D2_N; i++)
-            if (FM6_EXP2_D2[i] < -32768 || FM6_EXP2_D2[i] > 32767)
-                range = 0;
-        check("every stored difference fits the int16 the header declares", range);
+        int range = (int)(sizeof FM6_EXP2_D2) == (int)(((FM6_EXP2_D2_N - 1u) * 3u + 7u) / 8u);
+        check("the packed changes fit the three bits the header declares", range);
     }
 
     printf("fm6 exp2 table: %u points, %u B of XIP instead of 4100 (saved %u), decoded at boot\n",
-           FM6_EXP2_N, (unsigned)(8u + 2u * FM6_EXP2_D2_N), (unsigned)(4100u - (8u + 2u * FM6_EXP2_D2_N)));
+           FM6_EXP2_N, (unsigned)sizeof FM6_EXP2_D2, (unsigned)(4100u - sizeof FM6_EXP2_D2));
     printf(fails ? "FM6 EXP2 TEST FAILED (%d)\n" : "fm6 exp2 table: 7 checks, 0 FAILED\n", fails ? fails : 7);
     return fails ? 1 : 0;
 }

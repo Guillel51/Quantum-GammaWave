@@ -297,7 +297,7 @@ repeat sounding right now is marked, and the fall of the bars is FEEDBK's own.
 | STEP (melodic: piano roll) | STEP | NOTE | TIME (NOTE / TIE / REST) | FLAG (– / ACC / SLD / A+S) |
 | STEP (DRUM: grid) | STEP | LANE | HIT | ACC |
 | NOTE | FOCUS | PITCH | MOVE | LEN |
-| TIMING | STEP | OFFSET (−8/16 … +7/16) | REC Q | — |
+| TIMING | STEP | OFFSET (−8/16 … +7/16) | REC Q | HOLD (GATE / 1/16 … 15/16) |
 | STRETCH | STRETCH (/8 … /2, x2 … x8) | REPEAT (x2 … x8, TO 64) | NUDGE (now) | LEN (before > after) |
 | COMP | STEP | TYPE | (its value) | (its value; RATCH / ECHO: DIV) |
 | COMP 2 | STEP | TYPE (the second component) | (its value) | (its value; ECHO: DIV) |
@@ -629,7 +629,9 @@ clears all of the track's automation; SEQ > AUTOMATION's PLAY OFF keeps it but s
   **REC Q**, the track's recording quantize: 100 % (the default) live recording snaps to the grid; lower, the step keeps
   that much of where you played it (0 %: all of it), early or late. Early steps really sound early: the step before
   ends that much sooner and the grid is kept. The piano roll draws the notes where they play. A chord shares its
-  step's offset; moving, stretching or repeating steps keeps it; saved with the project.
+  step's offset; moving, stretching or repeating steps keeps it; saved with the project. KNOB 4 **HOLD** shows and
+  edits the real length the step was recorded with: **GATE** (sounds until the next step) or 1/16 … 15/16 of a step;
+  it can also be set by hand on a step that was not recorded.
 - **HUMAN** (0.6.87, after SHIFT): the track plays like a person, each note a little different every time round;
   the steps stay as written. **VEL**: each note's velocity up or down at random (up to ±38 at 100 %). **TIME**: each
   step starts a little late at random (up to 30 ms, never more than a third of the step, never early; a chord's notes
