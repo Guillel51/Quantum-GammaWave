@@ -1,3 +1,27 @@
+## v2.14.3 — FASE FX LATCH: la capa de performance deja de ser una pantalla aparte
+
+- **FX LATCH usa la fila de tarjetas del instrumento.** `layer_cards(LAYER_FX)` dibuja LATCH (estado real de
+  `perf_latch_on`, con `OCT+` / `HOLD`), DEPTH (`perf_k[3]`), FILTER (el corte real `pf.lc`/`pf.hc` en la barra y
+  LPF/HPF en el texto) y BANK (`pfx_bank` con el destino `pfx_tgt`): mismo chaflán, mismos iconos y mismas barras
+  que cualquier otra página, y las barras son valores del DSP, no decoración. Antes eran dos tarjetas dibujadas a
+  mano, sólo texto, dentro del mapa.
+- **El mapa es una sola banda de 122 px** con su propio suelo: `ux_ground_rows` de 240 px de ancho con escalones de
+  1–4 px, borde superior iluminado, pie en sombra, columnas de 1 px en x = 0 y x = 239, y el pie de la capa
+  continuando la misma rampa hasta la última fila. Se van el doble `cv_begin`/`cv_blit` y `fx_text_y0/fx_text_y1`.
+- **Profundidad**: fila posterior del teclado al 12 % (6 px arriba, 4 px a la derecha), teclas con borde superior
+  iluminado y pie en sombra, tapa y marco en la tecla retenida, tapa en la bloqueada, tecla no disponible atenuada.
+- **Bugs corregidos en `perform.c`**: el readout de los cabezales devolvía `BM_*` en el campo de estado (un REV
+  capturando se pintaba como leyendo) — ahora `state ? 2 : 1`; `perf_buf_select()` recorría dos veces los mismos
+  efectos (un solo recorrido con `PF_BUF`); `perf_count()` comparaba seis constantes por bit (una máscara).
+- **Medido [AC791N]**: imagen **579 332 B** de 583 612 (**4 280 libres**, antes 1 476), XIP 452 912 de código +
+  121 640 de constantes, alcance de llamadas desde RAM **11 184 B** (antes 8 416), RAM 75 664 (+32), POOL y LOWBUF
+  iguales. El rediseño libera 2 804 B porque deja de dibujar a mano lo que el instrumento ya dibuja.
+- **[HOST]**: barrido de 3 305 cuadros con **0 hallazgos de lint**, 0 tintas sobre su propio color, 0
+  desalineaciones (4 073 426 medidas), 0 píxeles GREY/MONO fuera de gris; 80 cuadros cambiados, todos de la capa
+  FX LATCH; 316 renders dorados idénticos; `perform_test` y `ui_test` pasan.
+- **No verificado en hardware**: no hay FM-1 en este entorno. Detalle y límites en
+  `docs/FASE_FX_LATCH_2026-11-26.md`.
+
 ## v2.14.2 — FASE 2/6: la caché de ventanas angostas entra en el presupuesto de XIP
 
 - **La caché de ventanas angostas (`FELUCCA_WINCACHE`) queda encendida.** Llevaba implementada desde la Fase 6,

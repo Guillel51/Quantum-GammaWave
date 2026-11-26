@@ -165,14 +165,6 @@ static uint32_t perf_buf_playing(void)
         n += pb[i].mode != BM_NONE && pb[i].state;
     return n;
 }
-static uint32_t perf_buf_state(uint32_t e)
-{
-    uint32_t i;
-    for (i = 0; i < PB_HEADS; i++)
-        if (pb[i].mode != BM_NONE && pb[i].src == (uint8_t)e)
-            return pb[i].state ? 2u : 1u;
-    return 0;
-}
 static int pb_free(void)
 {
     uint32_t i;
@@ -225,13 +217,16 @@ static uint32_t pf_rs = 0x2545F491u;  /* GLITCH's own random numbers */
 static uint8_t pfx_lane[32], pfx_ltgt;   /* the section's punch-in lane (pfx.c), its tracks (as pfx_tgt) */
 #define PF_MAX_ACTIVE 3u
 /* the musical effects active (mutes and the target/clear keys are not effects) */
+/* the bits that are musical effects (PF_IS), the six mutes out: one mask and a shift, where six compares ran */
+#define PF_EFF_MASK (((1u << PF_M1) - 1u) | (((1u << PF_END) - 1u) & ~((1u << PF_VIB) - 1u)))
 static uint32_t perf_count(uint32_t a)
 {
-    uint32_t e, n = 0;
-    for (e = 0; e < PF_END; e++)
-        if (PF_IS(e) && e != PF_M1 && e != PF_M1 + 1u && e != PF_M1 + 2u &&
-            e != PF_M1 + 3u && e != PF_M1 + 4u && e != PF_M1 + 5u && ((a >> e) & 1u))
-            n++;
+    uint32_t n = 0;
+    a &= PF_EFF_MASK;
+    while (a) {
+        n += a & 1u;
+        a >>= 1;
+    }
     return n;
 }
 static void perf_press(uint32_t e, int down)
@@ -323,19 +318,10 @@ static void perf_buf_select(uint32_t bits)
     for (i = 0; i < PB_HEADS; i++)
         if (pb[i].mode != BM_NONE && !((bits >> pb[i].src) & 1u))
             pb[i].on = 0;
-    for (e = PF_R8; e <= PF_R32; e++)
-        if ((bits >> e) & 1u) {
-            for (i = found = 0; i < PB_HEADS; i++)
-                if (pb[i].mode != BM_NONE && pb[i].src == (uint8_t)e) {
-                    pb[i].on = 1;
-                    found = 1;
-                    break;
-                }
-            if (!found)
-                perf_buf_start(e);
-        }
-    for (e = PF_REV; e < PF_END; e++)
-        if ((bits >> e) & 1u) {
+    /* every buffer effect in one pass: PF_REPEAT (bits PF_R8..PF_R32) and bank 2's five are disjoint, so the
+     * mask is the set, not a range; this loop was two copies of itself, one per range. */
+    for (e = 0; e < PF_END; e++)
+        if (((bits >> e) & 1u) && (PF_BIT(e) & PF_BUF)) {
             for (i = found = 0; i < PB_HEADS; i++)
                 if (pb[i].mode != BM_NONE && pb[i].src == (uint8_t)e) {
                     pb[i].on = 1;

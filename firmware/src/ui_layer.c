@@ -957,21 +957,22 @@ static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0;
  * not 122, and the white keys are 118 px tall below the cards' band. */
 static const char *const FX_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
 static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
-#define FX_H (H_GRAPH + (Y_GRAPH - Y_LABEL))      /* the map takes the cards' 48 px too: 170 */
-#define FX_CARD_H 40                             /* (3 .. 42: three 11 px lines and a 2 px margin) */
-#define FX_KEY_Y 48
-#define FX_KEY_H (FX_H - FX_KEY_Y - 4)           /* 118 px white keys, 58 px black keys */
+#define FX_H H_GRAPH                             /* (FASE FX LATCH) the map is the graph band: 122 rows, and
+                                                  * the state it used to carry in its own cards is the standard
+                                                  * card row above (layer_cards), like every other layer */
+#define FX_KEY_Y 10                             /* (FASE FX LATCH) the row behind is 6 px above the keys: on
+                                                  * the map's first row it was clipped away */
+#define FX_KEY_H (FX_H - FX_KEY_Y - 4)           /* 108 px white keys, 50 px black keys */
 #define FX_KEY_X0 9                              /* 16 x 12 px keys, 2 px apart: 222 px, x 9..230 */
 #define FX_WHITE_W 12
 #define FX_WHITE_GAP 2
 #define FX_BLACK_W 10                              /* (3.1) 10, not 8: the M of M1..M6 is 9 px wide in AF_S;
                                                     * the pitch is unchanged (14 px a white key) */
-#define FX_BLACK_H 58
+#define FX_BLACK_H 50
 #define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 3)   /* below the black keys: no overlap */
 #define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 3)
 #define FX_BLACK_LABEL_Y FX_KEY_Y                       /* one glyph band inside the black key */
 #define FX_BLACK_LABEL_H FX_BLACK_H
-static int32_t fx_text_y0, fx_text_y1;               /* the map band being drawn: no text outside it */
 static void fx_vtext(int32_t x, int32_t w, int32_t y, int32_t h, const char *s, uint16_t ink, uint16_t fill)
 {
     int32_t n = (int32_t)str_len(s), top = y + (h - n * 10) / 2;
@@ -979,8 +980,6 @@ static void fx_vtext(int32_t x, int32_t w, int32_t y, int32_t h, const char *s, 
     for (i = 0; i < (uint32_t)n; i++) {
         int32_t ly = top + (int32_t)i * 10;
         char c[2] = {s[i], 0};
-        if (ly + 10 <= fx_text_y0 || ly >= fx_text_y1)   /* the other band draws it */
-            continue;
         cv_text_on(x + (w - text_w(&AF_S, c)) / 2, ly, &AF_S, c, ink, fill);
     }
 }
@@ -992,116 +991,112 @@ static const char *fx_white_name(uint32_t p)
         return PF_NAME[p];
     return p == PF_M1 ? "CLR" : "";
 }
-static void layer_fx(uint32_t band)
+/* (FASE FX LATCH) THE MAP'S SURFACE: 240 x 180 px, from the top row to the panel's last, fed to the two bands
+ * as one picture. It used to be a 234 px rounded card on T_BG with cards and keys floating on it; now the surface
+ * itself carries the depth: a dithered vertical gradient (the 4 x 4 ordered dither gives 16-bit steps out of two
+ * palette tones, so there is no banding on a 240 px run), a lit top edge and a shadowed foot, and the sides
+ * reach x 0 and x 239. Nothing here is an image: two colours per row and a dither, no table, no allocation. */
+static void fx_surface(void)
+{
+    /* (FASE 6/3) the same primitive HOME and FX > BUSES stand on: the ramp walks by row, so its steps are as
+     * fine as 16-bit allows, the panel's tone (T_SURF) lifts the top and the accent hints the foot. */
+    ux_ground_rows(0, 0, 240, FX_H, 34, 96, 4, 30, 0, FX_H, 50);
+    cv_rect(0, 0, 240, 1, ux_mix(T_SURF, T_TEXT, 30));     /* the lit top edge */
+    cv_rect(0, FX_H - 1, 240, 1, ux_mix(T_BG, T_INK, 70)); /* its foot */
+    cv_rect(0, 1, 1, FX_H - 2, ux_mix(T_SURF, T_BG, 70));  /* the sides: one px each, to the edges */
+    cv_rect(239, 1, 1, FX_H - 2, ux_mix(T_SURF, T_BG, 70));
+}
+/* (FASE FX LATCH) ONE KEY, ONE DRAWING CODE PATH. The map's twenty-seven keys were two inlined bodies (white and
+ * black), so a bevel added to one had to be added to the other and the layer paid for both; with the keys as
+ * objects (fill, a lit top, a foot, a cap and a vertical label) the shading is one function and each key is a
+ * colour decision. `r` rounds the accidentals; `cap` is the lit strip of a held or latched key, `ring` its frame. */
+static void fx_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t fill,
+                   int32_t ly, int32_t lh, const char *s, uint16_t ink, int32_t cap, int32_t ring)
+{
+    if (r) cv_rrect(x, y, w, h, r, fill, ux_mix(fill, T_INK, 30));
+    else cv_rect(x, y, w, h, fill);
+    cv_rect(x, y + 1, w, 1, ux_mix(fill, T_TEXT, 30));             /* the lit top edge */
+    cv_rect(x, y + h - 1, w, 1, ux_mix(fill, T_INK, 62));          /* the foot: the key sits, it does not float */
+    if (ring) cv_frame(x, y, w, h, ux_mix(T_ACCENT, T_TEXT, 45));
+    if (cap) cv_rect(x + 2, y + 2, w - 4, 2, ux_mix(T_ACCENT, T_INK, 25));
+    fx_vtext(x, w, ly, lh, s, ink, fill);
+}
+/* (FASE FX LATCH) THE ROW BEHIND: the keyboard's own silhouette, 6 px up and 4 px right, at 12 % of the text ink,
+ * before the keys are drawn. What it buys is the one thing a flat map cannot say: the keys sit on something. */
+static void fx_ghost(void)
+{
+    cv_rect_a(FX_KEY_X0 + 4, FX_KEY_Y - 6, 16 * (FX_WHITE_W + FX_WHITE_GAP), FX_KEY_H + 3, T_TEXT, 12);
+}
+static void layer_fx(void)
 {
     /* the white-key place each black key sits after, in the engine's own order
      * (seq.c key_place: the black keys' own index). A#3 follows A3 (place 2) and A#4
      * follows A4 (place 9): the old 3 and 10 drew them over the next boundary, which
      * put three black keys in a row (places 3/4/5) and left a gap where A#4 belongs. */
     static const uint8_t BKPOS[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
-    uint32_t held = perf_kill ? 0u : perf_held | perf_latched, ok = perf_avail();
-    uint32_t i, p, b, k, f, on, can, mutes = 0;
-    char dep[4];
+    uint32_t held = perf_kill ? 0u : perf_held | perf_latched, lat = perf_kill ? 0u : perf_latched, ok = perf_avail();
+    uint32_t i, p, k, f, on, can, pass, mutes = 0;
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
-    fmt_int(dep, 100 - perf_k[3]);
-    /* (1.9) Two cards, 110 x 40, for the two things this map really is: LATCH's state and
-     * DEPTH's value. The five 44 px cards that were here named settings the map cannot change
-     * (BANK, TARGET, TRACK, and the buffer state), and the last of them, DEPTH at x 192 + 44,
-     * ended on x 236, four pixels past the panel. Two cards, 6..116 and 124..234, stay inside
-     * the 232 px the panel gives, and each one shows only what it owns. 40 px tall, not 36: the
-     * third line's ink reaches row 12 of its line (AF_S_CAP_Y 3 + the round letters' faint row). */
-    if (!band) {
-        static const int32_t CX2[2] = {8, 122};
-        int32_t lat = perf_latch_on != 0, dp = clamp(100 - perf_k[3], 0, 100), seg;
-        for (i = 0; i < 2u; i++)
-            cv_rrect(CX2[i], 5, 108, FX_CARD_H, 3, T_RAISE, T_SURF);   /* clear of the panel's 5 px corner */
-        /* LATCH: the engine's real flag (perform.c perf_latch_on), and nothing else: the card
-         * used to print "TOGGLE / HOLD" and "ENABLE: MENU 40", two instructions for a control it
-         * does not own (KNOB 1..4 are the macros here). A centred state is what it says now. */
-        GFX_HOOK_ALIGN(CX2[0], 5, CX2[0] + 108, 5 + FX_CARD_H, AL_HV, "FX LATCH state centred");
-        cv_text_in(CX2[0], 5 + CAP_IN(S, FX_CARD_H), 108, &AF_S, lat ? "Latch: On" : "Latch: Off",
-                   lat ? T_ACCENT : T_MID, T_RAISE);
-        /* (3.2) the card says how to change it. The only in-map path is OCT+, and the footer that
-         * names it only appeared once LATCH was already on: the state the owner could not leave. */
-        cv_text_on(CX2[0] + 6, 26, &AF_S, "OCT+ TO SWITCH", T_DIM, T_RAISE);
-        /* DEPTH: the value K4 writes (perform.c perf_k[3], shown as 100 - it: right is deeper),
-         * and the same value as a bar, so the knob's travel is readable at a glance */
-        cv_text_on(CX2[1] + 4, 8, &AF_S, "DEPTH", T_MID, T_RAISE);
-        cv_text_on(CX2[1] + 4, 19, &AF_S, dep, T_THEME, T_RAISE);
-        cv_text_r(CX2[1] + 104, 19, &AF_S, "K2", T_DIM, T_RAISE);     /* (3.2) DEPTH is KNOB 2 */
-        cv_rect(CX2[1] + 4, 32, 100, 4, T_SURF);
-        for (seg = 0; seg < 20; seg++)
-            if (seg * 5 < dp)
-                cv_rect(CX2[1] + 4 + seg * 5, 32, 3, 4, seg < 13 ? T_THEME : T_ACCENT);
-    }
-    /* the sixteen white keys: 12 px each, a 2 px gap and a 1 px edge. White is
-     * T_TEXT and black T_KEY: the old T_RAISE on both sides was why they merged. */
-    for (p = 0; p < 16u; p++) {
-        int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)p;
-        for (k = 0; k < 27u; k++)
-            if (!key_black(k) && key_place(k) == p)
-                break;
-        f = k < 27u ? perf_key(k) : PF_N;
-        can = k < 27u && PF_IS(f) && ((ok >> f) & 1u);
-        on = can && ((held >> f) & 1u);
-        {
-            /* (3.0) the white keys are the palette's LIGHT grey (T_KEYW), not the white keycap fill:
-             * on the panel the old T_KEY read as paper white and the map looked printed, not played.
-             * Held: the accent fills the key and its label goes to the ink; an unavailable key keeps
-             * the same body with a muted label, so the keyboard stays one instrument on every theme. */
-            /* (3.0) MONO and GREY have no accent that separates from a white key (the accent is the
-             * text), so a held key there goes to the dark grey with a light label instead: still one
-             * rule -- a held key is the one that does not look like an idle key -- on every palette */
-            uint16_t hf = (ux.mono || ux.bw) ? T_KEYB : T_ACCENT;
-            uint16_t fill = on ? hf : T_KEYW;
-            uint16_t ink = on ? ((ux.mono || ux.bw) ? T_TEXT : T_INK) : can ? T_INK : ux_mix(T_INK, T_KEYW, 45);
-            cv_rect(x, FX_KEY_Y, FX_WHITE_W, FX_KEY_H, fill);
-            cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, ux_mix(T_KEYW, T_TEXT, 30));      /* a lit left edge */
-            cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_KEYB);         /* the gap to its neighbour */
-            cv_rect(x, FX_KEY_Y + FX_KEY_H - 1, FX_WHITE_W, 1, on ? T_INK : T_KEYB);
-            fx_vtext(x, FX_WHITE_W, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
-        }
-    }
-    /* the eleven black keys: 8 px wide, 58 px high and 6 px apart even where two
-     * sit side by side (BKPOS 0/1, 3/4/5, 7/8, 10/11). T_KEY was the panel's own fill
-     * (QUANTUM 0x10a5 against a 0x10a5 panel), so the black keys vanished and the map
-     * read as a wall of white keys: T_BG (the darkest surface) is what makes them black
-     * again, and the 1 px T_LINE edge keeps the rounded shape. */
-    for (b = 0; b < 11u; b++) {
-        int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)(BKPOS[b] + 1u) - FX_BLACK_W / 2;
-        for (k = 0; k < 27u; k++)
-            if (key_black(k) && key_place(k) == b)
-                break;
-        if (b < NTRK) {
-            /* (2.1) T1..T6: the six latched track mutes. Black when open, the accent when the mute is
-             * on (the real seq.c bit, not a copy), so the map shows which tracks are muted now. */
-            int32_t latched = (mutes >> b) & 1u;
-            uint16_t fill = latched ? T_ACCENT : T_KEYB;                   /* (3.0) the accidentals' grey */
-            /* (3.1) M1..M6: these six keys are the track MUTES, and the owner asked for the map to say so.
-             * The key each one is bound to did not move (BKPOS and key_place are untouched). */
-            char n[3] = {'M', (char)('1' + b), 0};
-            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
-            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, latched ? T_INK : T_TEXT, fill);
-            if (latched)                             /* a lit cap: the mute reads at a glance, as a held key */
-                cv_rect(x + 1, FX_KEY_Y + 1, FX_BLACK_W - 2, 1, T_INK);
-        } else {
-            f = k < 27u ? perf_key(k) : PF_N;
-            can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
-            on = can && ((held >> f) & 1u);
-            {
-                /* (3.0) The accidentals are the palette's DARK grey (T_KEYB), not the background: on the
-                 * panel the old T_BG holes made them read as gaps between the white keys. Two greys, one
-                 * clear step apart, on every theme; a held effect takes the accent and the ink. */
-                uint16_t fill = on ? T_ACCENT : T_KEYB;
-                uint16_t ink = on ? T_INK : can ? T_TEXT : ux_mix(T_TEXT, T_KEYB, 55);
-                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
-                fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
-                if (on)                                                        /* held: a lit cap */
-                    cv_rect(x + 2, FX_KEY_Y + 1, FX_BLACK_W - 4, 1, T_INK);
+    fx_surface();                                          /* first: everything else sits on it */
+    fx_ghost();                                            /* the row behind, then the keys on top of it */
+    /* THE KEYS, ONE PASS EACH: the white row first, the accidentals over it. Each key used to search the
+     * twenty-seven for its own index, in a body of its own per colour; now the index is the loop and the body
+     * is one, so a key is what it is -- a label, a fill, and the states the engine really has. */
+    for (pass = 0; pass < 2u; pass++)
+        for (k = 0; k < 27u; k++) {
+            int32_t blk = key_black(k), p = key_place(k), x;
+            uint16_t fill, ink;
+            const char *s;
+            char n[3];
+            int32_t cap = 0;
+            if (blk != (int32_t)pass)
+                continue;
+            if (!blk) {
+                /* (3.0) the body is the palette's LIGHT grey (T_KEYW): on the panel the old T_KEY read as paper
+                 * white and the map looked printed, not played. Held takes the accent; latched adds the cap and
+                 * the ring, the state the key keeps on its own; a key the engine cannot offer now keeps the body
+                 * with a muted label, so the keyboard stays one instrument. */
+                x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * p;
+                f = perf_key(k);
+                can = PF_IS(f) && ((ok >> f) & 1u);
+                on = can && ((held >> f) & 1u);
+                fill = on ? ((ux.mono || ux.bw) ? T_KEYB : T_ACCENT) : T_KEYW;
+                ink = on ? ((ux.mono || ux.bw) ? T_TEXT : T_INK) : can ? T_INK : ux_mix(T_INK, T_KEYW, 45);
+                cap = on && ((lat >> f) & 1u);
+                s = fx_white_name(p);
+            } else if (p < NTRK) {
+                /* (2.1)(3.1) keys 1..6 are the six latched track mutes, the real seq.c bit, labelled M1..M6:
+                 * BKPOS and key_place are untouched, so the binding did not move. */
+                char *t = n;
+                x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (p + 1) - FX_BLACK_W / 2;
+                *t++ = 'M';
+                *t++ = (char)('1' + p);
+                *t = 0;
+                s = n;
+                on = (mutes >> p) & 1u;
+                fill = T_KEYB;
+                ink = T_TEXT;
+            } else {
+                x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (p + 1) - FX_BLACK_W / 2;
+                f = perf_key(k);
+                can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
+                on = can && ((held >> f) & 1u);
+                s = FX_BLACK[p - NTRK];
+                fill = T_KEYB;
+                ink = can ? T_TEXT : ux_mix(T_TEXT, T_KEYB, 55);
             }
+            if (on && blk) {
+                fill = T_ACCENT;
+                ink = T_INK;
+            }
+            fx_key(x, FX_KEY_Y, blk ? FX_BLACK_W : FX_WHITE_W, blk ? FX_BLACK_H : FX_KEY_H, blk ? 2 : 0, fill,
+                   blk ? FX_BLACK_LABEL_Y : FX_WHITE_LABEL_Y, blk ? FX_BLACK_LABEL_H : FX_WHITE_LABEL_H,
+                   s, ink, cap, cap);
+            /* THE CAPTURE HEADS' OWN BAR: bank 2's five buffer effects (REV FRZ TAPE GLCH RTRG) show where the
+             * read head is in its loop -- perform.c perf_buf_ui(), the real position of the shared recording's
+             * reader -- so the map says what the DSP is doing, not only that a key is lit. */
         }
-    }
 }
 /* a track playing DRUM: the rows shrink (28, 28, 24 px) and the group mutes take the third */
 static const char *const GLO_GROUP[4] = {"KICK", "SNR", "HAT", "PERC"};
@@ -1347,8 +1342,23 @@ static void layer_cards(uint32_t l)
     char val[12];
     const char *unit;
     uint32_t c;
-    if (l == LAYER_FX)                                  /* the map owns the cards' area: no top cards */
+    if (l == LAYER_FX) {                                /* (FASE FX LATCH) the state and the two values the map
+                                                         * owns, on the standard card row: the same chamfer, the
+                                                         * same icon and the same bar as every other page, and
+                                                         * the bar is the real value (perf_latch_on, perf_k[3],
+                                                         * pf.lc / pf.hc), not a decoration. */
+        static const char *const TGT[3] = {"ALL", "SYN", "DRM"};
+        int32_t lat_on = perf_latch_on != 0, dp = clamp(100 - perf_k[3], 0, 100), lit = pf.lt || pf.ht;
+        int32_t fc = pf.ht ? 63 - (pf.hc >> 8) : 63 - (pf.lc >> 8);
+        fmt_int(val, dp);
+        draw_column(0, "LATCH", lat_on ? "ON" : "OFF", lat_on ? "OCT+" : "HOLD", lat_on ? VAL(0u) : T_DIM,
+                    lat_on ? 1000 : 0, ICON_HOLD);
+        draw_column(1, "DEPTH", val, "%", VAL(1u), dp * 10, ICON_MIX);
+        draw_column(2, "FILTER", pf.ht ? "HPF" : pf.lt ? "LPF" : "K1", "", lit ? VAL(2u) : T_DIM,
+                    clamp(fc, 0, 63) * 15, ICON_TONE);
+        draw_column(3, "BANK", pfx_bank ? "2" : "1", TGT[pfx_tgt % 3u], VAL(3u), pfx_bank ? 1000 : 0, ICON_TAPE);
         return;
+    }
     if (l == LAYER_GLO) {                        /* T1..T4 LEVEL (T5, T6 selected: T3..T6; the icon; muted: dim) */
         for (c = 0; c < 4u; c++) {
             uint32_t t = c + trk_base4();
@@ -1395,8 +1405,7 @@ static void layer_cards(uint32_t l)
 static __attribute__((noinline)) void draw_layer(void)
 {
     uint32_t l = ui.layer % LAYER_N, sig = l * 7919u + ux.gen * 977u;
-    if (l != LAYER_FX)
-        layer_cards(l);
+    layer_cards(l);
     if (l == LAYER_FX)
         sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 10u + perf_act * 131u + perf_avail() * 7u +
                (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u +
@@ -1426,29 +1435,12 @@ static __attribute__((noinline)) void draw_layer(void)
                (uint32_t)drum_track(TSEL) * 11u + up_gen * 101u;
     if (ui.force || sig != ui.layer_sig) {
         ui.layer_sig = sig;
-        if (l == LAYER_FX) {                           /* CV_MAX is 124 rows: two bands, one buffer */
-            const uint32_t top = Y_GRAPH - Y_LABEL;
-            cv_begin(240, top, T_BG);
-            cv_rrect(3, 0, 234, top, 5, T_SURF, T_BG);
-            cv_bg = T_SURF;
-            cv_scroll = 1;
-            cv_oy = 0;
-            fx_text_y0 = 0;
-            fx_text_y1 = (int32_t)top;
-            layer_fx(0);
-            cv_scroll = 0;
-            cv_oy = 0;
-            cv_blit(0, Y_LABEL);
+        if (l == LAYER_FX) {                           /* (FASE FX LATCH) one band: the map is the graph's 122 px */
             cv_begin(240, H_GRAPH, T_BG);
-            cv_rrect(3, 0, 234, H_GRAPH, 5, T_SURF, T_BG);
-            cv_bg = T_SURF;
+            cv_bg = T_BG;                              /* the map paints its own surface */
             cv_scroll = 1;
-            cv_oy = -(int32_t)top;
-            fx_text_y0 = (int32_t)top;
-            fx_text_y1 = FX_H;
-            layer_fx(1);
+            layer_fx();
             cv_scroll = 0;
-            cv_oy = 0;
             cv_blit(0, Y_GRAPH);
         } else {
             cv_begin(240, H_GRAPH, T_BG);
@@ -1473,6 +1465,10 @@ static __attribute__((noinline)) void draw_layer(void)
     }
     if (ui.force) {                                     /* the footer: what the keys, knobs and buttons do */
         cv_begin(240, H_FOOT, T_BG);
+        /* (FASE FX LATCH) the map's ground runs on into the footer, so the surface of the layer reaches the
+         * panel's last row instead of stopping at a T_BG band under it. The other layers keep the plain footer. */
+        if (l == LAYER_FX)
+            ux_ground_rows(0, 0, 240, H_FOOT, 88, 96, 26, 30, 0, H_FOOT, 50);
         const khint_t *ft = l == LAYER_FX && perf_latch_on ? FX_LATCH_FOOT :
                             l == LAYER_MACRO && !layer_open() ? MAC_LATCH_FOOT : LAYERS[l].foot;
         cv_key_row(8, 232, 9, ft, ft[2].act ? 3u : 2u, 7u, T_BG);
