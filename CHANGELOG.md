@@ -23,8 +23,9 @@
 - **Presets medidos, no tocados a ciegas.** `preset_audit_test`: 298 presets, **0 silenciosos, 0 pasados de nivel,
   0 duplicados exactos, 0 nombres repetidos, 0 fuera de rango**; 5 con DC entre 2 y 3,6 % quedan reportados (el
   test los informa, no los falla). No se agregaron kits DRUM-X ni se cambiaron índices ni categorías.
-- **Coste `[AC791N]`**: RAM `.data+.bss` **76 048 → 75 600 B** (22 704 libres); imagen 576 172 → **576 200 B**
-  (+28 B de código de acceso a los bits). XIP 571 392 → 571 420 B. Sin cambios en POOL, LOWBUF ni código RAM.
+- **Coste `[AC791N]`**: RAM `.data+.bss` **76 048 → 75 600 B** (22 704 libres); LOWBUF **29 256 → 28 488 B**
+  (el par de imágenes de deshacer del proyecto baja 384 B cada una); pool con 24 352 B de sobra; imagen
+  576 172 → **576 552 B** (+380: el acceso a los bits y la columna HOLD); XIP 571 392 → 571 772 B.
 - **Lo existente sigue igual**: 316 goldens de `regress` **0 cambiados**, `seq_dur_test` (grabación de un cuarto de
   paso, acorde con su nota más larga, nota que cruza con su cola real, proyecto de ida y vuelta), `six_track_live`
   61/61, `ui_test`, `project_test`, `editor_test`, `seq_tools_test`, 203 pantallas × 22 paletas con **0 hallazgos**

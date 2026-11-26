@@ -39,7 +39,8 @@ Por qué así y no una tabla dispersa (la otra opción del enunciado):
 - **Cero coste de búsqueda.** Leerla es una máscara y un desplazamiento, no un recorrido de tabla.
 
 Medido `[AC791N]`: `sizeof(step_t)` 18 → **17 B**, RAM `.data+.bss` **76 048 → 75 600 B** (−448 B, −384 de los
-pasos), imagen **+28 B** de código de acceso. El formato del proyecto **no cambia**: `D` `U` sigue escribiendo un
+pasos), **LOWBUF 29 256 → 28 488 B** (el par de imágenes de deshacer del proyecto baja 384 B cada una) e imagen
+**+380 B** (el acceso a los bits y la columna HOLD). El formato del proyecto **no cambia**: `D` `U` sigue escribiendo un
 byte sólo donde la duración no es el GATE, así que los proyectos viejos cargan y los nuevos no gastan un byte por
 paso. Los patrones anteriores a la función tienen `dur = 0` (el GATE de siempre).
 
