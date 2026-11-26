@@ -1,3 +1,14 @@
+## v2.11.0 — el banner dice lo que el firmware tiene, y el ecosistema vuelve a una sola versión
+
+- **El banner de portada tenía los números viejos**: decía «285 PRESETS» y «19 PALETTES» cuando el firmware
+  lleva **296 presets de fábrica** y **22 paletas**. Se corrigió en `tools/gen_banner.py` y se regeneró
+  `assets/branding/quantum_banner.png` desde el código y las capturas reales (sin imágenes generadas).
+- **El índice de evidencia** (`docs/EVIDENCE.md`) vuelve a coincidir con la matriz de cierre.
+- **Las tablas mock del Web Studio** ya incluyen los seis presets que faltaban (WTABLE 26, ADDTV 12), y
+  `node web/test_web.mjs` pasa con 0 diferencias contra el firmware.
+- Capturas reales y base de píxeles regeneradas para v2.11.0; paquete, sitio, emulador, instalador y
+  `SHA256SUMS` sincronizados con el mismo commit.
+
 ## v2.10.0 — FASE 5/5: cierre, los números públicos al día y dos pruebas que miraban un formato que ya no existe
 
 - **Las pruebas de las tablas compactas vuelven a probar lo que el firmware hace.** `sine_table_test` y

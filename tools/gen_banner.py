@@ -244,7 +244,7 @@ def main():
     # 8. the chips: the instrument's own numbers, nothing invented
     small = font("IBMPlexMono-SemiBold.ttf", 16)
     row1 = (("12 VOICES", CYAN), ("6 TRACKS", CYAN), ("10 ENGINES", CYAN))
-    row2 = (("285 PRESETS", VIOLET), ("64-STEP SEQ", GOLD), ("4-SLOT FX", GOLD), ("19 PALETTES", GOLD))
+    row2 = (("296 PRESETS", VIOLET), ("64-STEP SEQ", GOLD), ("4-SLOT FX", GOLD), ("22 PALETTES", GOLD))
     y = base + 112
     x = x0 - 1
     for label, col in row1:
