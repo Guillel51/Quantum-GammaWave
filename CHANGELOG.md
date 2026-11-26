@@ -1,3 +1,25 @@
+## v2.16.3 — el delay y el reverb de FX > BUSES, dibujados como lo que hacen
+
+El bloque DELAY mostraba cuatro rectángulos concéntricos y un punto recorriendo el de afuera: se leía como un
+marco con una mosca, no como un delay, y el icono de su cabecera era ese mismo marco. El bloque REVERB tenía la
+cola correcta pero quieta una vez que el retorno se estabilizaba.
+
+- **DELAY: el tren de ecos.** Cinco ecos, la cabeza a la altura que pide MIX, cada uno más corto y más apagado
+  según FEEDBK —el parámetro que el bus aplica de verdad—, con un cabezal brillante que avanza un eco por tick
+  (`fm1_ms`) para que la repetición se vea repetirse. La línea del suelo es el envío; con MIX a 0 se queda en el
+  gris del riel.
+- **REVERB: la cola brilla.** Las nueve barras siguen, y un resaltado recorre la caída con el reloj, así que la
+  cola se ve sonar mientras suena. El resaltado es una mezcla de los colores que ya estaban (nada de tokens
+  nuevos) y respeta GREY / MONO.
+- Los otros cuatro bloques no se tocaron: CHORUS (dos carriles), SLICER (compuertas con el paso encendido),
+  PUNCH (transitorio y ducking) y MASTER (medidor, pico y lámpara de clip) ya animaban.
+
+Coste **+144 B** de XIP [AC791N]: 582 240 B de 583 612 (**1 372 libres**). Verificación: `ui_render` completo,
+208 pantallas × 22 paletas, 0 hallazgos de lint y 0 desalineaciones en 4 234 479 medidas; **13 cuadros**
+regenerados (todas las paletas de FX > BUSES) y la base de píxeles queda en 3 321 cuadros, idéntica en la
+segunda pasada. Visto en el frame renderizado: el tren de ecos del delay y el brillo de la cola del reverb.
+**No** está observado en una unidad.
+
 ## v2.16.2 — el gráfico de CHORUS se mueve
 
 El gráfico de la página FX > CHORUS dibujaba los tres barridos del bus (RATE, DEPTH, STEREO, TYPE) pero su fase

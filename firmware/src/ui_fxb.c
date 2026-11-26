@@ -167,32 +167,26 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
         b[0] = 0;
         switch (i) {
         case FXB_DLY: {
-            /* THE ECHO TRAIN, WITH A PULSE IN IT. The picture was the only one on the page that never moved: the
-             * repeats sat still while every other block animated, which read as a broken block. Now a ring leaves
-             * the head every 64 frames while the bus carries signal -- the echo the delay is making, spaced by
-             * FEEDBK's softness -- and the head itself is a filled lamp so the train has a source. MIX is what
-             * the number shows, because MIX is the value this console's own knob 2 moves. */
-            int32_t fb = clamp(song.g[G_DFDBK], 0, 127), mx = clamp(song.g[G_DMIX], 0, 127), k;
-            int32_t cx = dx + dw / 2, cy = dy + dh / 2, ph = (int32_t)(ui.frame * 3u & 63u);
-            for (k = 3; k >= 0; k--) {
-                int32_t rx = (dw / 3) - k * 3, ry = dh / 2 - k * 2;
-                if (rx < 2 || ry < 2)
-                    continue;
-                /* the ring the pulse is on, while the bus carries signal, is the accent's: one travelling
-                 * outward every 64 frames, so the train is seen to repeat and not just to exist */
-                cv_frame(cx - rx, cy - ry, rx * 2, ry * 2,
-                         on ? ((mx && k == 3 - ph / 16) ? T_ACCENT :
-                               ux_mix(T_BG, ux_mix(T_THEME, T_ACCENT, 30 + k * 22), 55 + fb * k / 6)) : T_RAISE);
+            /* (2.16.3) THE ECHO TRAIN, DRAWN AS ECHOES. The block showed four concentric rectangles and one dot
+             * walking the outer one: it read as a frame with a fly, not as a delay, and the icon in its header was
+             * the same frame. Five echoes now, the head at the value MIX sets, each quieter and shorter by FEEDBK
+             * -- the parameter the bus actually applies -- with a bright head that walks one echo a tick so the
+             * repeat is seen to repeat. Nothing new is measured: FEEDBK and MIX are song.g, the tick is fm1_ms. */
+            int32_t fb = clamp(song.g[G_DFDBK], 0, 127), mx = clamp(song.g[G_DMIX], 0, 127), k, n = 5;
+            int32_t step = (dw - 2) / n, ph = on ? (int32_t)((fm1_ms / 42u) % (uint32_t)n) : -1;
+            int32_t hmax = 40 + fb * 87 / 127;                     /* 31 % .. full: FEEDBK is the tail */
+            for (k = 0; k < n; k++) {
+                int32_t h = (dh - 4) * (n - k) * hmax / (n * 127), bx = dx + 1 + k * step;
+                uint16_t col;
+                if (h < 2) h = 2;
+                col = !on ? T_RAISE : k == ph ? T_ACCENT : ux_mix(T_THEME, T_SURF, 22 + k * 16);
+                cv_rect(bx, dy + dh - h, step - 2, h, col);
+                if (on && k == ph)                                 /* the head of the train */
+                    cv_rect(bx, dy + dh - h - 2, step - 2, 2, T_TEXT);
             }
-            /* (this round) THE PULSE ITSELF. One of the four rings was the accent's, so with four rings over a
-             * 64-frame cycle the picture stepped four times and read as still between them. A 2 x 2 head walks
-             * the outer ring's perimeter instead, one side every eight frames: the eye can follow the repeat. */
-            if (on && mx) {
-                static const int8_t RING[8][2] = {{1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
-                int32_t q = (ph >> 3) & 7, rx = dw / 3 - 1, ry = dh / 2 - 1;
-                if (rx > 2 && ry > 2)
-                    cv_rect(cx + RING[q][0] * rx - 1, cy + RING[q][1] * ry - 1, 2, 2, T_TEXT);
-            }
+            cv_rect(dx + 1, dy + dh - 1, dw - 2, 1, on ? ux_mix(T_BG, ux_mix(T_THEME, T_ACCENT, 30), 70) : T_RAISE);
+            if (mx == 0)                                           /* MIX 0: the line is there, nothing is sent */
+                cv_rect(dx + 1, dy + dh - 1, dw - 2, 1, T_LINE);
             fxb_pct(b, mx);
             break;
         }
@@ -207,10 +201,19 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
             int32_t top = (dh - 2) * (300 + amp * 970 / 7000) / 1000;      /* the tail's head, from the return */
             int32_t fall = 300 - size * 250 / 127;                         /* per-mille per bar: SIZE 0 gone at the end, 127 still ringing */
             h = top;
+            /* (2.16.3) THE TAIL SHIMMERS. Nine bars that only got dimmer read as a still picture once the return
+             * settled; a highlight now walks the decay with the clock, so the tail is seen to ring while it rings.
+             * One bar per tick, the same rule the delay's head follows. */
+            int32_t shim = on ? (int32_t)((fm1_ms / 34u) % 9u) : -1;
             for (k = 0; k < 9; k++) {
-                if (h > 0)
-                    cv_rect(dx + k * dw / 9, dy + dh - h, dw / 9 - 1, h,
-                            on ? ux_mix(T_ACCENT, T_THEME, clamp(k * 26, 0, 100)) : T_RAISE);
+                if (h > 0) {
+                    uint16_t col = ux_mix(T_ACCENT, T_THEME, clamp(k * 26, 0, 100));
+                    if (!on)
+                        col = T_RAISE;
+                    else if (k == shim)
+                        col = ux_mix(col, T_TEXT, 42);             /* the shimmer, and it is not a new colour */
+                    cv_rect(dx + k * dw / 9, dy + dh - h, dw / 9 - 1, h, col);
+                }
                 h = h * (1000 - fall) / 1000;
             }
             fxb_pct(b, song.g[G_RSIZE]);
