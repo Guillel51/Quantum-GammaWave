@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Host tests (no hardware, no JieLi toolchain, no AC79 SDK): every C test in tests/run_tests.sh,
+# Host tests (no hardware): every C test in tests/run_tests.sh, and the pinned JieLi toolchain only because the
+# host tests compile the firmware's packed factory tables, whose packing pass reads the target compiler's object,
 # the generated headers, the sanitizer runs, the Python tools and the web tests.
 #   NO_PACKAGE=1  skips the checks that need build/felucca.fwsc / build/loader/ota.bin; the
 #                 emulator workflow builds and tests the package with the toolchain.
@@ -23,6 +24,10 @@ jobs:
   host:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      # (FASE 5e) the same path target.yml uses: tools/get_toolchain.sh installs DEST/toolchain, and ./build.sh
+      # (which packs the factory tables the host tests compile) reads the compiler from here
+      JIELI_TOOLCHAIN: ${{ github.workspace }}/../jieli/toolchain
     steps:
       - uses: actions/checkout@v4
 

@@ -142,6 +142,7 @@ if [ ! -f build/gen/preset_pack.h ] || [ ! -f build/gen/lz4_tables.h ]; then
     mkdir -p build
     ./build.sh > build/tables.log 2>&1 || {
         tail -20 build/tables.log
+        echo "::error::tables: ./build.sh failed: the host tests need JIELI_TOOLCHAIN and AC79_SDK to pack the factory tables"
         echo "tables: ./build.sh failed: the host tests need JIELI_TOOLCHAIN and AC79_SDK to pack the factory tables"
         exit 1
     }
