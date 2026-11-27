@@ -137,10 +137,11 @@ jobs:
           cp build/felucca.fwsc /tmp/first.fwsc; cp build/loader/ota.bin /tmp/first.ota
           cp build/emu/felucca.wasm /tmp/first.wasm
           rm -rf build
-          # the emulator build refuses a tree without build/gen, and a wiped build is exactly that
+          # the emulator compiles the firmware's packed tables (preset_pack.h), which the packing pass inside
+          # ./build.sh writes: from a wiped build the firmware has to come first (FASE 5e)
           python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
-          sh web/emu/build.sh
           ./build.sh
+          sh web/emu/build.sh
           cmp /tmp/first.fwsc build/felucca.fwsc && cmp /tmp/first.ota build/loader/ota.bin
           cmp /tmp/first.wasm build/emu/felucca.wasm
           echo "reproducible: $(sha256sum build/felucca.fwsc build/emu/felucca.wasm | tr '\n' ' ')"
