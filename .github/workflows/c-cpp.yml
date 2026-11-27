@@ -41,6 +41,28 @@ jobs:
         with:
           node-version: "20"
 
+      # (FASE 5e) the host tests compile the firmware's packed tables, and the packing pass reads them out of the
+      # target compiler's object: the toolchain is fetched here, cached by the reviewed archive hash like target.yml
+      - name: toolchain cache (keyed by the pinned archive hash)
+        if: vars.JIELI_TOOLCHAIN_SHA256 != ''
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/../jieli
+          key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+      - name: JieLi toolchain
+        env:
+          JIELI_TOOLCHAIN_SHA256: ${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+        run: tools/get_toolchain.sh "${{ github.workspace }}/../jieli"
+      - name: AC79 SDK (pinned branch, the three files the package needs)
+        run: |
+          retry() { for d in 0 5 15 30 60; do sleep $d; "$@" && return 0; done; return 1; }
+          T="$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools"
+          if [ ! -s "$T/uboot.boot" ]; then
+              retry git clone --filter=blob:none --no-checkout --depth 1 \
+                  https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
+              (cd "$HOME/fw-AC79_AIoT_SDK" && git sparse-checkout set --no-cone \
+                  /cpu/wl82/tools/uboot.boot /cpu/wl82/tools/cfg_tool.bin /cpu/wl82/tools/cfg/eq_cfg_hw.bin && retry git checkout)
+          fi
       - name: host tests (ASan + UBSan included; package tests skipped)
         run: NO_PACKAGE=1 sh tests/run_tests.sh
 

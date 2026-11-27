@@ -163,9 +163,16 @@ jobs:
           AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
           JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
         run: |
-          if [ ! -s build/felucca.dis ] || [ ! -s build/felucca.fwsc ]; then python3 tools/build.py; fi
-          python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
-          node web/test_pkg_bounds.mjs build/felucca.fwsc
+          run_step() {
+              if ! "$@" > /tmp/step.log 2>&1; then
+                  tail -20 /tmp/step.log | while IFS= read -r l; do echo "::error::$l"; done
+                  return 1
+              fi
+              tail -3 /tmp/step.log
+          }
+          if [ ! -s build/felucca.dis ] || [ ! -s build/felucca.fwsc ]; then run_step python3 tools/build.py || exit 1; fi
+          run_step python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt || exit 1
+          run_step node web/test_pkg_bounds.mjs build/felucca.fwsc || exit 1
       # (QG-1 phase 2) The install gate is not a suggestion: both routes must refuse to start an update
       # without the physical NOR id. test_web.mjs counts the frames the simulated FM-1 receives, and
       # preflight_test.py does the same for the CLI (including a direct Updater.write()).

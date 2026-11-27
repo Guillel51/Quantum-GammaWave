@@ -133,6 +133,20 @@
 # Change baseline entries only for reviewed, intentional differences in sound or cost;
 # retain every unaffected golden / CPU / target entry. VERBOSE=1: every render.
 set -e
+# (FASE 5e) THE HOST TESTS COMPILE THE FIRMWARE'S PACKED TABLES. preset_pack.h and lz4_tables.h are written by the
+# packing pass inside ./build.sh (they are read out of the target compiler's own object), so a checkout that has
+# never been built for the AC791N stopped at "preset_pack.h: No such file or directory" -- the host job in
+# c-cpp.yml had no toolchain and no build, so it was red since FASE 1. Build them here when they are missing.
+if [ ! -f build/gen/preset_pack.h ] || [ ! -f build/gen/lz4_tables.h ]; then
+    echo "tables: build/gen is missing the packed tables (preset_pack.h, lz4_tables.h): building them with ./build.sh"
+    mkdir -p build
+    ./build.sh > build/tables.log 2>&1 || {
+        tail -20 build/tables.log
+        echo "tables: ./build.sh failed: the host tests need JIELI_TOOLCHAIN and AC79_SDK to pack the factory tables"
+        exit 1
+    }
+fi
+
 export AC79_SDK="${AC79_SDK:-$HOME/fw-AC79_AIoT_SDK}"
 cd "$(dirname "$0")/.."
 OUT=build/host
