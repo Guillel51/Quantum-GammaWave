@@ -365,6 +365,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/scl_test" tests/scl_test.c -lm
     run "SCL as a player's tool (FASE 3): every chord shape recognised, the inversions named from the bass, ambiguity marked, the keybed's picture and its hit test agree, a tapped chord reaches the panel" \
         "$OUT/scl_test"
+    # (FASE 5b) ANALOG's SYNC / SUB and ADDITIVE's DRAW, each knob measured: the neutral render, the octave
+    # below, the hard sync, the descriptors, and every one of the ten knobs moving the audio by 1 % or more
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/analog_sync_test" tests/analog_sync_test.c -lm
+    run "FASE 5b: ANALOG SYNC / SUB and ADDITIVE DRAW, each knob moves the audio (neutral is bit for bit)" \
+        "$OUT/analog_sync_test"
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/tune_test" tests/tune_test.c -lm
     run "QUANTUM TUNING (FASE 7): the cents a temperament asks for are the cents the engine plays (measured as a frequency ratio, 99 cents included), the class follows the note through transposition and octaves, pitch bend rides on top, the standard tuning is bit for bit what it was, USER slots keep what they are saved with, a corrupt or older settings record recovers to EQUAL" \
         "$OUT/tune_test"

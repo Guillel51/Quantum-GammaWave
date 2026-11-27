@@ -274,6 +274,15 @@ static const param_desc_t WTMODE_DESC = {"MODE", F_ENUM, 0, 3, 0, N_WTMODE, 0};
 #define AD_DESC(k) {"H" #k, F_PCT, 0, 127, 127, 0, 0}
 static const param_desc_t AD_DRAW[8] = {AD_DESC(1), AD_DESC(2), AD_DESC(3), AD_DESC(4),
                                         AD_DESC(5), AD_DESC(6), AD_DESC(7), AD_DESC(8)};
+/* (FASE 5b) ANALOG > SYNC / SUB: two knobs in the same two slots AD_DRAW's first two use (P_LN0, P_LN1), which a
+ * DRUM track reads as its kit's levels and no other engine read before. SYNC 0 is osc 2 free -- the sound every
+ * ANALOG preset has -- and 1..127 multiplies osc 2's rate by 1..8.9 while osc 1 restarts it, the hard sync the
+ * SYNC wave does with INT/DTN. SUB is an octave-down sine at that level. Both 0 by default: every existing
+ * sound renders sample for sample -- and so does an old project, whose 100 % in those bytes is handed down from
+ * DRUM's LEVELS: the knob is F_PCTINV, its neutral is the stored 127, and eng_analog.c reads the distance from
+ * there (an_sync / an_sub), so 127 there means 0 here. */
+static const param_desc_t AN_SYNC = {"SYNC", F_PCTINV, 0, 127, 127, 0, 0};
+static const param_desc_t AN_SUB = {"SUB", F_PCTINV, 0, 127, 127, 0, 0};
 static const param_desc_t TRK_CHANCE = {"CHANCE", F_PCTINV, 0, 127, 0, 0, 0};   /* (0.6.37) P_TCHAN: 0 = 100 % */
 static const param_desc_t MORPH_DESC = {"MORPH", F_PCT, 0, 127, 0, 0, 0};   /* (0.6.45) P_MORPH */
 static const char *const N_CLEN[] = {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
@@ -326,6 +335,8 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
         return &WTMODE_DESC;
     if (id >= P_LN0 && id <= P_LN7 && ENGINES[eng_idx(t->eng_req)] == &ENG_ADDITIVE)   /* (FASE 3) DRAW */
         return &AD_DRAW[id - P_LN0];
+    if (id >= P_LN0 && id <= P_LN1 && ENGINES[eng_idx(t->eng_req)] == &ENG_ANALOG)   /* (FASE 5b) SYNC / SUB */
+        return id == P_LN0 ? &AN_SYNC : &AN_SUB;
     if (id == P_TCHAN && !(FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL))   /* (0.6.37) SHIFT's CHANCE */
         return &TRK_CHANCE;
     if (!(FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL))   /* (0.6.43) MUTATE's four */
@@ -791,7 +802,10 @@ static const page_t PAGES[] = {
     {"DRAW", FAM_EDIT, SC_TRACK, GR_DRAW, {P_LN0, P_LN1, P_LN2, P_LN3}},   /* (FASE 3) ADDITIVE's eight
                                      * partial levels, in the slots DRUM's LEVELS uses: per track, per project, eight
                                      * bytes, 127 = the profile untouched. KNOBS 1..4 are harmonics 1..4 */
-    {"DRAW 2", FAM_EDIT, SC_TRACK, GR_DRAW, {P_LN4, P_LN5, P_LN6, P_LN7}},   /* .. and 5..8 */
+    {"DRAW 2", FAM_EDIT, SC_TRACK, GR_DRAW, {P_LN4, P_LN5, P_LN6, P_LN7}},
+    {"SYNC", FAM_EDIT, SC_TRACK, GR_NONE, {P_LN0, P_LN1, 0xFF, 0xFF}},   /* (FASE 5b) ANALOG: hard sync of osc 2
+                                     * and the octave-down sub, in DRUM's LEVELS slots as DRAW is. 0 / 0 is the
+                                     * engine exactly as it was, so the page's knobs are inert until they move */   /* .. and 5..8 */
     {"PHASE", FAM_EDIT, SC_TRACK, GR_WTPHASE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},   /* (FASE 3) WAVETABLE's phase
                                      * mode, in LOFI's retired RTRG slot: SINE (the warp the engine had), KNEE, HOLD,
                                      * X2. WARP is still the depth, on CHARACTER 1 */

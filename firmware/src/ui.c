@@ -497,7 +497,8 @@ static int page_visible(uint32_t i)
     if (PAGES[i].graph == GR_WTPHASE)                  /* (FASE 3) WAVETABLE > PHASE */
         return TSEL->eng_req % NENGINES == ENGI_WAVETABLE;
     if (PAGES[i].scope == SC_TRACK && PAGES[i].id[0] >= P_LN0 && PAGES[i].id[0] <= P_LN7)
-        return TSEL->eng_req % NENGINES == ENGI_DRUM;
+        return TSEL->eng_req % NENGINES == ENGI_DRUM ||
+               (TSEL->eng_req % NENGINES == ENGI_ANALOG && PAGES[i].id[1] == P_LN1);   /* (FASE 5b) SYNC / SUB */
     if (PAGES[i].graph >= GR_FMOP && PAGES[i].graph <= GR_FMENV)   /* (0.6.10) OPERATOR, OP ENV, OPERATOR 2: FM6's */
         return TSEL->eng_req % NENGINES == ENGI_FM6;
     if (PAGES[i].id[0] == P_LRTRG && PAGES[i].id[1] == 0xFFu)   /* (0.6.12) RETRIG: LOFI BYTE / FLOAT's */

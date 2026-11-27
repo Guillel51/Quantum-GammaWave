@@ -154,6 +154,10 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
     int32_t ic1 = v->s[0], ic2 = v->s[1], nst = v->s[2];
     tsvf_t flt;
     tsvf_coef(&flt, cut, p[P_E5]);
+    /* (FASE 5b) SYNC, the knob: in DRUM's LEVELS slot P_LN0 as F_PCTINV with its neutral at 127, so an old
+     * project and every factory preset read 0 here. When it is up, osc 2 runs faster (up to 8.9x) and osc 1
+     * restarts it every cycle -- the reset this function already does for the SYNC wave, now on any WAVE */
+    uint32_t sy = (uint32_t)(127 - clamp(p[P_LN0], 0, 127));
     r = 16u + (uint32_t)det + (wave != AW_SAW3 ? (uint32_t)(mx * 64 / (127 << 8)) : 0u);   /* SYNC / RING: osc 2 at r / 16
                                                          * of osc 1 (1 .. 8.9; 0.6.81: MORPH up to 4 more) */
     inc2 = wave == AW_SAW3 ? cents_inc(m->pitch16 + p[P_E7] * 16, det, 0) : (inc1 >> 4) * r;   /* (SAW3: osc 2 at INT) */
@@ -162,6 +166,8 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
         r = inc1 >> 8 ? (inc2 / (inc1 >> 8)) >> 4 : r; /* (its ratio to osc 1, x16: the restart below) */
         if (r < 1u) r = 1u;
     }
+    if (sy)
+        r = ((r < 1u ? 1u : r) * (16u + sy)) >> 4;     /* the SYNC knob's ratio, x16 as r is */
     inc3 = wave == AW_SAW3 ? cents_inc(m->pitch16, -det, 0) : 0u;
     if (wave < AW_SYNC)                                 /* (JIANT 0.5: HP BP COMB) the plain WAVEs: osc 2 as analog_render */
         inc2 = det || p[P_E7] ? cents_inc(m->pitch16 + p[P_E7] * 16, det, 0) : inc1;
@@ -188,7 +194,7 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
             b = ((a >> 1) * (osc_sine(ph1) >> 1)) >> 13;   /* RING (32 bits) */
         }
         ph1 += inc2;
-        if (wave == AW_SYNC && ph0 + inc1 < ph0)        /* osc 1 starts a cycle: osc 2 with it */
+        if ((wave == AW_SYNC || sy) && ph0 + inc1 < ph0)   /* osc 1 starts a cycle: osc 2 with it */
             ph1 = ((ph0 + inc1) >> 4) * r;              /* (the new cycle's fraction, at osc 2's rate) */
         ph0 += inc1;
         s = mulq15(a, m1) + mulq15(b, m2);
@@ -322,6 +328,23 @@ static void analog_character(track_t *t, voice_t *v, int32_t *out, uint32_t n)
 
 /* the engine's render: SYNC RING SAW3 (0.4) and the FILTER TYPEs HP BP COMB (0.5) in analog_ext, (1.0-GW) TUBE FOLD in
  * analog_dirty, the rest (LP) here (a dispatch of its own: analog_render's loop as before) */
+/* (FASE 5b) SUB, the second knob: P_LN1 (F_PCTINV, neutral 127) is a sine an octave down added after whatever
+ * the WAVE rendered, so it is one path for every ANALOG wave instead of a copy of each loop. Its phase lives in
+ * s[3] (analog_character uses s[4]); at the neutral it returns before touching anything. */
+static void analog_sub(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
+{
+    int32_t q = (127 - clamp(t->p[P_LN1], 0, 127)) * 258;
+    uint32_t i, inc = m->inc >> 1, ph;
+    if (q <= 0)
+        return;
+    ph = (uint32_t)v->s[3];
+    for (i = 0; i < n; i++) {
+        ph += inc;
+        out[i] += (SINE[ph >> 22] * q) >> 15;
+    }
+    v->s[3] = (int32_t)ph;
+}
+
 static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     int32_t m1 = an_mpos(t->p, t->mo_cur, m), m0 = an_mpos(t->p, t->mo_prev, m);
@@ -339,10 +362,11 @@ static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, co
     }
     else if ((uint32_t)t->p[P_E0] >= AW_TUBE && (uint32_t)t->p[P_E0] != AW_PM)
         analog_dirty(t, v, out, n, pm);              /* (PM is not a dirty sine: it goes through analog_ext) */
-    else if ((uint32_t)t->p[P_E0] >= AW_SYNC || t->p[P_FTYPE])
-        analog_ext(t, v, out, n, pm);
+    else if ((uint32_t)t->p[P_E0] >= AW_SYNC || t->p[P_FTYPE] || t->p[P_LN0] != 127)
+        analog_ext(t, v, out, n, pm);                 /* (FASE 5b) .. and the plain WAVE with SYNC up: the reset is there */
     else
         analog_render(t, v, out, n, pm);
+    analog_sub(t, v, out, n, pm);                      /* (FASE 5b) the octave down, on every WAVE */
     analog_character(t, v, out, n);
 }
 

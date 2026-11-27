@@ -1,3 +1,29 @@
+## Sin publicar — FASE 5b: dos knobs que sí editan (ANALOG SYNC / SUB, ADDITIVE DRAW)
+
+**Los dos motores que no dejaban tocar el sonido ya lo dejan.** ADDITIVE ya tenía niveles por parcial en
+`firmware/src/eng_additive.c` (DRAW: `P_LN0..P_LN7` aplicados en `add_block`, neutral 127): se reutilizó tal cual y ahora
+`tests/analog_sync_test.c` mide, uno a uno, que los ocho bajan el audio. ANALOG estrena **SYNC** y **SUB**, en
+`P_LN0`/`P_LN1` reinterpretados por el motor (los ocho slots `P_E0..P_E7` están llenos, como en DRAW):
+`analog_ext` da a osc 2 un ratio de hasta ×8.9 y lo reinicia con osc 1 (el reset que ya hacía la onda SYNC), y
+`analog_sub` añade una sinusoide una octava abajo, con su fase en `s[3]`, después de cualquier onda.
+
+**Neutro de verdad.** Los dos descriptores son `F_PCTINV` con `def 127` (`params.c` `AN_SYNC`/`AN_SUB`): un proyecto
+guardado antes de este cambio ya lleva 127 en esos bytes (eran DRUM LEVELS), así que `analog_sub` sale antes de tocar
+nada y `analog_ext` sólo se elige cuando el knob no está en el neutro. `./build/host/regress tests/golden.txt`:
+**316 renders dorados, 0 cambiados**.
+
+**La página existía y no se veía.** `ui.c` `page_visible()` ocultaba toda página `P_LN*` salvo en DRUM; la página
+`SYNC` habría aparecido de más en DRUM y de menos en ANALOG. Ahora se muestra sólo en ANALOG (la de DRUM sigue igual,
+`sensors` de UI idénticos salvo la nueva página).
+
+**Medido, no supuesto.** `tests/analog_sync_test.c` (host x86) comprueba el neutro bit a bit, que SUB sube la octava
+≥6 dB, que SYNC reescribe la forma (correlación <0.9) y sube la nota una quinta, los descriptores y que **cada uno de
+los diez knobs mueve el audio ≥1 %**. `target_budget`: `analog_render` queda **intacto** (138 = presupuesto), `analog_ext`
++1 %. Build AC791N: image 581 968 B, 0 avisos.
+
+**Bloqueo**: XIP libre **1 644 B** con suelo 2 048 (antes de esta fase: 1 928). El gate `tests/resources_test.py`
+sigue en rojo y no se fuerza: esta fase cuesta 284 B y hay que recuperarlos antes de publicar release.
+
 ## Sin publicar — FASE 8: un solo banner, capturas al día y dos defectos menos
 
 **Un generador de banner, no dos.** `tools/gen_banner.py` dibujaba `assets/branding/quantum_banner.png` a
