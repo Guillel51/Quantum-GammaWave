@@ -64,6 +64,7 @@ void voices_boot(void)
      * idempotent -- pure adds into .bss. */
     sine_init();
     fm6_exp2_init();
+    lz4_tables_init();     /* (FASE 5c) the names and the built-in FM6 banks, unpacked into .bss (lz4_tab.c) */
     presets_pack_init();   /* (FASE 1/8) the factory library, rebuilt from its packed form (engines.c) */
     for (i = 0; i < VPOOLN; i++) {
         memset(&vpool[i], 0, sizeof(voice_t));

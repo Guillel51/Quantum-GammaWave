@@ -54,11 +54,19 @@ static void fm6_bank_changed(void)
 /* (1.2-GW) no bank sent (none in flash, or no store): GW-1 KEYS, built in (tools/gen_fm6_patches.py BANK: its electric
  * pianos, bells, mallets, pads on B1..), so the presets made on them (eng_fm6.c) and B1.. always have a voice. A bank
  * sent replaces it; INIT SYSTEM leaves the sent one (its sector is its own) */
+#ifndef QG_PRESET_SOURCE
+extern uint8_t FM6_ROMBANK_B[];
+_Static_assert(LZ4_FM6_LEN == FM6_ROMBANK_N * FM6_PACKED, "the packed bank is the whole table");
+#endif
 static int fvb_rom_read(uint32_t k, uint8_t *pk)
 {
     if (k >= FM6_ROMBANK_N)
         return 1;
+#ifdef QG_PRESET_SOURCE                              /* the packing pass reads the table itself */
     memcpy(pk, FM6_ROMBANK[k], FM6_PACKED);
+#else
+    memcpy(pk, FM6_ROMBANK_B + k * FM6_PACKED, FM6_PACKED);   /* (FASE 5c) unpacked at boot (lz4_tab.c) */
+#endif
     return 0;
 }
 static void fvb_rom(void)

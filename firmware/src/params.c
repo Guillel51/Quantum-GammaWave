@@ -1065,6 +1065,14 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
  *
  * The order is the eleven tables' own (additive, analog, drum, fm6, formant, lofi, noise, phase, wavetable, wheel,
  * digital): a name two engines share appears once, and tools/gen_preset_names.py can rewrite both sides. */
+/* (FASE 5c) the two pointer-free tables are LZ4-packed (tools/gen_lz4_tables.py) and this is the file that
+ * carries the decoder and the .bss copies: every harness that reads a preset name includes params.c, so the
+ * buffers exist before PR_NAME() is first used -- no harness needs to know about it. */
+#ifndef QG_PRESET_SOURCE
+#include "lz4_tab.c"
+#endif
+
+#ifdef QG_PRESET_SOURCE    /* (FASE 5c) the app carries it LZ4-packed (lz4_tab.c), not as a literal */
 const char PRESET_NAMES[] =
     "ADDTV ORGAN\0GLASS BELL\0CRYSTAL PLUCK\0SPECTRAL PAD\0TINE EP\0GONG DEEP\0HARMONIC BASS\0"
     "METAL CLUSTER\0REED HORN\0AIR CHOIR\0RULE METAL\0ORGAN DRAW\0SAW LEAD\0SOFT PAD\0SQR BASS\0"
@@ -1106,3 +1114,4 @@ const char PRESET_NAMES[] =
     "DRONE ORGAN\0QUANTUM DRAW\0CHAPEL SOFT\0HURDY GURDY\0GURDY DRONE\0MEDIEVAL VIEL\0"
     "FOLK DRONE\0NORDIC ORGAN\0GOTHIC SHRINE\0CATHEDRAL REED\0TIDAL ORGAN\0TONE CABINET\0"
     "SALT REED\0BARKING PIPE\0CORAL ORGAN\0E.PIANO\0BASS\0FUNK KEY\0";
+#endif

@@ -276,6 +276,9 @@ def build_app():
     # of XIP. Measured on the AC791N link, see docs/FASE1_XIP_PRESETS_2026-11-26.md.
     tc("cc", *flags, "-w", "-DQG_PRESET_SOURCE=1", "-c", FW / "src" / "felucca.c", "-o", OUT / "preset_src.o")
     subprocess.run([sys.executable, SRC / "tools" / "gen_preset_pack.py", OUT / "preset_src.o", GEN], check=True)
+    # (FASE 5c) the two pointer-free tables, LZ4-packed from the same object: the pass refuses a section with a
+    # relocation and proves its own round trip before lz4_tables.h is written
+    subprocess.run([sys.executable, SRC / "tools" / "gen_lz4_tables.py", OUT / "preset_src.o", GEN], check=True)
     cmain = (("cc", *flags, "-S", "-emit-llvm", "-Xclang", "-disable-llvm-optzns", "-c",
               FW / "src" / "felucca.c", "-o", OUT / "felucca.ll") if size else
              ("cc", *flags, "-c", FW / "src" / "felucca.c", "-o", OUT / "felucca.o"))

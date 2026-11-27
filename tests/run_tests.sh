@@ -204,9 +204,9 @@ $CC -Ibuild/gen -Ifirmware/src -o "$OUT/mc_selftest_test" tests/mc_selftest_test
 run "second core: the boot self-test refuses a misread shared mailbox" "$OUT/mc_selftest_test"
 
 HALF=$(sed -n 's/^#define HALF_FRAMES \([0-9]*\).*/\1/p' firmware/src/core.h)
-$CC -O2 -DT_CDC=1 -DHALF_FRAMES=$HALF -o "$OUT/uac_test" tests/uac_test.c -lm
+$CC -O2 -Ibuild/gen -Ifirmware/src -DT_CDC=1 -DHALF_FRAMES=$HALF -o "$OUT/uac_test" tests/uac_test.c -lm
 run "USB audio input: descriptors (with CDC), ring and packets, 44.1 -> 48 kHz resampler, 48 kHz stream" "$OUT/uac_test"
-$CC -O2 -DT_CDC=0 -DHALF_FRAMES=$HALF -o "$OUT/uac_test_nocdc" tests/uac_test.c -lm
+$CC -O2 -Ibuild/gen -Ifirmware/src -DT_CDC=0 -DHALF_FRAMES=$HALF -o "$OUT/uac_test_nocdc" tests/uac_test.c -lm
 run "USB audio input: descriptors (without CDC), ring and packets, resampler, 48 kHz stream" "$OUT/uac_test_nocdc"
 # USB descriptor layouts (#67): CDC UAC LAYOUT CDC-presented 48K; layout 0 and the console left out = 1.0's bytes
 # (+ the 48 kHz rate with 48K = 1, the default; 48K = 0: byte for byte)
@@ -461,7 +461,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/voice_defer_test" tests/voice_defer_test.c -lm
     run "CORE SYNC: a note while the other core renders is postponed (never allocated mid-job), replayed at the block start, note-offs never dropped, a burst over the queue loses only note-ons" "$OUT/voice_defer_test"
     # (FASE 3, issue #105) the screen reader's protocol (announce.c) and the USB-MIDI framing usb.c uses
-    $CC -O1 -w -Ifirmware/src -o "$OUT/announce_test" tests/announce_test.c
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/announce_test" tests/announce_test.c
     run "SCREEN READER (issue #105): silent until HELLO, the HELLO answer with the words link, SAY/WHERE/BYE, the 5 s timeout, a line cut at a word, and USB-MIDI CIN 4/5/6/7" "$OUT/announce_test"
     # (FASE 8) the pronunciations: firmware/words.tsv -> the JSON the reader fetches, named after its own content,
     # published with the site, and the exact file announce.c's ANN_WORDS_URL links to (a stale link fails here)

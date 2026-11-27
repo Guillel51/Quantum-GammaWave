@@ -537,7 +537,12 @@ typedef struct {                 /* per-voice control-rate modulation, computed 
  * distinct strings; the strings live once in PRESET_NAMES (preset_names.c, 3 141 B) and each preset holds the
  * 2-byte offset of its own: 612 B instead of 1 224 B over the same text, 612 B of XIP. PR_NAME() adds the offset
  * back, so every reader (the browser, the footer, the generator, the console) still gets a plain const char *. */
-extern const char PRESET_NAMES[];                   /* (FASE 1/10) preset_names.c */
+#ifdef QG_PRESET_SOURCE                             /* the packing pass reads the literal (params.c) */
+extern const char PRESET_NAMES[];
+#else                                               /* (FASE 5c) the app reads it out of lz4_tab.c's .bss copy */
+extern char PRESET_NAMES_BUF[];
+#define PRESET_NAMES ((const char *)PRESET_NAMES_BUF)
+#endif
 #define PR_NAME(p) (PRESET_NAMES + (int32_t)(p)->name)
 typedef struct {
     uint16_t name;               /* (FASE 1/10) the offset in PRESET_NAMES: PR_NAME(&preset) */

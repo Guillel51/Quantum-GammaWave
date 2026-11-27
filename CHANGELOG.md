@@ -1,3 +1,21 @@
+## Sin publicar — FASE 5c: dos tablas que estaban en XIP y ahora se descomprimen en RAM
+
+**Sólo dos de las cinco se podían empaquetar.** `DSTYLE`, `RECIPE` e `ICON_MAP` llevan punteros a literales
+dentro (21, 87 y 145 relocaciones): sus bytes en el objeto son direcciones ya enlazadas y ningún `memcpy` las
+reconstruye — el mismo motivo por el que `TP` quedó descartado. `PRESET_NAMES` (3 142 B) y `FM6_ROMBANK` (1 408 B)
+son bytes puros: `tools/gen_lz4_tables.py` los comprime con LZ4, comprueba que no tengan una sola relocación,
+descomprime su propia salida y la compara byte a byte, y `firmware/src/lz4_tab.c` los reconstruye en `.bss` al
+arrancar (`voices_boot`), así que ningún lector cambia (`PR_NAME`, `fvb_rom_read`).
+
+**El neto, medido en el enlace AC791N** (`tools/resource_map.py`): imagen **581 968 → 580 996 B (−972)**, XIP
+libre **1 644 → 2 616 B** (suelo 2 048), y `.bss` **+4 550 B** por las dos copias: RAM libre 12 428 → **7 676 B**
+(suelo 4 096). 1 149 B brutos menos 177 B de decodificador y ganchos. `app.ld` sube `RAMTEXT` 512 B y baja la
+longitud los mismos 512 (la ventana de llamadas había caído a 8 056 de los 8 192 exigidos; queda en 8 568).
+
+**Nada se movió.** 316 renders dorados idénticos, 3 321 frames de UI idénticos, 0 lint, `resources_test` 13/0,
+`target_budget` DRUM_PATH/BLOCK_PATH/FM6_PATH dentro de presupuesto (+0 %), build AC791N sin avisos. El detalle
+está en `docs/FASE5C_LZ4_2026-11-27.md`. El rediseño de Punch In FX sigue necesitando **3 828 B** más.
+
 ## Sin publicar — FASE 5b: dos knobs que sí editan (ANALOG SYNC / SUB, ADDITIVE DRAW)
 
 **Los dos motores que no dejaban tocar el sonido ya lo dejan.** ADDITIVE ya tenía niveles por parcial en
