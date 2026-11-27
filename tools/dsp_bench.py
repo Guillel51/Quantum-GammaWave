@@ -112,7 +112,7 @@ def target():
     if need("build/felucca.dis"):
         rc, txt = run([sys.executable, "tests/target_budget.py", "build/felucca.dis",
                        "tests/target_budget.txt"])
-        for m in re.finditer(r"^target: (DRUM_PATH|BLOCK_PATH)\s+.*?cost\s+(\d+)", txt, re.M):
+        for m in re.finditer(r"^target: (DRUM_PATH|BLOCK_PATH|FM6_PATH)\s+.*?cost\s+(\d+)", txt, re.M):
             out["paths"][m.group(1)] = int(m.group(2))
         for m in re.finditer(r"^target: (\w+)\s+(\d+) instructions,.*?, (\d+) divides", txt, re.M):
             out.setdefault("functions", {})[m.group(1)] = {

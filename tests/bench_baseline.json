@@ -96,16 +96,36 @@
     "instructions": 773
    },
    "events_block": {
-    "divides": 11,
-    "instructions": 1796
+    "divides": 12,
+    "instructions": 1798
    },
    "fm1_alnk0_irq": {
     "divides": 0,
-    "instructions": 163
+    "instructions": 170
    },
    "fm1_timer5_irq": {
     "divides": 1,
-    "instructions": 1285
+    "instructions": 1264
+   },
+   "fm6_carriers": {
+    "divides": 0,
+    "instructions": 16
+   },
+   "fm6_done": {
+    "divides": 0,
+    "instructions": 60
+   },
+   "fm6_env_advance": {
+    "divides": 0,
+    "instructions": 63
+   },
+   "fm6_mant": {
+    "divides": 0,
+    "instructions": 14
+   },
+   "fm6_note_of": {
+    "divides": 0,
+    "instructions": 25
    },
    "fm6_op_fb": {
     "divides": 0,
@@ -115,9 +135,13 @@
     "divides": 0,
     "instructions": 69
    },
+   "fm6_penv_advance": {
+    "divides": 0,
+    "instructions": 27
+   },
    "fm6_render": {
     "divides": 0,
-    "instructions": 575
+    "instructions": 622
    },
    "formant_render": {
     "divides": 0,
@@ -130,6 +154,10 @@
    "lofi_render": {
     "divides": 0,
     "instructions": 534
+   },
+   "mc_split": {
+    "divides": 0,
+    "instructions": 102
    },
    "mix_block": {
     "divides": 0,
@@ -149,19 +177,19 @@
    },
    "noise_render": {
     "divides": 0,
-    "instructions": 591
+    "instructions": 588
    },
    "perf_begin": {
     "divides": 0,
-    "instructions": 211
+    "instructions": 209
    },
    "perf_block": {
     "divides": 0,
-    "instructions": 317
+    "instructions": 320
    },
    "perf_master": {
     "divides": 0,
-    "instructions": 50
+    "instructions": 48
    },
    "perf_mute": {
     "divides": 0,
@@ -169,7 +197,7 @@
    },
    "perf_pre": {
     "divides": 0,
-    "instructions": 45
+    "instructions": 44
    },
    "phase_harm": {
     "divides": 0,
@@ -177,23 +205,35 @@
    },
    "phase_render": {
     "divides": 0,
-    "instructions": 318
+    "instructions": 314
    },
    "phase_render_noise": {
     "divides": 0,
-    "instructions": 328
+    "instructions": 327
    },
    "rev_room": {
     "divides": 0,
-    "instructions": 91
+    "instructions": 196
+   },
+   "rev_room_mod": {
+    "divides": 0,
+    "instructions": 7
+   },
+   "rev_room_mod_soft": {
+    "divides": 0,
+    "instructions": 7
+   },
+   "rev_room_soft": {
+    "divides": 0,
+    "instructions": 175
    },
    "rev_spring": {
     "divides": 0,
-    "instructions": 180
+    "instructions": 181
    },
    "slicer_bus": {
     "divides": 0,
-    "instructions": 263
+    "instructions": 261
    },
    "uac_tap48": {
     "divides": 0,
@@ -205,40 +245,41 @@
    },
    "wheel_render": {
     "divides": 0,
-    "instructions": 276
+    "instructions": 268
    }
   },
-  "image_bytes": 581556,
+  "image_bytes": 581700,
   "mem_exit": 0,
   "paths": {
-   "BLOCK_PATH": 33433,
-   "DRUM_PATH": 1155
+   "BLOCK_PATH": 35132,
+   "DRUM_PATH": 1155,
+   "FM6_PATH": 404
   },
   "windows": {
    "LOWBUF": {
-    "free": 1120,
+    "free": 4360,
     "size": 32768,
-    "used": 31648
+    "used": 28408
    },
    "NOINIT": {
-    "free": 124,
+    "free": 76,
     "size": 15696,
-    "used": 15572
+    "used": 15620
    },
    "POOL": {
-    "free": 15556,
+    "free": 23844,
     "size": 327680,
-    "used": 312124
+    "used": 303836
    },
    "RAM": {
-    "free": 5652,
+    "free": 12288,
     "size": 98304,
-    "used": 92652
+    "used": 86016
    },
    "RAMTEXT": {
-    "free": 20784,
-    "size": 24576,
-    "used": 3792
+    "free": 8224,
+    "size": 20992,
+    "used": 12768
    }
   }
  }

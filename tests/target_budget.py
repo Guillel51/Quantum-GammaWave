@@ -29,6 +29,10 @@ FUNCS = ["mix_block",                     # (1.4.5) the whole block: fx_buses, m
          "wheel_render", "wheel_block", "analog_ext", "analog_morph", "analog_dirty", "lofi_byte_render",   # (JIANT 0.4: SYNC RING SAW3,
          # BYTE; 1.0-GW: TUBE FOLD)
          "drum_render", "noise_render", "fm6_render", "fm6_op_run", "fm6_op_fb",
+         # (FASE 4/8) the rest of the FM6 render path as the image has it TODAY: fm6_note_compute is inlined into
+         # fm6_render, but fm6_env_advance, fm6_penv_advance, fm6_mant, fm6_note_of, fm6_carriers and fm6_done are
+         # calls (an inline decision, not a saving). Tracked, so the work cannot leave fm6_render's line unnoticed.
+         "fm6_env_advance", "fm6_penv_advance", "fm6_mant", "fm6_note_of", "fm6_carriers", "fm6_done",
          "dx_run", "dx_layer", "dx_run_sn",                 # DRUM-X (drumx_voice.c): a hit, osc + noise; (0.6.49) LAYER;
          # (1.0-GW) SNARE / CLAP
          "drum_out", "drum_side_ramp",                       # (QG-1 audit) the hit's output, and IMAGE pan moving:
@@ -61,9 +65,16 @@ BLOCK_PATH = ["mix_block", "events_block",
               "rev_room", "rev_room_soft", "rev_room_mod", "rev_room_mod_soft"]   # (FASE 4/8) the reverb networks run inside fx_run, inside the
               # block, but as calls: they were outside this sum and the phase that cut their loop could not show
               # it here. They are weighted like the rest now (mix_block -> fx_run -> rev_room is three levels).
+# (FASE 4/8) The FM6 voice block as a whole. fm6_render is the block loop; fm6_note_compute is inlined into it,
+# and the operator loop, the envelopes and the two mantissa helpers are calls. The sum is what a budget can hold
+# when the compiler decides which of them is a loop and which is not: it moved once already (see the fm6_render
+# note in target_budget.txt) and the individual lines cannot see work move between them.
+FM6_PATH = ["fm6_render", "fm6_op_run", "fm6_op_fb", "fm6_env_advance", "fm6_penv_advance", "fm6_mant",
+            "fm6_note_of", "fm6_carriers", "fm6_done"]
 # the sums that are printed and checked: (the line's name, its members, what it adds up)
 PATHS = [("DRUM_PATH", DRUM_PATH, "(hit, out, IMAGE / SEND, bus)"),
-         ("BLOCK_PATH", BLOCK_PATH, "(the mix block and the events it runs)")]
+         ("BLOCK_PATH", BLOCK_PATH, "(the mix block and the events it runs)"),
+         ("FM6_PATH", FM6_PATH, "(the FM6 voice block: render, its operator loop, the envelopes)")]
 TOL = 0.10                      # exact (no noise): small edits pass, a grown render loop does not
 DIV_W = 8                       # a divide weighs 1 + 8 instructions
 NEST = 4                        # an instruction in a loop inside a loop weighs 4, two deep 16, ...
