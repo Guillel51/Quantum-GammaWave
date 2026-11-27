@@ -1,3 +1,39 @@
+## v2.20.0 — FASE 5e: el Cloud deja de sonar a metal, la página FX deja de pisar su propio número, y M-WIDE pasa a ser un campo
+
+**El Cloud debía su metal al aliasing y a un peine periódico.** Sus granos se decimaban 2:1 sin anti-alias y sus tres
+ventanas multiplicadas latían: un filtro de dos polos antes de la decimación (`CL_AA 20680`), una ventana Hann
+(`(tri*tri)>>7`), detune por grano (±640, ~17 cents), un tilt fijo del grano (`CL_GQ 17812`) y una red de bloom que
+deriva (`CL_BLOOM_DRIFT 768`, parámetro `base` nuevo en `rev_room_mod_core`; ROOM pasa 0 y queda bit a bit igual)
+bajan la cresta **18,9 %**, la tonalidad (top-12 bins) **10,5 %** y el flutter **13,9 %** sobre la misma voz, con el
+RMS 6 % arriba y el centroide 0,5 % abajo. La distorsión de HF a un send de 90 000 cae de **0,8 a 0,4 dB**.
+Medido en **host x86** (`tests/cloud_hot_test.c` + análisis del WAV), no en la unidad.
+
+**La página FX escribía el porcentaje dentro de la banda del vúmetro.** Con 100 % el número tocaba la ranura del
+fader. El medidor baja a su propia banda de 13 px (`mx = cx+39`), la barra del fader se corre a `mx-4` y el valor sube
+a `y=17`: zonas separadas, comprobadas con 1, 2 y 3 dígitos y los cuatro buses al 127 % (`S_FX_FULL`, `S_FX_ONE`).
+
+**M-WIDE era dos columnas de barras donde va un campo estéreo.** Ahora es un goniómetro: ejes M/S, la cuña que abre
+el ancho con su número, la señal como punto y línea desde `audio_out_peak(0/1)` — el mismo anillo que el DAC acaba de
+escribir — y las barras L/R. **FX-MASTER** muestra cada procesador como la curva que corre: la transferencia de
+`softclip` con el nivel vivo encima, la envolvente de `punch_gain` con HIT/OFF, y `duck_g1` contra la unidad con su
+REL; más el VU L/R con cap de pico. Ningún control decorativo: cada píxel sale de un parámetro o del anillo de salida.
+
+**Emblemas por modelo.** `fx_emblem()` dibuja en 26 px, con placa y gradiente térmico, la forma de cada reverb (ROOM,
+SPRING, SHIMMER, RESO, CLOUD) y de cada delay (DIGITAL, ANALOG, PING-PONG), animada por la señal y por el generador
+del delay, y atenuada cuando el efecto está apagado. Es vectorial: ni tablas ni memoria nueva.
+
+**Medido en el enlace AC791N** (`./build.sh` + `tools/mem_budget.py`; no hay FM-1 física): imagen **579 840 → 581 528 B
+(+1 688)**, XIP libre **3 772 → 2 084** (suelo 2 048). El código de dibujo nuevo desbordó el suelo en el primer
+intento y se compactó hasta entrar; además `RAMTEXT` sube 2 KiB (`0x01C71C00/0x4C00 → 0x01C72400/0x4400`, banda de
+guarda en `0x01C76800` intacta) porque la ventana de llamada del código en RAM había caído a **7 036 B de los 8 192
+obligatorios**. `.data+.bss` no se movió: **90 628 B de 98 304** (7 676 libres).
+
+**Pruebas corridas:** `./build.sh` (todas las comprobaciones de memoria), `regress` **316 renders dorados, 0
+cambiados** (ROOM bit a bit; sin rebase de `tests/golden.txt`), `mem_budget`, `target_budget` **+0 %** en todos los
+bucles, `resources_test` 13/0, `ui_render` **0 hallazgos de lint / 210 pantallas × 22 paletas / 4 249 780 medidas de
+alineación, 0 fuera por 1 px**, `ui_pixels` rebasado por los cambios deliberados y luego **3 353 frames idénticos**,
+`reverb_test` y `cloud_hot_test` en verde.
+
 ## Sin publicar — FASE 5d: SCL pierde la cuarta página, el cambio de preset deja de heredar, y una lectura de flash sale de la sección crítica
 
 **SCL-PROG 4/4 ya no existe.** Era la cuarta página de SCL y la única que sólo mostraba: ocho progresiones con sus
@@ -43,7 +79,7 @@ propósito (PROG se va: 16 frames menos, y las tres páginas de SCL cambian su "
 rebasear; `resources_test` 13/0; `target_budget` DRUM/BLOCK/FM6 dentro de presupuesto (+0 %); build AC791N sin
 errores.
 
-## Sin publicar — FASE 5c: dos tablas que estaban en XIP y ahora se descomprimen en RAM
+### Sin publicar — FASE 5c: dos tablas que estaban en XIP y ahora se descomprimen en RAM
 
 **Sólo dos de las cinco se podían empaquetar.** `DSTYLE`, `RECIPE` e `ICON_MAP` llevan punteros a literales
 dentro (21, 87 y 145 relocaciones): sus bytes en el objeto son direcciones ya enlazadas y ningún `memcpy` las
@@ -61,7 +97,7 @@ longitud los mismos 512 (la ventana de llamadas había caído a 8 056 de los 8 1
 `target_budget` DRUM_PATH/BLOCK_PATH/FM6_PATH dentro de presupuesto (+0 %), build AC791N sin avisos. El detalle
 está en `docs/FASE5C_LZ4_2026-11-27.md`. El rediseño de Punch In FX sigue necesitando **3 828 B** más.
 
-## Sin publicar — FASE 5b: dos knobs que sí editan (ANALOG SYNC / SUB, ADDITIVE DRAW)
+### Sin publicar — FASE 5b: dos knobs que sí editan (ANALOG SYNC / SUB, ADDITIVE DRAW)
 
 **Los dos motores que no dejaban tocar el sonido ya lo dejan.** ADDITIVE ya tenía niveles por parcial en
 `firmware/src/eng_additive.c` (DRAW: `P_LN0..P_LN7` aplicados en `add_block`, neutral 127): se reutilizó tal cual y ahora
@@ -87,7 +123,7 @@ los diez knobs mueve el audio ≥1 %**. `target_budget`: `analog_render` queda *
 **Bloqueo**: XIP libre **1 644 B** con suelo 2 048 (antes de esta fase: 1 928). El gate `tests/resources_test.py`
 sigue en rojo y no se fuerza: esta fase cuesta 284 B y hay que recuperarlos antes de publicar release.
 
-## Sin publicar — FASE 8: un solo banner, capturas al día y dos defectos menos
+### Sin publicar — FASE 8: un solo banner, capturas al día y dos defectos menos
 
 **Un generador de banner, no dos.** `tools/gen_banner.py` dibujaba `assets/branding/quantum_banner.png` a
 1600×560 mientras `tools/make_banner.py` dibujaba el mismo fichero a 2400×900 y los tres tamaños sociales: el
@@ -170,7 +206,7 @@ compilador (moverla no bajaba ni un divide, +96 B de XIP: revertida), y acotar e
 `trk_nvoice()` no es exactamente equivalente (una voz podría quedar sin renderizar si el tope baja). El
 barrido mide ~1 % del bloque. Detalle en `docs/FASE4_BLOQUE_2026-11-27.md`.
 
-## Sin publicar — FASE FX: el chorus se ve moverse, los medidores oyen, la ADSR deja de romperse
+### Sin publicar — FASE FX: el chorus se ve moverse, los medidores oyen, la ADSR deja de romperse
 
 Cuatro síntomas reportados, tres causas distintas, todas medidas en píxeles antes de tocar nada.
 
@@ -220,7 +256,7 @@ el reloj real y cuenta lo que cambió entre dos frames (movimiento, respuesta a 
 niveles, los seis bloques de BUSES y la subida del ataque). Las bases de píxeles (`tests/ui_pixels.txt`) se
 regeneraron sólo para los frames afectados: 128 de 3 321.
 
-## Sin publicar — FASE 1/8: la biblioteca de fábrica, empaquetada por diferencia
+### Sin publicar — FASE 1/8: la biblioteca de fábrica, empaquetada por diferencia
 
 La entrega anterior dejó el XIP en rojo. Medido otra vez desde `main`, no desde los informes: **582 244 B de
 583 612, 1 368 libres** contra un suelo de 2 048 — **680 B de déficit**. Esta fase los recupera y deja margen.
@@ -423,7 +459,7 @@ segfault): 22 sitios en 16 archivos pasan ahora por `PR_NAME()`.
   y `build/gen/preset_cats.h` salen **idénticos** a los de antes (296 presets, mismas categorías).
 - **[unidad FM-1]** no medida: no hay unidad en este entorno.
 
-## Sin publicar — 8 fases sólo donde la cara S las necesita
+### Sin publicar — 8 fases sólo donde la cara S las necesita
 
 `text_spacing` cierra: la S mide **0,202 px** (rms 0,059, **0 pares sobre 0,25**), «Gl» pasa de −0,26 px a
 **−0,025 px**, M 0,044 y L 0,432 (0 sobre 0,5). El umbral no se movió.

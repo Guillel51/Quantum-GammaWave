@@ -51,7 +51,7 @@ static int32_t tk_amt(uint32_t c)
 static __attribute__((noinline)) void fx_emblem(int32_t x, int32_t y, int32_t s, int32_t kind, int32_t lvl)
 {
     int32_t i, k, c = s / 2, hot = clamp(lvl, 0, 255), ph = (int32_t)(ui.frame & 63u);
-    cv_rrect(x - 1, y - 1, s + 2, s + 2, 3, ux_mix(T_BG, T_LINE, 45), T_LINE);   /* its plate */
+    cv_rrect(x - 1, y - 1, s + 2, s + 2, 3, T_LINE, T_LINE);                    /* its plate */
     switch (kind) {
     case 1:                                                      /* SPRING: the coil, the pulse on it */
         for (k = 2; k < s - 3; k += 2) {
@@ -59,8 +59,6 @@ static __attribute__((noinline)) void fx_emblem(int32_t x, int32_t y, int32_t s,
             cv_pset(x + k, y + 8 + w, ux_mix(T_BG, heat_col(clamp(120 + hot / 2, 60, 240)), 85));
             cv_pset(x + k, y + s - 9 - w, ux_mix(T_BG, heat_col(clamp(110 + hot / 2, 60, 240)), 85));
         }
-        for (k = 4; k < s - 4; k += 5)
-            cv_rect(x + k, y + 9, 1, s - 18, T_MID);
         i = 3 + (ph * (s - 9)) / 64;
         cv_rrect(x + i - 1, y + 6, 3, s - 12, 1, heat_col(clamp(200 + hot / 2, 140, 250)), T_BG);
         break;
@@ -70,16 +68,12 @@ static __attribute__((noinline)) void fx_emblem(int32_t x, int32_t y, int32_t s,
             cv_line_t(x + c - ww, yy, x + c, yy - 4, heat_col(clamp(120 + i * 34 + hot / 3, 40, 245)), 2);
             cv_line_t(x + c, yy - 4, x + c + ww, yy, heat_col(clamp(90 + i * 34 + hot / 3, 30, 240)), 2);
         }
-        for (k = 0; k < 4; k++)
-            cv_pset(x + 5 + (int32_t)(((uint32_t)k * 79u + (uint32_t)ph * 2u) % (uint32_t)(s - 10)),
-                    y + 3 + (int32_t)(((uint32_t)k * 37u + (uint32_t)ph * 3u) % 7u), heat_col(230));
         break;
     case 3:                                                      /* RESO: strings, resolution running */
         for (i = 0; i < 3; i++) {
             int32_t xx = x + 6 + i * 7, dy = 4 + (int32_t)(((uint32_t)ph + (uint32_t)i * 21u) % (uint32_t)(s - 10));
             cv_rect(xx, y + 4, 1, s - 8, ux_mix(T_BG, T_MID, 70));
-            for (k = 0; k < 3; k++)
-                cv_rect(xx + 1, y + 5 + k * 3, 3 + i, 1, heat_col(clamp(140 - k * 30 + hot / 3, 40, 240)));
+            cv_rect(xx + 1, y + 5, 3 + i, 1, heat_col(clamp(140 + hot / 3, 40, 240)));
             cv_rrect(xx - 1, y + dy, 4, 3, 1, heat_col(clamp(190 + hot / 2, 120, 250)), T_BG);
         }
         break;
@@ -89,19 +83,34 @@ static __attribute__((noinline)) void fx_emblem(int32_t x, int32_t y, int32_t s,
                 uint32_t h = (uint32_t)(i * 8 + k) * 2654435761u, ang = ((h >> 12) + (uint32_t)ph * 700u) & 0xFFFFu;
                 int32_t rr = 5 + i * 3 + hot / 60 + (int32_t)((h >> 20) % 2u);
                 int32_t px = x + c + ((bg_sin(ang) * rr) >> 15), py = y + c + ((bg_sin(ang + 16384u) * rr) >> 15);
-                if (px > x && px < x + s - 1 && py > y && py < y + s - 1)
-                    cv_rect(px, py, i ? 1 : 2, i ? 1 : 2,
-                            ux_mix(T_BG, heat_col(clamp(140 + i * 30 + hot / 2, 60, 245)), 80 + i * 10));
+                cv_rect(px, py, i ? 1 : 2, i ? 1 : 2,
+                        ux_mix(T_BG, heat_col(clamp(140 + i * 30 + hot / 2, 60, 245)), 80 + i * 10));
             }
         cv_rrect(x + c - 2, y + c - 2, 5, 5, 2, heat_col(clamp(190 + hot / 2, 120, 250)), T_BG);
         break;
+    case 10:                                                     /* DIGITAL: the crisp tunnel, square frames */
+        for (i = 0; i < 4; i++) {
+            int32_t q = s - 8 - i * 4 - (int32_t)(ph & 3u);
+            cv_frame(x + (s - q) / 2, y + (s - q) / 2, q, q, heat_col(clamp(110 + i * 30 + hot / 3, 40, 245)));
+        }
+        break;
+    case 11:                                                     /* ANALOG: the same tunnel, rounded and warm */
+        for (i = 0; i < 3; i++) {
+            int32_t q = s - 9 - i * 5;
+            cv_rrect(x + (s - q) / 2, y + (s - q) / 2 + (int32_t)(ph & 3u) - 1, q, q, q / 3, T_BG,
+                     heat_col(clamp(150 + i * 26 + hot / 3, 60, 245)));
+        }
+        break;
+    case 12: {                                                   /* PING-PONG: two lanes, the echo crossing */
+        int32_t t = (int32_t)((ph & 63u) < 32u ? (ph & 31u) * 2u : (63u - ph) * 2u), d = t * (s - 14) / 62;
+        cv_rect(x + 5, y + 8, s - 10, 1, T_MID);
+        cv_rect(x + 5, y + s - 9, s - 10, 1, T_MID);
+        cv_rrect(x + 5 + d, y + 6, 4, 5, 2, heat_col(clamp(200 + hot / 2, 140, 250)), T_BG);
+        break;
+    }
     case 0:                                                      /* ROOM: the room, and its ripples */
         cv_frame(x + 2, y + 5, s - 12, s - 14, ux_mix(T_BG, T_MID, 70));
         cv_frame(x + 3, y + 9, s - 12, s - 14, ux_mix(T_BG, T_THEME, 80));
-        cv_line_t(x + 3, y + 9, x + 2, y + 5, T_MID, 1);
-        cv_line_t(x + s - 9, y + 9, x + s - 10, y + 5, T_MID, 1);
-        cv_line_t(x + 3, y + s - 5, x + 2, y + s - 9, T_MID, 1);
-        cv_line_t(x + s - 9, y + s - 5, x + s - 10, y + s - 9, T_MID, 1);
         i = 3 + (ph & 31) / 4 + hot / 60;
         cv_frame(x + c - i, y + c - i, i * 2, i * 2, ux_mix(T_BG, bg_col(200), 70));
         cv_rrect(x + c - 2, y + c - 2, 4, 4, 2, heat_col(clamp(160 + hot / 2, 100, 250)), T_BG);
@@ -249,6 +258,8 @@ static void dly_tunnel(int32_t split)
     }
     if (split && on)
         cv_rect(x0 + w / 2 - 1, top + 2, 1, base - top - 4, T_LINE);   /* the split between left and right */
+    fx_emblem(TK_X1 - 31, TK_Y1 - 30, 26, ping ? 12 : song.g[G_DTYPE] ? 10 : 11,
+              on ? clamp(90 + gen * 18, 0, 255) : 0);                /* its type, lit by the train */
 }
 static void tech_dly2(void) { dly_tunnel(1); }
 

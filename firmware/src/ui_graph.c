@@ -4695,11 +4695,6 @@ static __attribute__((noinline)) void graph_master(void)
         ux_ground_rows(11, y0 - 3, 142, y1 - y0 + 6, 22, 62, 10, 45, 5, 78, 100);
         cv_rect(cx, y0, 1, y1 - y0, T_LINE);                       /* M: the mid, up and down */
         cv_rect(14, (y0 + y1) / 2, 136, 1, T_LINE);                /* S: the side, left and right */
-        for (i = 1; i <= 3; i++) {                                 /* the 45 degree ratios, ticking */
-            int32_t d = i * 18;
-            cv_pset(cx + d, (y0 + y1) / 2 - d / 2, T_RAISE); cv_pset(cx - d, (y0 + y1) / 2 - d / 2, T_RAISE);
-            cv_pset(cx + d, (y0 + y1) / 2 + d / 2, T_RAISE); cv_pset(cx - d, (y0 + y1) / 2 + d / 2, T_RAISE);
-        }
         for (i = 0; i <= y1 - y0; i++) {                           /* the wedge M-WIDE opens: a field, not a shape */
             int32_t ww = half * (y1 - y0 - i) / (y1 - y0);
             if (ww < 1)
@@ -4768,7 +4763,6 @@ static __attribute__((noinline)) void graph_master(void)
         /* PUNCH: the transient shaper's real envelope (punch_gain), its state under it */
         {
             int32_t x0 = MC_X[1] + 4, w = MC_W[1] - 8, base = 48;
-            cv_rect(x0, base, w, 1, T_LINE);
             py = base - 1;
             for (i = 0; i <= w; i++) {
                 int32_t y = base - (punch_gain((uint32_t)i * 255u / (uint32_t)w, punch) >> 15) * 20 / 32767;
@@ -4787,7 +4781,8 @@ static __attribute__((noinline)) void graph_master(void)
                 cv_rrect(x0 + 1, top + h - 1 - gh, 10, gh, 2, heat_col(clamp(60 + gh * 180 / (h - 2), 40, 240)), T_BG);
             cv_rect(x0 - 1, top + h / 2, 14, 1, T_ACCENT);             /* unity gain */
             cv_rrect(x0 + 24, top, 8, h, 2, T_BG, T_RAISE);
-            cv_rrect(x0 + 25, top + 1, 6, clamp(drel, 0, 127) * (h - 2) / 127, 2, T_THEME, T_BG);
+            cv_rrect(x0 + 25, top + h - 1 - clamp(drel, 0, 127) * (h - 2) / 127, 6,
+                     clamp(drel, 0, 127) * (h - 2) / 127, 2, T_THEME, T_BG);
             cv_text_on(x0 + 21, 50, &AF_S, "REL", T_DIM, T_SURF);
             cv_text_on(x0, 50, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
         }
@@ -4820,7 +4815,6 @@ static __attribute__((noinline)) void graph_master(void)
         }
         if (clip_hold)
             clip_hold--;
-        cv_text_on(3, VU_Y0 + 2, &AF_S, clip_hold ? "CLIP" : "OUT", clip_hold || live ? T_ACCENT : T_DIM, T_SURF);
     }
 #undef MC_H
     /* (3.1) The LVL / LIM / CPU / PK band is gone by request: MASTER shows what it controls (CLIP,
