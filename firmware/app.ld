@@ -27,8 +27,13 @@ MEMORY
      * on grows the XIP code by 3 288 B and the call window from the RAM code fell to 5 856 B of the 8 192
      * required. The window keeps the RAM code (3 940 B) and the cold `.ramdata` tail (16 656 B) in 20 992 B, and
      * the guard band still starts at 0x01C76800. */
-    RAMTEXT (rwx): ORIGIN = 0x01C71600, LENGTH = 0x5200   /* (0.6.97, 0.7.0, 1.0-GW: up 2 KiB so calls from RAMTEXT reach >16 KiB
-                                                           * past the XIP image's end; user stack is 13.75 KiB) */
+    RAMTEXT (rwx): ORIGIN = 0x01C71A00, LENGTH = 0x4E00   /* (0.6.97, 0.7.0, 1.0-GW: up 2 KiB so calls from RAMTEXT reach
+                                                           * >16 KiB past the XIP image's end; user stack is 13.75 KiB)
+                                                           * (FASE 3/8 2026-11-27) up 1 KiB more, 0x01C71600 -> 0x01C71A00,
+                                                           * length 0x5200 -> 0x4E00, the guard band still at 0x01C76800: the
+                                                           * knee's second copy (rev_room_soft, CLOUD's own network) grew the XIP
+                                                           * code by 748 B and the call window from the RAM code fell to 7 956 B
+                                                           * of the 8 192 required. The window holds 19 572 B of its 19 968. */
     NOINIT (rw)  : ORIGIN = 0x01C7C000, LENGTH = 0x3D50
 }
 SECTIONS

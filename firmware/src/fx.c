@@ -43,8 +43,11 @@ static const uint16_t REV_AP[2] = {556, 441};
 #define CL_LEN 16384u                    /* half rate: ~0.74 s */
 /* (this round) ONE LINE FOR EVERY REVERB MODEL. The four reverb lines used to sit side by side, and they
  * were 48 734 B of the pool for a sound that runs one model at a time: ROOM, SPRING and RESO in rev_comb and
- * the allpasses, SHIMMER in shim_buf, CLOUD in cloud_buf. No model reads another's line, and fx_block already
+ * the allpasses, SHIMMER in shim_buf, CLOUD in cloud_buf. No model READS another's line, and fx_block already
  * fades a model out and calls rev_clear() before the new one starts, so the four lines are one union now --
+ * (FASE 3/8) with one caveat this union cannot avoid: CLOUD's bloom runs through ROOM's network, so its combs and
+ * allpasses ARE memory its line also uses: that is why the CLOUD path writes them through rv_knee (rev_room_soft)
+ * and no int16 cell of this union ever sits at the rail.
  * 32 768 B instead of 48 734, 15 966 B the pool gets back with the same samples on the wire. */
 static union {
     uint32_t raw[CL_LEN / 2u];           /* 4-byte aligned: the widest line, CLOUD's */
@@ -1223,8 +1226,28 @@ static int32_t rev_size(void)
     int32_t g = song.g[G_RSIZE];
     return 25000 + g * 40 + g * g / 7;
 }
-/* ROOM (G_RTYPE 0): 4 damped combs + 2 allpasses (Freeverb-like, mono), added to out (WIDE: rev_room_mod) */
-static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
+/* (FASE 3/8 2026-11-27) THE SOFT KNEE THE int16 LINES WRITE THROUGH. Linear to -2.5 dBFS (bit for bit what the line
+ * always wrote there), then tanh up to ~-0.6 dBFS: a hot send rounds off like tape, never a hard clamp.
+ * CLOUD's line has written through it since 1.2.1-GW. Its network -- the four combs and the two allpasses the grains
+ * bloom into -- wrote through `clamp(.., -32768, 32767)` instead, and cloud_hot_test's probe found where that costs:
+ * at a 40 000 send the four combs summed past the int16 range and the allpasses sat at exactly -32768 (4 307 held
+ * rail values in a 4 s render), a hard corner per sample: the crackle the tester heard at high SIZE / RATE, worst on
+ * CLOUD. The ceiling (32 473, tanh(2): -0.08 dBFS) is under the rail, so no int16 cell ever holds 32767 or -32768,
+ * and the knee is the identity below 24 576, so every render that never drove the network that far is bit for bit
+ * what it was (the goldens' sends included: at a 40 000 send the plain network's combs peak at 18 608). */
+static inline int32_t rv_knee(int32_t x)
+{
+    int32_t a = x < 0 ? -x : x;
+    if (a <= 24576)
+        return x;
+    a = 24576 + (softclip(clamp(a - 24576, 0, 16384) * 4) >> 2);
+    return x < 0 ? -a : a;
+}
+/* ROOM (G_RTYPE 0): 4 damped combs + 2 allpasses (Freeverb-like, mono), added to out (WIDE: rev_room_mod).
+ * (FASE 3/8) `soft` picks what the two int16 cells are written through: the plain clamp (0: every model that owns
+ * these buffers, bit for bit what it always was) or the knee (1: CLOUD, whose line is the SAME memory as this
+ * network and whose grains drive it past the int16 range at any hot send). */
+static inline __attribute__((always_inline)) void rev_room_core(const int32_t *rev_in, int32_t *out, uint32_t n, int soft)
 {
     uint32_t i, k;
     int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]];
@@ -1235,7 +1258,8 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
         for (k = 0; k < 4u; k++) {
             int32_t o = c[fx.comb_i[k]];
             fx.comb_lp[k] = o + mulq15(fx.comb_lp[k] - o, 32767 - damp);
-            c[fx.comb_i[k]] = (int16_t)clamp(in + mulq15(fx.comb_lp[k], size), -32768, 32767);
+            c[fx.comb_i[k]] = soft ? (int16_t)rv_knee(in + mulq15(fx.comb_lp[k], size))
+                                   : (int16_t)clamp(in + mulq15(fx.comb_lp[k], size), -32768, 32767);
             if (++fx.comb_i[k] >= REV_COMB[k])
                 fx.comb_i[k] = 0;
             a += o;
@@ -1245,7 +1269,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
         for (k = 0; k < 2u; k++) {
             int32_t o = c[fx.ap_i[k]];
             int32_t v = a + (o >> 1);
-            c[fx.ap_i[k]] = (int16_t)clamp(v, -32768, 32767);
+            c[fx.ap_i[k]] = soft ? (int16_t)rv_knee(v) : (int16_t)clamp(v, -32768, 32767);
             a = o - a;                                  /* Freeverb: out = buf - in (o - v is a notch comb) */
             if (++fx.ap_i[k] >= REV_AP[k])
                 fx.ap_i[k] = 0;
@@ -1254,13 +1278,24 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
         out[i] += a;
     }
 }
+/* every model but CLOUD: the network through the clamp it always used (its renders are bit for bit the same) */
+static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
+{
+    rev_room_core(rev_in, out, n, 0);
+}
+/* CLOUD's own network: the same loop, written through the knee (soft is a constant here, so the loop carries no
+ * branch: the compiler keeps the two copies apart) */
+static __attribute__((noinline)) void rev_room_soft(const int32_t *rev_in, int32_t *out, uint32_t n)
+{
+    rev_room_core(rev_in, out, n, 1);
+}
 
 /* (JIANT) ROOM with its networks modulated (G_RMOD > 0): each comb read up to ~5.7 ms nearer (between samples, the
  * depth square law, the offset ramped sample by sample: no steps), by a slow sine of G_RRATE a quarter apart per
  * comb: the resonances drift and detune, the ringing smears into a chorused, wide tail. WIDE wd (0.3): combs 1, 3
  * against 2, 4 as a side (left +, right -) into mix_l / mix_r. Its own loop: with MOD and WIDE 0 the plain one runs
  * (MOD 0 here: offsets 0, the plain one's sound) */
-static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
+static inline void rev_room_mod_core(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd, int soft)
 {
     uint32_t i, k;
     int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]], m1[4], dm[4];
@@ -1287,7 +1322,8 @@ static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_
             o1 = c[j1];
             o = o0 + (((o1 - o0) * (m & 255)) >> 8);    /* (a shorter delay: nearer the write) */
             fx.comb_lp[k] = o + mulq15(fx.comb_lp[k] - o, 32767 - damp);
-            c[fx.comb_i[k]] = (int16_t)clamp(in + mulq15(fx.comb_lp[k], size), -32768, 32767);
+            c[fx.comb_i[k]] = soft ? (int16_t)rv_knee(in + mulq15(fx.comb_lp[k], size))
+                                   : (int16_t)clamp(in + mulq15(fx.comb_lp[k], size), -32768, 32767);
             if (++fx.comb_i[k] >= L)
                 fx.comb_i[k] = 0;
             a += o;
@@ -1303,7 +1339,7 @@ static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_
         for (k = 0; k < 2u; k++) {
             int32_t o = c[fx.ap_i[k]];
             int32_t v = a + (o >> 1);
-            c[fx.ap_i[k]] = (int16_t)clamp(v, -32768, 32767);
+            c[fx.ap_i[k]] = soft ? (int16_t)rv_knee(v) : (int16_t)clamp(v, -32768, 32767);
             a = o - a;
             if (++fx.ap_i[k] >= REV_AP[k])
                 fx.ap_i[k] = 0;
@@ -1313,6 +1349,15 @@ static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_
     }
     for (k = 0; k < 4u; k++)
         fx.rm_m[k] = m1[k];                             /* (exact at the block's end) */
+}
+static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
+{
+    rev_room_mod_core(rev_in, out, n, wd, 0);
+}
+/* CLOUD's modulated network, through the knee */
+static __attribute__((noinline)) void rev_room_mod_soft(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
+{
+    rev_room_mod_core(rev_in, out, n, wd, 1);
 }
 
 /* (0.6.70) SPRING's chain shortened / lengthened (LOAD): the stages coming back start silent, not with what they held */
@@ -1514,16 +1559,6 @@ static __attribute__((noinline)) void rev_reso(const int32_t *rev_in, int32_t *o
 #define CL_WMAX 320                                      /* (1.2.1-GW, JIANT 0.9.14 / 0.9.16) the grains' windows summed:
                                                           * 1.25 grains' worth at most */
 #define CL_BACK (CL_LEN - 6000u - 1024u)                 /* .. the farthest back a grain may start (rev_cloud) */
-/* (1.2.1-GW, JIANT 0.9.14) CLOUD's int16 line written through a soft knee: linear to -2.5 dBFS (bit for bit as before
- * there), then tanh up to ~-0.1 dB: a hot send rounds off like tape, never a hard clamp in the loop */
-static inline int32_t rv_knee(int32_t x)
-{
-    int32_t a = x < 0 ? -x : x;
-    if (a <= 24576)
-        return x;
-    a = 24576 + (softclip(clamp(a - 24576, 0, 16384) * 4) >> 2);
-    return x < 0 ? -a : a;
-}
 static struct { uint32_t pos, inc; uint16_t len, age; int16_t pl, pr; } cl_g[CL_N];
 static uint32_t cl_rand(void) { fx.cl_rng = fx.cl_rng * 1664525u + 1013904223u; return fx.cl_rng >> 8; }
 /* CLOUD (G_RTYPE 4, JIANT 0.5, made wet in 0.5.1): a granular wash. The input and the cloud's own tail fed back
@@ -1632,9 +1667,9 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
         }
     }
     if (song.g[G_RMOD] || wd)
-        rev_room_mod(g, t, n, wd * 2);                   /* (its side x2 as well: the network at half the level) */
+        rev_room_mod_soft(g, t, n, wd * 2);              /* (the knee: CLOUD's line is this network's memory) */
     else
-        rev_room(g, t, n);
+        rev_room_soft(g, t, n);
     for (i = 0; i < n; i++) {
         out[i] += t[i] * 3 + (g[i] >> 1);                /* the bloom (+3.5 dB, 0.5.1), the grains themselves under it */
         shim_fb[i] = t[i];                               /* (the tail into the line, next block) */
