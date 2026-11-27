@@ -1,3 +1,48 @@
+## Sin publicar — FASE 5d: SCL pierde la cuarta página, el cambio de preset deja de heredar, y una lectura de flash sale de la sección crítica
+
+**SCL-PROG 4/4 ya no existe.** Era la cuarta página de SCL y la única que sólo mostraba: ocho progresiones con sus
+grados, notas y calidad, alcanzables desde ninguna parte del instrumento (no se tocaban, no se grababan). Se fueron
+con ella `graph_scl_prog`, la tabla `PROG_SEQ` (72 B), `N_PROGN`, `scl_prog` con su `PROG_DESC`, `scl_degname`, los
+dos alfabetos romanos que sólo ella usaba, la rama de `page_desc` que le daba KNOB 1, el caso del despacho de
+`ui_graph.c` y su rama de `scl_tap`, más su entrada en el barrido de UI y en `tools/generate_screenshots.py`. SCL
+queda en **SCALE 1/3, CHORD 2/3, TUNE 3/3**: la numeración, la navegación y los indicadores salen de la tabla de
+páginas, así que no quedó ningún índice apuntando a la que no está.
+
+**Medido en el enlace AC791N** (`./build.sh` + `tools/resource_map.py`, no hay FM-1 física): imagen **580 996 →
+579 840 B (−1 156)**, XIP libre **2 616 → 3 772** (suelo 2 048); dentro de eso, código **457 064 → 456 160** y
+constantes **119 152 → 118 900**. `.data+.bss` no se movió (90 628 B, 7 676 libres): la página era código y tablas.
+
+**El cambio de preset heredaba la matriz MOD.** Los slots 5..8 del MOD viven en `t->mx` y no en `p[]` (al
+instrumento se le acabaron los ids de parámetro en 125), así que el bucle que devuelve el sonido a sus valores
+nunca los tocaba: al cargar un preset de fábrica, el sonido nuevo seguía modulando como el anterior en cuatro de
+los ocho slots. Un proyecto y un preset de usuario ya guardan esos doce enteros; un preset de fábrica no tiene
+ninguno, y para cada slot cero es `MS_OFF`. `apply_preset_to` los pone a cero dentro del mismo bloque sin
+interrupciones que el resto del sonido.
+
+**Una lectura de flash vivía dentro de la sección crítica del cambio de preset.** `fm6_track_loaded` se llamaba con
+la interrupción de audio apagada y, cuando el SLOT del preset es una voz de banco enviada, lee 8 bytes por SPI
+(`fm6_vbank.c` `fvb_read` → `st_read`): exactamente lo que `.ram_text` existe para evitar (app.ld). Ahora el patch
+se publica después de `fm1_irq_on()`; `fm6_set_patch` publica por el anillo (`RING_PUBLISH`), así que el ISR ve el
+patch viejo un bloque, nunca uno a medio escribir.
+
+**`tests/preset_swap_test.c`, nuevo.** Incluye la unidad de traducción del emulador, o sea el `apply_preset_to` de
+`ui.c` de verdad — hasta ahora ningún test lo ejecutaba: `tests/hostsim.c` tenía su propia copia de lo que escribe
+un preset. Comprueba, para los 298 presets de las 16 seleccionables, que dos cargas del mismo preset desde dos
+estados sucios distintos dan el mismo `p[]` byte a byte en todo lo que no es `param_kept` (nada se hereda), que
+todo queda dentro de su rango declarado, que los slots MOD 5..8 quedan apagados, y que 600 cambios consecutivos
+con notas retenidas, CCs, encoders, botones, toques y saltos de motor no producen ni un no-finito, ni un pico fuera
+de techo, ni una nota retenida. Con el `ui.c` anterior falla en los slots MOD; con éste pasa. Bajo
+ASan+UBSan con `bounds` y `object-size` activos: limpio.
+
+**Limpieza:** tres variables declaradas y no usadas (`cv_blit` en `gfx.c` y `text_run`), más la que dejó la rama de
+`scl_tap` borrada. Avisos del build AC791N: **17 → 14**.
+
+**Verificación** (host x86-64 salvo el enlace): `regress` 316 dorados idénticos, 0 fallos de salud/CPU;
+`ui_render` 207 pantallas × 22 paletas, 0 hallazgos de lint; `ui_pixels` **3 305 frames**, baseline actualizada a
+propósito (PROG se va: 16 frames menos, y las tres páginas de SCL cambian su "n/N"), 0 diferencias después de
+rebasear; `resources_test` 13/0; `target_budget` DRUM/BLOCK/FM6 dentro de presupuesto (+0 %); build AC791N sin
+errores.
+
 ## Sin publicar — FASE 5c: dos tablas que estaban en XIP y ahora se descomprimen en RAM
 
 **Sólo dos de las cinco se podían empaquetar.** `DSTYLE`, `RECIPE` e `ICON_MAP` llevan punteros a literales

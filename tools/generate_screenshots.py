@@ -142,14 +142,15 @@ int main(int argc, char **argv) {
     draw(S_SCL_ACTIVE);
     write_ppm("assets/screenshots", "quantum", "15_scales_chords");
 
-    /* 15a-c. SCL's three pages as SCL draws them: the scale with its degrees by interval, the chord spelled
-     * with each voice's interval over the root, and the progression. They are found by name in S_NAME -- the
-     * same list the host sweep walks -- so a capture cannot describe a page the sweep no longer has. */
+    /* 15a-b. SCL's two pages as SCL draws them: the scale with its degrees by interval, and the chord spelled
+     * with each voice's interval over the root (SCL > PROG went with QG-1 1.5: it was the fourth page and the
+     * image had no room for it). They are found by name in S_NAME -- the same list the host sweep walks -- so a
+     * capture cannot describe a page the sweep no longer has. */
     {
-        const char *const sn[3] = {"scl_scale", "scl_chord", "scl_prog"};
-        const char *const so[3] = {"15a_scl_scale", "15b_scl_chord", "15c_scl_prog"};
+        const char *const sn[2] = {"scl_scale", "scl_chord"};
+        const char *const so[2] = {"15a_scl_scale", "15b_scl_chord"};
         int k;
-        for (k = 0; k < 3; k++) {
+        for (k = 0; k < 2; k++) {
             uint32_t i;
             for (i = 0; i < S_COUNT; i++)
                 if (!strcmp(S_NAME[i], sn[k])) {

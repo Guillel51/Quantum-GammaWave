@@ -17,8 +17,6 @@
 #include "tune.c"               /* (FASE 7) SCL > TUNE's model, when this file is compiled on its own */
 
 static const char *const N_ITVN[] = {"P1", "m2", "M2", "m3", "M3", "P4", "TT", "P5", "m6", "M6", "m7", "M7"};
-static const char *const N_ROMAN[] = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII"};
-static const char *const N_ROMANM[] = {"i", "ii", "iii", "iv", "v", "vi", "vii", "viii"};
 static const char *const N_CHRDN[] = {"OFF", "TRIAD", "7TH", "ADD9", "SUS2", "SUS4", "MAJ", "MIN", "7", "MAJ7",
                                       "MIN7", "POWER"};
 /* the twelve positions of the circle, 30 degrees apart from the tonic at the top (Q8: 256 = 1) */
@@ -84,16 +82,6 @@ static const scl_shape_t SCL_SHAPES[] = {
     {IV3(0, 2, 4, 7), SC_ADD9},             {IV4(0, 2, 4, 7, 10), SC_9},   {IV4(0, 2, 4, 7, 11), SC_MAJ9},
     {IV4(0, 2, 3, 7, 10), SC_MIN9},         {IV5(0, 2, 4, 5, 7, 10), SC_11},
     {IV5(0, 2, 4, 7, 9, 10), SC_13},        {IV3(0, 5, 7, 10), SC_7SUS4}
-};
-static const uint8_t PROG_SEQ[8][9] = {
-    {0, 4, 5, 3, 0, 0, 0, 0, 4},                        /* I V VI IV */
-    {0, 5, 3, 4, 0, 0, 0, 0, 4},                        /* I VI IV V */
-    {1, 4, 0, 0, 0, 0, 0, 0, 3},                        /* II V I */
-    {0, 3, 4, 0, 0, 0, 0, 0, 3},                        /* I IV V */
-    {0, 4, 5, 2, 3, 0, 3, 4, 8},                        /* I V VI III IV I IV V */
-    {0, 6, 5, 4, 0, 0, 0, 0, 4},                        /* I VII VI V */
-    {0, 3, 0, 4, 3, 0, 4, 0, 8},                        /* I IV I V IV I V I */
-    {2, 5, 1, 4, 0, 0, 0, 0, 5},                        /* III VI II V I */
 };
 static const char *const N_SCKIND[SC_KINDS] = {"-", "", "min", "dim", "aug", "sus2", "sus4", "5", "7",
                                               "maj7", "m7", "m7b5", "dim7", "mM7", "6", "m6", "add9",
@@ -283,15 +271,6 @@ static const char *scl_quality(const uint8_t *nt, uint32_t n, int *lower)
     if (s == 2)
         return "add9";
     return t == 3 ? "min" : "maj";
-}
-/* a degree's name: a numeral in a seven-note scale, its number in any other (a pentatonic's fifth degree is
- * its fifth, not the V of seven) */
-static const char *scl_degname(uint32_t d, uint32_t c, int lower, char *b)
-{
-    if (c == 7u && d < 8u)
-        return lower ? N_ROMANM[d] : N_ROMAN[d];
-    fmt_int(b, (int32_t)d + 1);
-    return b;
 }
 /* the degrees the chord pages work in: CHR has no chords of its own -- chord_tones borrows the major scale
  * of ROOT -- so the pages show that scale rather than triads on a chromatic ladder */
@@ -554,7 +533,7 @@ static void scl_toggle(uint32_t ti, uint32_t pc)
 int scl_tap(int32_t graph, int32_t x, int32_t y)
 {
     const track_t *t = TSEL;
-    uint32_t ti = trk_index(t) % NTRK, i, root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
+    uint32_t ti = trk_index(t) % NTRK, root = (uint32_t)((t->p[P_ROOT] % 12) + 12) % 12u;
     int32_t n;
     scl_bed_t b;
     if (ui.home || ui.menu || ui.confirm || ui.layer)
@@ -605,30 +584,6 @@ int scl_tap(int32_t graph, int32_t x, int32_t y)
             }
         }
         return 0;
-    }
-    if (graph == GR_SCL_PROG) {                            /* a step of the progression: its chord, picked */
-        uint8_t off[12], out[KB_CH];                     /* (nt[] was never read: 12 B of stack back) */
-        uint32_t cnt, cn, pi = (uint32_t)clamp((int32_t)scl_prog, 0, 7);
-        int32_t rootc, w;
-        if (y < 18 || y > 33)
-            return 0;
-        cnt = PROG_SEQ[pi][8];
-        if (!cnt)
-            return 0;
-        w = 214 / (int32_t)cnt;
-        i = (uint32_t)((x - 12) / (w ? w : 1));
-        if (i >= cnt)
-            return 0;
-        cn = scl_chord_offsets(t, off);
-        rootc = ((int32_t)t->p[P_ROOT] % 12 + 12) % 12;
-        {
-            uint32_t o = PROG_SEQ[pi][i] % cn, pc = ((uint32_t)rootc + off[o]) % 12u;
-            uint32_t tn = chord_from(t, (uint32_t)(60u + pc), CD_TRI, CV_CLOSE, out, 0, 0), k;
-            scl_sel_clear(ti);
-            for (k = 0; k < tn; k++)
-                scl_toggle(ti, (uint32_t)out[k]);
-            return 1;
-        }
     }
     return 0;
 }
@@ -1117,48 +1072,4 @@ static __attribute__((noinline)) void graph_scl_chord(const track_t *t, uint16_t
         scl_rect_t r = scl_bed_rect(GR_SCL_CHORD);     /* (FASE 8) the same rectangle scl_tap() measures */
         scl_keys(t, r.x0, r.y0, r.w, r.h, scale_mask(t), (uint32_t)root, sel, 0);
     }
-}
-
-/* SCL > PROG: the progressions the degrees make and what each step becomes in this key -- the step, its
- * degree, the chord's root, its notes and its name, in the scale's own count (a pentatonic has five, so a
- * VII folds down onto the degree below it, and the row says so in DIM instead of pretending) */
-static __attribute__((noinline)) void graph_scl_prog(const track_t *t, uint16_t c)
-{
-    uint8_t off[12], out[KB_CH];
-    uint32_t n = scl_chord_offsets(t, off), k, cnt, pi = (uint32_t)clamp((int32_t)scl_prog, 0, 7);
-    int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
-    char l[28], b[8], nts[24], pg[8];
-    (void)c;
-    cnt = PROG_SEQ[pi][8];
-    str_cpy(l, N_PROGN[pi], sizeof l);
-    scl_head(l, "", T_DIM);
-    /* the progression as pills, left to right: the steps in the order they are played */
-    for (k = 0; k < cnt; k++) {
-        uint32_t o = PROG_SEQ[pi][k] % n, pc = ((uint32_t)root + off[o]) % 12u;
-        int32_t w = 214 / (int32_t)cnt, x = 12 + (int32_t)k * w;
-        int32_t y = 18;
-        cv_rrect(x, y, w - 4, 14, 3, T_RAISE, T_SURF);
-        scl_field(x + 4, y + 1, scl_degname(o, n, 0, b), T_ACCENT, T_RAISE);
-        cv_text_fit(x + 18, y + 1 + CAP_IN(S, 16), &AF_S, N_NOTE[pc], T_TEXT, T_RAISE, w - 22);
-        cv_rect(x + 2, y + 13, w - 8, 2, T_THEME);
-    }
-    cv_rect(90, 34, 1, 12 * (int32_t)cnt + 2, ux_mix(T_SURF, T_LINE, 40));   /* the notes column, bounded so */
-    cv_rect(172, 34, 1, 12 * (int32_t)cnt + 2, ux_mix(T_SURF, T_LINE, 40));  /* the four never run together */
-    for (k = 0; k < cnt; k++) {
-        uint32_t d = PROG_SEQ[pi][k], o = d % n;
-        int32_t y = 36 + 12 * (int32_t)k, pc = ((int32_t)root + off[o]) % 12;
-        uint32_t tn = chord_from(t, (uint32_t)(60 + pc), CD_TRI, CV_CLOSE, out, 0, 0);
-        int wrap = d >= n, lower;                         /* (a degree this scale does not have) */
-        scl_quality(out, tn, &lower);
-        scl_notes(out, tn, nts, sizeof nts);
-        fmt_int(b, (int32_t)k + 1);
-        scl_field(14, y, b, T_DIM, T_SURF);
-        scl_field(30, y, scl_degname(o, n, lower, b), wrap ? T_DIM : T_ACCENT, T_SURF);
-        scl_field(56, y, N_NOTE[pc], T_TEXT, T_SURF);
-        scl_field(96, y, nts, wrap ? T_DIM : T_TEXT, T_SURF);
-        scl_field(176, y, scl_quality(out, tn, 0), wrap ? T_DIM : T_MID, T_SURF);
-    }
-    fmt_int(pg, (int32_t)pi + 1);
-    str_cpy(pg + str_len(pg), "/8", 4);
-    cv_text_r(228, 3 + CAP_IN(S, 16), &AF_S, pg, T_MID, T_SURF);
 }

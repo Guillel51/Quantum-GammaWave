@@ -4956,10 +4956,6 @@ static __attribute__((noinline)) void draw_graph(void)
             cv_oy = 0;
             graph_scl_tune(t);
             break;
-        case GR_SCL_PROG:
-            cv_oy = 0;
-            graph_scl_prog(t, c);
-            break;
         case GR_SEQTOOLS:                            /* (6.2) SEQ > TOOLS: the edits and their undo (ui_seqtools.c) */
             cv_oy = 0;
             graph_seq_tools(t, c);

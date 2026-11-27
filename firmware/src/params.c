@@ -617,7 +617,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_TILT,          /* (FASE EXTRA) MODMAP removed: nine screens in FAM_LFO */
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_TUNE, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_TILT,          /* (FASE EXTRA) MODMAP removed: nine screens in FAM_LFO */
        GR_SCENES, GR_FILTER, GR_DRAW, GR_WTPHASE, GR_CHORUS, GR_GLIDE};   /* (FASE 1/10) GR_GLIDE: the portamento in
                                      * perspective on VOICE and VOICE 2, appended like the ones before it */   /* (v1.8.5) the MORPH rail, appended as GR_TILT was: no stored number moves */   /* (v1.12.7)
                                      * GR_TILT: the response TILT draws on its own page, appended so every stored /
@@ -631,11 +631,6 @@ typedef struct {
     uint8_t fam, scope, graph;
     uint8_t id[4];               /* param ids; 0xFF = empty slot */
 } page_t;
-/* (2.8) SCL > PROG: the progressions it lists, by name (ui_graph.c has the degrees). Shown, not played, so it
- * is the page's own setting and not a song parameter (it rides with page_desc as MENU > TRACKS does) */
-static const char *const N_PROGN[] = {"POP", "50S", "JAZZ", "ROCK", "CANON", "ANDALUS", "BLUES", "TURN"};
-static int16_t scl_prog;
-static const param_desc_t PROG_DESC = PE("PROG", N_PROGN, 0);
 /* (FASE 7) SCL > TUNE: the profile (N_TUNE, tune.c), the note of the circle being edited, its deviation and the
  * whole profile's offset. The three are numbers a knob can hold; tune_ui_sync() is what turns them into sound. */
 static const param_desc_t TSLOT_DESC = PE("PROFILE", N_TUNE, 0);
@@ -643,8 +638,7 @@ static const param_desc_t TNOTE_DESC = PD("NOTE", F_NOTE, 0, 11, 0);
 static const param_desc_t TCT_DESC = PD("CENTS", F_SEMI, -99, 99, 0);
 static const param_desc_t TALL_DESC = PD("REF", F_SEMI, -99, 99, 0);
 /* (FASE 7) .. and they are the page's own four numbers, not song parameters: page_desc hands the encoders what
- * tune.c keeps, the way GR_SCL_PROG's KNOB 1 is the progression and GR_MOD's KNOB 1 the slot (tests/control_map
- * knows the page as one of those). */
+ * tune.c keeps, the way GR_MOD's KNOB 1 is the slot (tests/control_map knows the page as one of those). */
 /* (6.1) FX > BUSES: the link KNOB 1 selects, and the ids KNOB 2..4 edit for it (page_desc). Its rows are the
  * parameters the other FX pages already own, so the console sets exactly what the engine reads. */
 static const char *const N_FXBT[] = {"TRACK", "BUSES", "DLY", "REV", "CHO", "SLI", "PUNCH", "MASTER"};
@@ -762,8 +756,6 @@ static const page_t PAGES[] = {
                                      * (6.1) its voices and its strum on one page */
     {"TUNE", FAM_SCL, SC_TRACK, GR_SCL_TUNE, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (FASE 7) the twelve cents of the
                                      * instrument: PROFILE, NOTE, CENTS and REF are page_desc's (tune.c) */
-    {"PROG", FAM_SCL, SC_TRACK, GR_SCL_PROG, {P_SCALE, P_ROOT, P_SCALE, P_CHRD}},   /* (2.8) KNOB 1 the progression
-                                     * (page_desc), 3 the same SCALE as KNOB 1's real one */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"CHARACTER", FAM_EDIT, SC_ENGINE, GR_NONE, {P_X0, P_X1, P_XCH, 0xFF}},   /* (FASE 2) the engine's own, two or
@@ -1009,10 +1001,6 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         uint32_t k = (pg->id[0] == P_LN4 ? 4u : 0u) + slot;
         *valp = &TSEL->p[P_LN0 + k];
         return &AD_DRAW[k];
-    }
-    if (pg->graph == GR_SCL_PROG && slot == 0u) {      /* SCL > PROG's KNOB 1: the progression, not the scale */
-        *valp = &scl_prog;
-        return &PROG_DESC;
     }
     if (id == 0xFFu) {
         *valp = 0;

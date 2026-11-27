@@ -42,7 +42,6 @@ static int computed_page(const page_t *pg)
            pg->graph == GR_MOD ||        /* MOD: the slot shown picks ids, and 5..8 have none of their own */
            pg->graph == GR_MSEQ ||       /* the level of the step shown */
            pg->graph == GR_SLPIT ||      /* the pitch of the step shown */
-           pg->graph == GR_SCL_PROG ||   /* KNOB 1 is the progression, not a parameter id */
            pg->graph == GR_SCL_TUNE;     /* (FASE 7) PROFILE NOTE CENTS REF are tune.c's, not p[] slots */
 }
 

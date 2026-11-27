@@ -757,7 +757,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
-       S_SCL_SCALE, S_SCL_CHORD, S_SCL_TUNE, S_SCL_TUNE_PLAY, S_SCL_PROG, S_FX_BUSES, S_SEQ_TOOLS_EDITS,
+       S_SCL_SCALE, S_SCL_CHORD, S_SCL_TUNE, S_SCL_TUNE_PLAY, S_FX_BUSES, S_SEQ_TOOLS_EDITS,
        S_TILT, S_LFO_CURVE, S_EDIT_FILTER, S_FM_OP_ENV, S_EDIT_FILTER_SHELF, S_EDIT_FILTER_NOTCH,
        S_EDIT_FILTER_VOWEL, S_EDIT_FILTER_SCREAM, S_VOICE2,   /* (FASE 1/10) EDIT > VOICE 2: the second of the two pages GR_GLIDE draws */                       /* (v1.12.9) the two pages v1.12.4 and v1.12.5 added: they had no
                                                    * frame in this sweep at all, so neither the pixel baseline nor
@@ -785,7 +785,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_tune", "scl_tune_play", "scl_prog", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "edit_filter", "fm_op_env", "filter_shelf", "filter_notch", "filter_vowel", "filter_scream", "voice2", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
+    "scl_scale", "scl_chord", "scl_tune", "scl_tune_play", "fx_buses", "seq_tools_edits", "tilt", "lfo_curve", "edit_filter", "fm_op_env", "filter_shelf", "filter_notch", "filter_vowel", "filter_scream", "voice2", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "scenes", "scenes_empty", "presets_pop"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1172,8 +1172,6 @@ static void setup(int s)
                                                * the foot line names the chord */
         TSEL->p[P_ROOT] = 0; TSEL->nheld = 3; TSEL->held[0] = 48; TSEL->held[1] = 52; TSEL->held[2] = 55;
         go_title("TUNE"); break;
-    case S_SCL_PROG:
-        TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 2; scl_prog = 0; go_title("PROG"); break;
     case S_SHIFT: TSEL->p[P_SOFS] = -3; TSEL->p[P_POFS] = 7; go_title("SHIFT"); break;
     case S_ARP:                              /* (FASE 3) an arp that is really running: three keys held, UPDN over two
                                               * octaves, the route's fifth step sounding (64), so the screen draws

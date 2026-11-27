@@ -576,6 +576,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "DIST: the five models (SOFT TAPE HEARTH FLUX FOLD) sound, stay in 16 bits, FOLD loudness-neutral and DC-free, TYPE out at DRIVE 0" "$OUT/dist_models_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
     run "regression: golden renders, health, voices, CPU budget" "$OUT/regress" tests/golden.txt tests/cpu_baseline.txt
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/preset_swap" tests/preset_swap_test.c -lm
+    run "PRESET SWAP: every preset loads from a dirty state (no inheritance, MOD 5..8 reset), 600 changes with notes held (no NaN, nothing left holding)" "$OUT/preset_swap"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/descdump" tests/descdump.c -lm
     echo "== parameter and engine tables as JSON (for the editor mock test)"
     "$OUT/descdump" > "$OUT/desc.json" || fail=1

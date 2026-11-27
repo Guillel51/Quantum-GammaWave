@@ -125,8 +125,8 @@ punch, master) but are not enlarged in this pass.
 
 ## 6. SCL — **partly done**
 
-The three pages already existed (`firmware/src/ui_scl.c`: `graph_scl_scale`, `graph_scl_chord`,
-`graph_scl_prog`, reached by SCL's three cards) and they already read the same `scale_mask`,
+The pages already existed (`firmware/src/ui_scl.c`: `graph_scl_scale`, `graph_scl_chord`; SCL > PROG was
+removed in QG-1 1.5, leaving SCALE, CHORD and TUNE, three cards) and they already read the same `scale_mask`,
 `scale_offsets` and `chord_from` the sequencer plays, so no page can keep a number the sound disagrees
 with. What was missing is what the brief asks for first: **the relationships**, not the letters.
 
@@ -146,10 +146,10 @@ needs the panel's card row, which SCL uses for its four controls).
 The three pages, as the firmware draws them (`tools/generate_screenshots.py` renders them from the same
 `S_NAME` list the host sweep walks, so a capture cannot outlive its page):
 
-| SCALE | CHORD | PROG |
-|---|---|---|
-| ![SCL > SCALE](../assets/screenshots/quantum_15a_scl_scale.png) | ![SCL > CHORD](../assets/screenshots/quantum_15b_scl_chord.png) | ![SCL > PROG](../assets/screenshots/quantum_15c_scl_prog.png) |
-| C minor pentatonic: `P1 m3 P4 P5 m7`, the twelve notes on the circle with the five degrees lit, and the keyboard with its `C4`. | `P1 C  M3 E  P5 G` under the degree the chord stands on, then the four voices as lanes over the chord's compass. | I V VI IV in C minor with each step's numeral, chord, notes and quality. |
+| SCALE | CHORD |
+|---|---|
+| ![SCL > SCALE](../assets/screenshots/quantum_15a_scl_scale.png) | ![SCL > CHORD](../assets/screenshots/quantum_15b_scl_chord.png) |
+| C minor pentatonic: `P1 m3 P4 P5 m7`, the twelve notes on the circle with the five degrees lit, and the keyboard with its `C4`. | `P1 C  M3 E  P5 G` under the degree the chord stands on, then the four voices as lanes over the chord's compass. |
 
 ## 7–9. EDIT and LFO per engine
 

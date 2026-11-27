@@ -572,7 +572,6 @@ __attribute__((noinline)) static int cv_win_seen(uint32_t x, uint32_t y)
 #endif
 __attribute__((noinline)) static void cv_blit(uint32_t x, uint32_t y)
 {
-    uint32_t n = cv_w * cv_h, i;
     cv_fill_rows();                                  /* (FASE 4) what a fill touched is not on the panel */
     cv_rec_add(x, y, cv_w, cv_h);                    /* (the cover, out or not: cv_gaps clears what none covers) */
     if (cv_h >= CV_SENT_MIN_H && x == 0u && cv_w == 240u) {
@@ -1544,7 +1543,6 @@ static int32_t text_w(const aafont_t *f, const char *s)
 static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, const uint16_t *rv, int32_t *bb)
 {
     int32_t pen = 0, err = 0, x0 = 0x7FFF, y0 = 0x7FFF, x1 = -0x7FFF, y1 = -0x7FFF;
-    const int32_t step = 16 >> f->psh;
     uint32_t prev = 0;
     for (; *s; s++) {
         uint32_t c = fold(f, (uint8_t)*s), k = glyph_no(f, c), gi = glyph(f, c);

@@ -1360,6 +1360,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
      * P_VOICE, for one block -- a click on the very edge of the sound change. The section is assignments only:
      * no flash read, no allocation, nothing that waits. */
     fm1_irq_off();
+    /* (QG-1 1.5) THE MATRIX'S SLOTS 5..8 ARE THE SOUND'S TOO. They live in t->mx and not in p[] (core.h, mod.c:
+     * the parameter ids ran out at 125), so the p[] loop below never reached them: a factory preset inherited the
+     * previous sound's modulation on four of the eight slots and kept playing it. A project and a user preset
+     * already store the twelve words (project.c's 'M''X', up_mx_get); a factory preset has none, and zero is
+     * MS_OFF for every slot. Reset here, inside the same block, so the ISR sees the whole sound at once. */
+    memset(t->mx, 0, sizeof t->mx);
     pi = preset_orig(e, pi % e->npresets);
     t->preset = (uint8_t)pi;
     for (i = 0; i < P_E0; i++)                        /* the rest of the sound to its defaults: a preset */
@@ -1382,7 +1388,11 @@ static void apply_preset_to(track_t *t, uint32_t pi)
             if (pr->x[i].id && pr->x[i].id - 1u < P_E0 && !param_kept(pr->x[i].id - 1u))
                 t->p[pr->x[i].id - 1u] = (int16_t)clamp(pr->x[i].v, TP[pr->x[i].id - 1u].min, TP[pr->x[i].id - 1u].max);
     }
-    fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT) */
+    /* (QG-1 1.5) the edit values are in; the PATCH is published after the IRQ comes back. fm6_track_loaded reads
+     * a bank slot through the SPI flash (fm6_vbank.c fvb_read -> st_read), and this used to run inside the
+     * block above: a preset whose SLOT is a sent bank voice asked the flash for 8 bytes with the audio interrupt
+     * off, which is the one thing app.ld's .ram_text exists to avoid. fm6_set_patch publishes through the ring
+     * (RING_PUBLISH), so the ISR keeps the old patch for a block instead of a half-written one. */
     /* (v1.12) THE SOUND'S OWN LEVEL. Until now a preset left P_LEVEL as the track had it, so the same
      * fader gave -11 dBFS on SCREAM LEAD and -38.6 on STATIC HAZE: changing sound jumped by up to
      * 27.6 dB, which is what "the presets are not levelled" meant. The value comes from a measured
@@ -1390,6 +1400,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
      * property of the sound and not a taste. The user's fader still moves the track from there. */
     t->p[P_LEVEL] = (int16_t)preset_level_of(t->eng_req % NENGINES, pi);
     fm1_irq_on();                                     /* (FASE 2) the whole sound, at once */
+    fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT), the flash read here */
 #if FELUCCA_ANNOUNCE
     {   /* (FASE 3, #105) the sound that was loaded, in words: "ANALOG BRASS" */
         char nb[40];
