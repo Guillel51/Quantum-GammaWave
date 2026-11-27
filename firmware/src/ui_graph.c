@@ -2092,7 +2092,8 @@ static __attribute__((noinline)) void graph_slpitch(uint16_t c)
 static __attribute__((noinline)) void graph_diag(uint16_t c)
 {
     uint32_t i, n1 = 0, n0, step = 0, slen = 1, sounding, release, fading, peak, steals, denied, cap;
-    char b[64];                    /* (v1.5.13) the longest row (POLYPHONY with every counter up) is 55 */
+    char b[80];                    /* (v1.5.13) the longest row (POLYPHONY with every counter up) is 55; (FASE 3/8) the
+                                    * pool's own figures add 12 */
     if (ui.force)                                   /* (FASE 2, #107) the peak is since this screen was opened */
         voice_stats_reset();
     voice_stats(&sounding, &release, &fading, &peak, &steals, &denied);
@@ -2117,6 +2118,14 @@ static __attribute__((noinline)) void graph_diag(uint16_t c)
         rowb_str(&r, " TRIP ");
         rowb_int(&r, (int32_t)fx_trips);
         cv_text_r(224, 8, &AF_S, b, T_ACCENT, T_SURF);
+    } else if (mc_jobs) {                           /* (FASE 3/8) the scheduler's own work: the blocks core 1 took a part
+                                                     * in (fx.c mc_jobs), so the split reads as work done, not a mask */
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_str(&r, mc_status());
+        rowb_str(&r, " J ");
+        rowb_int(&r, (int32_t)mc_jobs);
+        cv_text_r(224, 8, &AF_S, b, T_THEME, T_SURF);
     } else
         cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
 
@@ -2203,6 +2212,17 @@ static __attribute__((noinline)) void graph_diag(uint16_t c)
         if (denied) {                               /* a note that found no voice at all: never a silent steal */
             rowb_str(&r, " DEN ");
             rowb_int(&r, (int32_t)denied);
+        }
+        {   /* (FASE 3/8) THE POOL ITSELF, beyond the budget row: the slots holding a voice (VDEAD, the inert one,
+             * never counts) against the slots there are. A pool at its top steals on the next note, whatever the
+             * cap says, and this is the figure that says so. */
+            uint32_t u = 0, ps;
+            for (ps = 0; ps < VDEAD; ps++)
+                u += vpool[ps].active ? 1u : 0u;
+            rowb_str(&r, " POOL ");
+            rowb_int(&r, (int32_t)u);
+            rowb_str(&r, "/");
+            rowb_int(&r, (int32_t)VDEAD);
         }
     }
     cv_text_r(224, 50, &AF_S, b, sounding + 1u >= cap ? T_ACCENT : T_TEXT, T_SURF);
