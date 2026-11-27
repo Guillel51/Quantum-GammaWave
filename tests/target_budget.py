@@ -40,7 +40,9 @@ FUNCS = ["mix_block",                     # (1.4.5) the whole block: fx_buses, m
          "click_render",                                    # the metronome's click (click.c), while it sounds
          "mod_begin", "mod_voice", "mod_end",                 # the modulation matrix (mod.c), called when active
          "perf_begin", "perf_mute", "perf_pre", "perf_block", "perf_master",   # the FX layer (perform.c), when busy
-         "rev_room", "rev_spring",
+         "rev_room", "rev_room_soft", "rev_room_mod", "rev_room_mod_soft",   # (FASE 4/8) the four ROOM
+         # networks as the image has them (the plain and the knee, each plain and modulated)
+         "rev_spring",
          "mc_split"]                                # (FASE 4) the two cores' split, every block (fx.c)                # the reverb bus (fx.c): REVERB TYPE ROOM / SPRING
 # built only with FELUCCA_FM4=1 (DIGITAL, src/eng_digital.c; not in the default build, so not in BUDGET): absent,
 # they are skipped; present, checked against these (their budget lines until the engine was retired in 1.0)
@@ -55,7 +57,10 @@ DRUM_PATH = ["dx_run", "dx_layer", "dx_run_sn", "drum_render", "drum_out", "drum
 # (1.8) The audio block as a whole: what the ISR spends between two buffers, whichever function the compiler
 # chose to inline into which. The two lines are checked on their own AND as this sum, so work moved from one to
 # the other (an inline decision, a helper split out) cannot hide a grown total.
-BLOCK_PATH = ["mix_block", "events_block"]
+BLOCK_PATH = ["mix_block", "events_block",
+              "rev_room", "rev_room_soft", "rev_room_mod", "rev_room_mod_soft"]   # (FASE 4/8) the reverb networks run inside fx_run, inside the
+              # block, but as calls: they were outside this sum and the phase that cut their loop could not show
+              # it here. They are weighted like the rest now (mix_block -> fx_run -> rev_room is three levels).
 # the sums that are printed and checked: (the line's name, its members, what it adds up)
 PATHS = [("DRUM_PATH", DRUM_PATH, "(hit, out, IMAGE / SEND, bus)"),
          ("BLOCK_PATH", BLOCK_PATH, "(the mix block and the events it runs)")]

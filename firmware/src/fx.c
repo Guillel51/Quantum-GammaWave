@@ -1247,37 +1247,62 @@ static inline int32_t rv_knee(int32_t x)
  * (FASE 3/8) `soft` picks what the two int16 cells are written through: the plain clamp (0: every model that owns
  * these buffers, bit for bit what it always was) or the knee (1: CLOUD, whose line is the SAME memory as this
  * network and whose grains drive it past the int16 range at any hot send). */
+/* (FASE 5/8) ONE COMB, UNROLLED, ITS STATE IN A LOCAL. In the k loop the compiler loaded fx.comb_i[k] twice a
+ * sample (the read of the line and the write back into it cannot be proven not to touch `fx`, which is plain RAM)
+ * and wrote the position back every sample, and it re-read REV_COMB[k] each time. `fx` is this function's alone
+ * between entry and exit, so the six positions and the four low-pass states live in locals for the whole block
+ * and go back once: one load and one store per position per block instead of two and one per sample, and the
+ * four limits are constants. The arithmetic is the same expression, in the same order, sample by sample, so the
+ * renders are bit for bit the ones this network produced before. */
+#define REV_COMB_ONE(CB, IX, LP, LIM)                                                        \
+    do {                                                                                     \
+        int32_t o_ = (CB)[IX];                                                               \
+        LP = o_ + mulq15(LP - o_, inv);                                                      \
+        (CB)[IX] = soft ? (int16_t)rv_knee(in + mulq15(LP, size))                             \
+                        : (int16_t)clamp(in + mulq15(LP, size), -32768, 32767);               \
+        if (++IX >= (LIM))                                                                   \
+            IX = 0;                                                                          \
+        a += o_;                                                                             \
+    } while (0)
 static inline __attribute__((always_inline)) void rev_room_core(const int32_t *rev_in, int32_t *out, uint32_t n, int soft)
 {
-    uint32_t i, k;
+    uint32_t i;
     int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]];
+    const int32_t inv = 32767 - damp;                    /* (the table's own value: what the inner mulq15 used) */
+    uint32_t ci0 = fx.comb_i[0], ci1 = fx.comb_i[1], ci2 = fx.comb_i[2], ci3 = fx.comb_i[3];
+    uint32_t ai0 = fx.ap_i[0], ai1 = fx.ap_i[1];
+    int32_t lp0 = fx.comb_lp[0], lp1 = fx.comb_lp[1], lp2 = fx.comb_lp[2], lp3 = fx.comb_lp[3];
+    const uint32_t l0 = REV_COMB[0], l1 = REV_COMB[1], l2 = REV_COMB[2], l3 = REV_COMB[3];
+    const uint32_t q0 = REV_AP[0], q1 = REV_AP[1];
+    int16_t *const c0 = rev_comb, *const c1 = c0 + REV_COMB[0], *const c2 = c1 + REV_COMB[1],
+                  *const c3 = c2 + REV_COMB[2], *const p0 = rev_ap, *const p1 = p0 + REV_AP[0];
     for (i = 0; i < n; i++) {
-        int32_t a = 0;
-        int16_t *c = rev_comb;
+        int32_t a = 0, o;
         int32_t in = mulq15(rev_in[i], 2580);           /* 1/8 at -4 dB: level as before the allpass fix */
-        for (k = 0; k < 4u; k++) {
-            int32_t o = c[fx.comb_i[k]];
-            fx.comb_lp[k] = o + mulq15(fx.comb_lp[k] - o, 32767 - damp);
-            c[fx.comb_i[k]] = soft ? (int16_t)rv_knee(in + mulq15(fx.comb_lp[k], size))
-                                   : (int16_t)clamp(in + mulq15(fx.comb_lp[k], size), -32768, 32767);
-            if (++fx.comb_i[k] >= REV_COMB[k])
-                fx.comb_i[k] = 0;
-            a += o;
-            c += REV_COMB[k];
-        }
-        c = rev_ap;
-        for (k = 0; k < 2u; k++) {
-            int32_t o = c[fx.ap_i[k]];
-            int32_t v = a + (o >> 1);
-            c[fx.ap_i[k]] = soft ? (int16_t)rv_knee(v) : (int16_t)clamp(v, -32768, 32767);
+        REV_COMB_ONE(c0, ci0, lp0, l0);
+        REV_COMB_ONE(c1, ci1, lp1, l1);
+        REV_COMB_ONE(c2, ci2, lp2, l2);
+        REV_COMB_ONE(c3, ci3, lp3, l3);
+        o = p0[ai0];
+        {   int32_t v = a + (o >> 1);
+            p0[ai0] = soft ? (int16_t)rv_knee(v) : (int16_t)clamp(v, -32768, 32767);
             a = o - a;                                  /* Freeverb: out = buf - in (o - v is a notch comb) */
-            if (++fx.ap_i[k] >= REV_AP[k])
-                fx.ap_i[k] = 0;
-            c += REV_AP[k];
-        }
+            if (++ai0 >= q0)
+                ai0 = 0;    }
+        o = p1[ai1];
+        {   int32_t v = a + (o >> 1);
+            p1[ai1] = soft ? (int16_t)rv_knee(v) : (int16_t)clamp(v, -32768, 32767);
+            a = o - a;
+            if (++ai1 >= q1)
+                ai1 = 0;    }
         out[i] += a;
     }
+    fx.comb_i[0] = (uint16_t)ci0; fx.comb_i[1] = (uint16_t)ci1;
+    fx.comb_i[2] = (uint16_t)ci2; fx.comb_i[3] = (uint16_t)ci3;
+    fx.ap_i[0] = (uint16_t)ai0;   fx.ap_i[1] = (uint16_t)ai1;
+    fx.comb_lp[0] = lp0; fx.comb_lp[1] = lp1; fx.comb_lp[2] = lp2; fx.comb_lp[3] = lp3;
 }
+#undef REV_COMB_ONE
 /* every model but CLOUD: the network through the clamp it always used (its renders are bit for bit the same) */
 static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
