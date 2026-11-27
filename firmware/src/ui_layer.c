@@ -1089,6 +1089,12 @@ static void layer_fx(void)
             if (on && blk) {
                 fill = T_ACCENT;
                 ink = T_INK;
+            } else if (on) {                               /* (FASE 6) a white key that is IN lifts its body toward
+                                                            * the accent: the map says which of the nine effects the
+                                                            * DSP is running for this part, in colour, not just in
+                                                            * the vertical capitals. Reuses the palette mix, no code
+                                                            * path of its own. */
+                fill = ux_mix(fill, T_ACCENT, 48);
             }
             fx_key(x, FX_KEY_Y, blk ? FX_BLACK_W : FX_WHITE_W, blk ? FX_BLACK_H : FX_KEY_H, blk ? 2 : 0, fill,
                    blk ? FX_BLACK_LABEL_Y : FX_WHITE_LABEL_Y, blk ? FX_BLACK_LABEL_H : FX_WHITE_LABEL_H,
