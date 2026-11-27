@@ -340,6 +340,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     # value once a turn settles, and WHERE answering with both. The voice is the reader's; this is the bytes.
     run "Screen reader: silence without a reader, the page, the MENU row said and its value announced once it settles" \
         "$OUT/ui_render" --announce
+    # (FASE FX 2026-11-27) the pages that must MOVE, measured in pixels: the chorus answering its four knobs, the
+    # FX page's meters at 0.9 / 10 / 60 %, the six blocks of FX > BUSES and the ADSR's attack (before and after).
+    run "FX animation: chorus, the FX meters, the six BUSES blocks and the ADSR's attack, in pixels" \
+        "$OUT/ui_render" --fxanim
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
     # (FASE 5) and the pixels themselves against the tracked baseline: the lint above cannot see a glyph table, a
     # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.

@@ -229,18 +229,46 @@ static __attribute__((noinline)) void graph_fx_buses(const track_t *t)
              * engine (0.05 .. 40 Hz), so one pixel a frame is right at slow and a strobe at fast: the display's
              * phase walks 1 .. 4 units a frame with the knob, a smooth 4:1 over its travel. The lane under the
              * accents is filled every other column so the two sweeps read as a body with depth, not two wires. */
-            int32_t k, cy = dy + dh / 2, amp = 2 + clamp(song.g[G_CDEPTH], 0, 127) * (dh / 2 - 3) / 127;
-            int32_t spd = 1 + clamp(song.g[G_CRATE], 0, 127) * 3 / 127, fr = (int32_t)ui.frame * spd;
+            /* (FASE FX 2026-11-27) THE THREE TAPS, THE RATE AND THE STEREO, AS THE BUS RUNS THEM. This
+             * block drew two triangle lanes whose only knob was DEPTH (their speed was a frame counter and
+             * TYPE and STEREO did nothing), so on the console RATE, STEREO and TYPE appeared to be dead.
+             * It draws one tap per voice now -- the ensemble's three, a third of a cycle apart (fx.c
+             * cho_ens) -- over the centre line: RATE sets how fast the LFO walks (fm1_ms, not a frame
+             * count, so the picture is the same at any frame rate), DEPTH the sweep, TYPE the shape
+             * (sine / the phaser's notches / the flanger's comb) and STEREO the offset between the left
+             * and right lanes, which collapse into one at 0. A bright head per tap travels the trace, so a
+             * live bus is seen to be live even while its wave is momentarily still. */
+            int32_t k, cy = dy + dh / 2, t3;
+            int32_t dep = clamp(song.g[G_CDEPTH], 0, 127), rst = clamp(song.g[G_CRATE], 0, 127);
+            uint32_t ty = (uint32_t)clamp(song.g[G_CTYPE], 0, 2), per = 1200u - (uint32_t)rst * 1050u / 127u;
+            uint32_t ph = (uint32_t)fm1_ms * (0xFFFFFFFFu / (per ? per : 1u)), third = 0xFFFFFFFFu / 3u;
+            int32_t amp = 2 + dep * (dh / 2 - 3) / 127;
+            int32_t stx = (clamp(song.g[G_CSTER], -64, 63) + 64) * 7 / 128;      /* 0 .. 7 px of lane offset */
+            int32_t py3[3];
+            for (t3 = 0; t3 < 3; t3++)
+                py3[t3] = cy;
             for (k = 0; k <= dw - 4; k++) {
-                int32_t w1 = (k * 900 / (dw > 1 ? dw : 1) + fr) & 255, w2 = (w1 + 128) & 255;
-                int32_t t1 = w1 < 128 ? w1 : 255 - w1, t2 = w2 < 128 ? w2 : 255 - w2;      /* the triangle */
-                int32_t s1 = t1 * (128 - t1) / 4, s2 = t2 * (128 - t2) / 4;                /* .. rounded to a wave:
-                                                                                            * 0..1024 over a cycle */
-                int32_t yl = cy - 1 - s1 * amp / 1024, yr = cy + 2 + s2 * amp / 1024;
-                if (on && !(k & 1))
-                    cv_rect(dx + 2 + k, cy + 2, 1, (yr > cy + 2 ? yr - cy - 2 : 0), ux_mix(T_BG, T_ACCENT, 24));
-                cv_rect(dx + 2 + k, yl, 1, 2, on ? T_THEME : T_RAISE);
-                cv_rect(dx + 2 + k, yr, 1, 2, on ? T_ACCENT : T_RAISE);
+                for (t3 = 0; t3 < 3; t3++) {
+                    uint32_t px = ph + (uint32_t)(k * 900 / (dw > 1 ? dw : 1)) * (0xFFFFFFFFu / 256u)
+                                  + (uint32_t)t3 * third;
+                    int32_t w = osc_sine(px), y;
+                    if (ty == 1)
+                        w = w / 2 + osc_sine(px * 3u) / 3;                 /* PHASER: the notches */
+                    else if (ty == 2)
+                        w = w * 3 / 4 + osc_sine(px * 5u) / 5;             /* FLANGER: the comb */
+                    y = cy - w * amp / 32768 - (t3 ? t3 - 1 : 0);
+                    if (on && !(k & 1) && y > cy)                          /* the body under the sweep */
+                        cv_rect(dx + 2 + k, cy + 1, 1, y - cy, ux_mix(T_BG, T_ACCENT, 20));
+                    cv_rect(dx + 2 + k, y, 1, 2, on ? (t3 ? T_THEME : T_TEXT) : T_RAISE);
+                    if (on && stx)                                         /* the right lane, offset by STEREO */
+                        cv_rect(dx + 2 + k, y + stx, 1, 1, ux_mix(T_BG, T_ACCENT, 70));
+                    py3[t3] = y;
+                }
+                (void)py3;
+            }
+            if (on) {                                                      /* the heads, one per tap */
+                int32_t hx = (int32_t)((ph >> 24) * (uint32_t)(dw - 4) / 256u) + dx + 2;
+                cv_rect(hx, cy - amp - 1, 2, 3, T_TEXT);
             }
             fxb_pct(b, song.g[G_CDEPTH]);
             break;

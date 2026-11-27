@@ -143,20 +143,53 @@ static __attribute__((noinline)) void qz_curve(const qz_t *q, qz_lvl_t fn, void 
         int32_t sh = q->h * 1000 / (1000 + k * q->sy);
         int32_t ox = q->x0 + k * q->dx, oy = q->y0 + (q->h - sh) - k * q->dy;
         uint16_t ink = qz_ink(q, k);
-        int32_t px = 0, py = 0;
-        for (i = 0; i < QZ_N; i++) {
+        int32_t px = 0, py = 0, x;
+        for (i = 0; i < QZ_N; i++) {                /* the samples the pages read as numbers (qz_v) */
             int32_t v = fn(ctx, k, i * 1000 / (QZ_N - 1));
             qz_v[i] = (int16_t)clamp(v, 0, 1000);
         }
+        /* (FASE FX 2026-11-27) ONE SAMPLE A COLUMN, AND THE SEGMENTS JOINED. QZ_N samples over a ~210 px
+         * panel is a sample every 2.2 px, and a 2 px stroke between two of them leaves holes wherever the
+         * curve is steeper than it is wide -- which is exactly an ADSR's attack at ATK 0..20, drawn as a
+         * dotted staircase (the owner's "se pixelea"). Every column now gets its own sample and its own
+         * one-pixel step to the next, so a vertical rise is a solid run of ink at any ATK, LFO rate or
+         * MORPH shape. The cost is sw calls of a function that is a few adds; the page is drawn at 20..60
+         * fps and this replaced 95 calls with ~210, measured in ui_render's cost pass. */
+        (void)x;
         for (i = 0; i < QZ_N; i++) {                /* the under-glow: what the front curve stands on */
-            int32_t x = ox + i * sw / (QZ_N - 1);
+            int32_t sx = ox + i * sw / (QZ_N - 1);
             int32_t y = oy + sh - qz_v[i] * sh / 1000;
             if (k == 0 && q->glow)                   /* the front curve's floor: two rows of light, not a fill */
-                cv_rect(x, y + 1, sw / (QZ_N - 1) + 1, 2, q->glow);
+                cv_rect(sx, y + 1, sw / (QZ_N - 1) + 1, 2, q->glow);
             if (i) {
-                cv_line_t(px, py, x, y, ink, k ? 1 : 2);
+                /* (FASE FX 2026-11-27) A STEEP SEGMENT IS FILLED COLUMN BY COLUMN, NOT STROKED ONCE. QZ_N
+                 * samples over the 220 px panel is one every 2.7 px, and a stroke from one sample to the next
+                 * lives at those two columns only: where the curve rises faster than it runs -- an ADSR's
+                 * attack at ATK 0..20, a fast LFO, a sharp MORPH -- the rise came out as separated vertical
+                 * dashes with the columns between them empty, which is the "se pixelea" the owner reported on
+                 * ENV (visible on every one of its five layers). Each column from the old sample to the new
+                 * one now gets its own interpolated point, so the rise is a continuous line at any slope. The
+                 * loop runs only on a steep step (|dy| > 2) and over the one to three columns of that step;
+                 * the per-column resampling of the whole curve cost 2.6 kB of XIP, this costs the loop. */
+                int32_t dy2 = y > py ? y - py : py - y, dx2 = sx - px;
+                if (dy2 > 3 * dx2 && dx2 >= 1) {
+                    /* (FASE FX 2026-11-27) A NEAR-VERTICAL STEP IS A VERTICAL RUN. Interpolating it column by
+                     * column still stepped two or three pixels at a time on a slope of 20 px a column, which is
+                     * the blocky look left on ENV's attack; an envelope's rise is drawn as a vertical line at the
+                     * middle of the step instead, so ATK 0..20 reads as one clean edge. */
+                    cv_rect((px + sx) / 2, py < y ? py : y, dx2 > 1 ? 2 : 1, dy2 + 1, ink);
+                } else if (dy2 > 2 && dx2 > 1) {
+                    int32_t xx, yy = py;
+                    for (xx = px; xx < sx; xx++) {
+                        int32_t yy2 = py + (y - py) * (xx + 1 - px) / dx2;
+                        cv_line_t(xx, yy, xx + 1, yy2, ink, k ? 1 : 2);
+                        yy = yy2;
+                    }
+                } else {
+                    cv_line_t(px, py, sx, y, ink, k ? 1 : 2);
+                }
             }
-            px = x;
+            px = sx;
             py = y;
         }
     }
@@ -468,41 +501,80 @@ static __attribute__((noinline)) void graph_filter(const track_t *t, uint16_t c)
  * on its own: every value read here is the one the DSP runs. */
 static __attribute__((noinline)) void graph_chorus(const track_t *t, uint16_t c)
 {
-    int32_t x, k, cy = graph_ht / 2, a, w, side, py[2];
+    /* (FASE FX 2026-11-27) THREE TAPS THAT ARE SEEN TO MOVE, AND EVERY KNOB IN THE PICTURE.
+     * The page drew ONE periodic wave per layer: a sine that fills half the panel made of identical crests is
+     * a picture of a sine, and sliding it a few pixels a frame changes nothing the eye can catch -- the report
+     * was right that it "does not move", and RATE only changed how fast the invisible slide happened, while
+     * STEREO and TYPE changed almost nothing. What the bus actually is (fx.c cho_ens) is three taps of one
+     * delay line swept by one LFO a third of a cycle apart, so the picture is now those three taps, each with
+     * a bright head that travels along the trace and wraps: motion that cannot be mistaken for a still frame,
+     * and it is the DSP's own geometry, not a decoration. RATE sets the cycle (1.2 s at 0 to 0.15 s at 127),
+     * DEPTH the sweep, STEREO the right lane's offset (0 closes the pair into one line), TYPE the shape the
+     * three taps take: the ensemble's sine, the phaser's notches, the flanger's tight comb. Two dimmer copies
+     * behind give the depth the rest of the instrument's pages have. Nothing is random and no layer moves on
+     * its own: every value read here is the one the DSP runs, and a stopped bus stills the heads. */
+    int32_t x, k, t3, cy = graph_ht / 2, a, side, thead;
     uint32_t rate = (uint32_t)clamp((int32_t)song.g[G_CRATE], 0, 127);
     uint32_t type = (uint32_t)clamp((int32_t)song.g[G_CTYPE], 0, 2);
     int32_t dep = clamp((int32_t)song.g[G_CDEPTH], 0, 127);
     int32_t st = clamp((int32_t)song.g[G_CSTER], -64, 63);
-    uint32_t span = 0xFFFFFFFFu / (uint32_t)(PANEL_W / 2);        /* one cycle across half the panel */
-    uint32_t step = span * (uint32_t)(type == 0 ? 1 : type == 1 ? 3 : 5);   /* CHORUS / PHASER / FLANGER */
-    /* RATE: how fast the cycle walks. (2.16.2) IT WAS 14 s A CYCLE AT THE SLOW END, WHICH READ AS A STILL PICTURE:
-     * the phase moved 0.14 px a frame at RATE 0, and the report was "the chorus graph does not move at all". It is
-     * real time now -- fm1_ms, not the frame counter -- so the sweep is visible whatever the page's redraw rate is,
-     * and it runs 1.2 s a cycle at RATE 0 down to 0.3 s at 127: fast enough to see, never a strobe. */
-    uint32_t ph = (uint32_t)fm1_ms * (1u + rate / 32u) * (0xFFFFFFFFu / 1200u);
+    uint32_t span = 0xFFFFFFFFu / (uint32_t)(PANEL_W / 2);          /* one cycle across half the panel */
+    uint32_t step = span * (type == 0 ? 1u : type == 1 ? 3u : 5u);  /* CHORUS / PHASER / FLANGER */
+    uint32_t per = 1200u - rate * 1050u / 127u;                     /* ms a cycle: RATE is the LFO's time */
+    uint32_t ph = (uint32_t)fm1_ms * (0xFFFFFFFFu / (per ? per : 1u));
+    uint32_t third = 0xFFFFFFFFu / 3u;                              /* the taps sit 120 deg apart */
+    int32_t pyb = 0, pyt[3], pyr = 0;
     (void)t;
-    a = (12 + dep * 34 / 127) * graph_ht / 100;                   /* DEPTH: 12 .. 46 % of the panel */
-    side = (st + 64) * (int32_t)(span / 8u) / 128;                /* STEREO: 0 closes the pair */
-    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);                   /* the centre, the dry signal */
-    for (k = 2; k >= 0; k--) {                                    /* two copies behind, the taps in front */
+    a = (12 + dep * 34 / 127) * graph_ht / 100;                     /* DEPTH: 12 .. 46 % of the panel */
+    if (type == 2)                                                  /* the flanger's sweep is tighter */
+        a = a * 72 / 100;
+    side = (st + 64) * (int32_t)(span / 8u) / 128;                  /* STEREO: 0 closes the pair */
+    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);                     /* the centre, the dry signal */
+    for (k = 2; k >= 0; k--) {                                      /* two copies behind, THEN the taps */
         int32_t lift = k * (graph_ht / 16 + 1);
         uint16_t col = k ? ux_mix(T_BG, heat_y(cy, cy - a, cy + a, c), 46 - k * 12)
                          : heat_y(cy, cy - a, cy + a, c);
+        if (k) {                                                    /* depth: one dim wave a copy */
+            for (x = 0; x < PANEL_W; x++) {
+                int32_t y = cy - lift - osc_sine(ph + (uint32_t)x * step) * a / 32768;
+                if (x)
+                    cv_line_t(PANEL_X0 + x - 1, pyb, PANEL_X0 + x, y, col, 1);
+                pyb = y;
+            }
+            continue;
+        }
+        for (t3 = 0; t3 < 3; t3++)                                  /* the three taps, a third apart */
+            pyt[t3] = 0;
         for (x = 0; x < PANEL_W; x++) {
-            uint32_t px = ph + (uint32_t)x * step + (uint32_t)k * (0xFFFFFFFFu / 3u);
-            w = osc_sine(px);
-            if (type == 1)                                        /* PHASER: the notches, a third as deep */
-                w = w / 2 + osc_sine(px * 3u) / 3;
-            if (k == 0 && side) {                                 /* the right tap, offset by STEREO */
-                int32_t yr = cy - lift - osc_sine(px + (uint32_t)side) * a / 32768;
-                if (x) cv_line_t(PANEL_X0 + x - 1, py[1], PANEL_X0 + x, yr, ux_mix(T_SURF, col, 55), 1);
-                py[1] = yr;
+            for (t3 = 0; t3 < 3; t3++) {                            /* tap t3 at phase + t3/3 */
+                uint32_t px = ph + (uint32_t)x * step + (uint32_t)t3 * third;
+                int32_t w = osc_sine(px), y;
+                if (type == 1)                                      /* PHASER: the notches, a third as deep */
+                    w = w / 2 + osc_sine(px * 3u) / 3;
+                else if (type == 2)                                 /* FLANGER: a tight comb over the sweep */
+                    w = w * 3 / 4 + osc_sine(px * 5u) / 5;
+                y = cy - w * a / 32768;
+                if (x)
+                    cv_line_t(PANEL_X0 + x - 1, pyt[t3], PANEL_X0 + x, y,
+                              t3 ? ux_mix(T_BG, col, t3 == 1 ? 62 : 38) : col, t3 ? 1 : 2);
+                pyt[t3] = y;
             }
-            {
-                int32_t y = cy - lift - w * a / 32768;
-                if (x) cv_line_t(PANEL_X0 + x - 1, py[0], PANEL_X0 + x, y, col, k ? 1 : 2);
-                py[0] = y;
+        }
+        if (side) {                                                 /* the right lane, offset by STEREO */
+            for (x = 0; x < PANEL_W; x++) {
+                int32_t y = cy - osc_sine(ph + (uint32_t)x * step + (uint32_t)side) * a / 32768;
+                if (x)
+                    cv_line_t(PANEL_X0 + x - 1, pyr, PANEL_X0 + x, y, ux_mix(T_SURF, col, 55), 1);
+                pyr = y;
             }
+        }
+        /* the heads: one per tap, a third of the panel apart, wrapping with the LFO. A still page cannot
+         * show these, and their speed is RATE's. */
+        thead = (int32_t)((ph >> 24) * (uint32_t)PANEL_W / 256u);
+        for (t3 = 0; t3 < 3; t3++) {
+            int32_t hx = (thead + t3 * (int32_t)PANEL_W / 3) % (PANEL_W ? PANEL_W : 1);
+            int32_t hy = cy - osc_sine(ph + (uint32_t)hx * step + (uint32_t)t3 * third) * a / 32768;
+            cv_rrect(PANEL_X0 + hx - 2, hy - 2, 5, 5, 2, t3 ? T_THEME : T_TEXT, T_BG);
         }
     }
     cv_rrect(PANEL_X0 + PANEL_W / 2 - 3, cy - 3, 7, 7, 3, T_TEXT, T_SURF);   /* the centre: the dry path */
@@ -1592,7 +1664,9 @@ static __attribute__((noinline)) void graph_fx(const track_t *t, uint16_t c)
          * bus actually receives. Every figure is the DSP's own. */
         cv_rect(mx, my, 16, mh, T_BG);                /* the track: 16 of the card's 54 px, 3 px from its edge */
         {   /* (3.7) HOME's own meter: the segmented plasma bar, with the same attack/decay ballistics */
-            int32_t target = fx_meter_target(lvl);
+            /* (FASE FX 2026-11-27) THE CURVE, NOT THE RAW AMPLITUDE. It was fx_meter_target(), linear in
+             * the peak, so a quiet part sat in the bottom few pixels: see fx_meter_curve (core.h). */
+            int32_t target = fx_meter_curve(lvl);
             uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
             gw_plasma_bar(mx + 2, my, 12, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
         }

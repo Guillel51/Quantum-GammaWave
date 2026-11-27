@@ -38,6 +38,25 @@ static inline int32_t fx_meter_target(int32_t pk)
     return pk * 255 / 32767;
 }
 
+/* (FASE FX 2026-11-27) A METER'S TARGET ON A CURVE A HAND CAN READ. fx_meter_target() above is the honest
+ * linear conversion of a Q15 peak, and on a 0..255 bar it leaves everything under -20 dBFS inside the bottom
+ * fifth: the owner's report was exact -- the FX page's meters "only start moving at about 80 %". Amplitude is
+ * not loudness, so the BAR's target is the square root of it: 10 % of full scale reads 32 %, 1 % reads 10 %,
+ * 0.1 % still reads 3 %, and full scale is still the top. Integer sqrt (no table, no float), the same shape
+ * FX > BUSES' own bars have had since v2.16.1, so the whole instrument's meters answer alike. The linear
+ * helper stays: tests/fx_meter_test.c pins its numbers and the ballistics are built on it. */
+static inline int32_t fx_meter_curve(int32_t pk)
+{
+    uint32_t t = (uint32_t)fx_meter_target(pk) * 255u, r = 0, b = 1u << 15;
+    while (b) {
+        uint32_t c = r + b;
+        if (c * c <= t)
+            r = c;
+        b >>= 1;
+    }
+    return (int32_t)r;
+}
+
 static inline int32_t fx_meter_step(uint8_t *vu, uint8_t *hold, uint8_t *hold_t, int32_t target, int32_t mh)
 {
     int32_t v;

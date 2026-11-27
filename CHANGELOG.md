@@ -1,3 +1,53 @@
+## Sin publicar — FASE FX: el chorus se ve moverse, los medidores oyen, la ADSR deja de romperse
+
+Cuatro síntomas reportados, tres causas distintas, todas medidas en píxeles antes de tocar nada.
+
+**El gráfico de CHORUS no se movía y los knobs no lo movían.** El refresco ya estaba bien desde la fase 3
+(la página está fuera de la firma que corta el redibujo); lo que no se movía era el *dibujo*: una senoide
+periódica que llenaba medio panel. Deslizar una onda idéntica a sí misma no cambia nada que el ojo pueda ver,
+y RATE sólo cambiaba la velocidad de ese deslizamiento invisible, mientras STEREO y TYPE no cambiaban casi
+nada. Lo que el bus es de verdad (`fx.c cho_ens`) son **tres tomas** de una línea de retardo barridas por un
+LFO separadas un tercio de ciclo, así que eso es lo que se dibuja ahora: las tres trazas, cada una con una
+**cabeza brillante que viaja y da la vuelta**, dos copias más tenues detrás para la profundidad, y el punto de
+la señal seca en el centro. RATE fija el ciclo (1,2 s a 0 hasta 0,15 s a 127), DEPTH el barrido, STEREO el
+desplazamiento del canal derecho (0 cierra el par en una sola línea) y TYPE la forma que toman las tres tomas
+(senoide del ensemble, muescas del phaser, peine del flanger). Medido con `ui_render --fxanim`: la página
+cambia **3 314 px en 40 ms**, y cada knob cambia la imagen con el reloj quieto (RATE 3 922, DEPTH 3 575,
+STEREO 699, TYPE 6 771).
+
+**El bloque CHORUS de FX > BUSES era el mismo problema, peor.** Dibujaba dos triángulos cuyo único control
+era DEPTH, con la fase de un contador de frames: en la consola RATE, STEREO y TYPE parecían muertos. Ahora
+dibuja las tres tomas sobre la línea central, con la fase de `fm1_ms`, la forma de TYPE, el desplazamiento de
+STEREO y una cabeza por toma; medido: RATE mueve 430 px y TYPE 237 px.
+
+**Los VU-meters de la primera página de FX sólo despertaban al 80 %.** La causa era la ley: `fx_meter_target()`
+es lineal en el pico, y sobre una barra de 0..255 deja todo lo que está por debajo de −20 dBFS en el fondo.
+La barra lee ahora `fx_meter_curve()` (la raíz cuadrada del mismo valor, entero, la forma que FX > BUSES ya
+usaba): un pico del 0,9 % enciende el 9 % de la barra, el 10 % enciende el 32 %, el 60 % el 78 %. El audio no
+se toca y la conversión lineal honesta sigue ahí, con su test. Medido: 171 / 315 / 891 px encendidos para
+0,9 / 10 / 60 %, monótono.
+
+**La ADSR se pixelaba con attack bajo.** `qz_curve` muestreaba 81 puntos sobre 220 px — uno cada 2,7 px — y
+trazaba una línea de 2 px entre muestra y muestra: en una subida más empinada que eso, los puntos viven en dos
+columnas y las de en medio quedan vacías, así que la subida se veía como escalones partidos (en las cinco
+capas de ENV). Ahora un tramo empinado se rellena columna por columna, y un tramo casi vertical se dibuja
+como una **barra vertical** en el medio del paso, que es como se lee un ataque en un editor de envolventes.
+Aplica a todas las gráficas que usan `qz_curve` (ENV, OP ENV, LFO, MORPH, TILT). Medido: la subida queda en
+**un solo trazo continuo** y con tinta en **todas** las columnas de la parcela (0 huecos).
+
+La versión no sube en esta pasada: el conjunto de release se ata al emulador (`tools/make_release.py
+--sync`), que aquí no se puede reconstruir porque falta `emcc`. El `CHANGELOG` queda en *sin publicar* y la
+versión sigue en v2.16.3, como la fase anterior.
+
+Coste en el objetivo **[AC791N]**, compilado con el toolchain real: imagen **580 700 B** (2 912 B de XIP
+libres sobre el suelo de 2 048), XIP código 455 668 B, RAM `.data+.bss` **86 072 B de 98 304**, POOL spare
+16 672 B, LOWBUF 28 488 B de 32 768. La fase no añade RAM ni búferes: son dibujos.
+
+`ui_render --fxanim` es nuevo y forma parte de la suite: dibuja las páginas reales con los parámetros reales y
+el reloj real y cuenta lo que cambió entre dos frames (movimiento, respuesta a cada knob, medidores a tres
+niveles, los seis bloques de BUSES y la subida del ataque). Las bases de píxeles (`tests/ui_pixels.txt`) se
+regeneraron sólo para los frames afectados: 128 de 3 321.
+
 ## Sin publicar — FASE 1/8: la biblioteca de fábrica, empaquetada por diferencia
 
 La entrega anterior dejó el XIP en rojo. Medido otra vez desde `main`, no desde los informes: **582 244 B de

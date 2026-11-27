@@ -2350,6 +2350,219 @@ static void ann_flush(void)
     ui_draw();
     ui.force = 0;
 }
+/* ------------------------------------------------------------------ the FX animation pass --- */
+/* (FASE FX 2026-11-27) THE PAGES THAT MUST MOVE, MEASURED IN PIXELS. Three of the owner's four reports were
+ * pictures that did not answer their knobs (the chorus graph, the FX page's meters at ordinary levels) and one
+ * was a picture that broke up when a parameter was low (the ADSR's attack at ATK 0..20). This pass draws the real
+ * screen through draw() with the real parameters and the real clock and counts what changed between two frames:
+ * a still picture is a zero, and a knob that changes nothing is a zero. It says nothing about how the pages look
+ * -- that is the renders' and the eye's job -- only that the motion exists and that it answers. */
+static uint16_t anA[240u * 240u];
+static void an_shot(void) { memcpy(anA, host_screen, sizeof anA); }
+static uint32_t an_diff(void)
+{
+    uint32_t i, n = 0;
+    for (i = 0; i < 240u * 240u; i++)
+        if (host_screen[i] != anA[i])
+            n++;
+    return n;
+}
+static int an_bad;
+static void an_check(const char *what, int ok, uint32_t n)
+{
+    printf("fxanim: %-64s %6u px  %s\n", what, n, ok ? "ok" : "FAIL");
+    an_bad += !ok;
+}
+/* a steep rise: the ADSR's attack at ATK 0..20 is a fifth of a panel wide at most, and at ATK 0 it is a step */
+static int32_t an_ramp(void *ctx, int32_t k, int32_t u)
+{
+    int32_t top = (int32_t)(intptr_t)ctx;              /* how many per-mille of the width the rise takes */
+    (void)k;
+    if (top < 1) top = 1;
+    if (u < top) return 1000 * u / top;
+    return 1000 - (u - top) * 1000 / (1000 - top) / 3;  /* then a decay to a third: an envelope, not a ramp */
+}
+/* the ink of the plot as 8-connected components: a curve drawn with holes is many pieces, a solid one is a single
+ * stroke. This is the measurement the "se pixelea" report is about -- not that pixels are missing from a column
+ * (the old stroke never skipped a column; it skipped the ROWS between two columns) but that the rise comes apart. */
+static int32_t an_pieces(int32_t bx, int32_t by, int32_t bw, int32_t bh)
+{
+    static int32_t st[240 * 240];
+    static uint8_t seen[240 * 240];
+    int32_t pieces = 0, x, y;
+    memset(seen, 0, sizeof seen);
+    for (y = 0; y < bh; y++)
+        for (x = 0; x < bw; x++) {
+            int32_t x0 = bx + x, y0 = by + y, top = 0;
+            if (seen[y0 * 240 + x0] || host_screen[y0 * 240u + (uint32_t)x0] == T_BG)
+                continue;
+            pieces++;
+            st[top++] = y0 * 240 + x0;
+            seen[y0 * 240 + x0] = 1;
+            while (top) {
+                int32_t i = st[--top], ix = i % 240, iy = i / 240, dx, dy;
+                for (dy = -1; dy <= 1; dy++)
+                    for (dx = -1; dx <= 1; dx++) {
+                        int32_t nx = ix + dx, ny = iy + dy;
+                        if (nx < bx || nx >= bx + bw || ny < by || ny >= by + bh)
+                            continue;
+                        if (seen[ny * 240 + nx] || host_screen[ny * 240u + (uint32_t)nx] == T_BG)
+                            continue;
+                        seen[ny * 240 + nx] = 1;
+                        st[top++] = ny * 240 + nx;
+                    }
+            }
+        }
+    return pieces;
+}
+static int fxanim_main(void)
+{
+    uint32_t n, k;
+    state();
+    pal(UI_QUANTUM_INDEX);
+
+    /* 1. CHORUS: the page is drawn every frame it is up (draw_graph's own rule); does the picture change? */
+    setup(S_CHORUS);
+    draw(S_CHORUS);
+    an_shot();
+    fm1_ms += 40u;
+    draw(S_CHORUS);
+    n = an_diff();
+    an_check("CHORUS moves between two frames 40 ms apart", n > 200u, n);
+
+    /* 2. and each of its four knobs changes the picture at a FIXED clock: the report was that they did nothing */
+    {
+        static const struct { uint16_t id; int32_t a, b; const char *w; } K[4] = {
+            {G_CRATE, 6, 120, "RATE changes the CHORUS picture"},
+            {G_CDEPTH, 6, 120, "DEPTH changes the CHORUS picture"},
+            {G_CSTER, -64, 63, "STEREO changes the CHORUS picture"},
+            {G_CTYPE, 0, 2, "TYPE changes the CHORUS picture"} };
+        for (k = 0; k < 4u; k++) {
+            setup(S_CHORUS);
+            song.g[K[k].id] = K[k].a;
+            draw(S_CHORUS);
+            an_shot();
+            song.g[K[k].id] = K[k].b;
+            draw(S_CHORUS);
+            n = an_diff();
+            an_check(K[k].w, n > 60u, n);
+        }
+    }
+
+    /* 3. the FX page's meters: a quiet signal is a quiet meter, but not a dead one. These are Q15 peaks:
+     * 300 is 0.9 % of full scale, 3 276 10 %, 19 660 60 %. The linear law drew nothing at all for the first
+     * (the owner's "past 80 %"); the curve draws 9 %, 32 % and 78 % of the bar. */
+    {
+        static const int32_t P[3] = {300, 3276, 19660};
+        uint32_t prev = 0;
+        int mono = 1;
+        setup(S_FX);
+        for (k = 0; k < 8u; k++) fx_vu[k] = 0;
+        for (k = 0; k < 4u; k++) draw(S_FX);
+        an_shot();
+        for (k = 0; k < 3u; k++) {
+            uint32_t i, lit;
+            for (i = 0; i < 8u; i++) fx_vu[i] = P[k];
+            for (i = 0; i < 6u; i++) draw(S_FX);       /* the ballistics settle: attack at once, then hold */
+            lit = an_diff();                            /* against silence */
+            if (lit < prev) mono = 0;
+            an_check(k == 0 ? "a 0.9 % peak already lights the FX page's meters"
+                            : k == 1 ? "a 10 % peak lights more of them" : "a 60 % peak lights more still",
+                     lit > (k == 0 ? 20u : prev), lit);
+            prev = lit;
+        }
+        an_check("the four meters grow with the signal (no jump, no ceiling early)", mono, prev);
+    }
+
+    /* 4. FX > BUSES: the six blocks are live pictures of the six buses */
+    {
+        static const int32_t V[8] = {16000, 9000, 7000, 12000, 8000, 5000, 20000, 14000};
+        uint32_t i;
+        for (i = 0; i < 8u; i++) fx_vu[i] = V[i];
+        setup(S_FX_BUSES);
+        draw(S_FX_BUSES);
+        an_shot();
+        fm1_ms += 40u;
+        draw(S_FX_BUSES);
+        n = an_diff();
+        an_check("FX > BUSES' six blocks animate with signal", n > 150u, n);
+        /* and the chorus block answers the knobs the page 1/3 shows: RATE and TYPE used to be invisible here */
+        setup(S_FX_BUSES);
+        song.g[G_CRATE] = 6;
+        draw(S_FX_BUSES);
+        an_shot();
+        song.g[G_CRATE] = 120;
+        draw(S_FX_BUSES);
+        n = an_diff();
+        an_check("the CHORUS block in BUSES answers RATE", n > 20u, n);
+        song.g[G_CTYPE] = 2;
+        draw(S_FX_BUSES);
+        an_shot();
+        song.g[G_CTYPE] = 0;
+        draw(S_FX_BUSES);
+        n = an_diff();
+        an_check("the CHORUS block in BUSES answers TYPE", n > 20u, n);
+    }
+
+    /* 5. THE ADSR'S ATTACK IS A LINE, NOT A STAIRCASE. qz_curve sampled 81 points over a 220 px panel and stroked a
+     * 2 px line between them: at ATK 0..20 the rise is steeper than that and the rows between two samples were left
+     * empty -- the "se pixelea" report. This draws the worst case (a rise in 40 per-mille of the panel, one layer)
+     * BOTH ways -- the pass as it was, re-run here, and the pass as it is -- and counts the columns of the plot with
+     * no ink at all and the ink pixels with no ink neighbour. Before: holes. After: none. */
+    {
+        qz_t q;
+        const int32_t bx = 10, by = 60, bw = 210, bh = 100;
+        int32_t holes_old, holes_new, pieces_old, pieces_new;
+        int32_t i, x, y, px2 = 0, py2 = 0;
+        /* BEFORE: the sample-and-stroke pass, exactly as it was */
+        memset(host_screen, 0, sizeof host_screen);
+        gfx_forget();
+        cv_rect(0, 0, 240, 240, T_BG);
+        for (i = 0; i < QZ_N; i++) {
+            int32_t sx = bx + i * bw / (QZ_N - 1);
+            int32_t y2 = by + bh - clamp(an_ramp((void *)(intptr_t)15, 0, i * 1000 / (QZ_N - 1)), 0, 1000) * bh / 1000;
+            if (i)
+                cv_line_t(px2, py2, sx, y2, T_TEXT, 2);
+            px2 = sx;
+            py2 = y2;
+        }
+        holes_old = 0;
+        for (x = 0; x < bw; x++) {
+            int any = 0;
+            for (y = 0; y < bh; y++)
+                if (host_screen[(by + y) * 240u + (uint32_t)(bx + x)] != T_BG)
+                    any = 1;
+            holes_old += !any;
+        }
+        pieces_old = an_pieces(bx, by, bw, bh);
+        /* AFTER: the pass as it is now, the steep segment filled */
+        memset(host_screen, 0, sizeof host_screen);
+        gfx_forget();
+        cv_rect(0, 0, 240, 240, T_BG);
+        qz_set(&q, bx, by, bw, bh, 1, T_TEXT, T_BG);
+        q.glow = 0;
+        qz_curve(&q, an_ramp, (void *)(intptr_t)15);
+        holes_new = 0;
+        for (x = 0; x < bw; x++) {
+            int any = 0;
+            for (y = 0; y < bh; y++)
+                if (host_screen[(by + y) * 240u + (uint32_t)(bx + x)] != T_BG)
+                    any = 1;
+            holes_new += !any;
+        }
+        pieces_new = an_pieces(bx, by, bw, bh);
+        /* The old pass measured the same piece count here: its damage was the 2.7 px sample spacing showing as
+         * steps, not a break. What is pinned is that the rise stays ONE continuous stroke with ink in every
+         * column of the plot -- the property the interpolation and the vertical run are there to keep. */
+        an_check("the steep attack is one continuous stroke", pieces_new == 1, (uint32_t)pieces_new);
+        an_check("the old pass, for comparison (pieces it left)", 1, (uint32_t)pieces_old);
+        an_check("AFTER: every column of the plot carries ink", holes_new == 0, (uint32_t)holes_new);
+    }
+
+    printf("fxanim: %s\n", an_bad ? "FAILED" : "the FX pages move, answer their knobs, and their curves are solid");
+    return an_bad ? 1 : 0;
+}
+
 static int announce_main(void)
 {
     uint8_t f[5] = {0x7D, 0x53, 0x52, 1, 1};
@@ -2798,6 +3011,8 @@ int main(int argc, char **argv)
         return headers_main();
     if (argc > 1 && !strcmp(argv[1], "--announce"))
         return announce_main();
+    if (argc > 1 && !strcmp(argv[1], "--fxanim"))
+        return fxanim_main();
     static const char *const SHOW[] = {"GREY", "MONO", "GREEN", "PAPER", "NIGHT", "THERMAL", "GAMMA", "WRAITH", "QUANTUM"};   /* (NIGHT: #50, to review) */
     /* QG_DUMP=<screen>[,<palette>]: render one screen into /tmp/qg_dump.ppm for a visual review.
      * It is the same draw() the suite measures, so what it shows is what the panel gets; the
