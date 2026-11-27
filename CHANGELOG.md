@@ -1,4 +1,4 @@
-## Sin publicar — FASE 4: el bloque deja de dividir por pista
+## v2.16.4 — FASE 4: el bloque deja de dividir por pista
 
 El bloque pagaba una **división entera por pista y por bloque** para calcular `(t - trk) % NTRK`, y el índice
 ya era la ranura del array: `NTRK == NPART == 6` y todos los llamadores del camino de mezcla tienen la
