@@ -870,6 +870,8 @@ int main(int argc, char **argv)
         demo(argv[1], "spring_drums", 1, 0);
         demo(argv[1], "spring_pluck", 1, 1);
         demo(argv[1], "room_drums", 0, 0);
+        demo(argv[1], "cloud_drums", 4, 0);       /* (FASE 5e) CLOUD's own renders, for the before/after listen */
+        demo(argv[1], "cloud_pluck", 4, 1);
     }
     printf("%s\n", bad ? "REVERB TEST FAILED" : "reverb test passed");
     return bad != 0;

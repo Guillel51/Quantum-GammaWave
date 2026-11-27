@@ -115,6 +115,7 @@ static struct {
     uint16_t rs_w;                       /* .. their write index (each its own line, 1024) */
     uint32_t cl_w, cl_rng;               /* .. CLOUD: its line's write count (half rate), its random numbers */
     int32_t cl_next, cl_lp, cl_half, cl_gl, cl_gr;     /* .. the samples to the next grain, the output's low-pass, the odd sample */
+    int32_t cl_aa, cl_aa2, cl_gq;        /* .. CLOUD: the decimation's anti-alias stages and the grains' own tilt */
     int32_t cl_dc;                       /* .. (1.2.1-GW, JIANT 0.9.14) its loop's DC (Q8 samples) */
     uint16_t cl_fill;                    /* .. (1.2.1-GW, JIANT 0.9.16) sound written into its line since it was cleared
                                           * (full-rate samples, to 32768) */
@@ -1226,6 +1227,21 @@ static int32_t rev_size(void)
     int32_t g = song.g[G_RSIZE];
     return 25000 + g * 40 + g * g / 7;
 }
+/* (FASE 5e) CLOUD'S THREE FIXES, and what each one answers. The complaints were "metallic, strange, unnatural",
+ * and the probes point at three things the model did to itself:
+ *   CL_AA   the line is written at half rate through a 2-tap average, which is no anti-alias filter at all: content
+ *           from 11 to 22 kHz folded straight back into the wash, and the grains that read an octave up doubled it.
+ *           Two one-pole stages (~7 kHz, -11 dB at the fold) band-limit the line before it is decimated: 20 680 is
+ *           the same coefficient the rest of fx.c uses for 7 kHz at the instrument's rate.
+ *   CL_GQ   the grains went into the bloom network with their top end wide open, and ROOM's combs turned it into
+ *           narrow, ringing modes. One more one-pole (~5.5 kHz) sits under DAMP's own: the wash arrives round and
+ *           AIR (which adds back m - cl_lp, exactly what this stage takes off) opens it again when the knob asks.
+ *   CL_BLOOM_DRIFT  the combs behind the grains sat at a fixed length (MOD only moved them a fraction of a sample
+ *           with its square law), so the network rang on its own resonances: a metal plate, not a cloud. CLOUD's
+ *           bloom now always drifts (3 samples at its slowest), MOD deepens it: the modes never settle. */
+#define CL_AA 20680
+#define CL_GQ 17812
+#define CL_BLOOM_DRIFT 768
 /* (FASE 3/8 2026-11-27) THE SOFT KNEE THE int16 LINES WRITE THROUGH. Linear to -2.5 dBFS (bit for bit what the line
  * always wrote there), then tanh up to ~-0.6 dBFS: a hot send rounds off like tape, never a hard clamp.
  * CLOUD's line has written through it since 1.2.1-GW. Its network -- the four combs and the two allpasses the grains
@@ -1308,23 +1324,25 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
 {
     rev_room_core(rev_in, out, n, 0);
 }
+
 /* CLOUD's own network: the same loop, written through the knee (soft is a constant here, so the loop carries no
  * branch: the compiler keeps the two copies apart) */
 static __attribute__((noinline)) void rev_room_soft(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
     rev_room_core(rev_in, out, n, 1);
 }
-
 /* (JIANT) ROOM with its networks modulated (G_RMOD > 0): each comb read up to ~5.7 ms nearer (between samples, the
  * depth square law, the offset ramped sample by sample: no steps), by a slow sine of G_RRATE a quarter apart per
  * comb: the resonances drift and detune, the ringing smears into a chorused, wide tail. WIDE wd (0.3): combs 1, 3
  * against 2, 4 as a side (left +, right -) into mix_l / mix_r. Its own loop: with MOD and WIDE 0 the plain one runs
  * (MOD 0 here: offsets 0, the plain one's sound) */
-static inline void rev_room_mod_core(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd, int soft)
+static inline void rev_room_mod_core(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd, int soft, int32_t base)
 {
     uint32_t i, k;
     int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]], m1[4], dm[4];
-    int32_t depth = song.g[G_RMOD] ? 64 + song.g[G_RMOD] * song.g[G_RMOD] * 4 : 0;   /* Q8 samples: 0.25 .. 252 (~5.7 ms) */
+    /* (FASE 5e) `base` is the drift a model asks for even with MOD at zero: CLOUD's bloom passes some (CL_BLOOM_DRIFT),
+     * so the four combs behind its grains never sit still; ROOM passes 0 and is bit for bit what it was. Q8 samples. */
+    int32_t depth = base + (song.g[G_RMOD] ? 64 + song.g[G_RMOD] * song.g[G_RMOD] * 4 : 0);   /* Q8 samples */
     fx.rm_ph += LFO_INC[song.g[G_RRATE] & 127];
     for (k = 0; k < 4u; k++) {
         m1[k] = (int32_t)(((uint32_t)(osc_sine(fx.rm_ph + k * 0x40000000u) + 32768) * (uint32_t)depth) >> 16);
@@ -1377,12 +1395,12 @@ static inline void rev_room_mod_core(const int32_t *rev_in, int32_t *out, uint32
 }
 static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
 {
-    rev_room_mod_core(rev_in, out, n, wd, 0);
+    rev_room_mod_core(rev_in, out, n, wd, 0, 0);
 }
-/* CLOUD's modulated network, through the knee */
+/* CLOUD's modulated network, through the knee, with the drift its bloom always runs */
 static __attribute__((noinline)) void rev_room_mod_soft(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
 {
-    rev_room_mod_core(rev_in, out, n, wd, 1);
+    rev_room_mod_core(rev_in, out, n, wd, 1, CL_BLOOM_DRIFT);
 }
 
 /* (0.6.70) SPRING's chain shortened / lengthened (LOAD): the stages coming back start silent, not with what they held */
@@ -1615,6 +1633,10 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
             int32_t x = (rev_in[i] >> 1) + mulq15(shim_fb[i], fb) + mulq15(fx.cl_lp, fg);
             fx.cl_dc += ((x * 256) - fx.cl_dc) >> 9;      /* (1.2.1-GW, JIANT 0.9.14) a low cut (~14 Hz, Q8) in the loop: */
             x -= (fx.cl_dc + 128) >> 8;                  /* ROOM's floors gave it a DC that went round for ever */
+            /* (FASE 5e) the band limit the 2:1 decimation never had (CL_AA), two stages, before the sample is halved */
+            fx.cl_aa += mulq15(x - fx.cl_aa, CL_AA);
+            fx.cl_aa2 += mulq15(fx.cl_aa - fx.cl_aa2, CL_AA);
+            x = fx.cl_aa2;
             if (fx.cl_w & 1u)
                 cloud_buf[(fx.cl_w >> 1) & (CL_LEN - 1u)] = (int16_t)rv_knee((fx.cl_half + x) >> 1);
             else
@@ -1639,8 +1661,10 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
                 back = inc > 32768u ? (uint32_t)(((uint64_t)cl_g[k].len * (inc - 32768u)) >> 16) : 0u;   /* (faster than
                                                          * the line is written: started that much further back) */
                 cl_g[k].pos = ((fx.cl_w >> 1) - 200u - back - cl_rand() % (CL_LEN - 6000u - back)) << 16;
-                cl_g[k].inc = inc + (cl_rand() % 129u) - 64u;   /* (the line at half rate; each grain
-                                                         * a few cents off: a chorused shimmer, not one pitch) */
+                cl_g[k].inc = inc + (cl_rand() % 1281u) - 640u;  /* (FASE 5e: the line at half rate; each grain
+                                                         * up to ~17 cents off. It was +-64, ~2 cents: twelve
+                                                         * grains that close were one pitch, and one pitch a comb
+                                                         * reinforces is the ring the owner heard as metal) */
                 cl_g[k].age = 0;
                 cl_g[k].pl = (int16_t)(128 - pan);       /* (0 .. 256: 128 the centre) */
                 cl_g[k].pr = (int16_t)(128 + pan);
@@ -1655,9 +1679,15 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
                 {
                     uint32_t p = cl_g[k].pos >> 16, f = (cl_g[k].pos >> 8) & 255u, a = cl_g[k].age, L = cl_g[k].len;
                     int32_t x0 = cloud_buf[p & (CL_LEN - 1u)], x1 = cloud_buf[(p + 1u) & (CL_LEN - 1u)];
-                    int32_t x = x0 + (((x1 - x0) * (int32_t)f) >> 8), w = (int32_t)((a < L - a ? a : L - a) * 2u * 256u / L);
-                    x = (x * w) >> 8;
-                    ws += w;
+                    int32_t tri = (int32_t)((a < L - a ? a : L - a) * 512u / L);   /* 0 .. 256 */
+                    int32_t w = (tri * tri) >> 7;   /* (FASE 5e) the SQUARED triangle: a Hann-like window, 0 .. 512.
+                                                     * The straight triangle leaves a slope corner where every grain
+                                                     * opens and closes -- a click per grain, twelve voices of them:
+                                                     * the granular "buzz" under the wash. The square rounds both
+                                                     * ends to zero, and 9 (not 8) keeps the centre at unity. */
+                    int32_t x = (x0 + (((x1 - x0) * (int32_t)f) >> 8)) * w;
+                    x >>= 9;
+                    ws += w >> 1;                   /* (the old 0 .. 256 scale, so CL_WMAX means the same overlap) */
                     gl += (x * cl_g[k].pl) >> 7;
                     gr += (x * cl_g[k].pr) >> 7;
                     cl_g[k].pos += cl_g[k].inc << 1;
@@ -1679,7 +1709,8 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
             r = fx.cl_gr;
         }
         m = (l + r) >> 1;
-        fx.cl_lp = m + mulq15(fx.cl_lp - m, 32767 - dk);
+        fx.cl_gq += mulq15(m - fx.cl_gq, CL_GQ);          /* (FASE 5e) the grains' tilt: what the combs ring on */
+        fx.cl_lp = fx.cl_gq + mulq15(fx.cl_lp - fx.cl_gq, 32767 - dk);
         g[i] = fx.cl_lp;                                 /* (into the network; 1.2.1-GW: at half the level it was, x2
                                                          * at its output: 6 dB more room before ROOM's int16 lines) */
         if (air > 0)                                     /* (AIR up: the grains' highs lifted) */
@@ -1691,10 +1722,9 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
             fx_sr[i] -= sd;
         }
     }
-    if (song.g[G_RMOD] || wd)
-        rev_room_mod_soft(g, t, n, wd * 2);              /* (the knee: CLOUD's line is this network's memory) */
-    else
-        rev_room_soft(g, t, n);
+    /* (FASE 5e) ALWAYS the drifting network, MOD or not: see CL_BLOOM_DRIFT. The knee, because CLOUD's line is
+     * this network's memory. */
+    rev_room_mod_soft(g, t, n, wd * 2);
     for (i = 0; i < n; i++) {
         out[i] += t[i] * 3 + (g[i] >> 1);                /* the bloom (+3.5 dB, 0.5.1), the grains themselves under it */
         shim_fb[i] = t[i];                               /* (the tail into the line, next block) */
@@ -1729,6 +1759,7 @@ static void rev_state_clear(void)
         cl_g[i].len = 0;
     fx.cl_gl = fx.cl_gr = 0;
     fx.cl_dc = 0;
+    fx.cl_aa = fx.cl_aa2 = fx.cl_gq = 0;
     fx.cl_fill = 0;
 }
 /* the lines model ty reads, and only them -- the union's other member is another model's memory and this one
@@ -2797,6 +2828,7 @@ static __attribute__((noinline)) void fx_trip(uint32_t c1, uint32_t n)
     rev_clear();
     fx.dt1 = fx.dt2 = fx.rt1 = fx.rt2 = 0;
     fx.dly_lp = fx.dly_hp = fx.rf_lp = fx.rpre_s = fx.cl_lp = fx.cl_half = 0;
+    fx.cl_aa = fx.cl_aa2 = fx.cl_gq = 0;
     fx_bad = 0;
     fx_trips++;
     if (c1) {

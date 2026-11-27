@@ -37,6 +37,77 @@ static int32_t tk_amt(uint32_t c)
     const param_desc_t *d = page_desc(cur_page(), c, &vp);
     return d && d->min >= 0 ? tk(c) / 2 : tk(c) - 500;
 }
+/* (FASE 5e) EVERY MODEL'S OWN EMBLEM. The four cards above these panels carry the bus's icon (a small reverb or
+ * delay glyph, the same one on every model), so nothing on the page said WHICH reverb was playing: ROOM, SPRING,
+ * SHIMMER, RESO and CLOUD drew the same badge, and so did DIGITAL, ANALOG and PING-PONG. This is that badge. It is
+ * 26 px (the card's is 12), each model has its own geometry and its own motion, it is lit by the bus's real return
+ * (rev_act / the delay's generator) and it is drawn with the thermal palette (heat_col), a shaded body and a
+ * highlight, so it sits in the same 16-bit gradient language as the rest of the instrument.
+ *   kind 0 ROOM: a room in perspective, ripples leaving it   1 SPRING: a coil with the pulse running along it
+ *   kind 2 SHIMMER: chevrons lifting, sparks above            3 RESO: strings with running resolution dots
+ *   kind 4 CLOUD: soft blobs breathing around a core          10 DIGITAL: the crisp echo tunnel
+ *   kind 11 ANALOG: the rounded, warming tunnel                12 PING-PONG: two lanes, the echo bouncing between
+ * Pure vector, no allocation, no trigonometry beyond the sine table, a few dozen pixels a frame. */
+static __attribute__((noinline)) void fx_emblem(int32_t x, int32_t y, int32_t s, int32_t kind, int32_t lvl)
+{
+    int32_t i, k, c = s / 2, hot = clamp(lvl, 0, 255), ph = (int32_t)(ui.frame & 63u);
+    cv_rrect(x - 1, y - 1, s + 2, s + 2, 3, ux_mix(T_BG, T_LINE, 45), T_LINE);   /* its plate */
+    switch (kind) {
+    case 1:                                                      /* SPRING: the coil, the pulse on it */
+        for (k = 2; k < s - 3; k += 2) {
+            int32_t w = ((bg_sin((uint32_t)k * 6000u) * 4) >> 15);
+            cv_pset(x + k, y + 8 + w, ux_mix(T_BG, heat_col(clamp(120 + hot / 2, 60, 240)), 85));
+            cv_pset(x + k, y + s - 9 - w, ux_mix(T_BG, heat_col(clamp(110 + hot / 2, 60, 240)), 85));
+        }
+        for (k = 4; k < s - 4; k += 5)
+            cv_rect(x + k, y + 9, 1, s - 18, T_MID);
+        i = 3 + (ph * (s - 9)) / 64;
+        cv_rrect(x + i - 1, y + 6, 3, s - 12, 1, heat_col(clamp(200 + hot / 2, 140, 250)), T_BG);
+        break;
+    case 2:                                                      /* SHIMMER: the lifts, sparks above */
+        for (i = 0; i < 3; i++) {
+            int32_t yy = y + s - 7 - i * 6, ww = 6 + i * 2 + hot / 40;
+            cv_line_t(x + c - ww, yy, x + c, yy - 4, heat_col(clamp(120 + i * 34 + hot / 3, 40, 245)), 2);
+            cv_line_t(x + c, yy - 4, x + c + ww, yy, heat_col(clamp(90 + i * 34 + hot / 3, 30, 240)), 2);
+        }
+        for (k = 0; k < 4; k++)
+            cv_pset(x + 5 + (int32_t)(((uint32_t)k * 79u + (uint32_t)ph * 2u) % (uint32_t)(s - 10)),
+                    y + 3 + (int32_t)(((uint32_t)k * 37u + (uint32_t)ph * 3u) % 7u), heat_col(230));
+        break;
+    case 3:                                                      /* RESO: strings, resolution running */
+        for (i = 0; i < 3; i++) {
+            int32_t xx = x + 6 + i * 7, dy = 4 + (int32_t)(((uint32_t)ph + (uint32_t)i * 21u) % (uint32_t)(s - 10));
+            cv_rect(xx, y + 4, 1, s - 8, ux_mix(T_BG, T_MID, 70));
+            for (k = 0; k < 3; k++)
+                cv_rect(xx + 1, y + 5 + k * 3, 3 + i, 1, heat_col(clamp(140 - k * 30 + hot / 3, 40, 240)));
+            cv_rrect(xx - 1, y + dy, 4, 3, 1, heat_col(clamp(190 + hot / 2, 120, 250)), T_BG);
+        }
+        break;
+    case 4:                                                      /* CLOUD: blobs breathing round a core */
+        for (i = 0; i < 3; i++)
+            for (k = 0; k < 8; k++) {
+                uint32_t h = (uint32_t)(i * 8 + k) * 2654435761u, ang = ((h >> 12) + (uint32_t)ph * 700u) & 0xFFFFu;
+                int32_t rr = 5 + i * 3 + hot / 60 + (int32_t)((h >> 20) % 2u);
+                int32_t px = x + c + ((bg_sin(ang) * rr) >> 15), py = y + c + ((bg_sin(ang + 16384u) * rr) >> 15);
+                if (px > x && px < x + s - 1 && py > y && py < y + s - 1)
+                    cv_rect(px, py, i ? 1 : 2, i ? 1 : 2,
+                            ux_mix(T_BG, heat_col(clamp(140 + i * 30 + hot / 2, 60, 245)), 80 + i * 10));
+            }
+        cv_rrect(x + c - 2, y + c - 2, 5, 5, 2, heat_col(clamp(190 + hot / 2, 120, 250)), T_BG);
+        break;
+    case 0:                                                      /* ROOM: the room, and its ripples */
+        cv_frame(x + 2, y + 5, s - 12, s - 14, ux_mix(T_BG, T_MID, 70));
+        cv_frame(x + 3, y + 9, s - 12, s - 14, ux_mix(T_BG, T_THEME, 80));
+        cv_line_t(x + 3, y + 9, x + 2, y + 5, T_MID, 1);
+        cv_line_t(x + s - 9, y + 9, x + s - 10, y + 5, T_MID, 1);
+        cv_line_t(x + 3, y + s - 5, x + 2, y + s - 9, T_MID, 1);
+        cv_line_t(x + s - 9, y + s - 5, x + s - 10, y + s - 9, T_MID, 1);
+        i = 3 + (ph & 31) / 4 + hot / 60;
+        cv_frame(x + c - i, y + c - i, i * 2, i * 2, ux_mix(T_BG, bg_col(200), 70));
+        cv_rrect(x + c - 2, y + c - 2, 4, 4, 2, heat_col(clamp(160 + hot / 2, 100, 250)), T_BG);
+        break;
+    }
+}
 static void tk_axes(int32_t x0, int32_t y0, int32_t x1, int32_t y1)   /* a plot's frame: corner ticks, the axes */
 {
     cv_rect(x0, y1, x1 - x0, 1, T_RAISE);
@@ -217,6 +288,9 @@ static void tech_rev(void)
     int32_t i, ty = song.g[G_RTYPE], mod = song.g[G_RMOD];
     rev_tick();
     tk_axes(x0, TK_Y0, x0 + w, base);
+    /* (FASE 5e) the model's own badge, 26 px in the panel's bottom-right corner (the tail is shortest there), lit by
+     * what the bus returns: the page says WHICH reverb it is showing, not only that it is a reverb. */
+    fx_emblem(TK_X1 - 31, TK_Y1 - 30, 26, ty, rev_act);
     if (ty == 3) {                                      /* RESO: the room's four strings resolved into combs, each
                                                          * ringing as long as SIZE lets it and as bright as DAMP leaves
                                                          * it, with the energy travelling along it */

@@ -27,7 +27,11 @@ MEMORY
      * on grows the XIP code by 3 288 B and the call window from the RAM code fell to 5 856 B of the 8 192
      * required. The window keeps the RAM code (3 940 B) and the cold `.ramdata` tail (16 656 B) in 20 992 B, and
      * the guard band still starts at 0x01C76800. */
-    RAMTEXT (rwx): ORIGIN = 0x01C71C00, LENGTH = 0x4C00   /* (FASE 5c 2026-11-27) up 512 B, length down the same 512
+    /* (FASE 5e 2026-11-27) up 2 KiB, length down the same 2 KiB (0x4C00 -> 0x4400) so the guard band at
+     * 0x01C76800 does not move: the XIP code grew with the FX page's own layout, M-WIDE's field, FX-MASTER's cards
+     * and the models' emblems, and the call window from the RAM code fell to 7 036 B of the 8 192 required. The
+     * window keeps the RAM code (3 940 B) and the cold .ramdata tail (9 168 B) in 17 408 B, 4 492 B to spare. */
+    RAMTEXT (rwx): ORIGIN = 0x01C72400, LENGTH = 0x4400   /* (FASE 5c 2026-11-27) up 512 B, length down the same 512
                                                            * so the guard band at 0x01C76800 does not move: the LZ4
                                                            * decoder grew the XIP code by 176 B and the call window
                                                            * from the RAM code fell to 8 056 B of the 8 192 required

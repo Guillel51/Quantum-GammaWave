@@ -1614,7 +1614,13 @@ static __attribute__((noinline)) void graph_fx(const track_t *t, uint16_t c)
          * glyphs of AF_S and their line runs to cx + 39, right over the meter's column (cx + 35), so the bar
          * used to cut through the last two letters. The name is one row higher (ink 8 .. 16, its line ends on
          * 17) and the meter opens on 22: six rows of air, and the bar is still 16 x 43 (22 .. 64). */
-        int32_t mx = cx + 35, my = 22, mh = 43;
+        /* (FASE 5e) THE FADER'S INDICATOR AND THE PERCENTAGE NO LONGER SHARE A COLUMN. The bar that shows how much
+         * of the effect is applied sat at mx - 5, five pixels left of the meter (cx + 35), and the value's line
+         * started at cx + 3: "100 %" is 27 px at AF_S, so its % ran from cx + 28 to cx + 34 -- straight through the
+         * fader's slot at cx + 30/31 -- and its ink also reached the rows the meter and the slot open on (22). The
+         * meter is 13 px wide at cx + 39 now, the slot sits at cx + 35 with a 4 px gap after the longest value, and
+         * the value's own line moved up to 17: three separate zones, whatever the digits. */
+        int32_t mx = cx + 39, my = 22, mh = 43;
         /* (v1.8.4) THE METER'S FULL SCALE IS THE SIGNAL'S, 32767. These bars were clamped to 7000, a scale
          * from when the track's envelope was a 0..7000 peak; fx.c has measured |x| of the part's own sample
          * (Q15, 0..32767) since v1.9, so ANY note -- 17 638 was the probe's plain one, 252 % of 7000 -- put
@@ -1637,10 +1643,9 @@ static __attribute__((noinline)) void graph_fx(const track_t *t, uint16_t c)
          * that range) and 0..100 % on screen: the conversion happens here, once, for the label. */
         fmt_int(num, (val * 100 + 63) / 127);
         str_cpy(num + str_len(num), "%", sizeof num - str_len(num));
-        /* (3.2) right-aligned to the meter's left edge, not drawn from a fixed x: "100 %" is one
-         * glyph wider than "99 %" and the old fixed x put its % over the meter's column (the
-         * owner's overflow). 2 px of air, whatever the value, on every palette and style. */
-        cv_text_on(cx + 3, 18, &AF_S, num, val ? T_TEXT : T_DIM, ux_ground_at(13, 73, 10, 45));
+        /* (FASE 5e) the value's line ends at cx + 33 with three digits ("100 %" is 27 px from cx + 3), so the
+         * fader's slot at cx + 35 keeps its gap, and its ink clears the meter's top row. */
+        cv_text_on(cx + 3, 17, &AF_S, num, val ? T_TEXT : T_DIM, ux_ground_at(12, 73, 10, 45));
         /* (1.3) the type / SEND label moved down with the card: it was at y 40 on a 62 px card and is at 71 on an
          * 80 px one, so the meter gets the rows between the value and it instead of the label splitting them. */
         cv_text_on(cx + 3, 66, &AF_S, i == 0 ? DIST_TYPES[(uint32_t)t->p[P_DTYPE] % 6u] : "SEND",
@@ -1662,22 +1667,22 @@ static __attribute__((noinline)) void graph_fx(const track_t *t, uint16_t c)
          * follows the real level with an immediate attack and a ~4-frame release, hold[i] keeps its
          * highest point for 30 frames and then falls a pixel a frame, and one thin tick marks what the
          * bus actually receives. Every figure is the DSP's own. */
-        cv_rect(mx, my, 16, mh, T_BG);                /* the track: 16 of the card's 54 px, 3 px from its edge */
+        cv_rect(mx, my, 13, mh, T_BG);                /* the track: 13 of the card's 54 px, 2 px from its edge */
         {   /* (3.7) HOME's own meter: the segmented plasma bar, with the same attack/decay ballistics */
             /* (FASE FX 2026-11-27) THE CURVE, NOT THE RAW AMPLITUDE. It was fx_meter_target(), linear in
              * the peak, so a quiet part sat in the bottom few pixels: see fx_meter_curve (core.h). */
             int32_t target = fx_meter_curve(lvl);
             uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
-            gw_plasma_bar(mx + 2, my, 12, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
+            gw_plasma_bar(mx + 2, my, 9, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
         }
         /* (FASE 4) and the fader's own setting beside the meter, in the 5 px the value's line leaves free
          * between cx + 29 (where "100 %" ends) and mx - 1: the two bars now answer both questions at a
          * glance -- what is asked for (thin, left) and what is coming back (plasma, right). */
-        fx_fader_bar(mx - 5, my, mh, (val * 100 + 63) / 127);
+        fx_fader_bar(mx - 4, my, mh, (val * 100 + 63) / 127);   /* (5e) its own column, 4 px left of the meter */
         if (i && inpx > 0)                            /* what the bus receives, over the return */
-            cv_rect(mx + 6, my + mh - inpx, 4, 1, T_MID);
+            cv_rect(mx + 5, my + mh - inpx, 3, 1, T_MID);
         if (lvl >= 32700)                             /* full scale: the head of the meter clips */
-            cv_rect(mx + 2, my, 12, 2, T_ACCENT);
+            cv_rect(mx + 2, my, 9, 2, T_ACCENT);
     }
 
     /* (1.3.1) THE THREE MASTER MODULES ARE INSTRUMENTS: each one now shows the thing it measures and moves
@@ -4670,107 +4675,154 @@ static __attribute__((noinline)) void graph_master(void)
      * their caption on the graphs' caption line at y 66. The meter is 46 px below PUNCH's state word, so
      * the old collision with the "OFF" above it cannot happen; every value it draws is still
      * audio_out_peak(), the same ring the DAC writes. */
-#define VU_X0 108
-#define VU_W 108
-#define VU_Y0 80
-#define VU_H 6
+#define VU_X0 30
+#define VU_W 190
+#define VU_Y0 70
+#define VU_H 8
     cv_oy = 0;                                       /* this panel is laid out on its own 0..100 scale */
-    if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
-        int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), off = 8 + wd * 52 / 127, i;
-        cv_rect(20, 50, 200, 1, T_LINE);
-        for (i = 0; i < 4; i++) {
-            cv_rect(100 - off - i * 4, 30, 2, 40, T_THEME);
-            cv_rect(100 + off + i * 4, 30, 2, 40, T_ACCENT);
+    if (str_eq(cur_page()->title, "STEREO M/S")) {
+        /* (FASE 5e) M-WIDE, DRAWN AS THE FIELD IT IS. The page showed two columns of four bars either side of a line:
+         * the owner's "pobre, incompleta". A stereo field is one picture -- M up, S across -- so the panel is a
+         * goniometer: the axes, the grid of side / mid ratios, the WEDGE the M-WIDE setting opens from the field's
+         * origin at the bottom, and the sound itself as a point on a line from that origin. Every value comes from the
+         * DAC's own peaks (audio_out_peak), never from a shape drawn for the screen; the width readout is the same
+         * number the wedge is drawing. */
+        int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), i, cx = 80, y0 = 12, y1 = 84;
+        int32_t ml = clamp(audio_out_peak(0), 0, 32767), mr = clamp(audio_out_peak(1), 0, 32767);
+        int32_t mid = (ml + mr) / 2, sid = (ml - mr) / 2, half = 6 + wd * 44 / 127;
+        char b[8];
+        cv_rect(10, y0 - 4, 144, y1 - y0 + 8, T_BG);
+        ux_ground_rows(11, y0 - 3, 142, y1 - y0 + 6, 22, 62, 10, 45, 5, 78, 100);
+        cv_rect(cx, y0, 1, y1 - y0, T_LINE);                       /* M: the mid, up and down */
+        cv_rect(14, (y0 + y1) / 2, 136, 1, T_LINE);                /* S: the side, left and right */
+        for (i = 1; i <= 3; i++) {                                 /* the 45 degree ratios, ticking */
+            int32_t d = i * 18;
+            cv_pset(cx + d, (y0 + y1) / 2 - d / 2, T_RAISE); cv_pset(cx - d, (y0 + y1) / 2 - d / 2, T_RAISE);
+            cv_pset(cx + d, (y0 + y1) / 2 + d / 2, T_RAISE); cv_pset(cx - d, (y0 + y1) / 2 + d / 2, T_RAISE);
         }
+        for (i = 0; i <= y1 - y0; i++) {                           /* the wedge M-WIDE opens: a field, not a shape */
+            int32_t ww = half * (y1 - y0 - i) / (y1 - y0);
+            if (ww < 1)
+                continue;
+            cv_rect(cx - ww, y0 + i, ww * 2 + 1, 1, ux_mix(T_BG, T_THEME, 10 + i * 8 / (y1 - y0)));
+            cv_rect(cx - ww, y0 + i, 1, 1, ux_mix(T_BG, T_ACCENT, 60 + i * 40 / (y1 - y0)));
+            cv_rect(cx + ww, y0 + i, 1, 1, ux_mix(T_BG, T_ACCENT, 60 + i * 40 / (y1 - y0)));
+        }
+        cv_text_on(12, y0 + 2, &AF_S, "M", T_MID, ux_ground_at(6, y1 - y0, 10, 45));
+        cv_text_on(146, (y0 + y1) / 2 - 12, &AF_S, "S", T_MID, ux_ground_at(30, y1 - y0, 10, 45));
+        if (mid | sid) {                                           /* the sound now: side across, mid up */
+            int32_t px = cx + clamp(sid * 66 / 16384, -66, 66), py = y1 - clamp(mid * (y1 - y0 - 6) / 16384, 0, y1 - y0 - 6);
+            cv_line_t(cx, y1, px, py, ux_mix(T_THEME, T_ACCENT, 60), 1);
+            cv_rrect(px - 3, py - 3, 7, 7, 3, heat_col(clamp(120 + (mid < 0 ? -mid : mid) / 200, 60, 240)), T_BG);
+        }
+        for (i = 0; i < 2; i++) {                                  /* the two channels, as measured */
+            int32_t lv = (i ? mr : ml) * 60 / 32767, bx = 164 + i * 16;
+            cv_rect(bx, 24, 10, 60, T_BG);
+            if (lv > 0)
+                cv_rect(bx, 84 - lv, 10, lv, heat_col(clamp(80 + lv * 150 / 60, 60, 240)));
+            cv_text_on(bx, 86, &AF_S, i ? "R" : "L", T_MID, T_SURF);
+        }
+        fmt_int(b, (wd * 100 + 63) / 127);
+        str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+        cv_text_on(198, 24, &AF_M, b, T_TEXT, T_SURF);
+        cv_text_on(198, 42, &AF_S, wd == 0 ? "MONO" : wd < 96 ? "MID" : "WIDE", wd == 0 ? T_DIM : T_ACCENT, T_SURF);
         return;
     }
     int32_t i, py = 0, en = bg_energy(), clip = clamp(song.g[G_CLIP], 0, 127);
     int32_t g = 1024 + clip * 31, punch = clamp(song.g[G_PUNCH], 0, 127);
     int32_t duck = clamp(song.g[G_DUCK], 0, 127), drel = clamp(song.g[G_DREL], 0, 127);
-    int32_t x0 = 14, y0 = 14, sw = 88, sh = 50, cy = y0 + sh / 2;
-    /* CLIP: the actual transfer curve (the same softclip the DSP uses), the live level on it. */
-    cv_rect(x0, y0 + sh, sw, 1, T_LINE);
-    cv_rect(x0, y0, 1, sh, T_RAISE);
-    for (i = 0; i <= sw; i += 8)
-        cv_rect(x0 + i, y0, 1, 3, T_LINE);
-    for (i = 0; i <= sw; i++) {
-        int32_t x = (i - sw / 2) * 32767 / (sw / 2);
-        int32_t y = cy - softclip(x * g >> 10) * (sh / 2) / 32767;
-        if (i)
-            cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y < cy ? y : 2 * cy - y, y0, cy, T_THEME), 2);
-        py = y;
-    }
-    for (i = 0; i <= sw; i += 6)                      /* unity, dotted */
-        cv_rect(x0 + i, y0 + sh - i * sh / sw, 1, 1, T_DIM);
-    if (en > 2) {
-        int32_t dx = x0 + sw / 2 + en * (sw / 2) / 256;
-        int32_t dy = cy - softclip(en * 128 * g >> 10) * (sh / 2) / 32767;
-        cv_rrect(dx - 3, dy - 3, 7, 7, 3, T_TEXT, T_SURF);
-    }
-    cv_text_on(x0, y0 + sh + 3, &AF_S, "CLIP", T_DIM, T_SURF);
-    cv_text_on(x0 + 42, y0 + sh + 3, &AF_S, en > 2 ? "LIVE" : "OUT", en > 2 ? T_ACCENT : T_DIM, T_SURF);
-
-    /* PUNCH: the transient shaper's real envelope (punch_gain), not decoration. */
-    cv_text_on(116, 5, &AF_S, "PUNCH", T_DIM, T_SURF);
-    cv_rect(116, 43, 56, 1, T_LINE);
-    py = 42;
-    for (i = 0; i <= 56; i++) {
-        int32_t y = 42 - (punch_gain((uint32_t)i * 255u / 56u, punch) >> 15) * 22 / 32767;
-        if (i)
-            cv_line_t(115 + i, py, 116 + i, y, heat_y(y, 20, 42, T_THEME), 2);
-        py = y;
-    }
-    cv_text_on(116, 46, &AF_S, punch > 0 ? "HIT" : "OFF", punch > 0 ? T_ACCENT : T_DIM, T_SURF);
-
-    /* DUCK: the sidechain gain the other tracks get right now (duck_g1), and REL below it. */
-    cv_rrect(180, 16, 12, 38, 2, T_BG, T_RAISE);
+    /* (FASE 5e) FX-MASTER IS A CONSOLE, NOT THREE LOOSE CURVES. The page drew its graphs straight on the panel with
+     * their captions floating: CLIP's curve with no frame, "PUNCH" as a word at the top, DUCK and REL as two pale
+     * columns with one "ON", and the owner read it as "pobre, incompleta, distinta al resto". It is built like FX's
+     * own page now: three cards with their gradient and caption, and the stereo VU across the band underneath. Every
+     * figure is still the DSP's -- softclip's curve, punch_gain's envelope, duck_g1's gain, audio_out_peak's DAC. */
     {
-        int32_t gh = clamp((int32_t)duck_g1, 0, 32767) * 36 / 32767;
-        if (gh > 0)
-            cv_rrect(181, 53 - gh, 10, gh, 2, duck ? heat_col(60 + gh * 180 / 36) : T_DIM, T_BG);
+        static const int32_t MC_X[3] = {3, 99, 159};
+        static const int32_t MC_W[3] = {92, 56, 78};
+        static const char *const MC_N[3] = {"CLIP", "PUNCH", "DUCK"};
+        uint32_t m;
+        for (m = 0; m < 3u; m++) {
+            cv_rrect(MC_X[m], 3, MC_W[m], 60, 5, T_SURF, T_BG);
+            cv_text_on(MC_X[m] + 3, 6, &AF_S, MC_N[m], T_DIM, T_SURF);
+        }
+        /* CLIP: the transfer curve the DSP runs, the live level on it, the amount on the card's own line */
+        {
+            int32_t x0 = MC_X[0] + 4, y0 = 19, sw = MC_W[0] - 8, sh = 32, cy = y0 + sh / 2;
+            cv_rect(x0, y0 + sh, sw, 1, T_LINE);
+            for (i = 0; i <= sw; i++) {
+                int32_t x = (i - sw / 2) * 32767 / (sw / 2);
+                int32_t y = cy - softclip(x * g >> 10) * (sh / 2) / 32767;
+                if (i)
+                    cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y < cy ? y : 2 * cy - y, y0, cy, T_THEME), 2);
+                py = y;
+            }
+            for (i = 0; i <= sw; i += 6)                          /* unity, dotted */
+                cv_rect(x0 + i, y0 + sh - i * sh / sw, 1, 1, T_DIM);
+            if (en > 2) {
+                int32_t dx = clamp(x0 + sw / 2 + en * (sw / 2) / 256, x0, x0 + sw - 7);
+                int32_t dy = clamp(cy - softclip(en * 128 * g >> 10) * (sh / 2) / 32767, y0, y0 + sh - 7);
+                cv_rrect(dx - 2, dy - 2, 7, 7, 3, T_TEXT, T_SURF);
+            }
+            cv_text_on(x0, 50, &AF_S, en > 2 ? "LIVE" : "IDLE", en > 2 ? T_ACCENT : T_DIM, T_SURF);
+        }
+        /* PUNCH: the transient shaper's real envelope (punch_gain), its state under it */
+        {
+            int32_t x0 = MC_X[1] + 4, w = MC_W[1] - 8, base = 48;
+            cv_rect(x0, base, w, 1, T_LINE);
+            py = base - 1;
+            for (i = 0; i <= w; i++) {
+                int32_t y = base - (punch_gain((uint32_t)i * 255u / (uint32_t)w, punch) >> 15) * 20 / 32767;
+                if (i)
+                    cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y, 18, base, T_THEME), 2);
+                py = y;
+            }
+            cv_text_on(x0, 50, &AF_S, punch > 0 ? "HIT" : "OFF", punch > 0 ? T_ACCENT : T_DIM, T_SURF);
+        }
+        /* DUCK: the sidechain gain the other tracks have now (duck_g1) against unity, and REL beside it */
+        {
+            int32_t x0 = MC_X[2] + 5, top = 20, h = 30, gh;
+            cv_rrect(x0, top, 12, h, 2, T_BG, T_RAISE);
+            gh = clamp((int32_t)duck_g1, 0, 32767) * (h - 2) / 32767;
+            if (gh > 0)
+                cv_rrect(x0 + 1, top + h - 1 - gh, 10, gh, 2, heat_col(clamp(60 + gh * 180 / (h - 2), 40, 240)), T_BG);
+            cv_rect(x0 - 1, top + h / 2, 14, 1, T_ACCENT);             /* unity gain */
+            cv_rrect(x0 + 24, top, 8, h, 2, T_BG, T_RAISE);
+            cv_rrect(x0 + 25, top + 1, 6, clamp(drel, 0, 127) * (h - 2) / 127, 2, T_THEME, T_BG);
+            cv_text_on(x0 + 21, 50, &AF_S, "REL", T_DIM, T_SURF);
+            cv_text_on(x0, 50, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
+        }
     }
-    cv_rect(180, 34, 12, 1, T_ACCENT);                /* unity gain reference */
-    cv_text_on(180, 57, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
-    cv_rrect(198, 16, 10, 38, 2, T_BG, T_RAISE);
-    cv_rrect(199, 16, 8, clamp(drel, 0, 127) * 38 / 127, 2, T_THEME, T_BG);
-    /* OUT: the master's stereo VU. (2.2) It was two 7 x 38 px slivers at the far right -- the smallest
-     * meter on the panel, and the one figure the page could not read at a glance. The band under the three
-     * graphs was empty, so the meter lives there now: one long row per DAC channel (108 px of travel, the
-     * scale's quarters marked), a peak cap that holds and falls, and the page's own OUT caption, which reads
-     * CLIP while the lamp is latched. Every value is audio_out_peak(): the peak of the very ring the DAC
-     * just wrote (audio.c), so a part panned right moves its own row and nothing here is derived from the
-     * left channel, from a fader or from a shape drawn for the screen. */
+    /* OUT: the master's stereo VU, under the cards. Every value is audio_out_peak(): the peak of the very ring the
+     * DAC just wrote (audio.c), so a part panned right moves its own row and nothing here is derived from the left. */
     {
-        static uint8_t vpx[2], vhold[2];             /* lit px and the held peak, per channel */
-        static uint8_t clip_hold;                    /* frames the CLIP lamp has left */
+        static uint8_t vpx[2], vhold[2];                  /* lit px and the held peak, per channel */
+        static uint8_t clip_hold;                         /* frames the CLIP lamp has left */
         int32_t ch, k, live = 0;
         for (ch = 0; ch < 2; ch++) {
             int32_t pk = audio_out_peak((uint32_t)ch);
             int32_t px = meter_px(pk) * VU_W / (TS_MH - 2);
-            int32_t y = VU_Y0 + ch * (VU_H + 1);
+            int32_t y = VU_Y0 + ch * (VU_H + 2);
             cv_rect(VU_X0, y, VU_W, VU_H, T_BG);
-            if (px > (int32_t)vpx[ch]) vpx[ch] = (uint8_t)px;       /* instant rise */
-            else if (vpx[ch] > 0u) vpx[ch]--;                       /* a px a frame back down */
-            if (px > (int32_t)vhold[ch]) vhold[ch] = (uint8_t)px;   /* the cap rises with the bar, */
-            else if (vhold[ch] > 2u) vhold[ch]--;                   /* then holds and falls a px a frame */
-            if (pk >= 32700) clip_hold = 90;                        /* full scale: the caption latches */
+            cv_text_on(VU_X0 + VU_W + 2, y + 1, &AF_S, ch ? "R" : "L", T_MID, T_BG);
+            if (px > (int32_t)vpx[ch]) vpx[ch] = (uint8_t)px;        /* instant rise */
+            else if (vpx[ch] > 0u) vpx[ch]--;                        /* a px a frame back down */
+            if (px > (int32_t)vhold[ch]) vhold[ch] = (uint8_t)px;    /* the cap rises with the bar, */
+            else if (vhold[ch] > 2u) vhold[ch]--;                    /* then holds and falls a px a frame */
+            if (pk >= 32700) clip_hold = 90;                         /* full scale: the caption latches */
             if (vpx[ch]) {
                 cv_rect(VU_X0, y, vpx[ch], VU_H, heat_col(70 + (int32_t)vpx[ch] * 150 / VU_W));
                 live = 1;
             }
-            for (k = 3; k > 0; k--)                                 /* the scale's quarters, over the bar */
+            for (k = 3; k > 0; k--)                                  /* the scale's quarters, over the bar */
                 cv_rect(VU_X0 + k * VU_W / 4, y, 1, VU_H, T_BG);
             if (vhold[ch] > 2)
                 cv_rect(VU_X0 + vhold[ch] - 2, y, 2, VU_H, T_TEXT);  /* the held peak */
         }
         if (clip_hold)
             clip_hold--;
-        /* (3.1) one caption, not two LIVEs: CLIP's own state already reads LIVE at the left.
-         * The meter says OUT, and lights while it moves. */
-        cv_text_on(VU_X0, 66, &AF_S, clip_hold ? "CLIP" : "OUT",
-                   clip_hold || live ? T_ACCENT : T_DIM, T_SURF);
+        cv_text_on(3, VU_Y0 + 2, &AF_S, clip_hold ? "CLIP" : "OUT", clip_hold || live ? T_ACCENT : T_DIM, T_SURF);
     }
-
+#undef MC_H
     /* (3.1) The LVL / LIM / CPU / PK band is gone by request: MASTER shows what it controls (CLIP,
      * PUNCH, DUCK, REL) and the output meters, not the CPU or the limiter's internal envelope. The
      * space it held is the VU's now, so the page has no empty hole and nothing moved off the panel. */

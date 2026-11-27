@@ -739,7 +739,7 @@ static void eng(uint32_t e) { set_engine_of(TSEL, e); }
 enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESETS, S_PRESETS_NOFAV, S_USER, S_PHRASES, S_PROJECT, S_TOOLS,
        S_SONG_EMPTY, S_SONG, S_STEP, S_PATTERN, S_CHANCE, S_COMP, S_COMP_TRIG, S_COMP_ECHO, S_MUTATE, S_MORPH, S_DXIMG, S_DXSEND, S_PFLASH, S_PFLASH_HOME, S_FUGUE, S_MOTION, S_DRUM, S_DRUM_HAND, S_DRUM_CYM, S_MIXER, S_MIXER_PAN,
        S_MORPH_PWM, S_MORPH_SYNC, S_MORPH_RING, S_MORPH_SAW3,   /* (this phase) ANALOG's four special waves */
-       S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM, S_MONITOR,
+       S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_FX_FULL, S_FX_ONE, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM, S_MONITOR,
        S_EDIT_ANALOG, S_EDIT_DIGITAL, S_OP_ENV, S_EDIT_WHEEL, S_EDIT_SAMPLE, S_EDIT_GRAIN, S_EDIT_LOFI, S_EDIT_LOFI_FREE, S_EDIT_PHASE,
        S_EDIT_CHAR, S_EDIT_VOICE_CHAR, S_LFO_SHAPE,          /* (FASE 2) */
        S_ALG1, S_ALG2, S_ALG3, S_ALG4, S_ALG5, S_ALG6, S_ALG7, S_ALG8, S_OP_LEVEL,
@@ -753,7 +753,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_NAME_USER, S_NAME_TYPING, S_NAME_123, S_NAME_EMPTY, S_NAME_FULL, S_NAME_PLAYING, S_PROJECT_NAMED, S_SONG_NAMED,
        S_USER_FOOT,
        S_ROLL_EMPTY, S_ROLL_ACID, S_ROLL_CHORDS, S_ROLL_TIES, S_ROLL_LEN32, S_ROLL_HIGH, S_ROLL_LOW, S_ROLL_WIDE, S_ROLL_PLAYING,
-       S_ROLL_LOCKS, S_ROLL_LOCK_HELD, S_DRUM_LOCKS, S_DRUM_LOCK_HELD, S_MOTION_LOCKS, S_AUTO_LIST, S_AUTO_LIST_ADD, S_AUTO_LIST_DRUM, S_REC_LAYER, S_REC_LAYER_SET, S_REC_LAYER_SONG, S_MACRO_LAYER, S_MACROS, S_MSEQ, S_DIST_PAGE, S_DLY2, S_REVERB2, S_CHORUS, S_MASTER, S_MASTER_EQ, S_RETRIG, S_RETRIG_FREE, S_LFO_DEST,
+       S_ROLL_LOCKS, S_ROLL_LOCK_HELD, S_DRUM_LOCKS, S_DRUM_LOCK_HELD, S_MOTION_LOCKS, S_AUTO_LIST, S_AUTO_LIST_ADD, S_AUTO_LIST_DRUM, S_REC_LAYER, S_REC_LAYER_SET, S_REC_LAYER_SONG, S_MACRO_LAYER, S_MACROS, S_MSEQ, S_DIST_PAGE, S_DLY2, S_REVERB2, S_CHORUS, S_MASTER, S_MASTER_EQ, S_MSWIDE, S_RETRIG, S_RETRIG_FREE, S_LFO_DEST,
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
@@ -769,7 +769,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_pan",
     "morph_pwm", "morph_sync", "morph_ring", "morph_saw3",             /* (this phase) */
-    "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
+    "env", "env_dest", "lfo", "mod", "fx", "fx_100", "fx_1", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
     "voice", "global", "system", "monitor", "edit_analog", FELUCCA_FM4 ? "edit_digital" : "edit_fm6", "op_env", "edit_wheel", "edit_voice",
     "edit_noise", "edit_lofi", "edit_lofi_free", "edit_phase", "edit_char", "edit_voice_char", "lfo_shape", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "drumx", "drumx_hit", "dx_sound", "dx_sound2", "confirm_seq", "confirm_project", "confirm_user", "confirm_pattern",
     "confirm_motion", "confirm_erase", "menu", "menu_speaker", "about", "about_rec", "about_credits", "about_end", "uboot", "calibration", "splash",
@@ -781,7 +781,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "name_user", "name_typing", "name_123", "name_empty", "name_full", "name_playing", "project_named", "song_named",
     "user_foot",
     "roll_empty", "roll_acid", "roll_chords", "roll_ties", "roll_len32_p2", "roll_high", "roll_low", "roll_wide", "roll_playing",
-    "roll_locks", "roll_lock_held", "drum_locks", "drum_lock_held", "motion_locks", "auto_list", "auto_list_add", "auto_list_drum", "layer_rec", "layer_rec_set", "layer_rec_song", "layer_macro", "macros", "mseq", "dist", "dly2", "reverb2", "chorus", "master", "master_eq", "retrig_note", "retrig_free", "lfo_dest",
+    "roll_locks", "roll_lock_held", "drum_locks", "drum_lock_held", "motion_locks", "auto_list", "auto_list_add", "auto_list_drum", "layer_rec", "layer_rec_set", "layer_rec_song", "layer_macro", "macros", "mseq", "dist", "dly2", "reverb2", "chorus", "master", "master_eq", "msside", "retrig_note", "retrig_free", "lfo_dest",
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
@@ -1064,6 +1064,7 @@ static void setup(int s)
     case S_REVERB2: song.g[G_RMOD] = 80; song.g[G_RWIDE] = 100; go_title("REVERB 2"); break;
     case S_CHORUS: song.g[G_CDEPTH] = 90; go_title("CHORUS"); break;
     case S_MASTER: song.g[G_CLIP] = 60; song.g[G_PUNCH] = 50; song.g[G_DUCK] = 40; go_title("MASTER"); break;
+    case S_MSWIDE: song.g[G_MWIDTH] = 96; go_title("STEREO M/S"); break;   /* (FASE 5e) M-WIDE's field */
     case S_MASTER_EQ:                                  /* +24 dB low shelf at 20 Hz: the extreme that used to fold */
         song.g[G_EQMODE] = 3; song.g[G_EQFREQ] = 0; song.g[G_EQGAIN] = 24; song.g[G_EQQ] = 64;
         go_title("MASTER EQ"); break;
@@ -1138,6 +1139,21 @@ static void setup(int s)
     case S_MOD: TSEL->p[P_M1SRC] = 1; TSEL->p[P_M1DST] = 2; TSEL->p[P_M1AMT] = 40; TSEL->p[P_M2SRC] = 6;
         TSEL->p[P_M2DST] = 14; TSEL->p[P_M2AMT] = -64; mod_ui_slot = 1; go_title("MOD"); break;
     case S_FX: go_title("FX"); break;
+    /* (FASE 5e) the FX page's four cards at BOTH ENDS of the value's width: 127 % (three digits) on every bus, and a
+     * one-digit set (2 / 0 / 9 / 1). They were the case where "100 %" ran into the fader's slot; every palette renders
+     * both, so the fix is checked at one, two and three digits, active and idle, not on one picture. */
+    case S_FX_FULL:
+        go_title("FX");
+        trk[0].p[P_DIST] = trk[0].p[P_CHOR] = trk[0].p[P_DLY] = trk[0].p[P_REV] = 127;
+        trk[0].p[P_DTYPE] = 5; trk[0].vu = 30000; fx_vu[0] = fx_vu[1] = fx_vu[2] = 32700;
+        fx_vu[3] = fx_vu[4] = fx_vu[5] = 32000;
+        break;
+    case S_FX_ONE:
+        go_title("FX");
+        trk[0].p[P_DIST] = 3; trk[0].p[P_CHOR] = 0; trk[0].p[P_DLY] = 11; trk[0].p[P_REV] = 1;
+        trk[0].p[P_DTYPE] = 0; trk[0].vu = 0;
+        fx_vu[0] = fx_vu[1] = fx_vu[2] = 0; fx_vu[3] = fx_vu[4] = fx_vu[5] = 0;
+        break;
     case S_SLICER: song.g[G_SLMODE] = 1; go_title("SLICER"); break;   /* (0.6.3: the bus) */
     case S_SLBUS: song.g[G_SLMODE] = 2; song.g[G_SLT1 + 2] = 0; song.g[G_SLFX] = 0; go_title("SL BUS 2"); break;
     case S_SLPITCH: {
