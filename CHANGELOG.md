@@ -1,3 +1,16 @@
+## v2.20.1 — El build sin almacenamiento vuelve a existir, y el paso del emulador dice por qué falla
+
+**`FELUCCA_FLASH=0` no compila ni el banco de voces ni los nombres de preset,** así que la pasada LZ4 de FASE 5c no
+encontraba su tabla y terminaba el build: `build without storage` de `target.yml` estaba en rojo desde entonces. La
+pasada deja la tabla ausente fuera del blob (longitudes 0), `lz4_tab.c` se salta una tabla vacía, `fm6_vbank.c`
+pregunta por un banco que existe, y `lz4_tables.h` lleva el `#pragma once` que le faltaba cuando dos ficheros leen
+`LZ4_FM6_LEN`. Medido en el enlace AC791N de esa configuración: imagen **550 868 B**, `.data+.bss` **84 916 de
+98 304**, `tests/memory_map_test.py` en verde.
+
+**El paso del emulador en `target.yml`** construye el WASM antes de `./build.sh`, y `web/emu/build.sh` terminaba por
+`set -e` cuando todavía no hay `build/manifest.json`; ahora lo comprueba con un `if`, y si el paso falla, sus últimas
+veinte líneas salen como anotaciones de error, legibles sin el log privado.
+
 ## v2.20.0 — FASE 5e: el Cloud deja de sonar a metal, la página FX deja de pisar su propio número, y M-WIDE pasa a ser un campo
 
 **El Cloud debía su metal al aliasing y a un peine periódico.** Sus granos se decimaban 2:1 sin anti-alias y sus tres
