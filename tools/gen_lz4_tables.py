@@ -58,7 +58,15 @@ def main(argv):
     blobs, sizes, meta = [], {}, []
     for sym, tag in TABLES:
         if sym not in secs:
-            raise SystemExit(f"gen_lz4_tables: {sym} is not in {obj}")
+            # (FASE 5e) A CONFIGURATION THAT DOES NOT COMPILE THE TABLE HAS NOTHING TO PACK: FELUCCA_FLASH=0 takes
+            # the built-in banks and the preset names out of the image (and out of this object), and the pass used
+            # to stop there, which failed `build without storage` in target.yml. The lengths go out as 0 and
+            # lz4_tab.c skips an empty table, so the same header serves both configurations.
+            sizes[tag + "_LEN"] = 0
+            sizes[tag + "_CLEN"] = 0
+            meta.append((sym, 0, 0))
+            print(f"gen_lz4_tables: {sym} is not in this object: this configuration does not compile it, nothing to pack")
+            continue
         if f".rela.rodata.{sym}" in rels:
             raise SystemExit(f"gen_lz4_tables: {sym} carries a relocation: it has a pointer in it and a "
                              f"compressed copy could not be rebuilt by memcpy")
@@ -77,6 +85,7 @@ def main(argv):
     for sym, size, clen in meta:
         lines.append(f" *   {sym:12s} {size:5d} B -> {clen:5d} B of XIP")
     lines.append(" */")
+    lines.append("#pragma once          /* (FASE 5e) fm6_vbank.c and lz4_tab.c both read LZ4_FM6_LEN */")
     lines.append(f"#define LZ4_BLOB_LEN {total}")
     for k in sorted(sizes):
         lines.append(f"#define {k} {sizes[k]}")

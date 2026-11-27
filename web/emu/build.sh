@@ -44,6 +44,8 @@ EMU_COMMIT=$(git rev-parse --short=12 HEAD 2>/dev/null || printf '%s' "${GITHUB_
 EMU_PREVIEW="${EMU_PREVIEW:-0}" EMU_COMMIT_OVERRIDE="$EMU_COMMIT" python3 tools/package_emu.py
 # (v1.9.0) one manifest for the tree: refresh it now that the WASM and its own manifest exist, so the
 # firmware, the package and the emulator cannot describe different commits. Needs a ./build.sh first.
-[ -f build/manifest.json ] && python3 tools/build_manifest.py
+if [ -f build/manifest.json ]; then                  # (FASE 5e) target.yml builds the emulator before ./build.sh
+    python3 tools/build_manifest.py
+fi
 cp web/emu/worklet.js build/emu/
 cp web/emu/fonts/DotGothic16-subset.woff web/emu/fonts/OFL.txt build/emu/fonts/

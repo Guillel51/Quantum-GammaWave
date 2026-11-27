@@ -55,13 +55,20 @@ static void fm6_bank_changed(void)
  * pianos, bells, mallets, pads on B1..), so the presets made on them (eng_fm6.c) and B1.. always have a voice. A bank
  * sent replaces it; INIT SYSTEM leaves the sent one (its sector is its own) */
 #ifndef QG_PRESET_SOURCE
+#include "lz4_tables.h"                             /* (FASE 5e) LZ4_FM6_LEN: 0 when the image has no bank */
 extern uint8_t FM6_ROMBANK_B[];
+#if LZ4_FM6_LEN                                     /* (FASE 5e) FELUCCA_FLASH=0 compiles no bank at all */
 _Static_assert(LZ4_FM6_LEN == FM6_ROMBANK_N * FM6_PACKED, "the packed bank is the whole table");
+#endif
 #endif
 static int fvb_rom_read(uint32_t k, uint8_t *pk)
 {
+#ifndef QG_PRESET_SOURCE
+    if (k >= FM6_ROMBANK_N || 0 == LZ4_FM6_LEN)
+#else
     if (k >= FM6_ROMBANK_N)
-        return 1;
+#endif
+        return 1;                                  /* (FASE 5e) no built-in bank in this image: send one, or none */
 #ifdef QG_PRESET_SOURCE                              /* the packing pass reads the table itself */
     memcpy(pk, FM6_ROMBANK[k], FM6_PACKED);
 #else

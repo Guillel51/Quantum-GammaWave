@@ -18,8 +18,8 @@
 
 #include "lz4_tables.h"
 
-char PRESET_NAMES_BUF[LZ4_PN_LEN];
-uint8_t FM6_ROMBANK_B[LZ4_FM6_LEN];
+char PRESET_NAMES_BUF[LZ4_PN_LEN ? LZ4_PN_LEN : 1];   /* (FASE 5e) 0: FELUCCA_FLASH=0 has no table to rebuild */
+uint8_t FM6_ROMBANK_B[LZ4_FM6_LEN ? LZ4_FM6_LEN : 1];
 
 static uint8_t lz4_tab_done;
 
@@ -57,8 +57,10 @@ void lz4_tables_init(void)
     if (lz4_tab_done)
         return;
     lz4_tab_done = 1;
-    lz4_expand((uint8_t *)PRESET_NAMES_BUF, LZ4_TAB_BLOB, LZ4_PN_CLEN);
-    lz4_expand(FM6_ROMBANK_B, LZ4_TAB_BLOB + LZ4_PN_CLEN, LZ4_FM6_CLEN);
+    if (LZ4_PN_CLEN)
+        lz4_expand((uint8_t *)PRESET_NAMES_BUF, LZ4_TAB_BLOB, LZ4_PN_CLEN);
+    if (LZ4_FM6_CLEN)
+        lz4_expand(FM6_ROMBANK_B, LZ4_TAB_BLOB + LZ4_PN_CLEN, LZ4_FM6_CLEN);
 }
 
 #endif

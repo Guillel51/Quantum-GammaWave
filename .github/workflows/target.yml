@@ -89,7 +89,13 @@ jobs:
       - name: the emulator this record names, at this commit
         run: |
           python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
-          sh web/emu/build.sh
+          if ! sh web/emu/build.sh > /tmp/emu-build.log 2>&1; then
+              tail -20 /tmp/emu-build.log | while IFS= read -r l; do
+                  echo "::error::emu build: $l"
+              done
+              exit 1
+          fi
+          tail -5 /tmp/emu-build.log
 
       - name: build (app, loader, package; the budget checks run inside)
         run: ./build.sh
