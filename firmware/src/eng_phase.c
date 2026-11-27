@@ -138,6 +138,7 @@ static void phase_note_on(track_t *t, voice_t *v)
     v->s[0] = 0;                 /* WAVE / WAVE2 toggle, line 1 */
     v->s[1] = 0;                 /* line 2 */
     v->s[2] = v->s[3] = 0;       /* (FB) line 1's last two samples */
+    v->s[6] = v->s[7] = 0;       /* (FASE 5) the DC blocker's samples */
 }
 
 /* (FASE 2) HARM: a symmetric fold, so odd harmonics only. Its own function: the normal phase path
@@ -170,6 +171,7 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
                                                               * knob jumped the phase: a click, louder the higher it was) */
     int32_t dfb = ((p[P_E7] << 8) - fb) / (int32_t)(n ? n : 1u);
     int32_t nst = v->s[5];                               /* noise32() takes a signed state: same bits */
+    int32_t dcx = v->s[6], dcy = v->s[7];                /* (FASE 5) the DC blocker's two samples */
     int32_t mixk = line2 && line != 2;                       /* (1.0.2) the mix, decided once: no composite test a sample */
     pd_t b1, b2, bm;
     int32_t mf = 0, dmf = 0;                                 /* (0.6.45) MORPH: line 1 towards the next WAVEs; (0.6.50)
@@ -227,6 +229,16 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
             int32_t z = (int32_t)(noise32(&nst) >> 17) - 16384;
             s = clamp(s + mulq15(z, nza * 192), -32767, 32767);
         }
+        {   /* (FASE 5) DC blocker (~5 Hz), as WAVETABLE and ADDITIVE end their voices. PHASE went without one:
+             * a pulse's duty cycle, line 2 mixed in and the ring product all put a lopsided offset on the
+             * waveform, never symmetric in a half cycle. Measured with tests/preset_audit_test: SYNC CATHEDRAL
+             * sat 3.7 % off centre (both halves negative), PD 808 2.1 %, ETHNIC PLUCK 2.2 %. A DC offset is not
+             * a sound: it eats headroom on the bus, uncentres the limiter and thumps when the voice is released. */
+            int32_t y = s - dcx + dc_pole(dcy);      /* rounded: a floored multiply biases by 1 LSB/(1-R) */
+            dcx = s;
+            dcy = y;
+            s = y;
+        }
         out[i] += voice_amp(s, m, i) * 2;
     }
     v->ph[0] = ph0;
@@ -238,6 +250,8 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
     v->s[3] = f2;
     v->s[4] = p[P_E7] << 8;
     v->s[5] = (int32_t)nst;
+    v->s[6] = dcx;
+    v->s[7] = dcy;
 }
 
 /* (FASE 2) CHARACTER NOISE has its own path: the normal phase loop then has no branch, no noise

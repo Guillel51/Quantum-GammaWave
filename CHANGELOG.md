@@ -1,3 +1,25 @@
+## v2.17.0 — FASE 5: la auditoría de los diez motores, medida, y el DC de PHASE
+
+Un knob que está en la tabla y no en el DSP se ve igual que uno que funciona, así que la auditoría no se hizo
+leyendo: `tests/param_sweep_test.c` carga el primer preset de cada motor, sostiene una nota y fuerza cada
+parámetro a su mínimo y su máximo, comparando el audio. **80 knobs de motor y 118 parámetros de pista: 0
+muertos.** El primer barrido por texto había marcado dos de FM6 y era falso (los lee como `e[1]`); el test
+queda en `run_tests.sh` para que un knob que deje de sonar falle.
+
+La biblioteca queda cerrada en **298 entradas = 296 navegables + los 2 kits legacy de DRUM** (HEARTH KIT y
+CYBER DRUM, en los índices 10/11 para que un proyecto viejo cargue su sonido). El test de biblioteca valida de
+verdad, probado mutando el dato: con 297 esperados imprime FAIL y sale con 1.
+
+Y el defecto que la medición encontró: cinco presets con el centro desplazado más del 2 %, el peor PHASE SYNC
+CATHEDRAL a 3,7 % con las dos mitades negativas. ADDITIVE, WAVETABLE, NOISE y FM6 bloquean el DC; **PHASE no
+tenía bloqueo ninguno**. Ahora lo tiene (~5 Hz, redondeado, como WAVETABLE), y la biblioteca queda con **0
+presets por encima del 2 %**. Es un cambio de sonido deliberado en los 34 presets de PHASE: 34 dorados
+regenerados con `GOLDEN_UPDATE=1`, luego 316/0.
+
+Coste en el destino: `phase_render` 94 → 99, `phase_render_noise` 113 → 119 (banda +10 %), imagen +96 B.
+Detalle y lo que queda pendiente (knobs nuevos, los 127 pares de presets con coseno ≥ 0,995) en
+`docs/FASE5_AUDITORIA_2026-11-27.md`.
+
 ## v2.16.4 — FASE 4: el bloque deja de dividir por pista
 
 El bloque pagaba una **división entera por pista y por bloque** para calcular `(t - trk) % NTRK`, y el índice
