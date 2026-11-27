@@ -28,6 +28,13 @@ intento y se compactó hasta entrar; además `RAMTEXT` sube 2 KiB (`0x01C71C00/0
 guarda en `0x01C76800` intacta) porque la ventana de llamada del código en RAM había caído a **7 036 B de los 8 192
 obligatorios**. `.data+.bss` no se movió: **90 628 B de 98 304** (7 676 libres).
 
+**Un kit ya no ofrece el SYNC del oscilador.** La página SYNC (FASE 5b) vive en los slots de LEVELS y su regla de
+visibilidad dejaba que un track DRUM la mostrara: un kit no tiene oscilador 2 que sincronizar. `page_vis` la limita a
+ANALOG, y el ciclo de EDIT de DRUM vuelve a ser KIT 3, X-MOD, TILT, FILTER, SOUND 1..4, LEVELS, LEVELS 2, STEREO,
+VOICE, VOICE 2. El test del ciclo, que arrastraba la lista de ANALOG de antes de SYNC/SUB y comparaba desde una página
+recordada, ahora comprueba el orden como un anillo (EDIT recuerda su última página a propósito) y falla en el commit
+en que una página se mueva: los tres ciclos (ANALOG, FM6, DRUM) pasan.
+
 **Pruebas corridas:** `./build.sh` (todas las comprobaciones de memoria), `regress` **316 renders dorados, 0
 cambiados** (ROOM bit a bit; sin rebase de `tests/golden.txt`), `mem_budget`, `target_budget` **+0 %** en todos los
 bucles, `resources_test` 13/0, `ui_render` **0 hallazgos de lint / 210 pantallas × 22 paletas / 4 249 780 medidas de

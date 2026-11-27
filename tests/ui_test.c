@@ -4073,20 +4073,30 @@ static int test_name(void)
 /* the EDIT cycle (no ENGINE page: engines are the EDIT layer's) and its memory */
 static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped from HOME, then n - 1 times more */
 {
-    char got[512];
+    char got[512], walked[32][16];
     size_t g = 0;
-    uint32_t i;
-    int ok = 1;
+    uint32_t i, k, m = n - 1u;                          /* want[n - 1] is want[0] again: m pages in the cycle */
+    int ok = 0;
     frames(320);
     go_home(); frame();
     for (i = 0; i < n; i++) {
         press(B_EDIT);
         frames(320);                                  /* (taps further apart than a double tap: #83 locks) */
-        if (!str_eq(cur_page()->title, want[i]))
-            ok = 0;
+        str_cpy(walked[i], cur_page()->title, sizeof walked[i]);
         /* the pages it really walked, so a failure names the page instead of only the expectation */
         if (g < sizeof got - 32u)
             g += (size_t)snprintf(got + g, sizeof got - g, "%s%s", i ? " " : "", cur_page()->title);
+    }
+    /* (FASE 5e) EDIT remembers its last page (ui.fam_last), so the family opens wherever it was left: what this
+     * checks is the ORDER the pages cycle in and that the ring closes, not the page it happens to start on. The
+     * walk is the documented cycle rotated to the page it opened at, and every step of it has to match. */
+    for (k = 0; k < m; k++)
+        if (str_eq(want[k], walked[0]))
+            break;
+    if (k < m) {
+        for (i = 0, ok = 1; i < n; i++)
+            if (!str_eq(want[(k + i) % m], walked[i]))
+                ok = 0;
     }
     if (!ok)
         printf("ui:   walked: %s\n", got);
@@ -4094,8 +4104,8 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 }
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "CHARACTER", "MORPH", "FILTER", "TILT", "VOICE", "VOICE 2",
-                                        "EDIT 1"};   /* (JIANT 0.5: ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2;
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "CHARACTER", "MORPH", "FILTER", "TILT", "LEVELS", "SYNC",
+                                        "VOICE", "VOICE 2", "EDIT 1"};   /* (JIANT 0.5: ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2;
                                                       * FASE 2: CHARACTER; v1.12.4: TILT, which now carries DETUNE: the
                                                       * page DETUNE had on its own (VOICE 3) is gone in this phase) */
     static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "CHARACTER", "OPERATOR", "OP ENV", "OPERATOR 2", "TILT",
@@ -4116,7 +4126,7 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 CHARACTER MORPH FILTER TILT VOICE VOICE 2 VOICE 3 EDIT 1",
+    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 CHARACTER MORPH FILTER TILT LEVELS SYNC VOICE EDIT 1",
                  engine_cycle(CYC_A, NELEM(CYC_A)));
 #if FELUCCA_FM4
     set_engine_of(TSEL, 1);
@@ -4124,7 +4134,7 @@ static int test_edit_cycle(void)
                  engine_cycle(CYC_D, NELEM(CYC_D)));
 #else
     set_engine_of(TSEL, ENGI_DIGITAL);
-    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 CHARACTER OPERATOR OP ENV OPERATOR 2 TILT FILTER VOICE VOICE 2 VOICE 3 EDIT 1",
+    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 CHARACTER OPERATOR OP ENV OPERATOR 2 TILT FILTER VOICE VOICE 2 EDIT 1",
                  TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     (void)CYC_D;
 #endif
