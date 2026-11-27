@@ -170,7 +170,9 @@ skip() { n_skip=$((n_skip + 1)); skips="$(printf '%s\n  - %s' "$skips" "$1")"; e
 # (1.3.7) A check that fails says which one, right there: a suite of hundreds of commands whose only trace
 # of a failure is a `fail=1` needs the whole log to find it, and in CI that log needs a credential to read.
 # The line is plain text on purpose (no GitHub syntax in a test script): anyone greps for FAIL.
-run() { n="$1"; echo "== $n"; shift; "$@" || { fail=1; echo "FAIL: $n"; }; }
+# (FASE 5e) A FAILURE NAMES ITSELF where the CI can see it: the log of a GitHub job is not readable without admin
+# rights on the repository, and ":error:" is what the run's annotations carry, so a red job says which test failed.
+run() { n="$1"; echo "== $n"; shift; "$@" || { fail=1; echo "FAIL: $n"; echo "::error::FAIL: $n"; }; }
 
 # A merge that left its markers behind compiles anyway when FELUCCA_VERSION comes in with -D, which is how the
 # host tests build; the AC791N build does not define it, so `firmware/src/felucca.c` with a `<<<<<<< HEAD` inside
