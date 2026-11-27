@@ -258,7 +258,7 @@ static uint16_t comb_w[NTRK];
 static int16_t comb_p16[NTRK];
 static __attribute__((noinline)) void track_comb(track_t *t, int32_t *out, uint32_t n, int32_t cut, int32_t res)
 {
-    uint32_t ti = (uint32_t)(t - trk) % NTRK, i, per, age = 0, w = comb_w[ti];
+    uint32_t ti = trk_index(t), i, per, age = 0, w = comb_w[ti];
     int32_t p16 = comb_p16[ti], fb = 16000 + res * 130, g = 32768 - fb;
     int16_t *b = comb_buf[ti];
     for (i = 0; i < NVOICE; i++)                        /* the newest note sounding */
@@ -339,7 +339,7 @@ static __attribute__((noinline)) void tf_run(track_t *t, int32_t *out, uint32_t 
                                              int32_t dw, uint32_t own, int32_t ccut, int32_t cres)
 {
     const int16_t *p = t->p;
-    uint32_t ti = (uint32_t)(t - trk) % NTRK, i;
+    uint32_t ti = trk_index(t), i;
     int32_t cut = p[P_FCUT] << 8, envq = 0, ic1 = tf_ic1[ti], ic2 = tf_ic2[ti], k;
     tsvf_t c;
     if (ft == FT_COMB) {
@@ -414,7 +414,7 @@ static int32_t tf_tmp[CTL];
 static __attribute__((noinline)) void track_filter(track_t *t, int32_t *out, uint32_t n, uint32_t own, int32_t ccut,
                                                    int32_t cres)
 {
-    uint32_t ti = (uint32_t)(t - trk) % NTRK, r = (uint32_t)t->p[P_FTYPE] % 8u, ft, fo, i;   /* (FASE 3) 8 types */
+    uint32_t ti = trk_index(t), r = (uint32_t)t->p[P_FTYPE] % 8u, ft, fo, i;   /* (FASE 3) 8 types */
     uint32_t act = (tf_on[ti] && !own) || tf_cmb[ti];
     int32_t w0, dw;
     if (own && r != FT_COMB)
@@ -1174,7 +1174,7 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
         asleep_hit = 1;                                 /* (0.6.28) a note for a track asleep: the UI says so */
         return;
     }
-    if (t->p[P_MUTE] || ((trk_hush >> ((uint32_t)(t - trk) % NTRK)) & 1u) ||
+    if (t->p[P_MUTE] || ((trk_hush >> (trk_index(t))) & 1u) ||
         (t->engine == ENGI_DRUM && drum_muted(note)))   /* (DRUM: its group mutes) */
         return;
     if (pfx_note(t, note, vel))                         /* the punch-in effects (pfx.c): a repeat holds the track */
@@ -1358,7 +1358,7 @@ static void engine_block(track_t *t)
         /* (FASE 1 2026-11-25) the old engine's voices are all ended above (active = gate = 0), so its per-track
          * state -- FM6's notes or the DRUM kit's lanes -- is dead: clear the arena before the new engine writes
          * over it. Without this, a stale DRUM lane owner would point into whatever the next engine left there. */
-        memset(eng_arena[(uint32_t)(t - trk) % NTRK].b, 0, ENG_ARENA_BYTES);
+        memset(eng_arena[trk_index(t)].b, 0, ENG_ARENA_BYTES);
         t->xf_on = 0;
         t->nmono = 0;
         t->mono_note = 0;
@@ -1599,10 +1599,10 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
     }
     if (nr && e == &ENG_DRUM)                           /* (0.6.16) DRUM-X: DRV and the knee on the kit's sum */
         drum_bus(t, out, n);
-    if (nr && (t->p[P_FTYPE] || t->p[P_FCUT] < 127 || t->p[P_FRES] || tf_on[(uint32_t)(t - trk) % NTRK] ||
+    if (nr && (t->p[P_FTYPE] || t->p[P_FCUT] < 127 || t->p[P_FRES] || tf_on[trk_index(t)] ||
                ((e == &ENG_WHEEL || e == &ENG_DRUM) && (t->p[P_LD_FLT] || t->p[P_ED_FLT])) ||   /* (0.6.81: their
                                                          * only filter, for the LFO / ENV -> FILTER) */
-               tf_xb[(uint32_t)(t - trk) % NTRK] || tf_cmb[(uint32_t)(t - trk) % NTRK]))
+               tf_xb[trk_index(t)] || tf_cmb[trk_index(t)]))
         /* (JIANT 0.5) the FILTER (track_post); 0.6.8: and a block more to leave the chain (track_filter's fade) */
         track_post(t, e, out, n);
     if (snap)

@@ -311,7 +311,7 @@ static __attribute__((noinline)) void drum_side_begin(const track_t *t, uint32_t
 {
     int32_t img = clamp(t->p[P_DXIMG], 0, 127), k = img ? dx_img_k(t) : 0;
     uint32_t l, i, on = 0;
-    int8_t *pc = dx_pcur[(uint32_t)(t - trk) % NTRK];
+    int8_t *pc = dx_pcur[trk_index(t)];
     for (l = 0; l < DV_NLANE; l++) {
         int32_t p = img ? dx_img_pan(l, img) * k >> 8 : 0, p0 = pc[l];
         p = p0 + clamp(p - p0, -DX_PSLEW, DX_PSLEW);

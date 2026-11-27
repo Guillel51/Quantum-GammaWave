@@ -966,6 +966,12 @@ typedef struct {
 } song_t;
 
 static track_t trk[NTRK];        /* the instrument: four parts */
+/* (FASE 4) A track's index in trk[]. Every caller holds the address of an element of trk[] -- mix_part runs from
+ * &trk[i < NPART], track_render from mix_part, the engines from track_render, seq_tick from &trk[i < NTRK] -- and
+ * NTRK == NPART, so the index is already the array slot. The mix path used to compute `% NTRK` of it: an integer
+ * divide per part, per block, five times over in mix_part and track_dist, plus one in seq_tick, to map a value that
+ * was already in range onto itself. seq.c had this same function; it lives here now so the mix can reach it. */
+static uint32_t trk_index(const track_t *t) { return (uint32_t)(t - trk); }
 static song_t song;
 /* (v1.5.23, FASE 2) THE REST OF EACH CHORD ARRAY, BESIDE THE TRACKS. track_t keeps its size and its layout (see the
  * measurement at XP_N); the slots past the ones it carries live here, and the note-on path reaches them through the

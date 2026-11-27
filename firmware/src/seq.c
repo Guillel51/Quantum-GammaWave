@@ -51,8 +51,6 @@ static volatile uint8_t midi_map_req;    /* (1.9.2) MIDI Learn asked the setting
                                           * 2 keep it as the profile, 3 load the profile back (project.c midi_settings) */
 static volatile uint8_t midi_map_msg, midi_map_cc;   /* .. and what the footer says (ui_input.c) */
 
-static uint32_t trk_index(const track_t *t) { return (uint32_t)(t - trk); }
-
 static uint32_t trk_midi_ch(uint32_t i) { return i % NTRK; }   /* MIDI channel 0..15 of track i (keys -> MIDI out) */
 
 static int drum_track(const track_t *t) { return ENGINES[eng_idx(t->eng_req)] == &ENG_DRUM; }
@@ -1242,7 +1240,7 @@ static uint8_t fl_cnt[NTRK][NSTEP], fl_pass[NTRK];
 static void fl_reset(uint32_t ti) { memset(fl_cnt[ti % NTRK], 0, NSTEP); }
 static int fl_ok(const track_t *t, uint32_t c, uint32_t a)   /* it turns the track now (and counts it) */
 {
-    uint32_t ti = (uint32_t)(t - trk) % NTRK, k = t->seq_idx % NSTEP, m = CP_TIMES(c, a);
+    uint32_t ti = trk_index(t), k = t->seq_idx % NSTEP, m = CP_TIMES(c, a);
     if (m == 3u) {                                  /* 1:2: once, every other pass */
         if (fl_pass[ti] & 1u)
             return 0;

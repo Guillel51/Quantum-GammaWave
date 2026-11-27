@@ -96,7 +96,7 @@ static void fg_play(track_t *t, fg_head_t *h, const fg_set_t *f, uint32_t i, uin
 /* once a block a track (seq_tick, after the sequencer): each head on */
 static __attribute__((noinline)) void fugue_tick(track_t *t, uint32_t n, uint32_t period, uint32_t len)
 {
-    uint32_t ti = (uint32_t)(t - trk) % NTRK, k;
+    uint32_t ti = trk_index(t), k;
     for (k = 0; k < FG_HEADS; k++) {
         const fg_set_t *f = &fg_set[ti][k];
         fg_head_t *h = &fg_head[ti][k];

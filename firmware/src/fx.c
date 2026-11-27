@@ -221,7 +221,7 @@ static int32_t dist_w[NTRK];                            /* the blend the last bl
 static void track_dist(track_t *t, int32_t *b, uint32_t n)
 {
     int32_t d = t->p[P_DIST], i, g, k, mk, w0, w1, dw, full;
-    uint32_t type = (uint32_t)t->p[P_DTYPE], ti = (uint32_t)(t - trk) % NTRK;
+    uint32_t type = (uint32_t)t->p[P_DTYPE], ti = trk_index(t);
     w0 = dist_w[ti];
     w1 = d >= 8 ? 4096 : d * 512;
     if (w1 != w0)                                       /* (half the way a block, then there) */
@@ -2324,9 +2324,9 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
                     voice_kill(&V(t, k));
                 on = 1;
             }
-        pf.mg[(uint32_t)(t - trk) % NTRK] = 32768;
+        pf.mg[trk_index(t)] = 32768;
         if (!on) {
-            mp_seen[(uint32_t)(t - trk) % NTRK] = 0;
+            mp_seen[trk_index(t)] = 0;
             t->peak = 0;
             return;
         }
@@ -2335,14 +2335,14 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
     if (track_render(t, b, n))
         t->tail = 16;                                   /* blocks of DIST state to run out after the last voice */
     else if (!t->tail || !t->p[P_DIST] || !--t->tail) {
-        mp_seen[(uint32_t)(t - trk) % NTRK] = 0;       /* (silent: the next sound at its LEVEL and PAN) */
+        mp_seen[trk_index(t)] = 0;       /* (silent: the next sound at its LEVEL and PAN) */
         t->peak = 0;
         if (MOD.on)
             mod_end(t);
         return;
     }
     {
-        uint32_t ti = (uint32_t)(t - trk) % NTRK;
+        uint32_t ti = trk_index(t);
         int32_t lvl = LEVEL_Q12[t->p[P_LEVEL] & 127] << 8, pan = t->p[P_PAN] * 256, l0, p0, lq, dl, gl, gr, dgl, dgr;
         if (t->p[P_APDEP] > 0)                          /* (0.6.9) AUTO PAN */
             pan = clamp(pan + autopan(t, ti, n), -(64 << 8), 63 << 8);
@@ -2593,7 +2593,7 @@ static uint32_t mc_cost(const track_t *t)
 static uint32_t mc_tk[NTRK], mc_fx_tk;                  /* (and the buses': fx_run) */
 static inline __attribute__((always_inline)) void mix_part_t(track_t *t, uint32_t n)   /* mix_part, timed */
 {
-    uint32_t t0 = MC_TICKS(), i = (uint32_t)(t - trk) % NTRK, d;
+    uint32_t t0 = MC_TICKS(), i = trk_index(t), d;
     mix_part(t, n);
     d = MC_TICKS() - t0;
     mc_tk[i] = d > mc_tk[i] ? mc_tk[i] + ((d - mc_tk[i]) >> 1) : mc_tk[i] - ((mc_tk[i] - d) >> 3);   /* (up fast) */

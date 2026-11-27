@@ -1,3 +1,16 @@
+## Sin publicar — FASE 4: el bloque deja de dividir por pista
+
+El bloque pagaba una **división entera por pista y por bloque** para calcular `(t - trk) % NTRK`, y el índice
+ya era la ranura del array: `NTRK == NPART == 6` y todos los llamadores del camino de mezcla tienen la
+dirección de un elemento de `trk[]`. `trk_index()` (que ya existía en `seq.c` con esa misma cuenta) pasó a
+`core.h` y los 16 sitios del camino caliente la usan. Medido en el destino: `events_block` 34 729 → **33 977**,
+`BLOCK_PATH` 35 132 → **34 380**, imagen 581 700 → **581 572 B**. **316 renders dorados, 0 cambiados.**
+
+Antes se descartaron dos recortes con medición en mano: la conversión de TUNE ya estaba hoisteada por el
+compilador (moverla no bajaba ni un divide, +96 B de XIP: revertida), y acotar el barrido de NVOICE por
+`trk_nvoice()` no es exactamente equivalente (una voz podría quedar sin renderizar si el tope baja). El
+barrido mide ~1 % del bloque. Detalle en `docs/FASE4_BLOQUE_2026-11-27.md`.
+
 ## Sin publicar — FASE FX: el chorus se ve moverse, los medidores oyen, la ADSR deja de romperse
 
 Cuatro síntomas reportados, tres causas distintas, todas medidas en píxeles antes de tocar nada.
