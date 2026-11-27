@@ -254,17 +254,25 @@ static int ota_stage_head(uint32_t len)
     return ota_prog(OTA_AREA, h, 32);
 }
 
-/* UFW header + entry list (hdr: 1 KiB) from the host -> offset / length of
+/* (FASE 2/8 2026-11-27) HOW MUCH HEADER THERE IS: 0x40 of it and up to eleven 0x50 entries, which ends at
+ * 944 B. The staging area was 1 KiB because the reads were two 512 B halves; the second one is now exactly
+ * what is left, so 80 B of LOWBUF go back to the window that has 4 280 free instead of being held for a
+ * header nobody can write. The bound is checked here, not assumed: a format with more entries fails the
+ * static assert before it can run past the buffer. */
+#define OTA_UFW_HDR 944u
+#define OTA_UFW_ENT 11u
+_Static_assert(0x40u + OTA_UFW_ENT * 0x50u == OTA_UFW_HDR, "the UFW header is its own size");
+/* UFW header + entry list (hdr: OTA_UFW_HDR) from the host -> offset / length of
  * flash.bin (entry type 0) and ota.bin (type 100), 0 if absent; -1 read, -2 CRC */
 static int ota_ufw(uint8_t *hdr, uint32_t *fl_off, uint32_t *fl_len, uint32_t *ota_off, uint32_t *ota_len)
 {
     uint32_t i, nent;
     *fl_off = *fl_len = *ota_off = *ota_len = 0;
-    if (ota_read(0, hdr, 512) || ota_read(512, hdr + 512, 512))
+    if (ota_read(0, hdr, 512) || ota_read(512, hdr + 512, OTA_UFW_HDR - 512u))
         return -1;
     ota_jl_enc(hdr, 0x40);
     nent = ota_rd16(hdr + 8);
-    if (ota_crc16(hdr + 2, 0x3E, 0) != ota_rd16(hdr) || nent == 0 || nent > 11u ||
+    if (ota_crc16(hdr + 2, 0x3E, 0) != ota_rd16(hdr) || nent == 0 || nent > OTA_UFW_ENT ||
         ota_crc16(hdr + 0x40, nent * 0x50u, 0) != ota_rd16(hdr + 2))
         return -2;
     for (i = 0; i < nent; i++) {
@@ -292,7 +300,7 @@ static int ota_stage(void)                       /* steps 1..6; 0 = host said su
 {
     /* (2.5.1) the update's staging areas: 2 KiB the main loop touches only while an update runs, out of
        RAM's window and into LOWBUF (the pool keeps its 8 KiB of headroom, which is a gate) */
-    static uint8_t hdr[0x400] __attribute__((section(".lowbuf"))), b[512] __attribute__((section(".lowbuf"))),
+    static uint8_t hdr[OTA_UFW_HDR] __attribute__((section(".lowbuf"))), b[512] __attribute__((section(".lowbuf"))),
                    mine[512] __attribute__((section(".lowbuf")));
     uint32_t i, n, ota_off, ota_len, fl_off, fl_len, c, len, own, official;
     int rc;
