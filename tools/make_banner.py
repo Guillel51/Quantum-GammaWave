@@ -25,6 +25,7 @@ Outputs:
   web/site/assets/og.png                  1200 x 630   Open Graph / Twitter large card
   web/site/assets/banner-mobile.png       1080 x 1350  the vertical crop
 """
+import re
 import sys
 from pathlib import Path
 
@@ -41,6 +42,34 @@ VIOLET = (139, 92, 255)
 TURQ = (78, 240, 208)
 DEEP = (0, 4, 16)
 
+
+def counts():
+    """The numbers the banner prints, read from the tree instead of typed here.
+
+    (FASE 8) They used to be literals: the Open Graph card said "293 presets" while the factory library had 296,
+    and the docstring above claimed they came from the tree. A banner that counts by hand drifts on the first
+    preset added, so every figure now comes from the file that owns it -- the library total from
+    tests/preset_library_test.py (TOTAL, the same number the suite enforces), the palettes from the generated
+    ui_palettes.h, the voices / tracks / steps from core.h. A missing source raises instead of printing a guess."""
+    lib = (HERE / "tests" / "preset_library_test.py").read_text(encoding="utf-8")
+    m = re.search(r"^TOTAL\s*=\s*(\d+)", lib, re.M)
+    if not m:
+        raise SystemExit("make_banner: TOTAL not found in tests/preset_library_test.py")
+    presets = int(m.group(1))
+    pal = (HERE / "build" / "gen" / "ui_palettes.h")
+    if not pal.is_file():
+        raise SystemExit("make_banner: build/gen/ui_palettes.h is missing (run tools/build.py generate)")
+    body = pal.read_text(encoding="utf-8").split("UI_PALETTES[]", 1)[1].split("};", 1)[0]
+    pals = len(re.findall(r'\{\s*"', body))          # one row of the table per palette
+    core = (HERE / "firmware" / "src" / "core.h").read_text(encoding="utf-8")
+    def n(name, default):
+        mm = re.search(r"#define\s+" + name + r"\s+(\d+)", core)
+        return int(mm.group(1)) if mm else default
+    return {"presets": presets, "palettes": pals, "voices": n("NVOICE", 12),
+            "tracks": n("NTRK", 6), "steps": n("NSTEP", 64)}
+
+
+NUM = counts()
 
 def font(name, size):
     return ImageFont.truetype(str(FONTS / name), size)
@@ -323,7 +352,7 @@ def banner_hero():
     y += 70
     c1 = chips(["12 VOICES", "6 TRACKS", "10 ENGINES"], (w, h), 1.12)
     canvas.alpha_composite(c1, (x0, y))
-    c2 = chips(["293 PRESETS", "64-STEP SEQ", "22 PALETTES"], (w, h), 1.12)
+    c2 = chips(["%d PRESETS" % NUM["presets"], "%d-STEP SEQ" % NUM["steps"], "%d PALETTES" % NUM["palettes"]], (w, h), 1.12)
     canvas.alpha_composite(c2, (x0, y + c1.height + 12))
 
     d.text((x0, h - 68), "OPEN SOURCE  /  GPL-3.0-ONLY", font=font("IBMPlexMono-SemiBold.ttf", 20),
@@ -372,9 +401,9 @@ def card_og():
     g = gradient_text((w, h), "GAMMAWAVE", fg, [(0.0, (198, 148, 255)), (0.6, (139, 92, 255)), (1.0, (78, 240, 208))], 2, 100)
     canvas.alpha_composite(g, (x0, 88 + q.height - 14))
     y = 88 + q.height + g.height
-    d.text((x0, y + 8), "12 voices \u00b7 6 tracks \u00b7 10 engines", font=font("ChakraPetch-Medium.ttf", 27),
+    d.text((x0, y + 8), "%d voices \u00b7 %d tracks \u00b7 10 engines" % (NUM["voices"], NUM["tracks"]), font=font("ChakraPetch-Medium.ttf", 27),
            fill=(212, 232, 255, 235))
-    d.text((x0, y + 46), "293 presets \u00b7 64-step sequencer \u00b7 22 palettes", font=font("ChakraPetch-Medium.ttf", 21),
+    d.text((x0, y + 46), "%d presets \u00b7 %d-step sequencer \u00b7 %d palettes" % (NUM["presets"], NUM["steps"], NUM["palettes"]), font=font("ChakraPetch-Medium.ttf", 21),
            fill=(146, 174, 212, 220))
     p = panel("quantum_01_home.png", 0.92, "HOME / ORBITAL", "240 \u00d7 240, firmware")
     canvas.alpha_composite(p, (w - p.width - 60, 96))
@@ -404,7 +433,7 @@ def banner_mobile():
     y += 58
     c1 = chips(["12 VOICES", "6 TRACKS", "10 ENGINES"], (w, h), 0.95)
     canvas.alpha_composite(c1, (x0, y))
-    c2 = chips(["293 PRESETS", "64-STEP SEQ", "22 PALETTES"], (w, h), 0.95)
+    c2 = chips(["%d PRESETS" % NUM["presets"], "%d-STEP SEQ" % NUM["steps"], "%d PALETTES" % NUM["palettes"]], (w, h), 0.95)
     canvas.alpha_composite(c2, (x0, y + c1.height + 10))
     p1 = panel("quantum_01_home.png", 1.15, "HOME / ORBITAL", "")
     p2 = panel("quantum_12_fx_rack.png", 1.15, "FX / THE RACK", "")

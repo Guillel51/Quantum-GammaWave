@@ -252,6 +252,9 @@ int main(void)
         ok("the NOTE knob selects: turning it never writes the previous note's cents into the new one", okv);
     }
 
-    printf("tune: %d FAILED\n", bad);
+    if (bad)
+        printf("tune: %d FAILED\n", bad);
+    else
+        printf("tune: all passed\n");
     return bad != 0;
 }

@@ -234,9 +234,9 @@ static void hv_overview(const track_t *t, uint16_t c)
             }
             /* the level it is making now, along the row: the block's peak (trk[].vu, what fx.c publishes) as the
              * bar and the block's own peak (trk[].peak) as its cap -- the two numbers the mixer's meters show */
-            hv_bar(32, y + 7, 192, 2, q->vu > 0 ? q->vu : 0, 32767, k == song.sel ? c : T_THEME, T_RAISE);
-            if (q->peak > 0 && q->vu > 0)
-                cv_rect(32 + (q->peak > 32767 ? 32767 : q->peak) * 191 / 32767, y + 7, 1, 2, c);
+            hv_bar(32, y + 7, 192, 2, q->vu, 32767, k == song.sel ? c : T_THEME, T_RAISE);
+            if (q->peak > 0)
+                cv_rect(32 + (q->peak >> 8) * 191 / 128, y + 7, 1, 2, c);
             if (!used)
                 cv_text(32, y, &AF_S, "-", T_DIM);
         }

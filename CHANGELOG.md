@@ -1,3 +1,22 @@
+## Sin publicar — FASE 8: un solo banner, capturas al día y dos defectos menos
+
+**Un generador de banner, no dos.** `tools/gen_banner.py` dibujaba `assets/branding/quantum_banner.png` a
+1600×560 mientras `tools/make_banner.py` dibujaba el mismo fichero a 2400×900 y los tres tamaños sociales: el
+que corriera último mandaba, y el repositorio podía servir un héroe que ningún otro artefacto igualaba. `gen_banner.py`
+es ahora una puerta al generador único (mismos cuatro ficheros, `--check` incluido).
+
+**Los números del banner salen del árbol.** La tarjeta Open Graph imprimía «293 presets» con la biblioteca en
+296, y el docstring del generador decía que los leía del árbol. Ahora `counts()` lee `TOTAL` de
+`tests/preset_library_test.py`, la tabla `UI_PALETTES[]` de `ui_palettes.h` y `NVOICE`/`NTRK`/`NSTEP` de
+`core.h`, y falla si un origen desaparece en vez de imprimir una suposición: 296 presets · 22 paletas.
+
+**Capturas regeneradas** desde `tools/generate_screenshots.py` (píxeles reales de `tests/ui_render.c`), y el
+informe de `tests/tune_test.c` deja de imprimir «0 FAILED» cuando no falla nada.
+
+**Bloqueo honesto**: el firmware ha llegado al límite de XIP. `tests/resources_test.py` exige 2 048 B libres y
+hay **1 928** (v2.17.0 dejaba 1 944: el déficit es anterior a esta fase). El gate de release no se fuerza: para
+publicar hace falta recuperar ~120 B de código.
+
 ## v2.19.0 — FASE 7: el vúmetro de HOME está donde se lee
 
 El suelo de seis barras que `hv_air()` dibujaba al pie del panel era el «vumetro debajo de todo» de HOME:
