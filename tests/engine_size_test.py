@@ -53,9 +53,10 @@ def main():
     names = [n for n, _f, _s in engines]
     check("every engine source is found, with its own name", len(engines) >= 10 and "ADDTV" in names)
     add = dict((n, s) for n, _f, s in engines)
+    # (FASE 1/8) ad_v is the slot arena now: ad_slot() and ad_vc_t, not a static voice array
     check("ADDTV declares the symbols the engine is made of",
           {"add_render", "add_block", "add_note_on", "AD_PROF", "AD_PRESETS", "ENG_ADDITIVE",
-           "ad_t", "ad_v"} <= add["ADDTV"])
+           "ad_t", "ad_slot"} <= add["ADDTV"])
     check("no symbol is claimed by two engines",
           sum(len(s) for s in add.values()) == len(set().union(*add.values())))
     check("an engine's set carries no header static (trk, song, TSEL)",

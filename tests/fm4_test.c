@@ -397,6 +397,7 @@ static void sound(const char *dir)
 #ifndef FM4_NO_MAIN                 /* (an experiment can include this file) */
 int main(int argc, char **argv)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     routing();
     presets();
     sound(argc > 1 ? argv[1] : 0);

@@ -240,6 +240,7 @@ static __attribute__((noinline)) void add_render(track_t *t, voice_t *v, int32_t
     v->s[3] = dcy;
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t AD_PRESETS[] = {
     /* name, {SPECTRUM, TILT, DECAY, STRETCH, CUT, RES, DRIVE, SUB}, {A D S R}, fenv, mono */
     {0, {0, 64, 0, 0, 108, 10, 0, 0}, {0, 64, 127, 45}, 0, 0, FX(0, 26, 8, 28), PAT(5),
@@ -271,6 +272,12 @@ static const preset_t AD_PRESETS[] = {
     {127, {12, 40, 16, 0, 84, 8, 4, 30}, {0, 64, 127, 20}, 0, 0, FX(0, 34, 18, 30), PAT(5),
      {XP(P_LN0, 127), XP(P_LN1, 90), XP(P_LN2, 64), XP(P_LN3, 40), XP(P_LRATE, 12), XP(P_LD_AMP, 6)}},
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_AD_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t AD_PRESETS[PRESET_N_AD_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 /* the UI's bars (ui_graph.c graph_additive): the gain each partial has in this part's last block. The
  * engine owns its state, so the graph asks instead of reaching into ad_t. */

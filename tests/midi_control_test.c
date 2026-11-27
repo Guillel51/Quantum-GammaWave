@@ -455,6 +455,7 @@ static int learn_map_test(void)
 }
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     int bad = controls_test() + sustain_test() + ownership_test() + clock_test(1) + clock_test(2) + clock_arp_and_boundaries() +
               arp_ext_stop_test() + usb_burst_test() + route_test() + cc_map_test() + learn_map_test();
     printf("%s\n", bad ? "MIDI CONTROL/CLOCK TEST FAILED" : "MIDI control/clock integration tests passed"); return bad != 0;

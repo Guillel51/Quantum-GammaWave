@@ -533,6 +533,7 @@ static const char *const N_FM6_PATCH[] = {"F1", "F2", "F3", "F4", "F5", "F6", "F
 _Static_assert(NELEM(N_FM6_PATCH) == FM6_OWN + FM6_NBANK + 2u, "a SLOT name per value");
 
 /* {ALG, FB, MLVL, MRAT, MEG, VMOD, DTUN, SLOT}: the factory patch F1..F8 as it is, DTUN on the pad */
+#ifdef QG_PRESET_SOURCE
 static const preset_t FM6_PRESETS[] = {
     {1099, {0, 4, 0, 0, 0, 0, 10, 12}, {6, 74, 116, 58}, 0, 0, FX(0, 58, 34, 62), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_HARM, 16)}},  /* C: hybrid */
@@ -623,6 +624,12 @@ static const preset_t FM6_PRESETS[] = {
     {1445, {0, 3, -12, -5, 12, 0, 8, 1}, {0, 0, 127, 0}, 12, 0, FX(0, 32, 46, 90), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_HARM, -12)}},  /* C: temple bell */
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_FM6_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t FM6_PRESETS[PRESET_N_FM6_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t FM6_CH[2] = {
     {"TONE", F_PCTINV, 0, 127, 127, 0, 0}, {"FOLD", F_PCTINV, 0, 127, 127, 0, 0},

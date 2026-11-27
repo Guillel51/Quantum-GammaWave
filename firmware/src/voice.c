@@ -64,6 +64,7 @@ void voices_boot(void)
      * idempotent -- pure adds into .bss. */
     sine_init();
     fm6_exp2_init();
+    presets_pack_init();   /* (FASE 1/8) the factory library, rebuilt from its packed form (engines.c) */
     for (i = 0; i < VPOOLN; i++) {
         memset(&vpool[i], 0, sizeof(voice_t));
         vown[i] = 0;

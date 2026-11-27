@@ -66,6 +66,7 @@ static int32_t pl_isqrt(uint64_t v)
 
 int main(int argc, char **argv)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     static int32_t out[2 * CTL];
     uint32_t e, pi, i, n = 0, bad = 0;
     int csv = (argc > 1 && argv[1] && argv[1][0] == '-' && argv[1][1] == '-');

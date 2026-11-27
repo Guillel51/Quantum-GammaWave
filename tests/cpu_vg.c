@@ -95,6 +95,7 @@ static void vg_seq(int heavy)
 }
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     static const struct { const char *eng, *pre; uint32_t notes; } E[] = {
         {"ANALOG", "FAT BASS", 8}, {"PHASE", "STRING", 8}, {"LOFI", "BYTE BENT", 8}, {"VOICE", "WOW BASS", 4},
         {"WHEEL", "ROCK DRIVE", 8}, {"DRUM", "", 8}, {"NOISE", "METAL", 8}, {"FM6", "BRASS", 8}};

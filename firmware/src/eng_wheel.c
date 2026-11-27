@@ -321,6 +321,7 @@ static void wheel_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         out[i] += voice_amp(acc[i] >> 1, m, i) * 2;   /* (v1.5.16) the amp is signed: * 2, not << 1 */
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t WHEEL_PRESETS[] = {
     /* name, {REG, SUB, BODY, TOP, PERC, CLICK, DRIVE, ROTR}, {A D S R}, fenv, mono */
     {2862, {15, 0, 0, 0, 0, 30, 20, 1}, {0, 64, 127, 45}, 0, 0, FX(0, 28, 8, 30), PAT(5),
@@ -375,6 +376,12 @@ static const preset_t WHEEL_PRESETS[] = {
     {3107, {13, 2, 4, 2, 0, 20, 8, 2}, {30, 90, 116, 88}, 6, 0, FX(0, 52, 26, 70), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 1), XP(P_LD_FLT, 10)}},  /* B: organ pad */
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_WHEEL_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t WHEEL_PRESETS[PRESET_N_WHEEL_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t WHEEL_CH[3] = {
     {"LEAK", F_PCTINV, 0, 127, 127, 0, 0}, {"ROTOR+", F_PCTINV, 0, 127, 127, 0, 0},

@@ -701,6 +701,7 @@ static void demo(const char *dir, uint32_t pi)
 
 int main(int argc, char **argv)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     uint32_t pi;
     algorithms();
     envelopes();

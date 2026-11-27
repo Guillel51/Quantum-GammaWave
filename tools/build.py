@@ -268,6 +268,14 @@ def build_app():
     size = os.environ.get("FELUCCA_SIZE") == "1"
     hot = size and os.environ.get("FELUCCA_HOTRAM") != "0"   # (0.6.78) core 0's hottest audio code in RAM (HOT_FNS)
     flags.append(f"-DFELUCCA_HOTRAM={int(hot)}")
+    # (FASE 1/8) THE FACTORY LIBRARY, PACKED BY DIFFERENCE. The engine files keep their readable preset
+    # tables, but only this pass compiles them (-DQG_PRESET_SOURCE=1): tools/gen_preset_pack.py reads the bytes
+    # the compiler made of them, writes build/gen/preset_pack.h and decodes its own output to compare it with
+    # those bytes -- a table the pack cannot reproduce stops the build instead of shipping. The app then links
+    # the pack and rebuilds the exact arrays in .bss at boot (engines.c presets_pack_init): 10 404 B -> 7 680 B
+    # of XIP. Measured on the AC791N link, see docs/FASE1_XIP_PRESETS_2026-11-26.md.
+    tc("cc", *flags, "-w", "-DQG_PRESET_SOURCE=1", "-c", FW / "src" / "felucca.c", "-o", OUT / "preset_src.o")
+    subprocess.run([sys.executable, SRC / "tools" / "gen_preset_pack.py", OUT / "preset_src.o", GEN], check=True)
     cmain = (("cc", *flags, "-S", "-emit-llvm", "-Xclang", "-disable-llvm-optzns", "-c",
               FW / "src" / "felucca.c", "-o", OUT / "felucca.ll") if size else
              ("cc", *flags, "-c", FW / "src" / "felucca.c", "-o", OUT / "felucca.o"))

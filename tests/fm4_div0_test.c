@@ -212,6 +212,8 @@ int main(void)
     uint32_t i, k, s, a, diff = 0;
     int32_t idx, fenv;
 
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
+
     /* 1. the same values */
     for (idx = 0; idx <= 127; idx++)
         for (fenv = -64; fenv <= 63; fenv++)

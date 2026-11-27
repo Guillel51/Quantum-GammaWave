@@ -150,6 +150,7 @@ static void ok(int cond, const char *what)
 
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss: before anything walks it */
     static double rms[8], zcr[8], br[8];
     char line[160];
     int e, i, k;

@@ -218,7 +218,8 @@ static uint8_t pfx_lane[32], pfx_ltgt;   /* the section's punch-in lane (pfx.c),
 #define PF_MAX_ACTIVE 3u
 /* the musical effects active (mutes and the target/clear keys are not effects) */
 /* the bits that are musical effects (PF_IS), the six mutes out: one mask and a shift, where six compares ran */
-#define PF_EFF_MASK (((1u << PF_M1) - 1u) | (((1u << PF_END) - 1u) & ~((1u << PF_VIB) - 1u)))
+#define PF_BELOW(n) ((n) >= 32u ? 0xFFFFFFFFu : ((1u << (n)) - 1u))   /* (FASE 1/8) PF_END is 32: 1u << 32 */
+#define PF_EFF_MASK (PF_BELOW(PF_M1) | (PF_BELOW(PF_END) & ~PF_BELOW(PF_VIB)))
 static uint32_t perf_count(uint32_t a)
 {
     uint32_t n = 0;

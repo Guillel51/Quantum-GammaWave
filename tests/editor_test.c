@@ -998,6 +998,7 @@ static int drum_kit_retired(void)
 #ifndef EDITOR_TEST_NO_MAIN                              /* (robust_test.c, fuzz_*.c: this file is their base) */
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     int bad = preferences() + motion_locks() + framing() + uart_recovery() + steps() + stop_failures() + song_protocol() + malformed_saves() +
               fm6_patches() + user_preset_roundtrip() + live_sync() + usb_burst() + menu_protocol() + drum_kit_retired();
     printf("%s\n", bad ? "EDITOR TEST FAILED" : "editor test passed");

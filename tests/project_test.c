@@ -228,6 +228,11 @@ int main(void)
     uint32_t i, t;
     int bad = 0, ok;
 
+    /* (FASE 1/8) the factory library lives in .bss and its decoder runs in voices_boot(), as the sine and the
+     * FM6 curve do: a harness that reads a preset (this one reads DIGITAL_PRESETS through fm4_preset_values and
+     * the FM6 sound a converted track lands on) enters through the same boot the firmware does. */
+    voices_boot();
+
     /* (v1.12.13) the chain below P_E0 is APPEND-ONLY: TILT and LFO CURVE went after M.STRT and N.RATE (they were
      * inserted above them in v1.12.4/5 and moved both, breaking every store written before), so the ids from
      * P_MSTART up are the ones this line pins. P_E0 119 and P_COUNT 127 (the 7-bit ceiling) do not move. */

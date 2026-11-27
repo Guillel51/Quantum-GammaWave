@@ -9,6 +9,7 @@ kits still present as legacy entries at indices 10/11 (so an old project loads t
 no two sounds of an engine share a name; every entry's E count, envelope and sends in range. Duplicate
 parameter signatures are reported (not failed): the older library is allowed to be close.
 """
+import codecs
 import re
 import sys
 
@@ -127,11 +128,31 @@ def entries(body):
     return out
 
 
+def preset_names():
+    """{offset: name} from params.c's PRESET_NAMES (FASE 1/10: a preset stores the offset, PR_NAME adds it)."""
+    s = strip_comments(open(ROOT + "params.c", encoding="utf-8").read())
+    i = s.index("const char PRESET_NAMES[] =")
+    body = s[i:s.index(";", i)]
+    blob = "".join(codecs.decode(l, "unicode_escape")
+                   for l in re.findall(r'"((?:[^"\\]|\\.)*)"', body))
+    out, pos = {}, 0
+    for part in blob.split("\0"):
+        out[pos] = part
+        pos += len(part) + 1
+    return out
+
+
+NAMES = preset_names()
+
+
 def parse(entry):
-    em = re.match(r'^\{\s*"([^"]+)"\s*,\s*(?:\{([^}]*)\}|([A-Z][A-Z0-9_]*))', entry)
-    name = em.group(1)
-    e = [x.strip() for x in em.group(2).split(",") if x.strip()] if em.group(2) is not None else ["MACRO"] * 8
-    env = re.search(r'\{\s*([^}]*)\}\s*,\s*(-?\d+)\s*,\s*(\d+)', entry)
+    off = int(re.match(r'^\{\s*(\d+)\s*,', entry).group(1))
+    name = NAMES.get(off, "?offset %d" % off)
+    m = re.match(r'^\{\s*\d+\s*,\s*(?:\{([^}]*)\}|([A-Z][A-Z0-9_]*))', entry)
+    e = [x.strip() for x in m.group(1).split(",") if x.strip()] if m.group(1) is not None else ["MACRO"] * 8
+    # the envelope is the brace group right before the filter amount, the mono flag and FX: a DRUM entry
+    # carries its E values as a macro (DRUM_KIT_E), so the layout, not the position, is what names it
+    env = re.search(r'\{\s*([^{}]*)\}\s*,\s*(-?\d+)\s*,\s*(\d+)\s*,\s*FX\(', entry)
     envv = [int(x) for x in re.findall(r"-?\d+", env.group(1))]
     fenv, mono = int(env.group(2)), int(env.group(3))
     fx = [int(x) for x in re.findall(r"-?\d+", re.search(r"FX\(([^)]*)\)", entry).group(1))]

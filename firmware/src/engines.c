@@ -2,6 +2,15 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Engine table (order = PRESETS browsing order and the engine numbers of the editor protocol), the
  * factory patterns (SEQ > PATTERNS) and the parts' sounds at power-on. */
+/* (FASE 1/8) THE FACTORY LIBRARY, PACKED. The eng_*.c files below still carry the readable tables, and the
+ * build compiles them once with -DQG_PRESET_SOURCE=1 so tools/gen_preset_pack.py can read the bytes the
+ * compiler made of them; the firmware links this pack instead (32 B of defaults, a 4-byte mask and the bytes
+ * that differ, per preset: 10 404 B of preset_t become 7 680 B) and presets_pack_init() at the end of this
+ * file rebuilds the exact arrays in .bss at boot. Nothing that reads a preset knows this file exists. */
+#ifndef QG_PRESET_SOURCE           /* the pass that BUILDS the pack has no pack yet (build.py, two steps) */
+#include "preset_pack.h"
+#endif
+
 #include "tune.c"              /* (FASE 7) the twelve cents dsp.c's pitch maths reads */
 #include "dsp.c"
 #include "eng_analog.c"
@@ -165,3 +174,49 @@ static const struct {
 static const uint8_t TRK_DEF[NPART][3] = {{0, 4, 0}, {ENGI_FM6, 4, 0}, {3, 3, 0}, {ENGI_DRUM, 0, 0}, {2, 0, 0}, {7, 0, 0}};
 /* ANALOG ACID, FM6 PAD (was DIGITAL PAD), LOFI PULSE LD (3: BYTE first), DRUM KIT; (JIANT 0.6) PHASE's first, WHEEL's first */
 static uint32_t trk_def_engine(uint32_t i) { return TRK_DEF[i % NPART][0]; }
+
+/* --------------------------------------------------------- the factory library, decoded --- */
+/* (FASE 1/8) 306 preset_t records of 34 B were 10 404 B of XIP, and most of every record repeats its engine's
+ * common values: no matrix slots, a default envelope, no legacy id. tools/gen_preset_pack.py packs each table
+ * as the common value of every payload byte, a 4-byte mask of the bytes that differ and the bytes themselves;
+ * this rebuilds the arrays the engine table points at, once, from voices_boot() -- the entry every host
+ * harness and felucca_init go through -- so every reader (apply_preset_to, PR_NAME, the browsers, the
+ * generators) keeps reading a plain preset_t. The pack is built from these same tables compiled by the real
+ * compiler and the tool verifies its own decode against those bytes: a table it cannot reproduce stops the
+ * build, it never reaches the unit. */
+#ifndef QG_PRESET_SOURCE           /* in the -DQG_PRESET_SOURCE pass the tables above are the library */
+static preset_t *const PRESET_DST[PRESET_PACK_N] = {
+#define QG_DST(t) t,
+    QG_PRESET_TABLES(QG_DST)
+#undef QG_DST
+};
+static uint8_t presets_ready;
+void presets_pack_init(void)
+{
+    uint32_t e;
+    if (presets_ready)
+        return;
+    presets_ready = 1;
+    for (e = 0; e < PRESET_PACK_N; e++) {
+        const preset_pack_t *p = &PRESET_PACK[e];
+        const uint8_t *dflt = PRESET_BLOB + p->dflt, *bits = PRESET_BLOB + p->bits;
+        const uint8_t *vals = PRESET_BLOB + p->vals, *nm = PRESET_BLOB + p->nm;
+        uint8_t *out = (uint8_t *)PRESET_DST[e];
+        uint32_t i, j;
+        for (i = 0; i < p->n; i++) {
+            uint32_t m = (uint32_t)bits[0] | (uint32_t)bits[1] << 8 | (uint32_t)bits[2] << 16 | (uint32_t)bits[3] << 24;
+            bits += 4;
+            *out++ = *nm++;                          /* name: the offset in PRESET_NAMES, as preset_t has it */
+            *out++ = *nm++;
+            for (j = 0; j < 32u; j++)                /* payload byte j: the pack's, or the table's default */
+                *out++ = (m >> j) & 1u ? *vals++ : dflt[j];
+        }
+    }
+}
+/* (FASE 1/8) WHO CALLS THIS: felucca_init -> voices_boot, and every host harness that reads a factory preset
+ * enters through voices_boot() too (tests/poly_test.c, tests/fm4_test.c, tests/digital_test.c,
+ * tests/fm4_div0_test.c, tests/ui_render.c and tests/project_test.c joined the ones that already did: while the
+ * tables were in flash they could read them without booting). A constructor would have been automatic, but the
+ * harnesses neutralise the attribute (`#define __attribute__(x)` in tests/hostsim.c and the rest) so the host
+ * build never runs one -- the same rule the sine and the FM6 curve have lived under since ETAPA 2. */
+#endif

@@ -1517,6 +1517,7 @@ static job_t *add(uint32_t kind, const char *name)
 
 int main(int argc, char **argv)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     const char *gpath = argc > 1 ? argv[1] : "tests/golden.txt";
     const char *cpath = argc > 2 ? argv[2] : "tests/cpu_baseline.txt";
     int gupd = getenv("GOLDEN_UPDATE") != 0, cupd = getenv("BUDGET_UPDATE") != 0, verbose = getenv("VERBOSE") != 0;

@@ -537,6 +537,12 @@ typedef struct {
     uint8_t legacy;              /* (QG-1 1.6 audit) kept at its old index for projects and user presets, not shown
                                   * by the browser and not part of the 200-sound library: DRUM 10, 11 */
 } preset_t;
+/* (FASE 1/8) THE FACTORY LIBRARY IS PACKED BY DIFFERENCE (tools/gen_preset_pack.py, engines.c
+ * presets_pack_init): the pack is built from these 34-byte records, so a change to preset_t above fails the
+ * build here instead of decoding a library that is quietly wrong. */
+typedef char qg_preset_size_check[sizeof(preset_t) == 34 ? 1 : -1];
+void presets_pack_init(void);          /* the boot decode: voices_boot (every harness) and felucca_init */
+
 #define FX(d, c, dl, r) .fx = {(d) + 1, (c) + 1, (dl) + 1, (r) + 1}
 #define XP(id, v) {(id) + 1, (v)}
 #define PAT(n) .pat = (n)

@@ -66,6 +66,7 @@ static void js_descs(const param_desc_t *d, uint32_t n)
 
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     uint32_t e, i, k;
     int32_t v[16];
     printf("{\"P_COUNT\":%d,\"G_COUNT\":%d,\"NSTEP\":%d,\"P_E0\":%d,\"G_ENGSEL\":%d,\"P_SLCR\":%d,\"NTRK\":%d,\n",

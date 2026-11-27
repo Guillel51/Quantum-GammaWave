@@ -152,6 +152,7 @@ static void boot_fade(void)
 }
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     boot_fade();
     chord("POLY: three keys, three voices, three notes in the spectrum", 0);
     chord("POLY under the load governor: still three voices", 1);

@@ -250,6 +250,7 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
             out[i] = softclip((out[i] * (4096 + folda * 24)) >> 12);
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t WT_PRESETS[] = {
     /* name, {MORPH, DETUNE, UNI, SUB, CUT, RES, DRIVE, HARM}, {A D S R}, fenv, mono */
     {1225, {18, 22, 1, 10, 92, 10, 0, 76}, {25, 70, 110, 75}, 0, 0, FX(0, 48, 42, 72), PAT(5),
@@ -314,6 +315,12 @@ static const preset_t WT_PRESETS[] = {
     {2852, {30, 12, 1, 0, 108, 16, 8, 82}, {0, 60, 120, 40}, 0, 1, FX(18, 18, 24, 26), PAT(2),
      {XP(P_LRTRG, 3), XP(P_X0, 36), XP(P_X1, 20), XP(P_LRATE, 22), XP(P_LD_FLT, 10), XP(P_M1AMT, 10)}},
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_WT_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t WT_PRESETS[PRESET_N_WT_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t WT_CH[3] = {
     {"WARP", F_PCTINV, 0, 127, 127, 0, 0}, {"POSMOD", F_PCTINV, 0, 127, 127, 0, 0},

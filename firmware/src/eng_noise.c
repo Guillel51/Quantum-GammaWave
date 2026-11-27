@@ -279,6 +279,7 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
 }
 
 /* {MODE, COLR, FREQ, RES, TRK, DENS, DRFT, CRSH / CLK} */
+#ifdef QG_PRESET_SOURCE
 static const preset_t NOISE_PRESETS[] = {
     {213, {NZ_ANLG, 64, 70, 100, 127, 0, 70, 0}, {90, 90, 110, 90}, 0, 0, FX(0, 34, 24, 74), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 20), XP(P_LD_AMP, 8), XP(P_LEVEL, 120)}},
@@ -335,6 +336,12 @@ static const preset_t NOISE_PRESETS[] = {
     {2241, {1, 60, 84, 50, 30, 104, 100, 0}, {60, 90, 108, 88}, 0, 0, FX(0, 42, 34, 88), PAT(5),
      {XP(P_LRATE, 9), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 6), XP(P_LEVEL, 109)}},  /* G: ash rain */
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_NOISE_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t NOISE_PRESETS[PRESET_N_NOISE_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t NOISE_CH[3] = {
     {"BAND", F_PCTINV, 0, 127, 127, 0, 0}, {"EVOL", F_PCTINV, 0, 127, 127, 0, 0},

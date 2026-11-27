@@ -1,3 +1,58 @@
+## Sin publicar — FASE 1/8: la biblioteca de fábrica, empaquetada por diferencia
+
+La entrega anterior dejó el XIP en rojo. Medido otra vez desde `main`, no desde los informes: **582 244 B de
+583 612, 1 368 libres** contra un suelo de 2 048 — **680 B de déficit**. Esta fase los recupera y deja margen.
+
+Las once tablas de presets eran **306 registros `preset_t` de 34 B = 10 404 B de XIP**, y casi todo registro
+repetía los valores comunes de su motor. Ahora se guardan por diferencia: 32 B de valores comunes por tabla,
+una máscara de 4 B por preset con los bytes que se apartan, esos bytes, y el offset de 2 B del nombre. El
+blob mide **7 680 B**. Se genera desde el compilador (`-DQG_PRESET_SOURCE=1`, las secciones `.rodata.<TABLA>`)
+y la herramienta verifica su propio decodificador byte a byte contra lo que compiló: una tabla que no
+reproduce detiene el build.
+
+| | antes | después |
+|---|---:|---:|
+| imagen | 582 244 B | **579 884 B** |
+| **XIP libre** | **1 368 B** | **3 728 B** |
+| XIP constantes | 122 808 B | 120 248 B |
+| XIP código | 454 656 B | 454 856 B |
+| RAM `.data+.bss` | 75 664 B | 86 072 B (12 232 libres) |
+
+Son **−2 360 B** de imagen: 2 724 B de tablas menos 200 B de decodificador y lo que el enlace reacomoda. El
+intercambio es 2 560 B de flash por 10 404 B de RAM, el recurso que sobraba. `resource_map.py --check` queda
+en verde con **1 680 B sobre el piso**.
+
+**Nada que lee un preset cambia.** `presets_pack_init()` reconstruye los arrays idénticos en `.bss` y la
+tabla de motores sigue apuntando a un `preset_t *`: `apply_preset_to`, `PR_NAME`, los navegadores, los
+generadores y el importador de proyectos no se tocaron. Corre una vez en `voices_boot()`, y los seis arneses
+que leían la biblioteca sin arrancar ahora arrancan como ya hacían el seno y la curva de FM6.
+
+Se midieron y no se aplicaron: TP/GP a índices (808 B brutos, sin ganancia demostrable), GENRE/DSTYLE/RECIPE
+(unos cientos de bytes por un pool nuevo), máscara estrecha (−313 B peor), diccionario de máscaras (+916 B
+peor) y nombres por delta de 1 B (imposible: las tablas no están ordenadas). PAGES e ICON_MAP no se
+reintentaron. `ui_input_frame` no se tocó: sigue en 30 754 B y sus extracciones medidas empeoran el
+enlace.
+
+Y una regla nueva, que ya existía para el seno y la curva de FM6: un arnés que lee un preset de fábrica arranca
+antes (`voices_boot()`). Los veinte que lo hacían sin arrancar ahora lo hacen; ninguno deja de comprobar lo que
+comprobaba. Un `constructor` no servía: los arneses hacen `#define __attribute__(x)`.
+
+Al medir el árbol aparecieron dos bases viejas rotas por el commit anterior (`61054e39`, los niveles de carga de
+25 presets, que no regeneró ni la base de píxeles ni la de audio): **86 cuadros**, **105 renders** y los **61
+segundos** de la escena en vivo de seis pistas. Se comprobó primero que el árbol base da exactamente los mismos
+números y los mismos hashes, y se regeneraron las tres bases: 86, 105 y 61 líneas, ni una más. En el camino se arreglaron cuatro cosas que `main` ya traía rotas, con la misma prueba de que lo estaban antes:
+`tests/preset_library_test.py` no compilaba desde que el nombre es un offset, `tests/resources_test.py` seguía
+pidiendo las curvas de 1 B (son de 3 bits desde FASE 2/5), `tests/engine_size_test.py` pedía `ad_v` (hoy el
+arena: `ad_slot`) y el mock del Web Studio llevaba tres listas de presets viejas. Y una línea de firmware:
+`1u << PF_END` con `PF_END == 32` era un desplazamiento indefinido que UBSan estricto detenía — `PF_BELOW()`
+lo hace explícito y el enlace mide exactamente lo mismo.
+
+Queda un grupo en rojo, también anterior y ajeno a esto:
+`cloud_hot_test` («CLOUD's line never clamps»), idéntico en el árbol base: es la cabeza del reverb en la nube
+con envíos muy por encima de fondo de escala, y no se toca sin medir el DSP.
+
+Detalle y mediciones: `docs/FASE1_XIP_PRESETS_2026-11-26.md`. **No** está observado en una unidad.
+
 ## v2.16.3 — el delay y el reverb de FX > BUSES, dibujados como lo que hacen
 
 El bloque DELAY mostraba cuatro rectángulos concéntricos y un punto recorriendo el de afuera: se leía como un

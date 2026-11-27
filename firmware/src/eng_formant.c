@@ -211,6 +211,7 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
     v->s[6] = lp;
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t FORMANT_PRESETS[] = {
     /* VOWEL VOWL2 TALK SHIFT | BUZZ BREATH Q RAND */
     {1460, {0, 0, 0, 0, 40, 22, 60, 0}, {85, 90, 115, 95}, 0, 0, FX(0, 66, 18, 88), PAT(5),
@@ -272,6 +273,12 @@ static const preset_t FORMANT_PRESETS[] = {
     {1718, {52, 88, 10, 5, 66, 20, 72, 8}, {64, 90, 110, 96}, 6, 0, FX(0, 58, 32, 86), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: voice pad */
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_FORMANT_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t FORMANT_PRESETS[PRESET_N_FORMANT_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t FORMANT_CH[3] = {
     {"F3+", F_PCTINV, 0, 127, 127, 0, 0}, {"ARTIC", F_PCTINV, 0, 127, 127, 0, 0},

@@ -262,6 +262,7 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         phase_harm(out, n, hara);
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t PHASE_PRESETS[] = {
     /* name, {WAVE, WAVE2, DCW, ENV, DTN, LINE, SUB, -}, {A D S R}, fenv, mono */
     {207, {0, 0, 30, 90, 0, 0, 0, 0}, {8, 70, 90, 40}, 0, 0, FX(10, 24, 22, 36), PAT(6),
@@ -343,6 +344,12 @@ static const preset_t PHASE_PRESETS[] = {
     {2584, {8, 0, 76, 46, 0, 0, 30, 26}, {0, 86, 34, 82}, 18, 0, FX(0, 34, 44, 86), PAT(5),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LRATE, 22), XP(P_LWAVE, 0), XP(P_LD_FLT, 12)}},
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_PHASE_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t PHASE_PRESETS[PRESET_N_PHASE_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t PHASE_CH[2] = {
     {"HARM", F_PCTINV, 0, 127, 127, 0, 0}, {"NOISE", F_PCTINV, 0, 127, 127, 0, 0},

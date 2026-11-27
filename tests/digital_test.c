@@ -9,6 +9,7 @@ static uint64_t energy(const int32_t *b) { uint64_t e = 0; for (uint32_t i = 0; 
 int main(void)
 {
     int32_t a[CTL], b[CTL], g[4];
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     track_t *t = &trk[0];
     voice_t *v, *v2;
     vmod_t m = {0};

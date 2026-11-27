@@ -123,6 +123,7 @@ static void report(const char *what, int pi, uint32_t n, int at_once)
 
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is: before the lookup */
     int brass = preset_of("BRASS"), pluck = preset_of("PLUCK"), pad = preset_of("PAD");
     uint32_t n;
     char b[160];

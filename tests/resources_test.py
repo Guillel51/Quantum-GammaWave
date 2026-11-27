@@ -87,8 +87,10 @@ def main():
         return None, None
 
     size, sec = sym("FM6_EXP2_D2")
-    check("the exp2 differences are 2046 B of .text (1023 int16 + the two scalars)",
-          size == 2046 and sec == ".text", "%s B in %s" % (size, sec))
+    # (FASE 2/5) the curves are three bits a change now: 1 023 points pack into 384 B, not 1 023 int8,
+    # and the second differences went with them (that is what made room in the app slot in the first place)
+    check("the exp2 differences are 384 B of .text (1 023 points, three bits a change)",
+          size == 384 and sec == ".text", "%s B in %s" % (size, sec))
     size, sec = sym("fm6_exp2_tab")
     check("the decoded curve is 4100 B in .bss (1025 points, freed from the app slot)",
           size == 4100 and sec == ".bss", "%s B in %s" % (size, sec))
@@ -96,8 +98,8 @@ def main():
     check("the old 4100-byte table is gone from flash", size is None,
           "FM6_EXP2 is back in %s (%s B)" % (sec, size) if size else "")
     size, sec = sym("SINE_D2")
-    check("the sine is 1023 B of int8 differences in .text (was 2050 B)",
-          size == 1023 and sec == ".text", "%s B in %s" % (size, sec))
+    check("the sine is 384 B of differences in .text (1 025 points, three bits a change)",
+          size == 384 and sec == ".text", "%s B in %s" % (size, sec))
     size, sec = sym("SINE")
     check("the decoded sine is 2050 B in .bss, where every caller reads it",
           size == 2050 and sec == ".bss", "%s B in %s" % (size, sec))

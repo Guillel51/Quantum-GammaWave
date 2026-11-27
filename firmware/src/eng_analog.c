@@ -346,6 +346,7 @@ static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, co
     analog_character(t, v, out, n);
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t ANALOG_PRESETS[] = {
     {138, {0, 12, 64, 0, 90, 30, 10, 12}, {4, 70, 100, 50}, 20, 1, FX(0, 10, 45, 30), PAT(4),
      {XP(P_LRATE, 42), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
@@ -514,6 +515,12 @@ static const preset_t ANALOG_PRESETS[] = {
     {902, {1, 0, 0, 0, 46, 62, 30, -12}, {0, 62, 45, 30}, 28, 1, FX(64, 0, 0, 6), PAT(2),
      {XP(P_DTYPE, 5), XP(P_DTONE, 18), XP(P_LRATE, 28), XP(P_LWAVE, 4), XP(P_LD_FLT, 18), XP(P_HARM, 8)}},
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_ANALOG_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t ANALOG_PRESETS[PRESET_N_ANALOG_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t ANALOG_CH[2] = {
     {"KTR+", F_PCTINV, 0, 127, 127, 0, 0}, {"TONE", F_PCTINV, 0, 127, 127, 0, 0},

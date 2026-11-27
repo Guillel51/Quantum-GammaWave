@@ -587,6 +587,7 @@ static void lofi_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     v->s[5] = ic2;
 }
 
+#ifdef QG_PRESET_SOURCE
 static const preset_t LOFI_PRESETS[] = {
     /* name, {CHIP, WAVE, DUTY, CRSH, CUT, VIB, BEND, MASK} (JIANT 0.4: BYTE first; CUT BEND MASK were SWP ARP TONE) */
     /* BYTE: 8 bits, ALGO B02 (DUTY 4 / 4 = 1); B17 (64 / 4 = 16) with VAR 40 (a = 6); B05 folded (BEND), resonant */
@@ -661,6 +662,12 @@ static const preset_t LOFI_PRESETS[] = {
     {2030, {2, 0, 20, 60, 70, 30, 10, 45}, {0, 72, 24, 52}, 22, 0, FX(0, 20, 54, 34), PAT(8),
      {XP(P_LRATE, 56), XP(P_LWAVE, 3), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* G: arp */
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_LOFI_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t LOFI_PRESETS[PRESET_N_LOFI_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const param_desc_t LOFI_CH[2] = {
     {"BITS+", F_PCTINV, 0, 127, 127, 0, 0}, {"RATE+", F_PCTINV, 0, 127, 127, 0, 0},

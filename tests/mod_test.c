@@ -1524,6 +1524,7 @@ static void test_fase3(void)
 
 int main(int argc, char **argv)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     test_off();
     test_math();
     test_midi();

@@ -455,6 +455,7 @@ static void demos(const char *dir)
 
 int main(int argc, char **argv)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     colour();
     tracking();
     clock_test();

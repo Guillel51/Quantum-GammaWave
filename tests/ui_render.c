@@ -2779,6 +2779,7 @@ static int home_main(void)
 int main(int argc, char **argv)
 {
     const char *out = argc > 1 ? argv[1] : "build/ui_new";
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     char path[600];
     uint32_t p, s;
     if (argc > 1 && !strcmp(argv[1], "--regions"))

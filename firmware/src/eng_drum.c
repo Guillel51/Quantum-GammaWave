@@ -524,6 +524,7 @@ static int32_t drum_keys(const track_t *t, uint32_t k)
 }
 
 /* {MRPH, TUNE, TONE, DECY, NOIS, FM, FOLD, DRV}; the kit suggests the BEAT pattern (GM notes) */
+#ifdef QG_PRESET_SOURCE
 static const preset_t DRUM_PRESETS[] = {
     {913, DRUM_KIT_E, {0, 100, 127, 100}, 0, 0, FX(4, 0, 0, 18), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},   /* (core.h: SAMPLE PERC's too) */
@@ -564,6 +565,12 @@ static const preset_t DRUM_PRESETS[] = {
     {1089, {86, 64, 62, 46, 90, 24, 18, 24}, {0, 60, 0, 34}, 0, 1, FX(18, 14, 26, 30), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* F: clap */
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_DRUM_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t DRUM_PRESETS[PRESET_N_DRUM_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 
 static const engine_t ENG_DRUM = {
     .name = "DRUM",

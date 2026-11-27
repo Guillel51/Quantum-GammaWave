@@ -669,6 +669,7 @@ static int keep_test(void)
 
 int main(void)
 {
+    voices_boot();   /* (FASE 1/8) the factory library is decoded in .bss, as the sine is */
     int bad = 0;
     bad += store_test();
     bad += cut_test();

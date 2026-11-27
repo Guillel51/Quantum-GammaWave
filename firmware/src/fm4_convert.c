@@ -63,6 +63,7 @@ static const char *const N_FMALG[] = {"1", "2", "3", "4", "5", "6", "7", "8"};
 static const char *const N_RATIO[] = {".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"};
 
 /* the factory presets (the stores' preset numbers of engine 1 index this table) */
+#ifdef QG_PRESET_SOURCE
 static const preset_t DIGITAL_PRESETS[] = {
     /* ALG R2 R3 R4 INDEX MODDEC FDBK - */
     {3119, {4, 1, 1, 14, 70, 55, 0, 0}, {0, 80, 40, 60}, 0, 0, FX(0, 50, 25, 35), PAT(6)},
@@ -74,6 +75,12 @@ static const preset_t DIGITAL_PRESETS[] = {
     {1126, {4, 4, 1, 1, 60, 30, 0, 0}, {0, 80, 0, 60}, 0, 0, FX(0, 0, 25, 40), PAT(3)},
     {3132, {3, 1, 3, 5, 90, 25, 20, 0}, {0, 45, 30, 30}, 0, 0, FX(0, 20, 30, 20), PAT(6)},
 };
+#else
+#include "preset_counts.h"   /* (FASE 1/8) PRESET_N_DIGITAL_PRESETS: the size of the .bss array the boot decoder fills */
+preset_t DIGITAL_PRESETS[PRESET_N_DIGITAL_PRESETS];     /* (FASE 1/8) the factory library, decoded in place at boot
+                                        * (engines.c presets_pack_init, from the pack
+                                        * tools/gen_preset_pack.py builds out of the table above) */
+#endif
 #define FM4_NPRESETS 8u
 _Static_assert(NELEM(DIGITAL_PRESETS) == FM4_NPRESETS, "DIGITAL presets");
 /* DIGITAL preset k -> the FM6 factory preset (= its PTCH) that covers that sound */
