@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v1.11.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.16.4` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 Quantum GammaWave
 
@@ -37,7 +37,7 @@ Designed around 6 independent tracks, 12 shared voices and 10 synthesis engines,
 
 Its visual identity is just as important as its sound. The 240 × 240 interface features rich 16-bit graphics, animated visualizations, gradients and 19 selectable color palettes, with a consistent design language throughout the instrument. Physical controls remain immediate and intuitive, while the browser-based emulator and Web Studio make it possible to explore, edit and experience Quantum GammaWave without installing additional software.
 
-This is more than a firmware update: it is an ongoing evolution of the FM-1 platform, combining expanded synthesis capabilities, a redesigned interface and carefully optimized performance while preserving the character and portability of the original hardware.
+This is more than a firmware update: it is an ongoing evolution of the FM-1 platform, combining synthesis capabilities, a redesigned interface and carefully optimized performance while preserving the character and portability of the original hardware.
 </div>
 
 ---
