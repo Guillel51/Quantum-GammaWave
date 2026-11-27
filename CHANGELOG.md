@@ -1,3 +1,18 @@
+## v2.19.0 — FASE 7: el vúmetro de HOME está donde se lee
+
+El suelo de seis barras que `hv_air()` dibujaba al pie del panel era el «vumetro debajo de todo» de HOME:
+en OVERVIEW («HOME 3/5») caía bajo la rejilla de pasos, sin ninguna pista a la que atarlo. Ahora OVERVIEW
+pide sólo ascuas y cada fila de pista lleva su medidor dentro —`trk[].vu` como barra de 2 px, `trk[].peak`
+como tope—, los mismos dos números que ya muestran los medidores del MIXER. El medidor fantasma de
+PERFORMANCE sigue fuera: no se ha tocado.
+
+Coste: +32 B de código (XIP 456 660 B, imagen 581 700 B). 3 321 fotogramas de `ui_render` revisados y base
+de píxeles actualizada; 316 dorados sin cambios; `ui_test`, `text_ref_test` y `target_budget` en verde.
+
+Lo que no entra y por qué, medido: XIP tiene ~1,9 KB libres, así que la renovación global (profundidad en
+más gráficos, knobs con respuesta dibujada, SHIFT / PATTERN / TILT / LFO SHAPE / PRESETS NOFAV / MASTER,
+ANALOG Morph) necesita primero recuperar 2–4 KB de código. Detalle en `docs/FASE7_HOME_VU_2026-11-27.md`.
+
 ## v2.18.0 — FASE 6 (en curso): Punch In FX, las teclas que el DSP está corriendo
 
 El mapa de Punch In FX sólo recoloreaba las teclas **negras** al entrar: los nueve efectos y los seis mutes se

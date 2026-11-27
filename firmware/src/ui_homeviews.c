@@ -148,7 +148,13 @@ static void hv_overview(const track_t *t, uint16_t c)
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
     hv_grad();                                         /* (4.1) the ground */
-    hv_air(Y_LABEL, 202 - Y_LABEL, c, 6u, 1);                         /* (FASE 2) OVERVIEW had no ambience at all */
+    /* (FASE 7) THE VU IS A ROW OF THE INSTRUMENT, NOT A SKIRT. The six bars hv_air's floor draws -- one a track,
+     * fed by trk[].vu, the level fx.c publishes -- used to land on the panel's last 18 rows, under everything else:
+     * a meter at the very foot of HOME's third screen that measured nothing the eye could tie to a track. They are
+     * the track's own meter now, one 2 px line inside that track's row, right under its steps, with the peak cap
+     * the block measured (trk[].peak): the same numbers, where the row they belong to already is. The ambience
+     * stays (embers only), so the screen still breathes. */
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 6u, 0);
 
     /* pass 0: what is loaded and what it is doing */
     hv_strip(29, c);                                   /* (4.1) which screen this is, as an icon */
@@ -226,9 +232,11 @@ static void hv_overview(const track_t *t, uint16_t c)
                     used = 1;
                 cv_rect(32 + (int32_t)i * 3, y, 2, 6, on ? (k == song.sel ? c : T_THEME) : T_RAISE);
             }
-            /* the level it is making now: the peak the meters use (trk[].peak), a 12 px cap */
-            hv_bar(224, y + 1, 12, 4, q->peak > 0 ? q->peak * 12 / 32767 : 0, 12,
-                   k == song.sel ? c : T_THEME, T_RAISE);
+            /* the level it is making now, along the row: the block's peak (trk[].vu, what fx.c publishes) as the
+             * bar and the block's own peak (trk[].peak) as its cap -- the two numbers the mixer's meters show */
+            hv_bar(32, y + 7, 192, 2, q->vu > 0 ? q->vu : 0, 32767, k == song.sel ? c : T_THEME, T_RAISE);
+            if (q->peak > 0 && q->vu > 0)
+                cv_rect(32 + (q->peak > 32767 ? 32767 : q->peak) * 191 / 32767, y + 7, 1, 2, c);
             if (!used)
                 cv_text(32, y, &AF_S, "-", T_DIM);
         }
