@@ -2526,8 +2526,11 @@ static __attribute__((noinline)) void mc_job(uint32_t a)  /* core 1: the buses (
     uint32_t i, n = a >> 8;
     if (a & MC_FX)
         fx_run(n);
-    for (i = 0; i < n; i++)
-        c1_mix.l[i] = c1_mix.r[i] = c1_mix.c[i] = c1_mix.d[i] = c1_mix.rv[i] = c1_mix.sl[i] = c1_mix.sr[i] = 0;
+    if (a & 0x3Fu)                                   /* (FASE 4) only when a part adds into them: with no part the
+                                                      * buffers are not joined, and clearing them was 896 B of
+                                                      * stores on core 1 every block for nothing */
+        for (i = 0; i < n; i++)
+            c1_mix.l[i] = c1_mix.r[i] = c1_mix.c[i] = c1_mix.d[i] = c1_mix.rv[i] = c1_mix.sl[i] = c1_mix.sr[i] = 0;
     for (i = 0; i < NPART; i++)
         if ((a >> i) & 1u) {
             mc_cur = (int8_t)i;
@@ -2535,12 +2538,21 @@ static __attribute__((noinline)) void mc_job(uint32_t a)  /* core 1: the buses (
         }
     mc_cur = -1;
 }
-static uint32_t mc_cost(const track_t *t)               /* a part's share of the work, roughly: its voices by engine */
+/* (FASE 4) mc_cost stays as the definition of the weight -- a part's voices by engine -- and as the mirror
+ * tests/ui_test.c checks the split against; the block no longer calls it (mc_split below counts every part in one
+ * pass over the pool). */
+static uint32_t mc_cost(const track_t *t)
 {
+    /* (FASE 4) COUNTED OVER THE POOL, NOT OVER THE WINDOW. This walked NPART's NVOICE slots with the per-part
+     * indirection (V(t, k) is vpool[t->vidx[k]], a dependent load each), 6 x 12 = 72 of them every block, twice
+     * over inside mc_split -- and most of those slots are the inert one (a part's window is three or four wide).
+     * vown[] already says who owns each of the 18 slots (voice.c, kept by the window's grant and lend), so the
+     * same count comes from 18 slots with no indirection. Measured by tests/target_budget.py: BLOCK_PATH. */
     const engine_t *e = ENGINES[t->engine];
-    uint32_t k, v = 0, w = e == &ENG_FM6 ? 4u : e == &ENG_LOFI || e == &ENG_NOISE ? 2u : 3u;
-    for (k = 0; k < NVOICE; k++)
-        v += V(t, k).active;
+    uint32_t s, v = 0, w = e == &ENG_FM6 ? 4u : e == &ENG_LOFI || e == &ENG_NOISE ? 2u : 3u;
+    uint8_t own = (uint8_t)((uint32_t)(t - trk) + 1u);
+    for (s = 0; s < VDEAD; s++)
+        v += (uint32_t)(vown[s] == own) & (uint32_t)(vpool[s].active != 0);
     return v ? 1u + v * w : 0u;
 }
 /* (0.6.73) what each part really took, measured as it renders (on either core: TIMER4, 24 MHz), smoothed over a few
@@ -2571,11 +2583,21 @@ static __attribute__((noinline)) void mix_part_m0(track_t *t, uint32_t n) { mix_
  * go together, as one (DRUM-X's kit and its IMAGE / SEND buffers are one for all): on one core or the other */
 static __attribute__((noinline)) uint32_t mc_split(uint32_t c1)   /* c1: what core 1 has already (0.6.75: the buses) */
 {
-    uint32_t i, j, c0 = 0, mask = 0, cost[NPART + 1], unit[NPART + 1], nu = 0, left = 0;
+    uint32_t i, j, c0 = 0, mask = 0, cost[NPART + 1], unit[NPART + 1], nu = 0, left = 0, vc[NPART] = {0};
+    /* (FASE 4) THE PARTS' VOICES IN ONE PASS OVER THE POOL. mc_cost() walks a part's NVOICE window with the
+     * per-part indirection (V(t, k) is vpool[t->vidx[k]]): 6 x 12 = 72 dependent loads, twice over inside this
+     * function, every block, and most of those slots are the inert one. vown[] says who owns each of the 18 pool
+     * slots (voice.c keeps it on every grant and lend), so one pass over 18 slots with no indirection gives every
+     * part's count; the split then reads vc[]. Same numbers, the audio thread does less of them. */
+    for (i = 0; i < VDEAD; i++)
+        if (vown[i] && vpool[i].active)
+            vc[vown[i] - 1u]++;
     cost[0] = unit[0] = 0;
     nu = 1;                                              /* (item 0: the DRUM parts) */
     for (i = 0; i < NPART && i < trk_live; i++) {
-        uint32_t v = mc_cost(&trk[i]), c = v ? mc_tk[i] + v * MC_VW : 0u;
+        const engine_t *e = ENGINES[trk[i].engine];
+        uint32_t w = e == &ENG_FM6 ? 4u : e == &ENG_LOFI || e == &ENG_NOISE ? 2u : 3u;
+        uint32_t v = vc[i] ? 1u + vc[i] * w : 0u, c = v ? mc_tk[i] + v * MC_VW : 0u;
         if (!c)
             continue;
         if (ENGINES[trk[i].engine] == &ENG_DRUM) {

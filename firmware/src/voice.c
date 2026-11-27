@@ -773,7 +773,10 @@ static int voice_room(track_t *t, int soft)
 {
     track_t *vp = 0;
     uint32_t k;
-    if (voices_busy() < voice_cap()) {
+    /* (FASE 4) THE SCAN ONLY WHEN THE POOL COULD BE AT ITS CAP. voice_live counts every active voice (fading
+     * ones too), so it is an upper bound of voices_busy(): below the cap, the scan cannot change this branch.
+     * Measured with tests/alloc_bench.c: a note starts without walking 6 x 12 slots. */
+    if (voice_live < voice_cap() || voices_busy() < voice_cap()) {
         /* (v1.5.17) THE LOAD GOVERNOR DOES NOT CUT A TAIL HERE ANY MORE. load_tight used to take a released
          * tail with the budget free (below, and in voice_alloc), to keep the voice count flat above 65 % of a
          * half. A tail in release renders every sample a new note does, so the kill bought no CPU at all -- it
@@ -845,11 +848,12 @@ static voice_t *voice_alloc(track_t *t, uint32_t note)
      * load_tight alone decided the branch. Under the budget -- where a busy unit spends its notes -- the
      * scan is now skipped until a victim is actually needed, and otherwise the count is taken once. */
     if (nfree) {
-        uint32_t busy = voices_busy();                  /* (v1.5.17: taken once, and load_tight no longer
-                                                         * sends a note to a tail while a slot is free) */
         track_t *vp = 0;
         uint32_t k;
-        if (busy >= voice_cap()) {                      /* (0.6.18: a dying tail when the budget is full) */
+        /* (FASE 4) voice_live is an upper bound of voices_busy(): under the cap the pool cannot be full, and the
+         * exact scan (and the victim search behind it) runs only when it could be. Same branch, same steals. */
+        if (voice_live >= voice_cap() && voices_busy() >= voice_cap()) {   /* (0.6.18: a dying tail when the
+                                                                           * budget is full) */
             k = quiet_tail(&vp);
             if (k == NVOICE)
                 k = voice_victim(t, 0, &vp);

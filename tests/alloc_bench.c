@@ -52,7 +52,24 @@ int main(void)
             trk_note_off(&trk[0], note);
         }
     ns_free = (bench_ns() - t0) / (double)(n * keys);
-    printf("alloc_bench: same note again %.1f ns, new note %.1f ns per note (host x86-64, %u x %u)\n",
-           ns_one, ns_free, n, keys);
+    /* (FASE 4) THE COMMON CASE: a part playing a chord that is far from the pool's cap, so the allocator's
+     * question "is the shared budget full?" can be answered without walking the parts' slots. */
+    {
+        const uint32_t few = 4u;
+        double ns_under;
+        fresh();
+        for (k = 0; k < few; k++)
+            trk_note_on(&trk[0], 48u + 2u * k, 100);
+        t0 = bench_ns();
+        for (r = 0; r < n; r++)
+            for (k = 0; k < few; k++) {
+                uint32_t note = 36u + ((r * few + k) % 48u);
+                trk_note_on(&trk[0], note, 100);           /* new notes, pool well under its cap */
+                trk_note_off(&trk[0], note);
+            }
+        ns_under = (bench_ns() - t0) / (double)(n * few);
+        printf("alloc_bench: same note again %.1f ns, new note %.1f ns per note, new note under the cap %.1f ns (host x86-64, %u x %u)\n",
+               ns_one, ns_free, ns_under, n, keys);
+    }
     return 0;
 }
