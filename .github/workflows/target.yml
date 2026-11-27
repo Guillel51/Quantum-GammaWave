@@ -86,7 +86,11 @@ jobs:
       # The emulator is part of the same build record: tools/build_manifest.py folds its manifest
       # into the firmware's and the verifier refuses a package whose wasm came from another commit.
       # Building it here is what makes that check meaningful instead of skipped.
-      - name: the emulator this record names, at this commit
+
+      - name: build (app, loader, package; the budget checks run inside)
+        run: ./build.sh
+
+      - name: the emulator this record names, at this commit (after the build that writes its tables)
         run: |
           python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
           if ! sh web/emu/build.sh > /tmp/emu-build.log 2>&1; then
@@ -96,10 +100,6 @@ jobs:
               exit 1
           fi
           tail -5 /tmp/emu-build.log
-
-      - name: build (app, loader, package; the budget checks run inside)
-        run: ./build.sh
-
       - name: the SDK is the one this tree was tested with
         run: |
           python3 - <<'EOF'

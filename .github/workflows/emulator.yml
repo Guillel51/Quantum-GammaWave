@@ -39,24 +39,6 @@ jobs:
       - run: pip install -r tools/requirements.txt
       - name: generated headers (fonts, icons, palettes, shapes, tables, samples)
         run: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
-      - uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 6.0.11                # (the version the emulator is tested with)
-      - name: the emulator
-        env:
-          EMU_PREVIEW: "0"
-        run: sh web/emu/build.sh
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)
-        run: BENCH_MAX=1.5 node web/emu/emu_test.mjs build/emu/felucca.wasm
-      - name: the emulator as an artifact (every branch, every PR)
-        uses: actions/upload-artifact@v4
-        with:
-          name: emulator-${{ github.sha }}
-          path: build/emu
-          retention-days: 14
       # (JIANT) the installer and the web editor next to the emulator: the package needs JieLi's toolchain (downloaded)
       # and three files of their AC79 SDK (a partial clone: only those blobs). If any of it fails the emulator still
       # goes up. (QG-1 stage 3) On every pull request too: the DSP budget and the .fwsc reader need the target
@@ -93,6 +75,32 @@ jobs:
               /cpu/wl82/tools/cfg/eq_cfg_hw.bin && retry git checkout
           fi
           test -s "$T/uboot.boot" && test -s "$T/cfg_tool.bin" && test -s "$T/cfg/eq_cfg_hw.bin"
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.11                # (the version the emulator is tested with)
+      - name: the emulator
+        env:
+          EMU_PREVIEW: "0"
+          AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+          JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+        run: |
+          # (FASE 5e) the emulator compiles the firmware's packed tables (preset_pack.h, lz4_tables.h), which the
+          # packing pass inside ./build.sh writes: building the emulator first stopped at "preset_pack.h not found"
+          if [ ! -f build/gen/preset_pack.h ]; then
+              ./build.sh
+          fi
+          sh web/emu/build.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)
+        run: BENCH_MAX=1.5 node web/emu/emu_test.mjs build/emu/felucca.wasm
+      - name: the emulator as an artifact (every branch, every PR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-${{ github.sha }}
+          path: build/emu
+          retention-days: 14
       - name: the package, the installer and the editor
         if: steps.tc.outcome == 'success'
         continue-on-error: true

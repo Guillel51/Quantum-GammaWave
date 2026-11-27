@@ -11,6 +11,10 @@
 set -e
 cd "$(dirname "$0")/../.."
 [ -f build/gen/felucca_tables.h ] || { echo "emu: run ./build.sh once first (build/gen)"; exit 1; }
+# (FASE 5e) THE PACKED TABLES COME FROM A FIRMWARE BUILD: preset_pack.h and lz4_tables.h are written by the
+# packing pass inside ./build.sh (they are read out of the compiler's own object), so an emulator built before
+# any target build -- target.yml and emulator.yml used to do exactly that -- stopped at "preset_pack.h not found".
+[ -f build/gen/preset_pack.h ] || { echo "emu: build/gen/preset_pack.h is missing: run ./build.sh first (the emulator compiles the firmware's packed tables)"; exit 1; }
 # (2.16) FOUND, NOT ASSUMED: emcc is not on the PATH in this project's own setup -- the SDK lives in
 # $HOME/emsdk and is reached by sourcing emsdk_env.sh -- so a clean shell said "no emcc" with Emscripten
 # installed. tools/emu_env.sh looks in PATH, $EMSDK, ~/emsdk, /opt/emsdk and /tmp/emsdk, and adds
