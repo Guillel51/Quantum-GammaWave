@@ -1,3 +1,17 @@
+## v2.18.0 — FASE 6 (en curso): Punch In FX, las teclas que el DSP está corriendo
+
+El mapa de Punch In FX sólo recoloreaba las teclas **negras** al entrar: los nueve efectos y los seis mutes se
+distinguían únicamente por su texto vertical. Ahora una tecla blanca activa eleva su cuerpo hacia el acento de la
+paleta, con el mismo `perf_held | perf_latched` que ejecuta el ISR: 21 de los 3 321 fotogramas del barrido cambian,
+1 737 píxeles en `GREY_perform_held` con delta máximo 99/255, y nada fuera de las escenas del mapa. Base de píxeles
+actualizada y verificada (3 321 idénticos); 316 dorados sin cambios; AC791N `image 581668 B`.
+
+Lo que falta está medido, no supuesto: la banda de intensidad por tecla (`t->pfx_sc`, `pfx_vib`, `pfx_dvn`) y el
+flash de pulsar/liberar **no enlazan** — `region XIP overflowed by 1608 bytes`, y la versión mínima tampoco. XIP
+tiene ~1 KB real libre (576 888 B de 583 612 menos `.ram_text`/`.c1_text`/`.data`), no los 6,7 KB que sugiere la
+resta de código+constantes. Recuperar ~2 KB de XIP es el paso previo al resto del rediseño y a la pasada de FX
+BUSES (icono de DELAY, los seis bloques, los cuatro sin revisar, páginas 1/3 y de DELAY/REVERB).
+
 ## v2.17.0 — FASE 5: la auditoría de los diez motores, medida, y el DC de PHASE
 
 Un knob que está en la tabla y no en el DSP se ve igual que uno que funciona, así que la auditoría no se hizo
