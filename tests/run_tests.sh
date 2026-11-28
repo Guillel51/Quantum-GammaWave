@@ -289,6 +289,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "(FASE 2) PM: ANALOG's WAVE = PM and PHASE's LINE = PM bend the phase, move with MORPH / DCW, brighten and are not SIN / MIX / RING" "$OUT/pm_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/phase2_test" tests/phase2_test.c -lm
     run "FASE 2: every engine's CHARACTER bank moves the sound, LFO SLEW / INVERT, ENV VEL, the pages and a project round trip" "$OUT/phase2_test"
+    # (FASE 3) PHASE's tenth wave: RECT. Ten renders, one per WAVE value, ten different sounds; RECT in range,
+    # DC-blocked and deterministic; the nine waves of before keep their names (and so their stored numbers).
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/phase_wave_test" tests/phase_wave_test.c -lm
+    run "FASE 3: PHASE's ten waves are ten different sounds, RECT in range and DC-free, the old nine unchanged" "$OUT/phase_wave_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/phase5_test" tests/phase5_test.c -lm
     run "FASE 5: BAR is the bar's phase as a matrix source (silent when stopped, an arc inside the bar) and ATK DEC REL are the envelope's times as destinations (VEL -> ATK lengthens the loud note, nothing leaks)" "$OUT/phase5_test"
 

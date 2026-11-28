@@ -10,7 +10,9 @@
  * (JIANT 0.4) FB: phase feedback, line 1's output (the mean of its last two samples, as a DX operator's) bends its
  * own phase further, up to a quarter cycle: from a harder edge through growl to noise; the ENV / LFO / matrix move it
  * as E8. */
-static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC"};
+static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC",
+                                       "RECT"};   /* (FASE 3) appended: the stores' 0..8 keep their wave, and a
+                                                    * project or preset of before this version loads on the same one */
 static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
 static const char *const N_PD_LINE[] = {"MIX", "RING", "PM"};   /* (FASE 2: PM appended, the stores' 0 / 1 stay).
                                                                   * (FASE 6) LINE = FOLD was designed and measured
@@ -59,6 +61,11 @@ static void pd_setup(pd_t *b, uint32_t w, uint32_t dcw)
         break;
     case 8:                                                  /* (ETAPA 4) SYNC: the carrier's ratio in eighths, 1 .. 8 */
         b->x = 8u + ((dcw * 56u) >> 16);
+        return;
+    case 9:                                                  /* (FASE 3) RECT: no bend -- the half-wave rectified
+                                                              * cosine (pd_wave); DCW keeps its meaning as the
+                                                              * second line's index, as on every other wave */
+        b->x = 0;
         return;
     case 4:                                                  /* SAW-PULSE */
         x = 65535u - ((dcw * 32767u) >> 16);
@@ -113,6 +120,16 @@ static int32_t pd_wave(const pd_t *b, uint32_t ph)
                                                               * DCW is the ratio, so the sweep goes from a pure sine to a
                                                               * hard, metallic one at 8x */
         return pd_cos(((ph * b->x) >> 3) & 0xFFFFu);
+    case 9: {                                                /* (FASE 3) RECT: the cosine with its negative half
+                                                              * removed. The even harmonics that appear (the second one
+                                                              * is as strong as the fundamental) give a hollow, reedy
+                                                              * tone an octave above what the key plays; the offset the
+                                                              * rectification adds is taken by the engine's DC blocker
+                                                              * (FASE 5), so the voice stays centred. Two instructions a
+                                                              * sample: a compare and a select, no state, no divide. */
+        int32_t y = pd_cos(ph);
+        return y < 0 ? 0 : y;
+    }
     default: {                                               /* RESONANCE: windowed sine, rez = pitch of the core */
         uint32_t rp = (ph + ((ph * b->rez) >> 16) * 7u) & 0xFFFFu, win;
         int32_t core = (pd_cos(rp) * 5) >> 3;
@@ -157,8 +174,10 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
 {
     const int16_t *p = t->p;
     uint32_t w1 = (uint32_t)p[P_E0] & 15u, w2 = (uint32_t)p[P_E1], i;   /* (ETAPA 4) 15u: wave 8 (SYNC) is here */
-    if (w1 > 8u)
-        w1 = 8u;                                          /* a stored value past the last wave plays the last one */
+    if (w1 > 9u)
+        w1 = 9u;                                          /* a stored value past the last wave plays the last one
+                                                           * (FASE 3: 9 is RECT; 8 was the last before it, and the
+                                                           * stores of that version still name it) */
     int32_t depth = (p[P_E2] << 8) + m->cutoff + mulq15(m->envq15, p[P_E3] * 256);
     uint32_t dcw, inc = m->inc, inc2;
     int32_t det = p[P_E4], line = p[P_E5], line2 = det != 0 || line, ring = line == 1, sub = p[P_E6] * 200;
@@ -373,7 +392,7 @@ static const engine_t ENG_PHASE = {
     .name = "PHASE",
     .page_title = {"PHS", "LINE", "CHAR"},
     .edit = {
-        {"WAVE", F_ENUM, 0, 8, 0, N_PD_WAVE, 0},
+        {"WAVE", F_ENUM, 0, 9, 0, N_PD_WAVE, 0},   /* (FASE 3) 0..9: RECT appended */
         {"WAVE2", F_ENUM, 0, 8, 0, N_PD_WAVE2, 0},
         {"DCW", F_PCT, 0, 127, 60, 0, 0},
         {"ENV", F_PCT, 0, 127, 64, 0, 0},

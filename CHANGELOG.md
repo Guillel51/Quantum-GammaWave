@@ -1,3 +1,31 @@
+## v2.23.0 — PHASE gana su décima forma: RECT, el coseno rectificado
+
+**Una función sonora nueva, con ruta DSP, valor neutro y prueba de punta a punta.** PHASE ofrecía nueve formas
+(SAW, SQR, PLS, DSIN, SPLS, RSAW, RTRI, RTRP, SYNC). Se agrega **RECT**: el coseno con su media onda negativa
+eliminada. La rectificación suma armónicos pares —el segundo queda tan fuerte como el fundamental— y da un
+timbre hueco, de órgano/reed, con el cuerpo una octava arriba de la tecla; el bloqueo de DC que el motor ya
+tenía se lleva el desplazamiento, así que la voz queda centrada. Cuesta un compare y un select por muestra, sin
+estado ni división.
+
+**Neutro y compatible.** El valor nuevo es el **9**, al final del enum (el descriptor pasa de `0..8` a `0..9`),
+así que cada preset, proyecto y preset de usuario conserva exactamente la onda que guardó: los 316 renders
+dorados salen **0 changed**. El byte que lo almacena es el mismo (`P_E0` por pista), de modo que no hay
+migración; se edita con el knob WAVE de la página EDIT 1 y el nombre sale del mismo descriptor que alimenta la
+pantalla, el editor, el emulador y el `desc.json` de Web Studio.
+
+**Prueba nueva** (`tests/phase_wave_test.c`, en la suite): diez renders, uno por valor de WAVE, en procesos
+separados — diez hashes distintos, RECT dentro del headroom (pico 36 194) y centrado (media 763 de 6 400
+muestras), determinista, y los nueve nombres anteriores intactos, que es lo que protege los stores.
+
+**Lo demás de la fase, auditado y no agregado a ciegas.** Los diez motores tienen exactamente ocho parámetros de
+motor (`P_E0..P_E7`), y el formato de proyecto/preset/editor está definido sobre ese espacio: un noveno knob por
+motor no es un enum más, cambia el almacenamiento. El LFO ya tiene 12 formas, 14 divisiones con BPM, fase y
+RETRIG, FADE, CURVE, SLEW e INVERT; el SCL ya tiene círculo de grados, teclado con nombres y grados por color,
+máscara de notas sonando leída de las voces y reconocimiento de acordes con inversión. Lo único que falta del
+listado (LFO DELAY, comparación de dos escalas, teclado más ancho, la pasada visual) necesita una ranura de
+página, una ranura de modelo o una revisión de píxeles, y queda documentado con su coste en vez de dibujado sin
+ruta. Informe: `docs/FASE3_FUNCIONES_2026-11-28.md`.
+
 ## v2.22.0 — Los límites simétricos en un solo compare, y la ruta del segundo núcleo perdido probada
 
 **La Fase 2 no encontró trabajo por muestra redundante en el plumbing del audio, y lo dice con la medición en la
