@@ -69,7 +69,17 @@ jobs:
                   /cpu/wl82/tools/uboot.boot /cpu/wl82/tools/cfg_tool.bin /cpu/wl82/tools/cfg/eq_cfg_hw.bin && retry git checkout)
           fi
       - name: host tests (ASan + UBSan included; package tests skipped)
-        run: NO_PACKAGE=1 sh tests/run_tests.sh
+        # (FASE 5e) a failure that stops the script before a test (a compile line under set -e, the packing
+        # pass) leaves no FAIL line: its last lines go to the annotations too, so a red job names its cause
+        # without the private log.
+        run: |
+          set +e
+          NO_PACKAGE=1 sh tests/run_tests.sh 2>&1 | tee /tmp/suite.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" != 0 ]; then
+            tail -15 /tmp/suite.log | sed 's/^/::error::log: /'
+          fi
+          exit "$rc"
 
       # The external-reader verifier: a simulated chip with a clean pair and every way a dump lies.
       - name: external SPI dump verifier
