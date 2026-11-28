@@ -44,7 +44,7 @@ FUNCS = ["mix_block",                     # (1.4.5) the whole block: fx_buses, m
          "click_render",                                    # the metronome's click (click.c), while it sounds
          "mod_begin", "mod_voice", "mod_end",                 # the modulation matrix (mod.c), called when active
          "perf_begin", "perf_mute", "perf_pre", "perf_block", "perf_master",   # the FX layer (perform.c), when busy
-         "rev_room", "rev_room_soft", "rev_room_mod", "rev_room_mod_soft",   # (FASE 4/8) the four ROOM
+         "rev_room", "rev_room_mod", "rev_room_mod_soft",   # (FASE 4/8) the four ROOM
          # networks as the image has them (the plain and the knee, each plain and modulated)
          "rev_spring",
          "mc_split"]                                # (FASE 4) the two cores' split, every block (fx.c)                # the reverb bus (fx.c): REVERB TYPE ROOM / SPRING
@@ -62,7 +62,7 @@ DRUM_PATH = ["dx_run", "dx_layer", "dx_run_sn", "drum_render", "drum_out", "drum
 # chose to inline into which. The two lines are checked on their own AND as this sum, so work moved from one to
 # the other (an inline decision, a helper split out) cannot hide a grown total.
 BLOCK_PATH = ["mix_block", "events_block",
-              "rev_room", "rev_room_soft", "rev_room_mod", "rev_room_mod_soft"]   # (FASE 4/8) the reverb networks run inside fx_run, inside the
+              "rev_room", "rev_room_mod", "rev_room_mod_soft"]   # (FASE 4/8) the reverb networks run inside fx_run, inside the
               # block, but as calls: they were outside this sum and the phase that cut their loop could not show
               # it here. They are weighted like the rest now (mix_block -> fx_run -> rev_room is three levels).
 # (FASE 4/8) The FM6 voice block as a whole. fm6_render is the block loop; fm6_note_compute is inlined into it,

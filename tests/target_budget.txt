@@ -87,12 +87,13 @@ rev_spring 126
 DRUM_PATH 1153
 mc_split 97
 rev_room 152
-rev_room_soft 135
 rev_room_mod 0
 rev_room_mod_soft 0
 # (FASE 4, 2026-11-27) 35 132 -> 34 380 by taking the modulo out of the mix path: `(t - trk) % NTRK` on sixteen
 # hot sites was an integer divide per part, per block, over an index that is already a slot (NTRK == NPART and every
-# caller holds &trk[i]). events_block 34 729 -> 33 977. The four reverb networks stay in the sum (rev_room 152,
-# rev_room_soft 135) -- they are the mix block's work, not a separate path.
+# caller holds &trk[i]). events_block 34 729 -> 33 977. The reverb networks stay in the sum (rev_room 152,
+# rev_room_mod, rev_room_mod_soft) -- they are the mix block's work, not a separate path. rev_room_soft was the
+# CLOUD path's knee copy of rev_room until the cloud rework took it inside rev_room_mod_soft: the compiler had
+# already dropped it (nothing called it), so the image's bytes did not change when the source did.
 BLOCK_PATH 34380
 FM6_PATH 404

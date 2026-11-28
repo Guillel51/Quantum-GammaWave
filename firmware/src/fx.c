@@ -46,8 +46,8 @@ static const uint16_t REV_AP[2] = {556, 441};
  * the allpasses, SHIMMER in shim_buf, CLOUD in cloud_buf. No model READS another's line, and fx_block already
  * fades a model out and calls rev_clear() before the new one starts, so the four lines are one union now --
  * (FASE 3/8) with one caveat this union cannot avoid: CLOUD's bloom runs through ROOM's network, so its combs and
- * allpasses ARE memory its line also uses: that is why the CLOUD path writes them through rv_knee (rev_room_soft)
- * and no int16 cell of this union ever sits at the rail.
+ * allpasses ARE memory its line also uses: that is why the CLOUD path writes them through rv_knee
+ * (rev_room_mod_soft, soft = 1) and no int16 cell of this union ever sits at the rail.
  * 32 768 B instead of 48 734, 15 966 B the pool gets back with the same samples on the wire. */
 static union {
     uint32_t raw[CL_LEN / 2u];           /* 4-byte aligned: the widest line, CLOUD's */
@@ -1325,12 +1325,6 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
     rev_room_core(rev_in, out, n, 0);
 }
 
-/* CLOUD's own network: the same loop, written through the knee (soft is a constant here, so the loop carries no
- * branch: the compiler keeps the two copies apart) */
-static __attribute__((noinline)) void rev_room_soft(const int32_t *rev_in, int32_t *out, uint32_t n)
-{
-    rev_room_core(rev_in, out, n, 1);
-}
 /* (JIANT) ROOM with its networks modulated (G_RMOD > 0): each comb read up to ~5.7 ms nearer (between samples, the
  * depth square law, the offset ramped sample by sample: no steps), by a slow sine of G_RRATE a quarter apart per
  * comb: the resonances drift and detune, the ringing smears into a chorused, wide tail. WIDE wd (0.3): combs 1, 3

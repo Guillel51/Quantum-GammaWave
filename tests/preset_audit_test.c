@@ -357,6 +357,11 @@ int main(int argc, char **argv)
     uint32_t total = 0, silent = 0, hot_presets = 0, dup_names = 0, dup_params = 0, out_of_range = 0, dc_bad = 0;
     printf("preset audit: every factory preset through the real load and render (host x86, %u Hz)\n", (unsigned)FS);
     printf("%-8s %6s %7s %6s %8s %8s %6s %7s\n", "engine", "presets", "silent", "hot", "dupn", "dupp", "range", "dc max");
+    /* (FASE 5e) THE TABLES ARE DECODED BEFORE THEY ARE READ. The factory library is a .bss array that
+     * voices_boot() fills from the pack, and the render path below used to be the first caller: the structure
+     * check then read ANALOG's first record from a zeroed array and reported an empty name that the unit never
+     * has (the host job's "PRESETS" failure). One boot up front, and every reader below sees the library. */
+    host_tracks_init();
     for (e = 0; e < NENGINES; e++) {
         const engine_t *en = ENGINES[e];
         uint32_t n = en->npresets, e_silent = 0, e_hot = 0, e_dupn = 0, e_dupp = 0, e_range = 0;
@@ -377,7 +382,8 @@ int main(int argc, char **argv)
                 }
             if (!PR_NAME(p)[0] || p->env[0] > 127 || p->env[1] > 127 || p->env[2] > 127 || p->env[3] > 127) {
                 e_range++;
-                printf("  range: %-8s %-16s name empty or an envelope stage past 127\n", en->name, PR_NAME(p));
+                printf("  range: %-8s #%u %-16s name=\"%s\" env=%u,%u,%u,%u\n", en->name, (unsigned)i, PR_NAME(p), PR_NAME(p),
+                   p->env[0], p->env[1], p->env[2], p->env[3]);
             }
             for (k = 0; k < i; k++)
                 if (strcmp(PR_NAME(p), PR_NAME(&en->presets[k])) == 0) e_dupn++;
