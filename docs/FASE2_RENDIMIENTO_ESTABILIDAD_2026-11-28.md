@@ -195,7 +195,7 @@ No se realizó ninguna escritura sobre un FM-1 físico.
 
 | grupo | comando | resultado | clase |
 |---|---|---|---|
-| suite de host completa | `NO_PACKAGE=1 tests/run_tests.sh` | ver §5.1 | host x86-64 |
+| suite de host completa (con el paquete de la release) | `tests/run_tests.sh` | **ALL HOST TESTS PASSED**, 0 FAIL | host x86-64 |
 | regresiones doradas / salud / voces / rutas | `build/regress` | 316 renders, 0 changed, 0 health, 0 routing | host x86-64 |
 | motores y FX | `phase2_test`, `fx`/`reverb`/`dly_echo`/`analog_sync_test`, `param_sweep` | ok | host x86-64 |
 | estrés con ASan/UBSan | `tests/stress_run.sh 3` | ok | host x86-64 |
@@ -220,3 +220,15 @@ en los lazos, no una medición de tiempo.
   recuperación grande tendría que salir de código (`ui_input_frame`, `fm1_main`, `draw_columns`, `graph_tech`,
   `.pool`), no de banderas.
 - **Instalador público**: la habilitación sigue atada a la matriz; esta fase no cambia ninguna fila a `GO`.
+
+## 7. Entrega
+
+- Código, pruebas, CHANGELOG y este informe: commit **`399389d3`**.
+- Paquete, emulador, sitio, instalador, manifiestos y hashes: commit **`5fc85608`** (árbol desde el que se
+  construyó la release).
+- Release **v2.22.0**: <https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.22.0> — tag anotado sobre
+  `5fc85608`, cinco activos (`felucca-v2.22.0.fwsc` 610 946 B, su manifiesto, `build-manifest-v2.22.0.json`,
+  `qg1-emulator-v2.22.0.zip` y `SHA256SUMS`). El `.fwsc` descargado de la release tiene el mismo SHA-256 que el
+  construido aquí: `35cb444f53877672…`.
+- `coherence_check.py`: ok (1 694 archivos, paquete y manifiesto de acuerdo, emulador del mismo commit);
+  `web/test_site.py`: 0 FAILED; los ocho workflows de `main` en `passing`.
