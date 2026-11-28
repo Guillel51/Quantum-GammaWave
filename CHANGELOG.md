@@ -1,3 +1,27 @@
+## v2.20.2 — Los tests de host construyen sus tablas, y los tres rojos del CI dicen qué fallaba
+
+**La suite de host no podía compilar en un árbol limpio.** Compila `preset_pack.h` y `lz4_tables.h`, que sólo escribe
+la pasada de empaquetado de `./build.sh`; el job los buscaba antes de cualquier build y moría en el primer
+`#include`. `tests/run_tests.sh` los detecta y construye con `JIELI_TOOLCHAIN` / `AC79_SDK` (el job ya descargaba
+el toolchain fijado; ahora apunta a él, como `target.yml`), y la suite de host ya se puede reproducir desde un
+checkout vacío — medido en una copia limpia del árbol, no sólo en el árbol de trabajo.
+
+**La auditoría de presets leía la biblioteca antes de decodificarla.** El banco de fábrica es un array `.bss` que
+`voices_boot()` rellena desde el pack; la comprobación de estructura corría antes de ese boot, leía el primer
+registro de ANALOG en ceros y denunciaba un nombre vacío que la unidad nunca tiene. Ahora arranca una vez, arriba,
+y la línea de error nombra el índice.
+
+**`target_budget` pedía una función que el compilador ya había tirado.** La reescritura del Cloud metió el camino
+suave dentro de `rev_room_mod_soft`; `rev_room_soft` quedó sin llamador (el símbolo no está en la imagen) y el
+chequeo fallaba por un nombre ausente. Se va la copia muerta y con ella las listas y el comentario del presupuesto.
+La imagen no cambia: el compilador ya no la emitía.
+
+**El paso de reproducibilidad de `target.yml`** borra `build/` y construía el emulador antes del firmware, que es
+justo lo que el emulador ya no puede hacer (necesita `preset_pack.h` de la pasada de empaquetado): el firmware va
+primero. **La línea base de píxeles** se rebasa a v2.20.1 — el bump de versión mueve el splash y el about, y esos 48
+frames estaban en la base anterior. Y un test que falla ahora se anuncia en las **anotaciones** de la ejecución
+(nombre y últimas ocho líneas), que es lo único legible sin derechos de administrador sobre el repositorio.
+
 ## v2.20.1 — El build sin almacenamiento vuelve a existir, y el paso del emulador dice por qué falla
 
 **`FELUCCA_FLASH=0` no compila ni el banco de voces ni los nombres de preset,** así que la pasada LZ4 de FASE 5c no
