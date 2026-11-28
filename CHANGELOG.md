@@ -1,3 +1,43 @@
+## v2.21.0 — El inliner deja de copiar las pantallas: 3 520 B de XIP recuperados, el audio intacto
+
+**El margen XIP estaba en 2 068 B sobre el mínimo de 2 048.** La medición limpia de HEAD (`rm -rf build &&
+./build.sh`, clase de medición **build AC791N**, no una estimación) daba código 457 816 B + constantes 118 948 B
+= 576 764 B de XIP, imagen de 581 544 B de 583 612. Las banderas de compilación ya eran las de tamaño
+(`-Oz`, `-ffunction-sections`, `-fdata-sections`, `--gc-sections`) y el linker no dejaba hueco de alineación
+(554 de 589 secciones `.rodata` contiguas, 462 B de huecos en total), así que lo que quedaba por recortar era
+código real: el inliner seguía copiando cuerpos de función dentro de cada llamador, y en un árbol de 2 203
+funciones con pantallas de tamaño de página llamadas desde una docena de sitios esas copias eran kilobytes.
+
+**Medido, no supuesto.** `-fno-inline-functions` en el árbol entero devuelve 3 248 B (imagen 578 296 B, 5 316 B
+libres) pero **rompe el presupuesto del camino de batería**: `tests/target_budget.py` mide `DRUM_PATH` 1 980
+contra un presupuesto de 1 153 (+72 %), porque los lazos del DRUM pierden los inlines de los que dependen. Se
+descartó también el camino inverso (marcar `noinline` a todo lo que no alcanza una interrupción: 582 748 B,
+864 B libres — peor que el estado inicial) y el outliner de máquina (el toolchain lo rechaza). Lo que sí entra:
+`-mllvm -inline-threshold=1`, que deja al inliner copiar sólo lo trivial, **más** las dos primitivas que los
+lazos del DSP necesitan inline y que antes el inliner copiaba en cada uno de sus 933 sitios.
+
+**Cómo queda el reparto.** `dsp.c` define `clamp` y `mulq15` dos veces: la forma `always_inline` (`clamp_i`,
+`mulq15_i`) que seleccionan `engines.c` y el bloque de sonido de `felucca.c` con `#define`, y **una sola copia
+fuera de línea** que usan las pantallas, que pueden permitirse la llamada. No se toca ninguna función, ninguna
+voz, ninguna tabla, ningún umbral y ningún píxel: los 3 353 frames de `tests/ui_pixels.txt` quedan idénticos
+salvo los 48 del splash y ABOUT que dibujan la versión, rebasados en este mismo commit.
+
+| ventana | antes (v2.20.4) | ahora (v2.21.0) |
+|---|---|---|
+| código en XIP | 457 816 B | 454 304 B |
+| constantes | 118 948 B | 118 940 B |
+| XIP total | 576 764 B | 573 244 B |
+| imagen | 581 544 B | 578 024 B |
+| **libre en el slot** | **2 068 B** | **5 588 B** |
+| `.data+.bss` | 90 628 B de 98 304 | 90 608 B de 98 304 |
+
+El margen queda **2,7 veces** el mínimo obligatorio y por encima del objetivo de 4 KiB de la fase, sin bajar el
+gate y sin recortar funciones, voces, resolución ni calidad. `tests/target_budget.py` pasa con `DRUM_PATH` 1 018
+(antes 1 155), `BLOCK_PATH` 34 529 (antes 34 245, +0,8 %, dentro del 10 %), `FM6_PATH` 404 (igual), y
+`tests/resources_test.py` 13/13. La suite de host completa —ASan/UBSan, regresiones doradas de audio, renders,
+emulador— pasa en verde (`ALL HOST TESTS PASSED`); es una medición de **host x86** más un **build AC791N**, no
+una medición sobre la unidad física, que sigue sin tocarse.
+
 ## v2.20.4 — La verificación de la atestación acepta al publicador del repositorio, y lo dice
 
 **Toda release de este repositorio fallaba en el último paso de `release.yml`**, desde 1.3.x hasta v2.20.3: la

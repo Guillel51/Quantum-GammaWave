@@ -51,7 +51,7 @@ DOCKER_IMAGE = os.environ.get("JIELI_DOCKER_IMAGE", "debian:bookworm-slim")
 # (FASE 6) -flto: the app is already one IR module, but the final object used to be machine code, so the linker
 # could only concatenate. With -flto clang hands ld bitcode and ld runs LLVMgold.so over it, which is where the
 # 4 196 B came from. ld does not load the plugin on its own, so LTO_PLUGIN is passed to both links explicitly.
-CFLAGS = ["-Oz", "-ffunction-sections", "-fdata-sections", "-fno-builtin", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wall", "-Wno-unused-function"]
+CFLAGS = ["-Oz", "-mllvm", "-inline-threshold=1", "-ffunction-sections", "-fdata-sections", "-fno-builtin", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wall", "-Wno-unused-function"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)

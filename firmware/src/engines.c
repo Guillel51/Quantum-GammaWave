@@ -13,6 +13,10 @@
 
 #include "tune.c"              /* (FASE 7) the twelve cents dsp.c's pitch maths reads */
 #include "dsp.c"
+/* (FASE 1/4) the engines run in the audio ISR and on core 1: their loops keep clamp() and mulq15() inlined
+ * (dsp.c's always_inline forms), while felucca.c's screens below call the single copy. */
+#define clamp clamp_i
+#define mulq15 mulq15_i
 #include "eng_analog.c"
 #include "eng_phase.c"
 #include "eng_lofi.c"
@@ -220,3 +224,5 @@ void presets_pack_init(void)
  * harnesses neutralise the attribute (`#define __attribute__(x)` in tests/hostsim.c and the rest) so the host
  * build never runs one -- the same rule the sine and the FM6 curve have lived under since ETAPA 2. */
 #endif
+#undef clamp
+#undef mulq15

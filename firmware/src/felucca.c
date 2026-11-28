@@ -42,7 +42,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v2.20.4" /* QUANTUM GAMMAWAVE FM-1 (lineage: Pocket GammaWave, JIANT, Felucca): splash, menu,
+#define FELUCCA_VERSION "v2.21.0" /* QUANTUM GAMMAWAVE FM-1 (lineage: Pocket GammaWave, JIANT, Felucca): splash, menu,
                                     * console, editor, site, installer and emulator. This define is the single source
                                     * of the version: the package name, its manifest, the site, the installer and the
                                     * tag all derive from it (docs/VERSIONING.md). v2.5.0 opens the line that closes the
@@ -96,9 +96,16 @@
 #if FELUCCA_DUAL_CORE
 #define FELUCCA_MC_BUSY() fm1_mc_job_busy()      /* (FASE 1) core 1 mid-job: voice.c postpones the note */
 #endif
+/* (FASE 1/4) THE SOUND BLOCK'S TWO PRIMITIVES, INLINE THERE AND A CALL EVERYWHERE ELSE.
+ * tools/build.py compiles the one TU with -inline-threshold=1 because the inliner's copies of the screens cost
+ * 4 688 B, and that also dropped the inlining the drum/voice loops are budgeted on
+ * (tests/target_budget.py DRUM_PATH 1 155 -> 1 980). clamp and mulq15 have an always_inline form (dsp.c) that
+ * these files use; the UI below the audio includes falls back to the single out-of-line copy. */
 #include "preset_level.c"        /* (2.1) the measured level of every factory preset */
 #include "tune.c"              /* (FASE 7) QUANTUM TUNING: the twelve cents, read by engines.c's pitch maths */
-#include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns */
+#include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns; sets the inline clamp/mulq15 */
+#define clamp clamp_i
+#define mulq15 mulq15_i
 #include "morph.c"            /* (FASE 6) MORPH SCENES: the page's engine, used by params.c and ui_input.c */
 #include "params.c"
 #include "mod.c"               /* the modulation matrix, used by voice.c and fx.c */
@@ -115,6 +122,8 @@
 #include "song_chain.c"
 #include "seq.c"
 #include "audio.c"
+#undef clamp
+#undef mulq15
 
 /* -------------------------------------------------------------- UI --- */
 #include "panel.c"

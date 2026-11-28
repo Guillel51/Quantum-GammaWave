@@ -5,7 +5,13 @@
  * oscillator at amp = 1.0 (Q15 32767) contributes VOICE_FS. */
 #define VOICE_FS 24000           /* per-voice level: one voice peaks near -6 dBFS before the master */
 
-static inline int32_t mulq15(int32_t a, int32_t b) { return (a * b) >> 15; }
+/* (FASE 1/4) these two were inlined at every site by the inliner's copies (4 688 B of them) and the build no
+ * longer lets it copy the main loop's code (tools/build.py, -inline-threshold=1). The audio block needs them
+ * inline -- the drum path's inner loops are what tests/target_budget.py measures -- so there are two of each:
+ * the always_inline primitive the sound files select (felucca.c around their includes) and one out-of-line
+ * copy for the screens, which can afford the call. */
+static inline __attribute__((always_inline)) int32_t mulq15_i(int32_t a, int32_t b) { return (a * b) >> 15; }
+int32_t mulq15(int32_t a, int32_t b) { return mulq15_i(a, b); }
 /* (F5) THE DC BLOCKER'S POLE, WRITTEN SO IT CANNOT OVERFLOW. Both additive engines filter with
  * ((v * 32744) + 16384) >> 15. The constant is 0.9994 in Q15 and the expression is fine for a normal sample,
  * but the intermediate is not bounded by the sample: 96 000 (a post-filter voice peak) times 32 744 already
@@ -24,7 +30,8 @@ static inline __attribute__((always_inline)) int32_t mulq16(int32_t a, uint32_t 
 {
     return (int32_t)(((a >> 16) * (int32_t)k) + (int32_t)(((uint32_t)(a & 0xFFFF) * k) >> 16));
 }
-static inline int32_t clamp(int32_t v, int32_t lo, int32_t hi) { return v < lo ? lo : v > hi ? hi : v; }
+static inline __attribute__((always_inline)) int32_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return v < lo ? lo : v > hi ? hi : v; }
+int32_t clamp(int32_t v, int32_t lo, int32_t hi) { return clamp_i(v, lo, hi); }
 /* the same, bounded +-k and in one unsigned compare: v outside +-k is exactly
  * (unsigned)v + k > 2k (no overflow: unsigned wraps, and the sum is 0..2k inside the range),
  * and only then does the sign choose the bound. Also used by the SVF's two state clamps. */
