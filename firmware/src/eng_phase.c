@@ -13,7 +13,9 @@
 static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC",
                                        "RECT"};   /* (FASE 3) appended: the stores' 0..8 keep their wave, and a
                                                     * project or preset of before this version loads on the same one */
-static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
+static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP",
+                                        "SYNC", "RECT"};   /* (FASE 3) SYNC and RECT appended: WAVE2 counts
+                                                            * from "-", so these are waves 8 and 9 on line 2 */
 static const char *const N_PD_LINE[] = {"MIX", "RING", "PM"};   /* (FASE 2: PM appended, the stores' 0 / 1 stay).
                                                                   * (FASE 6) LINE = FOLD was designed and measured
                                                                   * (+96 B of XIP) and left out: +13 instructions a
@@ -393,7 +395,7 @@ static const engine_t ENG_PHASE = {
     .page_title = {"PHS", "LINE", "CHAR"},
     .edit = {
         {"WAVE", F_ENUM, 0, 9, 0, N_PD_WAVE, 0},   /* (FASE 3) 0..9: RECT appended */
-        {"WAVE2", F_ENUM, 0, 8, 0, N_PD_WAVE2, 0},
+        {"WAVE2", F_ENUM, 0, 10, 0, N_PD_WAVE2, 0},   /* (FASE 3) 0..10: SYNC and RECT appended */
         {"DCW", F_PCT, 0, 127, 60, 0, 0},
         {"ENV", F_PCT, 0, 127, 64, 0, 0},
         {"DETUNE", F_INT, 0, 127, 0, 0, "ct"},

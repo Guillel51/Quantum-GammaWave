@@ -30,14 +30,20 @@ pista, en el proyecto y en el preset), así que no hay migración: la edición f
 EDIT 1 del motor, el nombre sale del mismo descriptor que dibujan la página, el editor y el emulador, y el
 `desc.json` que consume Web Studio se genera de esa tabla (no hay lista paralela que actualizar).
 
+**La segunda línea también.** WAVE2 cuenta desde `"-"`, así que su lista se completa hasta la onda 9: se agregan
+**SYNC** y **RECT**, y la línea 2 puede sonar con las dos (antes llegaba hasta RTRP). Son dos valores al final del
+enum de WAVE2 (0..10); los guardados de antes no cambian de onda.
+
 **Prueba nueva** (`tests/phase_wave_test.c`, en `tests/run_tests.sh`): 10 renders, uno por valor de WAVE, en
 procesos separados; **10 hashes distintos**; RECT dentro del headroom de la parte (pico 36 194) y **centrado**
 (media 763/6400 frente a un pico de 36 194: el bloqueo de DC hace su trabajo); determinista (la misma onda dos
-veces, los mismos bytes); y los nueve nombres de antes intactos, que es lo que protege los stores.
+veces, los mismos bytes); WAVE2 = SYNC y WAVE2 = RECT con sonido propio; y los nueve nombres de antes intactos,
+que es lo que protege los stores.
 
 | medición | valor | clase |
 |---|---|---|
-| formas de onda de PHASE | 9 → **10** | código |
+| formas de onda de PHASE (WAVE) | 9 → **10** (RECT) | código |
+| formas de WAVE2 | 8 → **10** (SYNC, RECT) | código |
 | renders dorados | 316, **0 changed** | host x86-64 |
 | pico / media de RECT en la prueba | 36 194 / 763 de 6 400 muestras | host x86-64 |
 | `phase_render` (coste estático) | ver §6 | build AC791N |

@@ -2371,8 +2371,8 @@ function makeMockDevice(opt = {}) {
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 7, 0), D("-", F.INT, 0, 14, 1), D("-", F.INT, 0, 14, 1),
         D("-", F.INT, 0, 14, 1), D("-", F.PCT, 0, 127, 60), D("-", F.INT, 0, 127, 60), D("-", F.PCT, 0, 127, 0), NONE],
       presets: [] },
-    { name: "PHASE", titles: ["PHS", "LINE"], edit: [E("WAVE", ["SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC"], 0),
-        E("WAVE2", ["-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"], 0), D("DCW", F.PCT, 0, 127, 60), D("ENV", F.PCT, 0, 127, 64),
+    { name: "PHASE", titles: ["PHS", "LINE"], edit: [E("WAVE", ["SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC", "RECT"], 0),
+        E("WAVE2", ["-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP", "SYNC", "RECT"], 0), D("DCW", F.PCT, 0, 127, 60), D("ENV", F.PCT, 0, 127, 64),
         D("DETUNE", F.INT, 0, 127, 0, null, "ct"), E("LINE", ["MIX", "RING", "PM"], 0), D("SUB", F.PCT, 0, 127, 0), D("FB", F.PCT, 0, 127, 0)],
       presets: [
         P("BRASS", [0,  0,  30,  90,  0,  0,  0,  0], [8,  70,  90,  40], 0, 6),

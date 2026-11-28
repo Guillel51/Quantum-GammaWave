@@ -30,7 +30,7 @@ static void check(const char *what, int ok)
 
 typedef struct { uint64_t h; int32_t pk; int64_t sum; uint32_t n; } pw_t;
 
-static pw_t go_child(uint32_t w)
+static pw_t go_child(uint32_t w, uint32_t w2)
 {
     static int32_t buf[CTL];
     track_t *t = &trk[0];
@@ -39,7 +39,7 @@ static pw_t go_child(uint32_t w)
     host_tracks_init();
     host_preset(t, 2u, 0u);                          /* engine 2: PHASE (engines.c), its own first sound */
     t->p[P_E0] = (int16_t)w;                         /* WAVE */
-    t->p[P_E1] = 0;                                  /* WAVE2 off: one wave at a time */
+    t->p[P_E1] = (int16_t)w2;                        /* WAVE2, every other cycle (0 = off) */
     t->p[P_LD_PIT] = 0;                              /* the LFO out of it: the wave is what is measured */
     trk_note_on(t, 69, 100);
     for (i = 0; i < 240u; i++) {
@@ -61,7 +61,7 @@ static pw_t go_child(uint32_t w)
 
 /* each render in its own child: the DSP's static state starts as at boot (as tests/phase2_test.c), so two calls
  * with the same value are bit-identical and a difference is the wave's */
-static pw_t go(uint32_t w)
+static pw_t go(uint32_t w, uint32_t w2)
 {
     int fd[2];
     pw_t r;
@@ -73,7 +73,7 @@ static pw_t go(uint32_t w)
     if (pid == 0) {
         pw_t c;
         close(fd[0]);
-        c = go_child(w);
+        c = go_child(w, w2);
         if (write(fd[1], &c, sizeof c) != (ssize_t)sizeof c)
             _exit(1);
         _exit(0);
@@ -93,18 +93,22 @@ int main(void)
 {
     pw_t r[NW], again;
     uint32_t i, j, distinct = 0, dup = 0;
-    const param_desc_t *d;
+    const param_desc_t *d, *d2;
 
     host_tracks_init();                              /* the descriptor is the SELECTED engine's: PHASE's WAVE */
     host_preset(&trk[0], 2u, 0u);
     d = track_desc(&trk[0], P_E0);                   /* the descriptor the knob, the page and the editor read */
+    d2 = track_desc(&trk[0], P_E1);                  /* WAVE2's */
     check("PHASE's WAVE offers ten values", d && d->max == (int32_t)NW - 1 && d->names && d->names[NW - 1] &&
           !strcmp(d->names[NW - 1], "RECT"));
     check("the nine waves of before keep their names", d && d->names && !strcmp(d->names[0], "SAW") &&
           !strcmp(d->names[8], "SYNC"));
 
+    check("PHASE's WAVE2 reaches SYNC and RECT", d2 && d2->max == 10 && d2->names &&
+          !strcmp(d2->names[9], "SYNC") && !strcmp(d2->names[10], "RECT"));
+
     for (i = 0; i < NW; i++) {
-        r[i] = go(i);
+        r[i] = go(i, 0u);
         if (getenv("PW_VERBOSE"))
             printf("  w %u %-5s hash %016llx pk %d mean %lld/%u\n", i, d->names[i],
                    (unsigned long long)r[i].h, r[i].pk,
@@ -132,8 +136,16 @@ int main(void)
         check("RECT carries no offset into the voice (DC blocked)", mean <= lim && mean >= -lim);
     }
     /* the same wave twice: byte for byte (no hidden state between notes of the same wave) */
-    again = go(9);
+    again = go(9, 0u);
     check("RECT is deterministic", again.h == r[9].h);
+
+    /* the second line: RECT and SYNC there too, each a sound of its own */
+    {
+        pw_t off = go(0u, 0u), sy = go(0u, 9u), re = go(0u, 10u);
+        check("WAVE2 RECT renders and is audible", re.h && re.pk > 0);
+        check("WAVE2 RECT is its own sound", re.h != off.h && re.h != sy.h && re.h != r[9].h);
+        check("WAVE2 SYNC is its own sound", sy.h != off.h);
+    }
 
     if (fails) {
         printf("phase wave: %d FAILED\n", fails);
