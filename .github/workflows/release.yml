@@ -227,10 +227,11 @@ jobs:
           retention-days: 90
           path: attestation/
       - name: The identity inside the bytes is this firmware's own
-        env:
-          GH_TOKEN: ${{ github.token }}
+        # (FASE 5e) the attestation was established in the step above, by whichever of the two reviewed
+        # builders vouched for the file; repeating it here with only the shared builder's name is what kept
+        # every release run red after the first check started accepting the repository's own publisher. What
+        # this step proves is the other half: the picture and product strings inside the package are this
+        # firmware's, not another project's.
         run: |
           set -eu
-          gh attestation verify "${{ steps.pkg.outputs.path }}" --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow zvenson/fm1-build/.github/workflows/build.yml --format json > attestation.json
           python3 tools/check_package_identity.py "${{ steps.pkg.outputs.path }}"
