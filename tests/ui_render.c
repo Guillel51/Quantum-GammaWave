@@ -244,6 +244,9 @@ static void lg_hook(const char *s, int why);
  * still shows the date it was built. */
 #undef __DATE__
 #define __DATE__ "Nov 19 2026"
+/* (FASE 5e) THE VERSION IS PART OF THE BASELINE TOO, and it is the one string a release changes on purpose:
+ * the splash and ABOUT draw FELUCCA_VERSION, so a version bump moves ~48 frames. Rebase tests/ui_pixels.txt in
+ * the same commit as the bump (`ui_pixels.py --update`), never leave the base on the previous version. */
 
 #include "ui_test.c"
 
