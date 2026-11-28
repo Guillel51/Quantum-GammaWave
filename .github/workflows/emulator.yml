@@ -227,6 +227,9 @@ jobs:
           # (the outputs this step just wrote are not visible to its own template expressions: read them back)
           echo "newest signed release: $(sed -n 's/^version=//p' "$GITHUB_OUTPUT" | tail -1) ($(sed -n 's/^pkg=//p' "$GITHUB_OUTPUT" | tail -1))"
       - name: the emulator of the signed release's commit
+        env:
+          AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+          JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
         run: |
           REL="${{ steps.rel.outputs.commit }}"
           echo "release commit: '${REL}'"
@@ -234,6 +237,11 @@ jobs:
             git worktree add ../release-tree "$REL"
             ( cd ../release-tree
               python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
+              # (FASE 5e) the emulator compiles the firmware's packed factory tables, and only the packing pass in
+              # ./build.sh writes preset_pack.h: base headers alone stop web/emu/build.sh on purpose. The toolchain
+              # and the SDK are in this job, so the firmware build runs first here too (its package is not used).
+              ulimit -n 9000 || true
+              ./build.sh
               # (the release predates the fix that labels the WASM with its own tree: this build.sh passes
               # GITHUB_SHA as the label, so point GITHUB_SHA at the release commit for this one command.
               # Without it the WASM came from $REL and its page named this run's commit, which is exactly
