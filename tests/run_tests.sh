@@ -173,7 +173,19 @@ skip() { n_skip=$((n_skip + 1)); skips="$(printf '%s\n  - %s' "$skips" "$1")"; e
 # The line is plain text on purpose (no GitHub syntax in a test script): anyone greps for FAIL.
 # (FASE 5e) A FAILURE NAMES ITSELF where the CI can see it: the log of a GitHub job is not readable without admin
 # rights on the repository, and ":error:" is what the run's annotations carry, so a red job says which test failed.
-run() { n="$1"; echo "== $n"; shift; "$@" || { fail=1; echo "FAIL: $n"; echo "::error::FAIL: $n"; }; }
+run() {
+    n="$1"; echo "== $n"; shift
+    "$@" > /tmp/qg-test.out 2>&1
+    r=$?
+    cat /tmp/qg-test.out
+    [ "$r" = 0 ] && return 0
+    fail=1
+    echo "FAIL: $n"
+    echo "::error::FAIL: $n"                    # the test's name, and the last lines it printed, in the annotations
+    tail -8 /tmp/qg-test.out | while IFS= read -r l; do
+        [ -n "$l" ] && echo "::error::$l"
+    done
+}
 
 # A merge that left its markers behind compiles anyway when FELUCCA_VERSION comes in with -D, which is how the
 # host tests build; the AC791N build does not define it, so `firmware/src/felucca.c` with a `<<<<<<< HEAD` inside
