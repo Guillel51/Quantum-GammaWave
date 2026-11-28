@@ -196,6 +196,12 @@ static inline uint32_t voice_user_budget(void)
 #define MC_CPU() fm1_cnum()
 #else
 static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at once); the core "running" */
+#if !FELUCCA_DUAL_CORE                    /* (FASE 2) the host only: the unit has fm1_mc_wait's timeout for this and
+                                          * not a byte of .data+.bss for a test's switch */
+static uint8_t mc_host_lost;             /* tests: the next job "does not come back" -- fm1_mc_wait's failure path
+                                          * once, so mc_lost / the dropped block / the switch to one core run on the
+                                          * host too (tests/ui_test.c). 0 in a normal run. */
+#endif
 #define MC_CPU() ((uint32_t)mc_host_cpu)
 #endif
 /* (JIANT 0.6.78) the hottest audio code in RAM, for core 0 (felucca.c FELUCCA_HOTRAM): app.ld puts these functions'

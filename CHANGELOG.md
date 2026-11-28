@@ -1,3 +1,51 @@
+## v2.22.0 — Los límites simétricos en un solo compare, y la ruta del segundo núcleo perdido probada
+
+**La Fase 2 no encontró trabajo por muestra redundante en el plumbing del audio, y lo dice con la medición en la
+mano.** Se recorrieron `mix_block`, `mix_part`, `events_block`, `fx_buses`, `slicer_bus`, `lev_block`,
+`master_out`, la capa PERFORM y los diez motores: los buses ya duermen cuando no se les manda nada (`fx_gate` /
+`fx_sleep`), la capa FX no se llama siquiera cuando está ociosa (`perf_begin` devuelve 0 y `mix_block` toma el
+camino sin `perf_master`), el SLICER apagado sólo avanza su reloj, y una pista seca no paga el clamp ni las tres
+ramas de envío. Lo único que quedaba en el camino que corre **siempre** eran límites simétricos escritos como
+dos comparaciones: `clamp(x, -k, k)` en vez de `clamp_sym(x, k)`.
+
+**El cambio, y su tamaño real.** `master_out` limita ±262 143 en cada muestra de los dos canales para aplicar la
+ganancia del leveler; `mix_part` limita los envíos; `perf_block` limita las cuatro entradas de sus filtros. Las
+tres pasan a `clamp_sym`, que es el mismo resultado por construcción —dentro de ±k devuelve `v`, fuera el límite
+del signo— con un solo compare sin signo. Medido en **host x86-64** (mínimo de tres corridas, `tests/regress`):
+`idle_drums` 107,9 → **105,8 ns/muestra** (−1,9 %), `idle_click` 77,4 → 76,2 (−1,6 %), `3parts_full_drums`
+296,1 → 295,6 y `6parts_full` 343,2 → 341,8 (−0,2 / −0,4 %, dentro del ruido del host). **No se presenta como una
+ganancia de CPU de la unidad**: con seis pistas manda el motor y el ahorro es de la línea del máster.
+
+En el **build AC791N** (estático, `tests/target_budget.py`) el cambio achica lo que toca: `perf_block` 254 →
+**249** (−2 %), y el árbol medido con el mismo `./build.sh` en los dos commits da XIP 573 244 → **573 212 B**,
+imagen 578 024 → **577 992 B** (5 620 B libres en el slot, por encima del mínimo de 2 048 y del objetivo de
+4 KiB) con `.data+.bss` **90 628 B idéntico**. Los 316 renders dorados salen **0 changed**: es el mismo audio.
+
+**El segundo núcleo, su ruta de fallo.** `fm1_mc_wait` tiene tres salidas de fallo y la rama `mc_lost()` de
+`mix_block` no tenía ninguna prueba: el stub del host contestaba siempre 0. Al escribirla apareció una
+divergencia real del arnés —en la unidad el fallo deja el core parado (`fm1_mc_hold`), y en el host `mc_lost`
+marcaba la barra pero seguía repartiendo trabajo— ahora corregida (`mc_lost` apaga `mc_host`, como el objetivo),
+con la bandera de test bajo `#if !FELUCCA_DUAL_CORE` para no costar un byte del `.data+.bss`. La prueba nueva
+(**DUAL CORE LOST**) inyecta un job que no contesta y verifica que el core queda barrido, el bloque se descarta,
+las 7 voces siguen activas (ninguna colgada ni perdida por el cambio de core), todas las pistas vuelven al core 0
+y la salida no es silencio. `ui_test` completo: **0 FAILED**.
+
+**Presets: medidos, no tocados.** Los 296 sonidos navegables no tienen **ni una firma de parámetros repetida**
+dentro de un motor (los 8 `e[]`, el sobre, `fenv`, `mono`, los envíos y los `x[]`), así que los 127 pares con
+coseno espectral > 0,995 son sonidos parecidos, no duplicados. Sin oídos en este entorno, diferenciarlos sería
+adivinar: la biblioteca queda intacta y el gate se **endurece** —una firma idéntica dentro de un motor ahora
+falla `tests/preset_library_test.py`—, con los dos kits DRUM legacy y la compatibilidad de proyectos y presets
+anteriores verificadas por los tests que ya existían.
+
+**Instalador.** Revisado el flujo completo (paquete, identidad, SHA-256, límites, handshake, loader, reinicio) y
+sin tocar el bootloader, el mapa de flash ni ninguna protección de chip: `ldr_flash_known` y `FL_JEDEC_OK(id)`
+siguen como estaban. Las pruebas de esta entrega cubren paquete truncado o sin marcador, SHA ausente o que no
+coincide, otro modelo, loader que no aparece o no vuelve, desconexión a mitad, lecturas CRC malas, JEDEC
+desconocido y backup/restore. **SHA-256 verifica integridad, no autenticidad**: nada aquí afirma que el paquete
+esté firmado, y no se escribió nada en un FM-1 físico.
+
+Informe completo, con la clase de cada cifra y lo descartado con su razón: `docs/FASE2_RENDIMIENTO_ESTABILIDAD_2026-11-28.md`.
+
 ## v2.21.0 — El inliner deja de copiar las pantallas: 3 520 B de XIP recuperados, el audio intacto
 
 **El margen XIP estaba en 2 068 B sobre el mínimo de 2 048.** La medición limpia de HEAD (`rm -rf build &&

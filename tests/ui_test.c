@@ -10132,6 +10132,50 @@ static int test_click_menu(void)
         load_put(ld0 <= 2u ? 2u - ld0 : 2u);
         bad += check("DUAL CORE: parts on the second core (the DRUM ones together, there too), the sound bit for bit one core's", ok);
     }
+    {   /* (FASE 2) THE SECOND CORE IS GIVEN UP. fm1_mc_wait's failure path (on the unit: a job that does not come back,
+         * a misread mailbox, a fault of core 1) had no host coverage: the stub always answered. Here the next job
+         * "does not come back" (mc_host_lost, core.h), so mix_block takes its lost branch -- mc_lost, the block's bus
+         * return dropped, one core from the next block on. What is checked: the core is barred exactly as the unit
+         * bars it (mc_host, the host's fm1_mc_hold), no part is left on it (mc_mask_last 0), the instrument plays on
+         * with the same voices (none stuck, none leaked by the switch) and the output is not silence. */
+        int32_t o[2u * CTL];
+        uint32_t b, j, nv0 = 0, nv1 = 0, pk = 0, silent = 1;
+        uint8_t ld0 = ui_load, mch0 = mc_host;
+        int ok2 = 1;
+        load_put(2u);
+        rng_state = 0x1234567u;
+        dice_all();
+        if (!song.playing) transport_req = 1;
+        song.master_q12 = 4096;
+        mc_host = 1;
+        for (b = 0; b < 40u; b++) mix_block(o, CTL);
+        for (j = 0; j < NPART; j++)
+            for (b = 0; b < NVOICE; b++)
+                nv0 += V(&trk[j], b).active ? 1u : 0u;
+        mc_host_lost = 1;                               /* the next job does not answer: fm1_mc_wait's -1 */
+        mix_block(o, CTL);
+        ok2 &= !mc_host;                                /* given up: the host's fm1_mc_hold, one core from here
+                                                         * (mc_mask_last still names the block that was dropped, as
+                                                         * on the unit: it is the UI's readout, and the next block
+                                                         * writes the one core's 0 into it) */
+        for (b = 0; b < 40u; b++) {
+            mix_block(o, CTL);
+            for (j = 0; j < 2u * CTL; j++) {
+                uint32_t a = (uint32_t)(o[j] < 0 ? -o[j] : o[j]);
+                if (a > pk) pk = a;
+                silent &= (uint32_t)(o[j] == 0);
+            }
+        }
+        for (j = 0; j < NPART; j++)
+            for (b = 0; b < NVOICE; b++)
+                nv1 += V(&trk[j], b).active ? 1u : 0u;
+        ok2 &= (nv1 == nv0) && !silent && pk > 0 && mc_mask_last == 0;   /* same voices, none stuck, every part on
+                                                         * core 0: it plays on, one core */
+        if (!ok2) printf("  lost: host %u mask %02x voices %u -> %u, peak %u\n", mc_host, mc_mask_last, nv0, nv1, pk);
+        mc_host = mch0;
+        load_put(ld0 <= 2u ? 2u - ld0 : 2u);
+        bad += check("DUAL CORE LOST: a job that does not answer bars the core, drops its block and keeps every voice (one core from there)", ok2);
+    }
     {   /* (0.6.72) MIDI OUT (USB): ALL sends the sequencer's notes, each with its note-off (all of them by STOP), the
          * clock 24 a beat with START / STOP; KEYS none of that; CLOCK the clock only. PROGRAM CHANGE n on a track's
          * channel loads the PRESETS list's n + 1-th sound into that track */

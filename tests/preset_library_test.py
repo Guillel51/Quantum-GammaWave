@@ -8,6 +8,12 @@ Checks: 281 browsable sounds and each engine's share; DRUM's ten indices unchang
 kits still present as legacy entries at indices 10/11 (so an old project loads the exact sound it saved);
 no two sounds of an engine share a name; every entry's E count, envelope and sends in range. Duplicate
 parameter signatures are reported (not failed): the older library is allowed to be close.
+
+(FASE 2) A SHARED PARAMETER SIGNATURE IS A FAILURE. The 127 pairs the spectral audit found at cosine > 0.995
+are similar sounds, not the same sound: each one sets different E values, sends or x[] slots. Two library
+entries of one engine with an *identical* signature are one sound stored twice under two names, and that is
+redundancy nobody chose. There are none today (the audit measures the real engine_t and reports 0), so a new
+one fails here instead of shipping as "another preset".
 """
 import codecs
 import re
@@ -206,7 +212,7 @@ if missing:
     fails.append("1.6 sounds missing: " + ", ".join(missing))
 for (label, _), group in sorted(sigs.items()):
     if len(group) > 1:
-        print("note: %s: %s share one parameter set" % (label, ", ".join(group)))
+        fails.append("%s: %s share one parameter set (one sound under two names)" % (label, ", ".join(group)))
 
 if fails:
     for f in fails:

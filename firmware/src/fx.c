@@ -1022,8 +1022,11 @@ static const uint16_t MW_COMP[64] = {
         *l = mid + side;
         *r = mid - side;
     }
-    *l = (clamp(*l, -262143, 262143) * (lev_cur >> 4)) >> 11;   /* (JIANT 0.5) the leveler's gain (lev_block) */
-    *r = (clamp(*r, -262143, 262143) * (lev_cur >> 4)) >> 11;
+    /* (FASE 2) the bound is symmetric: clamp_sym is the same clamp in one unsigned compare (dsp.c), and this is
+     * the one line of the master that runs on every sample of both channels. Bit-identical by construction: for
+     * |x| <= k it returns x and outside it the sign's bound, exactly what clamp(x, -k, k) did. */
+    *l = (clamp_sym(*l, 262143) * (lev_cur >> 4)) >> 11;   /* (JIANT 0.5) the leveler's gain (lev_block) */
+    *r = (clamp_sym(*r, 262143) * (lev_cur >> 4)) >> 11;
     lev_cur += lev_dg;
     al = *l < 0 ? -*l : *l;
     ar = *r < 0 ? -*r : *r;
@@ -2416,7 +2419,8 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
             if (a > pk)
                 pk = a;
             if (c | d | r) {                            /* (FASE 1) a dry part pays nothing for the sends */
-                int32_t xs = clamp(x, -xmax, xmax);     /* sends: mulq15 would overflow */
+                int32_t xs = clamp_sym(x, xmax);        /* sends: mulq15 would overflow (FASE 2: xmax is
+                                                         * symmetric, so the one-compare clamp is the same bound) */
                 if (c)
                     sc[i] += mulq15(xs, c);
                 if (d)
@@ -2514,7 +2518,13 @@ static int mc_run(void (*f)(uint32_t), uint32_t a)      /* (the host: at once, a
     mc_host_cpu = 0;
     return 1;
 }
-static int mc_wait(void) { return 0; }
+static int mc_wait(void)                     /* (FASE 2) a test can make one job fail, as fm1_mc_wait's timeout */
+{
+    if (!mc_host_lost)
+        return 0;
+    mc_host_lost = 0;
+    return -1;
+}
 #define mc_live() (mc_host != 0)
 #endif
 static volatile uint8_t mc_off;                          /* REC held at power-on: one core this session (main.c) */
@@ -2797,6 +2807,9 @@ static __attribute__((noinline)) void mc_lost(void)    /* core 1 given up mid-jo
     mc_cur = -1;
 #if FELUCCA_DUAL_CORE
     fm1_mc_bar_set();                                    /* one core until power-off (hal/fm1_multicore.h) */
+#else
+    mc_host = 0;                                         /* (FASE 2) the host's fm1_mc_hold: the same switch to one
+                                                          * core fx_trip makes, so the failure path is testable */
 #endif
 }
 
