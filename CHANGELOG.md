@@ -1,3 +1,14 @@
+## v2.20.3 — La release v2.20.2 se atestigua sobre un árbol que pasa sus propios tests
+
+**La release v2.20.2 se publicó, pero su atestación no.** `release.yml` (el workflow compartido del Hub) corre los
+tests del repositorio antes de construir y firmar; el tag `v2.20.2` quedó sobre un árbol cuyo `tests/ui_pixels.txt`
+seguía dibujando la versión anterior, así que ese paso falló y el paquete quedó sin atestación. Este parche sube la
+versión y mueve la línea base de píxeles en el mismo commit, que es la regla que el propio arnés ahora documenta:
+el splash y ABOUT dibujan `FELUCCA_VERSION`, y cada bump mueve 48 frames.
+
+Nada del firmware cambia respecto de v2.20.2 salvo la cadena de versión: el paquete se reconstruye desde este
+commit, el emulador sale del mismo, y el sitio, el instalador y los `SHA256SUMS` describen ese paquete.
+
 ## v2.20.2 — Los tests de host construyen sus tablas, y los tres rojos del CI dicen qué fallaba
 
 **La suite de host no podía compilar en un árbol limpio.** Compila `preset_pack.h` y `lz4_tables.h`, que sólo escribe
