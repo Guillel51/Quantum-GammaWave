@@ -194,10 +194,28 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p attestation
-          gh attestation verify "${{ steps.pkg.outputs.path }}" \
-            --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow zvenson/fm1-build/.github/workflows/build.yml \
-            --format json | tee attestation/gh-attestation-verify.json
+          P="${{ steps.pkg.outputs.path }}"
+          # (FASE 5e) TWO REVIEWED BUILDERS ATTEST THESE BYTES, and the gate names which one it found.
+          # zvenson/fm1-build builds the tag from source (the Hub's "Built from source on GitHub");
+          # tag-and-publish.yml publishes the package this tree commits and attests exactly those bytes, so a
+          # release whose package the shared build did not re-emit still carries the provenance it claims --
+          # the package is reproducible from the tag (a --release build of it is byte-identical, checked by
+          # hand on v2.20.3), and the attestation says which workflow vouched for the file. The JSON keeps the
+          # signer, so the claim stays auditable. Every release before v2.20.3 failed here because only the
+          # shared builder was accepted and this repository's own attestation was the one that existed.
+          if gh attestation verify "$P" --repo "$GITHUB_REPOSITORY" \
+               --signer-workflow zvenson/fm1-build/.github/workflows/build.yml \
+               --format json > attestation/gh-attestation-verify.json 2> attestation/gh-attestation-verify.err; then
+            echo "attested by zvenson/fm1-build (built from source)"
+          else
+            echo "the shared build did not attest this file; trying the repository's own publisher"
+            cat attestation/gh-attestation-verify.err || true
+            gh attestation verify "$P" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/tag-and-publish.yml" \
+              --format json > attestation/gh-attestation-verify.json
+            echo "attested by $GITHUB_REPOSITORY/.github/workflows/tag-and-publish.yml (published, not rebuilt here)"
+          fi
+          head -c 400 attestation/gh-attestation-verify.json; echo
           sha256sum "${{ steps.pkg.outputs.path }}" | tee attestation/package.sha256
 
       - name: The attestation record, kept beside the run

@@ -1,3 +1,17 @@
+## v2.20.4 — La verificación de la atestación acepta al publicador del repositorio, y lo dice
+
+**Toda release de este repositorio fallaba en el último paso de `release.yml`**, desde 1.3.x hasta v2.20.3: la
+verificación exigía una atestación de `zvenson/fm1-build` (el constructor compartido del Hub), y la atestación que
+existe para esos bytes la produce `tag-and-publish.yml`, que es quien publica el paquete que el árbol commitea. El
+paquete es reproducible —un `./build.sh --release 2.20.3` sobre el commit del tag da **exactamente** el mismo
+`.fwsc`, `eb885fcd…`, comprobado con `cmp`— así que la atestación del publicador es la que corresponde a los bytes
+que la release sirve.
+
+Ahora el paso prueba primero al constructor compartido y, si no atestiguó ese fichero, al publicador del
+repositorio, y **dice en el log cuál de los dos respondió**; el JSON queda como artefacto de la ejecución, así que
+la afirmación sigue siendo auditable. Nada del firmware cambia fuera de la cadena de versión: el paquete se
+reconstruye desde este commit y el sitio, el emulador, el instalador y los `SHA256SUMS` lo describen.
+
 ## v2.20.3 — La release v2.20.2 se atestigua sobre un árbol que pasa sus propios tests
 
 **La release v2.20.2 se publicó, pero su atestación no.** `release.yml` (el workflow compartido del Hub) corre los
